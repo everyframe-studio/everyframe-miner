@@ -77,3 +77,50 @@ fn rejects_bad_ss58_checksum() {
     bad.replace_range(bad.len() - 1.., "1");
     assert!(hotkey::public_address(&bad).is_err());
 }
+#[test]
+fn public_enrollment_signs_only_fresh_pinned_offchain_challenges() {
+    let (d, inv) = fixture();
+    let key = ed25519_dalek::SigningKey::from_bytes(&[19u8; 32]);
+    let mut trust = everyframe_miner::invitation::trust("mainnet").unwrap();
+    trust["publicKey"] = json!(protocol::export(key.verifying_key().as_bytes(), true));
+    let nonce = protocol::id();
+    let at = now();
+    let c = json!({"kind":"everyframe-public-enrollment-v1","chain":hotkey::chain(&trust).unwrap(),"audience":trust["coordinatorUrl"],"hotkey":inv["hotkey"],"nonce":nonce,"challenge":protocol::id(),"releaseHash":"ab".repeat(32),"issuedAt":at,"expiresAt":at+120000});
+    let path = d.path().join("hotkey");
+    let address = inv["hotkey"].as_str().unwrap();
+    let signed = protocol::signed(&c, &key).unwrap();
+    let sig = hotkey::enrollment_proof(&path, &signed, &trust, address, &nonce).unwrap();
+    let public =
+        schnorrkel::PublicKey::from_bytes(&hotkey::public_address(address).unwrap()).unwrap();
+    public
+        .verify_simple(
+            b"substrate",
+            protocol::canonical(&c).unwrap().as_bytes(),
+            &schnorrkel::Signature::from_bytes(&hex::decode(sig).unwrap()).unwrap(),
+        )
+        .unwrap();
+    for (field, value) in [
+        ("kind", json!("transaction")),
+        ("nonce", json!(protocol::id())),
+        ("audience", json!("https://evil.example/")),
+        ("chain", json!({})),
+        ("expiresAt", json!(now() - 1)),
+        ("hotkey", json!(hotkey::address(&[1u8; 32]))),
+    ] {
+        let mut bad = c.clone();
+        bad[field] = value;
+        assert!(
+            hotkey::enrollment_proof(
+                &path,
+                &protocol::signed(&bad, &key).unwrap(),
+                &trust,
+                address,
+                &nonce
+            )
+            .is_err()
+        );
+    }
+    let mut bad = signed;
+    bad["value"]["releaseHash"] = json!("cd".repeat(32));
+    assert!(hotkey::enrollment_proof(&path, &bad, &trust, address, &nonce).is_err());
+}

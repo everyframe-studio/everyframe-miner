@@ -46,15 +46,8 @@ macOS Intel and Apple Silicon builds run on the corresponding release CI runners
 Windows and Alpine/musl Linux are not supported; use a compatible Linux under WSL
 on Windows. `curl` and either `sha256sum` or `shasum` are needed for installation.
 
-For a specific release, replace `latest/download` with `download/<tag>`:
-
-```sh
-curl --proto '=https' --tlsv1.2 -LsSf \
-  https://github.com/everyframe-studios/everyframe-miner/releases/download/v0.1.3/everycli-installer.sh | sh
-```
-
-Every release's installer is pinned to that version. To avoid modifying shell
-profiles, pipe into `EVERYCLI_NO_MODIFY_PATH=1 sh` instead; add the bin directory to
+To avoid modifying shell profiles, pipe into `EVERYCLI_NO_MODIFY_PATH=1 sh`
+instead; add the bin directory to
 PATH yourself. Fish users should use this option and configure their Fish PATH.
 
 ### Upgrade everycli
@@ -83,10 +76,9 @@ and HTTPS.
 
 ## Set up a miner
 
-The onboarding and hotkey flow below requires **everycli v0.1.3 or later**.
-Version v0.1.1 uses the legacy token flow. Hotkey authentication also requires
-a compatible, separately reviewed worker image and coordinator configuration;
-updating the CLI alone does not migrate an existing deployment.
+Self-service onboarding requires **everycli v0.1.4 or later**. Run `everycli update`
+first if you installed an older release. Updating the CLI does not migrate an
+existing token-based worker automatically.
 
 Before deployment, you need:
 
@@ -94,14 +86,14 @@ Before deployment, you need:
   membership; on-chain registration is done separately using your wallet tool.
 - A funded Phala Cloud account and its API key for the attested workload.
 - At least one funded provider account supported by your deployment configuration.
-- Your local miner hotkey file and a hotkey-enabled signed deployment
-  configuration, passed to `init` as `--invitation`. No `MINER_TOKEN` is needed.
+- Your local miner hotkey file. No invitation file or `MINER_TOKEN` is needed.
 
 The downloads and public worker images do not require registry credentials.
-The current CLI still validates the signed deployment configuration and requires
-coordinator attestation approval before enabling provider keys. Hotkey
-authentication does not bypass image/TEE admission. Downloading the
-CLI alone does not register or activate a miner.
+`init` proves hotkey ownership, verifies finalized subnet membership on the server,
+and automatically downloads the signed deployment configuration. The CLI checks
+its pinned coordinator signature. The deployed worker must then pass exact
+image/TEE attestation before provider keys are enabled. Downloading the CLI alone
+does not register or activate a miner, and no coldkey transaction is signed.
 
 ### 1. Check your hotkey
 
@@ -161,8 +153,7 @@ does not revoke it at the provider—revoke leaked credentials there immediately
 ### 3. Initialize and deploy
 
 ```sh
-everycli miner init \
-  --invitation /private/deployment.json
+everycli miner init
 everycli miner doctor
 everycli miner deploy --max-hourly-usd 0.06
 everycli miner status
@@ -175,7 +166,7 @@ to import an owner-only dotenv file; omitted credentials are preserved. The impo
 does not execute shell expressions. Public-image deployments never send registry
 credentials, even if stale registry keys exist locally.
 
-The paths above are examples. `doctor` can report that no workload is deployed
+`doctor` can report that no workload is deployed
 before the initial `deploy`. Review its diagnosis rather than treating every
 pre-deployment warning as an installation failure. The hourly ceiling is an
 example; deployment is refused if the quoted compute rate exceeds it.
@@ -191,8 +182,8 @@ The hotkey signs separate, expiring console and worker authorizations. Only the
 worker's restricted delegate is sent through Phala's encrypted environment;
 the hotkey and console delegate stay on your computer. This does not sign a
 blockchain transaction or access your coldkey. Delegations last at most 30 days,
-bounded by the deployment configuration's expiry. Renew with `init` using a
-current configuration before expiry, then use `apply-api-keys` for an activated worker
+bounded by the deployment configuration's expiry. Renew with `init` before
+expiry (it fetches a fresh signed configuration), then use `apply-api-keys` for an activated worker
 and wait for fresh admission before resuming work.
 
 Older token-based deployments remain compatible until explicitly migrated.
@@ -203,7 +194,7 @@ Activation happens in stages. Check `status` and `doctor` between them; do not
 run through admission failures or repeatedly retry an uncertain deployment.
 
 ```sh
-# After exact-image operator admission:
+# Once status shows accepted attestation:
 everycli miner activate
 # After fresh post-restart admission:
 everycli miner resume
@@ -268,8 +259,9 @@ the same profile with two CLI processes at once.
 
 Commands accept `--json` for machine-readable output. Lifecycle operations and
 offer changes require interactive confirmation or `--yes`; `--json` does not
-imply consent. `init` with a deployment file, local hotkey and saved credentials
-does not prompt for confirmation.
+imply consent. `init` with a local hotkey and saved credentials does not prompt
+for confirmation and does not create a paid VM. The optional legacy deployment
+file import remains available for existing managed deployments.
 Exit codes: `0` success, `1` command error, `2` unhealthy diagnosis or unresolved
 reconciliation (also an unregistered hotkey). Normal command output is formatted
 JSON; `--json` uses compact JSON.
@@ -330,12 +322,13 @@ admission, lifecycle commands, bids, filesystem security, and fail-closed startu
 CLI downloads and deployed worker images are separate releases. Updating the CLI
 does not change the image selected by your deployment configuration.
 
-The source checkout's `config/release.json` is an **unconfigured build template**,
-not the configuration of a deployed worker. Building a worker unchanged from that
-template makes it exit with `release_not_configured`; this does not prevent the
-prebuilt CLI from working. Worker publishers must configure the reviewed trust
-pins, publish a digest-pinned image, and have its exact measurements admitted.
-Miners using an existing deployment configuration do not need to build an image.
+`config/release.json` pins the SN117 coordinator and chain. Self-service setup
+selects the approved digest-pinned worker automatically; miners do not build an
+image or supply registry credentials. A locally modified image is not automatically
+admitted. Unknown OS measurements or KMS CA identities fail attestation rather
+than being trusted on first use. The KMS runtime probe can vary between boots;
+the coordinator still verifies the hardware configuration binding and complete
+boot transcript. Phala remains the trusted KMS operator; see [SECURITY.md](SECURITY.md).
 
 The worker never receives your hotkey private key. The CLI reads the hotkey only
 to sign scoped authentication, never to move funds. Keep hotkeys, credentials,

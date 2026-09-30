@@ -28,7 +28,7 @@ Options:
   --hotkey-ss58 ADDRESS (register-hotkey; public address only)
   --provider NAME (set-api-keys/remove-api-key; includes phala)
   --stdin (set-api-keys --provider NAME; read one key from a pipe)
-  --invitation FILE (init; signed deployment configuration)
+  --invitation FILE (init; optional legacy deployment import)
   --secrets-file FILE (init; optional legacy credential import)
   --release FILE (update)
   --max-hourly-usd N (deploy/start; storage extra)
@@ -342,20 +342,38 @@ pub fn run(args: &Args) -> Result<Value> {
         }
         "apply-api-keys" => miner.apply_api_keys(&confirm),
         "init" => {
-            let inv = args
-                .get("--invitation")
-                .map(str::to_string)
-                .map(Ok)
-                .unwrap_or_else(|| question("Signed invitation file: ", args.flag("--json")))?;
-            let envelope = read_json(Path::new(&inv), false)?;
+            miner.state.prepare()?;
+            let registration = miner.state.read("registration", true)?;
+            let path = local_hotkey(args)?.or_else(|| {
+                registration["hotkeyFile"]
+                    .as_str()
+                    .map(std::path::PathBuf::from)
+            });
+            if let Some(path) = &path
+                && !registration.is_null()
+            {
+                need(
+                    registration["network"] == network
+                        && registration["hotkey"] == onboarding::file_address(path)?,
+                    "hotkey_does_not_match_deployment",
+                )?;
+            }
+            let envelope = if let Some(file) = args.get("--invitation") {
+                read_json(Path::new(file), false)?
+            } else {
+                onboarding::enroll(
+                    miner.http,
+                    &miner.trust,
+                    path.as_deref()
+                        .ok_or(Error("local_hotkey_required_use_wallet_or_hotkey_file"))?,
+                )?
+            };
             let deployment = miner.validate(&envelope, false)?;
             let mut credentials = if let Some(file) = args.get("--secrets-file") {
                 read_secrets(Path::new(file))?
             } else {
                 json!({})
             };
-            miner.state.prepare()?;
-            let registration = miner.state.read("registration", true)?;
             if !registration.is_null() {
                 need(
                     registration["hotkey"] == deployment["hotkey"]
@@ -364,13 +382,7 @@ pub fn run(args: &Args) -> Result<Value> {
                 )?;
             }
             if deployment["authMode"] == "hotkey-v1" {
-                let path = local_hotkey(args)?
-                    .or_else(|| {
-                        registration["hotkeyFile"]
-                            .as_str()
-                            .map(std::path::PathBuf::from)
-                    })
-                    .ok_or(Error("local_hotkey_required_use_wallet_or_hotkey_file"))?;
+                let path = path.ok_or(Error("local_hotkey_required_use_wallet_or_hotkey_file"))?;
                 credentials.as_object_mut().unwrap().remove("MINER_TOKEN");
                 credentials["CONSOLE_AUTH"] = crate::hotkey::create(&path, &deployment, "console")?;
                 credentials["WORKER_AUTH"] = crate::hotkey::create(&path, &deployment, "worker")?;

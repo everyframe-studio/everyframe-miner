@@ -59,7 +59,8 @@ and third-party notice review below before calling this an audited distribution.
 3. For CLI distribution, build for each supported OS/architecture, publish binary
    checksums, and sign artifacts through the owner's existing release process.
 4. For worker distribution, review `config/release.json`, coordinator/chain pins,
-   the registry, and source changes. The public checkout stays `UNCONFIGURED`.
+   the registry, and source changes. Public trust pins are not credentials;
+   changing them requires a separately reviewed worker release.
 5. Build using reviewed **digest-pinned** Rust and runtime images with compatible
    libc versions. No credentials, invitation, wallet, or live profile may enter
    the build context. The `.dockerignore` uses an explicit allowlist.
@@ -76,9 +77,10 @@ Final images contain only their
 native executable and the chosen base runtime—no Node.js or Python is added.
 
 6. Push only when explicitly approved; record the immutable image digest.
-7. Request a new signed, digest-pinned compose invitation. The coordinator must
-   review the new exact app/OS/KMS measurements. Never whitelist all images or
-   bypass admission to make the port start.
+7. Stage the digest-pinned image and reviewed OS/KMS policy in the coordinator's
+   public release configuration. Self-service enrollment derives each miner's
+   exact compose/app binding from that configuration. Never whitelist all images,
+   trust unreviewed measurements from a new VM, or bypass admission.
 8. Test in a separately approved canary with a stated total budget. Verify real
    dstack quotes, admission, activation, job completion, provider accounting,
    recovery, and shutdown before production promotion.

@@ -11,7 +11,7 @@ use crate::{
 };
 use serde_json::{Value, json};
 use std::path::Path;
-pub const PENDING: &str = "Waiting for operator review of the exact app/OS/KMS measurements. No working provider key was released. Hosting continues until stopped.";
+pub const PENDING: &str = "Waiting for attestation against the approved app/OS/KMS measurements. No working provider key was released. Hosting continues until stopped. Run miner status; once accepted, run miner activate.";
 pub fn read_secrets(path: &Path) -> Result<Value> {
     let data =
         String::from_utf8(read(path, true, 64000)?).map_err(|_| Error("invalid_credential"))?;
@@ -134,7 +134,7 @@ impl Miner<'_> {
     }
     pub fn api(&self, c: &Context, action: &str, payload: Value) -> Result<Value> {
         need(
-            ["status", "drain", "resume", "offer"].contains(&action),
+            ["status", "drain", "resume", "offer", "bind-app"].contains(&action),
             "unsupported_action",
         )?;
         let nonce = id();
@@ -293,9 +293,9 @@ impl Miner<'_> {
             "Signature, token binding, and owner-only files checked.",
         );
         add(
-            "Invitation",
+            "Deployment configuration",
             n(&inv["expiresAt"])? > now(),
-            "Expired invitations permit diagnosis/stop only.",
+            "Expired configurations permit diagnosis/stop only; renew with miner init.",
         );
         add(
             "Phala credential",
@@ -305,7 +305,7 @@ impl Miner<'_> {
         add(
             "Wallet enrollment",
             true,
-            "Signed operator enrollment verified; no wallet signing is performed.",
+            "Signed enrollment verified; no blockchain transaction is signed.",
         );
         for provider in providers.as_array().unwrap() {
             if provider["configured"] == true {
@@ -591,12 +591,28 @@ impl Miner<'_> {
         )?;
         state["phase"] = json!("awaiting_attestation");
         self.state.write("deployment", &state)?;
+        self.bind_public_app(&c, &state)?;
         Ok(
             json!({"phase":state["phase"],"appId":state["appId"],"composeHash":inv["composeHash"],"next":PENDING}),
         )
     }
     pub fn activate(&self, confirm: &dyn Fn(&str) -> Result<()>) -> Result<Value> {
         self.activate_keys(confirm, false)
+    }
+    fn bind_public_app(&self, c: &Context, deployment: &Value) -> Result<()> {
+        if c.invitation["publicOnboarding"] != true {
+            return Ok(());
+        }
+        let out = self.api(
+            c,
+            "bind-app",
+            json!({"appId":deployment["appId"],"composeHash":c.invitation["composeHash"]}),
+        )?;
+        need(
+            out["appId"] == deployment["appId"]
+                && out["composeHash"] == c.invitation["composeHash"],
+            "deployment_binding_mismatch",
+        )
     }
     pub fn apply_api_keys(&self, confirm: &dyn Fn(&str) -> Result<()>) -> Result<Value> {
         self.activate_keys(confirm, true)
@@ -843,6 +859,11 @@ impl Miner<'_> {
         let info = self.target(&c, true)?;
         let phase = s(&c.deployment["phase"])?;
         let status = s(&info["status"])?;
+        if status == "running"
+            && ["commit_intent", "provisioned", "awaiting_attestation"].contains(&phase)
+        {
+            self.bind_public_app(&c, &c.deployment)?;
+        }
         let mut d = c.deployment.clone();
         let next = if ["stop_intent", "stopping", "stopped"].contains(&phase)
             && ["stopped", "exited"].contains(&status)

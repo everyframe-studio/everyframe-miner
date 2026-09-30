@@ -169,10 +169,11 @@ fn binaries_work_without_any_runtime_or_credentials() {
     assert!(cli.status.success());
     assert!(String::from_utf8_lossy(&cli.stdout).contains("rust"));
     let worker = std::process::Command::new(env!("CARGO_BIN_EXE_everyframe-worker"))
+        .env_clear()
         .output()
         .unwrap();
     assert!(!worker.status.success());
-    assert!(String::from_utf8_lossy(&worker.stderr).contains("release_not_configured"));
+    assert!(String::from_utf8_lossy(&worker.stderr).contains("real_dstack_socket_required"));
 }
 
 #[test]

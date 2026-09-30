@@ -60,9 +60,19 @@ from worker authority. Migrating a binding disables its legacy bearer token and
 revokes existing worker sessions. TEE admission and job receipt verification are
 still required; a registered hotkey alone does not approve an arbitrary image.
 
-Deployment configuration signing and hotkey-to-miner binding remain operator
-actions after registration/ownership checks. This change is authentication, not
-permissionless on-chain registration or automatic TEE policy approval. Existing
+Public onboarding verifies a fresh, domain-separated sr25519 challenge and checks
+forward and reverse subnet membership at a finalized block. The coordinator
+issues the approved deployment automatically; no invitation is exchanged manually.
+Only app identity and the derived compose hash vary per miner. The operator's
+reviewed OS measurements, worker image and KMS CA identity remain pinned, and
+provider keys remain disabled until hardware attestation succeeds. Public policies
+also check the hardware MR-CONFIG-ID compose binding and replay the complete
+RTMR3 boot transcript. Phala's per-boot `mr-kms` probe is recorded in that transcript,
+not treated as a stable image hash. This explicitly trusts the pinned Phala KMS CA;
+it is not an independent audit of Phala's KMS binary. Legacy exact-snapshot
+policies are unchanged. This is not on-chain registration or trust-on-first-use
+image approval. Paused or revoked miners
+cannot re-enroll to bypass their restrictions. Existing
 token deployments retain compatibility until explicitly migrated. Keep their
 tokens until the coordinator binding, worker image, and profile are migrated.
 

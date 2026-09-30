@@ -45,6 +45,21 @@ pub trait Http {
     }
 }
 pub struct PublicHttp;
+fn enrollment_error(bytes: &[u8]) -> Error {
+    if bytes.len() <= 4096
+        && let Ok(v) = serde_json::from_slice::<Value>(bytes)
+    {
+        return Error(match v["error"].as_str() {
+            Some("public_onboarding_unavailable") => "public_onboarding_unavailable_no_vm_created",
+            Some("hotkey_not_registered") => "hotkey_not_registered",
+            Some("miner_paused_contact_operator") => "miner_paused_contact_operator",
+            Some("existing_miner_requires_migration") => "existing_miner_requires_migration",
+            Some("authorization_revoked") => "authorization_revoked",
+            _ => "enrollment_failed_no_vm_created",
+        });
+    }
+    Error("enrollment_failed_no_vm_created")
+}
 pub fn safe_url(input: &str, hosts: &[String]) -> Result<Url> {
     let u = Url::parse(input).map_err(|_| Error("unapproved_destination"))?;
     let host = u.host_str().unwrap_or("");
@@ -146,6 +161,19 @@ impl Http for PublicHttp {
                 r.body = None;
                 continue;
             }
+            if !response.status().is_success()
+                && u.host_str() == Some("subnet.everyframe.studio")
+                && u.path().contains("/onboarding/")
+            {
+                // Only expose fixed, known enrollment errors, never arbitrary
+                // remote text or response bodies that might contain secrets.
+                let mut bytes = Vec::new();
+                response
+                    .take(4097)
+                    .read_to_end(&mut bytes)
+                    .map_err(|_| Error("remote_request_failed"))?;
+                return Err(enrollment_error(&bytes));
+            }
             need(response.status().is_success(), "remote_request_failed")?;
             need(
                 response
@@ -162,5 +190,28 @@ impl Http for PublicHttp {
             return Ok(bytes);
         }
         Err(Error("unapproved_redirect"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::enrollment_error;
+    #[test]
+    fn enrollment_errors_never_echo_remote_text_or_secrets() {
+        assert_eq!(
+            enrollment_error(br#"{"error":"public_onboarding_unavailable"}"#).0,
+            "public_onboarding_unavailable_no_vm_created"
+        );
+        for bytes in [
+            b"not json".as_slice(),
+            br#"{"error":"secret-from-server"}"#,
+            br#"{"message":"secret-from-server"}"#,
+        ] {
+            assert_eq!(enrollment_error(bytes).0, "enrollment_failed_no_vm_created");
+        }
+        assert_eq!(
+            enrollment_error(&vec![b' '; 4097]).0,
+            "enrollment_failed_no_vm_created"
+        );
     }
 }

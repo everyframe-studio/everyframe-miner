@@ -13,6 +13,35 @@ use std::{
 };
 use twox_hash::XxHash64;
 
+pub fn enroll(http: &dyn Http, trust: &Value, path: &Path) -> Result<Value> {
+    let address = file_address(path)?;
+    let base = s(&trust["coordinatorUrl"])?.trim_end_matches('/');
+    let nonce = crate::protocol::id();
+    let post = |route: &str, body: &Value| {
+        http.json(
+            Request::get(
+                format!("{base}/onboarding/{route}"),
+                &["subnet.everyframe.studio"],
+            )
+            .json("POST", body),
+        )
+    };
+    let challenge = post("challenge", &json!({"hotkey":address,"nonce":nonce}))?;
+    let signature = hotkey::enrollment_proof(path, &challenge, trust, &address, &nonce)?;
+    let envelope = post(
+        "enroll",
+        &json!({"challenge":challenge,"signature":signature}),
+    )?;
+    let deployment = invitation::validate(&envelope, trust, now(), false)?;
+    need(
+        deployment["hotkey"] == address
+            && deployment["publicOnboarding"] == true
+            && deployment["authMode"] == "hotkey-v1",
+        "invalid_public_deployment",
+    )?;
+    Ok(envelope)
+}
+
 pub fn wallet_path(wallet: &str, key: &str) -> Result<PathBuf> {
     need(
         matches("[A-Za-z0-9_-]{1,80}", &json!(wallet))
@@ -126,7 +155,7 @@ pub fn check_registration(http: &dyn Http, network: &str, address: &str) -> Resu
         "chain_hotkey_mapping_mismatch",
     )?;
     Ok(
-        json!({"registered":true,"network":network,"netuid":netuid,"hotkey":address,"uid":uid,"finalizedBlock":block,"checkedAt":now(),"chainTransactionSubmitted":false,"next":"Hotkey membership verified. This is not coordinator admission or proof of wallet ownership. Set API keys, then initialize with your signed deployment configuration."}),
+        json!({"registered":true,"network":network,"netuid":netuid,"hotkey":address,"uid":uid,"finalizedBlock":block,"checkedAt":now(),"chainTransactionSubmitted":false,"next":"Hotkey membership verified. Set API keys, then run miner init to prove ownership and fetch the signed deployment automatically."}),
     )
 }
 

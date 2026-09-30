@@ -6,6 +6,11 @@ Package versions are independent of the original CLI. v0.1.3 adds hotkey-backed
 authentication and local onboarding commands; publishing a CLI still does not
 admit a new worker image.
 
+v0.1.4 makes `init` self-service on SN117. It obtains a signed deployment using
+a fresh off-chain ownership proof and finalized membership check; `--invitation`
+is now only an optional legacy import. Deploy/reconcile bind the exact app to the
+approved release policy automatically. Existing managed profiles are not migrated.
+
 - All 45 immutable model hashes match `tests/fixtures/compatibility.json`.
 - Canonical signatures sort object keys by UTF-16 code units, matching JavaScript.
 - Ed25519 signatures and SPKI keys match the original implementation.

@@ -1,7 +1,7 @@
 {
-  "release": "UNCONFIGURED",
+  "release": "mainnet117-public-20260930",
   "coordinatorUrl": "https://subnet.everyframe.studio/mainnet/",
-  "coordinatorSigningKey": "",
+  "coordinatorSigningKey": "MCowBQYDK2VwAyEAkgU6E2ap4bOhyjJ4r/f5pjdE4abHpEAjJq0q2S/zan4=",
   "chain": {
     "network": "finney",
     "netuid": 117,
