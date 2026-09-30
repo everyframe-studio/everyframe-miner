@@ -104,9 +104,24 @@ CLI alone does not register or activate a miner.
 Store your own credentials in a private file, mode `0600`, outside this repository:
 
 ```dotenv
+# Required for cloud hosting (not a generation provider).
 PHALA_CLOUD_API_KEY=your-own-cloud-key
-FAL_KEY=your-own-provider-key
+
+# Generation providers: fill the keys you use; leave unused entries empty.
+FAL_KEY=
+MINIMAX_API_KEY=
+OPENROUTER_API_KEY=
+BFL_API_KEY=
+REPLICATE_API_TOKEN=
+GEMINI_API_KEY=
+RUNWAYML_API_SECRET=
+LUMA_API_KEY=
+ELEVENLABS_API_KEY=
 ```
+
+You can configure multiple providers in the same file. Replace the cloud-key
+placeholder and fill at least one provider key allowed by your deployment
+configuration; you do not need all nine. Empty provider entries are ignored.
 
 Use your actual file path when securing it:
 
@@ -114,7 +129,7 @@ Use your actual file path when securing it:
 chmod 600 /private/miner.env
 ```
 
-These are placeholders, not working credentials. Provider keys are optional
+The example contains no working credentials. Provider keys are optional
 individually, but at least one release-approved provider is needed for paid work.
 Never put secrets on the command line or in Git. Values are read without shell
 execution or `${VARIABLE}` expansion. Public-image releases never send registry
@@ -229,10 +244,33 @@ separate steps. The CLI does not initiate payouts.
 
 ## Providers
 
-Fal, MiniMax, OpenRouter, BFL, Replicate, Google, Runway, Luma, and ElevenLabs.
+| Provider | Credential variable |
+| --- | --- |
+| Fal | `FAL_KEY` |
+| MiniMax (direct API) | `MINIMAX_API_KEY` |
+| OpenRouter | `OPENROUTER_API_KEY` |
+| Black Forest Labs | `BFL_API_KEY` |
+| Replicate | `REPLICATE_API_TOKEN` |
+| Google | `GEMINI_API_KEY` |
+| Runway | `RUNWAYML_API_SECRET` |
+| Luma | `LUMA_API_KEY` |
+| ElevenLabs | `ELEVENLABS_API_KEY` |
+
+Use the key for the provider serving the contract, not just the model's brand.
+For example, a MiniMax model served through Fal uses `FAL_KEY`; the direct
+MiniMax adapter uses `MINIMAX_API_KEY`.
+
 Exact contracts and immutable parameters are in `config/models.json`.
 Credential names are centralized in `src/invitation.rs`. Possessing a provider key
 does **not** enable a model: the operator must separately approve and price it.
+
+After initialization, check which providers are configured and permitted, then
+inspect the available model offers:
+
+```sh
+everycli miner providers  # Reports key presence and permissions, never key values
+everycli miner offers
+```
 
 ## Tests
 
