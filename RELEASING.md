@@ -8,11 +8,11 @@ Rust 1.97.1, validates the tag against Cargo.toml, and publishes only after ever
 platform passes. This is separate from worker image admission.
 
 After reviewing and committing the release changes, the maintainer can publish
-the initial version (these commands create an external release when pushed):
+the corrected version (these commands create an external release when pushed):
 
 ```sh
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
 For subsequent releases, bump Cargo.toml and Cargo.lock first, then tag the
@@ -20,6 +20,12 @@ matching `vMAJOR.MINOR.PATCH`. Prerelease tags are not supported by this workflo
 Protect release tags and restrict who can push them. If a publication fails after
 draft creation, inspect and recover that draft manually; the workflow refuses to
 overwrite existing releases. Do not move a published tag or replace its assets.
+
+The first `v0.1.0` attempt did not publish: both macOS jobs failed because test
+fixtures used a symlinked OS temporary directory. `v0.1.1` resolves the temporary
+root inside the test harness while preserving production symlink restrictions.
+Keep the old tag for traceability. Re-running its job would run the old tests;
+commit and push the fix, then publish the new matching version tag instead.
 
 Release assets include four `everycli-<target>` binaries, individual `.sha256`
 files, a version-pinned `everycli-installer.sh` with its checksum, and project

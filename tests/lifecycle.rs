@@ -1,4 +1,6 @@
 use aes_gcm::{Aes256Gcm, KeyInit, Nonce, aead::Aead};
+mod common;
+
 use everyframe_miner::{
     Error, Result, cloud, invitation,
     miner::Miner,
@@ -35,7 +37,7 @@ struct Rig {
 }
 impl Rig {
     fn new() -> Self {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = common::tempdir();
         let key = Keys::default();
         let mut trust = invitation::trust("mainnet").unwrap();
         trust["publicKey"] = json!(key.signing_key());

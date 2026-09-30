@@ -4,15 +4,20 @@ permissions:
   contents: read
 jobs:
   check:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-22.04, macos-14, macos-15-intel]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - name: Install formatting and lint components
-        run: rustup component add rustfmt clippy
-      - run: cargo fmt --check
-      - run: cargo clippy --locked --all-targets -- -D warnings
-      - run: cargo test --locked
-      - run: cargo build --release --locked --bins
+      - name: Install release-matched toolchain
+        run: rustup toolchain install 1.97.1 --profile minimal --component rustfmt --component clippy
+      - run: cargo +1.97.1 fmt --check
+      - run: cargo +1.97.1 clippy --release --locked --all-targets -- -D warnings
+      - run: cargo +1.97.1 test --release --locked
+      - run: cargo +1.97.1 build --release --locked --bins
       - name: Native CLI and fail-closed public worker
         run: |
           target/release/everycli --version --json

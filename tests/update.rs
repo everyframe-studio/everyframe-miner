@@ -1,3 +1,5 @@
+mod common;
+
 use everyframe_miner::{cli, update};
 use sha2::{Digest, Sha256};
 use std::{
@@ -81,7 +83,7 @@ fn checksum_rejects_tampering_and_wrong_asset() {
 
 #[test]
 fn replacement_is_atomic_and_preserves_profiles() {
-    let tmp = tempfile::tempdir().unwrap();
+    let tmp = common::tempdir();
     fs::set_permissions(tmp.path(), fs::Permissions::from_mode(0o700)).unwrap();
     let binary = tmp.path().join("everycli");
     fs::write(&binary, b"old").unwrap();
@@ -104,7 +106,7 @@ fn replacement_is_atomic_and_preserves_profiles() {
 
 #[test]
 fn replacement_refuses_symlinks_and_writable_install_dirs() {
-    let tmp = tempfile::tempdir().unwrap();
+    let tmp = common::tempdir();
     fs::set_permissions(tmp.path(), fs::Permissions::from_mode(0o700)).unwrap();
     let binary = tmp.path().join("real");
     fs::write(&binary, b"old").unwrap();

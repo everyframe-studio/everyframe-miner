@@ -1,3 +1,5 @@
+mod common;
+
 use everyframe_miner::{
     cli, invitation,
     network::{public_address, safe_url},
@@ -51,7 +53,7 @@ fn network_destination_policy() {
 }
 #[test]
 fn private_state_and_exclusive_lock() {
-    let tmp = tempfile::tempdir().unwrap();
+    let tmp = common::tempdir();
     let state = State {
         directory: tmp.path().join("profile"),
     };
@@ -89,7 +91,7 @@ fn private_state_and_exclusive_lock() {
 }
 #[test]
 fn symlinks_and_insecure_directories_are_rejected() {
-    let tmp = tempfile::tempdir().unwrap();
+    let tmp = common::tempdir();
     let target = tmp.path().join("real");
     fs::write(&target, b"{}").unwrap();
     let link = tmp.path().join("link");
@@ -176,7 +178,7 @@ fn binaries_work_without_any_runtime_or_credentials() {
 #[test]
 fn credential_file_parsing_never_expands_or_executes_values() {
     use everyframe_miner::miner::read_secrets;
-    let dir = tempfile::tempdir().unwrap();
+    let dir = common::tempdir();
     let path = dir.path().join("synthetic.env");
     fs::write(&path,"export FAL_KEY=\"literal-${HOME}-$(whoami)-\\\"quote\\\"\" # comment\nMINIMAX_API_KEY='literal-${TOKEN}'\nGEMINI_API_KEY=some-token\t# ignored comment\nIGNORED=unused\n").unwrap();
     fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();
@@ -219,4 +221,60 @@ fn cli_errors_do_not_echo_unknown_secret_arguments() {
     assert!(!out.status.success());
     assert!(!String::from_utf8_lossy(&out.stdout).contains("DO-NOT-ECHO"));
     assert!(!String::from_utf8_lossy(&out.stderr).contains("DO-NOT-ECHO"));
+}
+
+#[test]
+fn fixtures_resolve_os_temporary_root_alias_without_relaxing_state_checks() {
+    let base = common::tempdir();
+    let physical = base.path().join("physical-temp-root");
+    fs::create_dir(&physical).unwrap();
+    let alias = base.path().join("os-temp-alias");
+    symlink(&physical, &alias).unwrap();
+    // Reproduce the old failure on every OS, including Linux CI.
+    assert_eq!(
+        state::no_symlink(&alias.join("profile")).unwrap_err().0,
+        "unsafe_path"
+    );
+    let fixture = common::tempdir_in(&alias);
+    assert_eq!(fixture.path(), fs::canonicalize(fixture.path()).unwrap());
+    let profile = State {
+        directory: fixture.path().join("profile"),
+    };
+    profile
+        .write("credentials", &json!({"synthetic":"fixture"}))
+        .unwrap();
+    assert_eq!(
+        profile.read("credentials", false).unwrap()["synthetic"],
+        "fixture"
+    );
+    let lock = profile.lock().unwrap();
+    assert!(profile.lock().is_err());
+    drop(lock);
+}
+
+#[test]
+fn credential_ancestor_symlinks_remain_rejected() {
+    let base = common::tempdir();
+    let real = base.path().join("real");
+    fs::create_dir(&real).unwrap();
+    let secret = real.join("credentials.json");
+    fs::write(&secret, b"{}").unwrap();
+    fs::set_permissions(&secret, fs::Permissions::from_mode(0o600)).unwrap();
+    assert!(state::read_json(&secret, true).is_ok());
+    let alias = base.path().join("user-link");
+    symlink(&real, &alias).unwrap();
+    assert_eq!(
+        state::read_json(&alias.join("credentials.json"), true)
+            .unwrap_err()
+            .0,
+        "unsafe_path"
+    );
+    assert!(
+        State {
+            directory: alias.join("profile")
+        }
+        .prepare()
+        .is_err()
+    );
+    assert!(!real.join("profile").exists());
 }

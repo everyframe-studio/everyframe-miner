@@ -1,5 +1,19 @@
 # Validation — 2026-09-30
 
+## v0.1.1 release fix
+
+- Both v0.1.0 macOS release jobs failed during lifecycle test setup with
+  `unsafe_path`; no public release assets were published. Both Linux builds passed.
+- Temporary test roots now resolve OS aliases (macOS `/var` to `/private/var`)
+  before creating fixtures. Production path validation is unchanged.
+- Added regression tests for symlinked temporary roots and continued rejection
+  of credential/profile ancestor symlinks. **48 local tests pass**, along with
+  strict release Clippy and formatting checks.
+- Regular CI now includes macOS Apple Silicon and Intel, using the same toolchain
+  as releases. Corrected native Mac runs remain pending until these changes are
+  pushed. Version metadata and release instructions now use v0.1.1, without moving
+  the existing v0.1.0 tag.
+
 ## CLI installer and self-update
 
 - Added a version-pinned shell installer and native `everycli update`, separate

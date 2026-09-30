@@ -54,7 +54,7 @@ For a specific release, replace `latest/download` with `download/<tag>`:
 
 ```sh
 curl --proto '=https' --tlsv1.2 -LsSf \
-  https://github.com/everyframe-studios/everyframe-miner/releases/download/v0.1.0/everycli-installer.sh | sh
+  https://github.com/everyframe-studios/everyframe-miner/releases/download/v0.1.1/everycli-installer.sh | sh
 ```
 
 Every release's installer is pinned to that version. To avoid modifying shell

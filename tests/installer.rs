@@ -1,3 +1,5 @@
+mod common;
+
 use everyframe_miner::update;
 use sha2::{Digest, Sha256};
 use std::{
@@ -11,7 +13,7 @@ struct Fixture {
 }
 impl Fixture {
     fn new() -> Self {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = common::tempdir();
         let p = dir.path();
         fs::create_dir(p.join("mock-bin")).unwrap();
         // Downloads are mocked, but hashing, execution, permissions, locking,
