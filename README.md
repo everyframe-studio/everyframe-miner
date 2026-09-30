@@ -83,8 +83,7 @@ automatic background update checks. If a documented command is missing, check
 
 ## CLI workflow
 
-Obtain a signed invitation from the operator. Store your own credentials in a
-private file, mode `0600`, outside this repository:
+Store your own credentials in a private file, mode `0600`, outside this repository:
 
 ```dotenv
 MINER_TOKEN=operator-issued-token
