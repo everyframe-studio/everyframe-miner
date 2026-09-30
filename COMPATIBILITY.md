@@ -3,7 +3,8 @@
 Ported from `codex/github-preparation/everyframe-miner`, worker protocol v1 and
 Python `everycli` 0.5.0. The original repository remains separate and unchanged.
 Package versions are independent of the original CLI. v0.1.2 adds hotkey-backed
-authentication; publishing a CLI still does not admit a new worker image.
+authentication and local onboarding commands; publishing a CLI still does not
+admit a new worker image.
 
 - All 45 immutable model hashes match `tests/fixtures/compatibility.json`.
 - Canonical signatures sort object keys by UTF-16 code units, matching JavaScript.
@@ -28,6 +29,15 @@ contains `MINER_AUTH`, not `MINER_TOKEN`. The v0.1.2 coordinator and worker are
 required. Legacy v1 profiles are retained for staged migration; mixing the two
 environment/authentication formats is rejected. New wallet flags only read local
 hotkeys and do not introduce blockchain transaction signing.
+
+`register-hotkey` stores a separate public `registration.json` after a finalized
+chain lookup. It is not an authorization credential. `set-api-keys` and
+`remove-api-key` update the existing private credential store without changing
+delegates or a running worker. `init` can now use saved credentials instead of a
+required dotenv import; supplied entries merge rather than erase omitted keys.
+`apply-api-keys` explicitly reuses the attested activation/restart flow for an
+already activated workload. Existing signed configurations, legacy imports, and
+lifecycle intent phases remain supported.
 
 The worker's trust pins and model registry are compiled into the executable.
 Editing a runtime-mounted JSON file cannot alter them. Rebuild and obtain approval

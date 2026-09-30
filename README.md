@@ -31,8 +31,9 @@ not a prebuilt CLI download.
 The installer detects your platform, verifies the binary's SHA-256 checksum, and
 installs into `~/.cargo/bin` (or `$CARGO_HOME/bin` if configured). No development
 toolchain is installed or required. It adds a PATH entry to `.profile`, `.bashrc`, and `.zshrc`
-without duplicating the entry; symlinked profiles are left unchanged. Restart
-your terminal or run the source command printed by the installer, then:
+without duplicating the entry; symlinked profiles are left unchanged. If the bin
+directory is already on your PATH, you can use `everycli` immediately. Otherwise,
+run the source command printed by the installer or open a new terminal, then:
 
 ```sh
 everycli --version
@@ -88,8 +89,8 @@ the next CLI and worker release before upgrading an existing deployment.
 
 Before deployment, you need:
 
-- A miner hotkey registered on SN117. Registration is separate from `everycli`;
-  the CLI does not create wallets, register hotkeys, or sign wallet transactions.
+- A miner hotkey registered on SN117. `register-hotkey` checks and records subnet
+  membership; on-chain registration is done separately using your wallet tool.
 - A funded Phala Cloud account and its API key for the attested workload.
 - At least one funded provider account supported by your deployment configuration.
 - Your local miner hotkey file and a hotkey-enabled signed deployment
@@ -101,49 +102,77 @@ coordinator attestation approval before enabling provider keys. Hotkey
 authentication does not bypass image/TEE admission. Downloading the
 CLI alone does not register or activate a miner.
 
-Store your own credentials in a private file, mode `0600`, outside this repository:
-
-```dotenv
-# Required for cloud hosting (not a generation provider).
-PHALA_CLOUD_API_KEY=your-own-cloud-key
-
-# Generation providers: fill the keys you use; leave unused entries empty.
-FAL_KEY=
-MINIMAX_API_KEY=
-OPENROUTER_API_KEY=
-BFL_API_KEY=
-REPLICATE_API_TOKEN=
-GEMINI_API_KEY=
-RUNWAYML_API_SECRET=
-LUMA_API_KEY=
-ELEVENLABS_API_KEY=
-```
-
-You can configure multiple providers in the same file. Replace the cloud-key
-placeholder and fill at least one provider key allowed by your deployment
-configuration; you do not need all nine. Empty provider entries are ignored.
-
-Use your actual file path when securing it:
+### 1. Check your hotkey
 
 ```sh
-chmod 600 /private/miner.env
+everycli miner register-hotkey --wallet my-miner --hotkey default
 ```
 
-The example contains no working credentials. Provider keys are optional
-individually, but at least one release-approved provider is needed for paid work.
-Never put secrets on the command line or in Git. Values are read without shell
-execution or `${VARIABLE}` expansion. Public-image releases never send registry
-credentials, including stale credentials already stored in a profile.
+This reads the local hotkey's public address, checks the pinned chain genesis,
+and verifies SN117 membership at a finalized block through the Bittensor RPC.
+It records the UID and local keyfile path, never a seed. If you already registered
+elsewhere, use `--hotkey-ss58 YOUR_SS58_ADDRESS` instead; no local wallet or
+`btcli` is needed for this public lookup. Local signing still requires your
+hotkey file during `init`.
+
+If the hotkey is absent, the command exits unsuccessfully and, when wallet names
+were supplied, prints the `btcli subnet register` command for you to run yourself.
+It never creates a wallet, pays registration fees, or signs an on-chain transaction.
+This membership check is not proof of ownership or coordinator admission.
+For testnet SN566, pass `--network testnet` to each command; networks are not sticky.
+
+### 2. Set your API keys
+
+```sh
+everycli miner set-api-keys
+```
+
+The CLI prompts for Phala Cloud and all nine generation providers with hidden
+input. Enter skips a provider or keeps its existing key. You need a funded Phala
+account and at least one release-approved generation provider, not all nine.
+Keys are saved in an owner-only local profile (`credentials.json`, mode `0600`);
+you do not need to create or maintain a `.env` file. Local storage is not encrypted
+at rest. Never commit the profile or share its contents.
+
+To change just one provider, or remove a locally saved key:
+
+```sh
+everycli miner set-api-keys --provider minimax
+everycli miner set-api-keys --provider phala
+everycli miner remove-api-key --provider fal
+everycli miner providers
+```
+
+Provider names: `phala`, `fal`, `minimax`, `openrouter`, `bfl`, `replicate`,
+`google`, `runway`, `luma`, `elevenlabs`. For automation, pipe a secret manager's
+output into `everycli miner set-api-keys --provider NAME --stdin`; never put the
+key itself in command arguments or shell history. `--json` never enables prompts.
+
+Saving or removing keys is local-only. To apply saved generation keys to an
+already activated worker, run `everycli miner apply-api-keys`. This asks for
+confirmation, drains work, refuses to restart while jobs remain, checks the
+reviewed workload, and encrypts credentials to its pinned key. Wait for fresh
+post-restart admission, then run `everycli miner resume`. Only providers allowed
+by the signed deployment can be applied. At least one must remain configured;
+if retiring the last provider, stop the worker instead. Removing a local key
+does not revoke it at the provider—revoke leaked credentials there immediately.
+
+### 3. Initialize and deploy
 
 ```sh
 everycli miner init \
-  --wallet my-miner --hotkey default \
-  --invitation /private/deployment.json \
-  --secrets-file /private/miner.env
+  --invitation /private/deployment.json
 everycli miner doctor
 everycli miner deploy --max-hourly-usd 0.06
 everycli miner status
 ```
+
+`init` reuses the hotkey path recorded in step 1 and the saved API keys. If you
+used the public-address lookup, also provide `--wallet my-miner --hotkey default`
+or `--hotkey-file FILE`. Existing automation can still use `--secrets-file FILE`
+to import an owner-only dotenv file; omitted credentials are preserved. The import
+does not execute shell expressions. Public-image deployments never send registry
+credentials, even if stale registry keys exist locally.
 
 The paths above are examples. `doctor` can report that no workload is deployed
 before the initial `deploy`. Review its diagnosis rather than treating every
@@ -162,7 +191,7 @@ worker's restricted delegate is sent through Phala's encrypted environment;
 the hotkey and console delegate stay on your computer. This does not sign a
 blockchain transaction or access your coldkey. Delegations last at most 30 days,
 bounded by the deployment configuration's expiry. Renew with `init` using a
-current configuration before expiry, then activate the updated worker credentials
+current configuration before expiry, then use `apply-api-keys` for an activated worker
 and wait for fresh admission before resuming work.
 
 Older token-based deployments remain compatible until explicitly migrated.
@@ -212,6 +241,10 @@ resources and ongoing charges. To restart the saved workload, use
 
 | Command | Purpose |
 | --- | --- |
+| `register-hotkey` | Check finalized subnet membership and record the public identity; no chain transaction |
+| `set-api-keys` | Privately prompt for all keys or one provider; save locally |
+| `remove-api-key` | Remove one local credential after confirmation; does not revoke it remotely |
+| `apply-api-keys` | Explicitly drain and apply saved keys to an activated, reviewed worker; fresh admission required |
 | `init` | Verify deployment configuration; sign local hotkey delegations and store credentials |
 | `doctor`, `status` | Diagnose readiness, admission, routing, and cloud state |
 | `providers` | Show credential presence and signed-release permissions, never key values |
@@ -234,9 +267,11 @@ the same profile with two CLI processes at once.
 
 Commands accept `--json` for machine-readable output. Lifecycle operations and
 offer changes require interactive confirmation or `--yes`; `--json` does not
-imply consent. `init` with both input files supplied does not prompt for confirmation.
+imply consent. `init` with a deployment file, local hotkey and saved credentials
+does not prompt for confirmation.
 Exit codes: `0` success, `1` command error, `2` unhealthy diagnosis or unresolved
-reconciliation. Normal command output is formatted JSON; `--json` uses compact JSON.
+reconciliation (also an unregistered hotkey). Normal command output is formatted
+JSON; `--json` uses compact JSON.
 
 `earnings` shows coordinator accounting, not proof of an on-chain alpha payment.
 Reward eligibility, validator weight submission, reveal, and chain emissions are
@@ -244,17 +279,17 @@ separate steps. The CLI does not initiate payouts.
 
 ## Providers
 
-| Provider | Credential variable |
-| --- | --- |
-| Fal | `FAL_KEY` |
-| MiniMax (direct API) | `MINIMAX_API_KEY` |
-| OpenRouter | `OPENROUTER_API_KEY` |
-| Black Forest Labs | `BFL_API_KEY` |
-| Replicate | `REPLICATE_API_TOKEN` |
-| Google | `GEMINI_API_KEY` |
-| Runway | `RUNWAYML_API_SECRET` |
-| Luma | `LUMA_API_KEY` |
-| ElevenLabs | `ELEVENLABS_API_KEY` |
+| Provider | `--provider` | Credential variable (optional file import) |
+| --- | --- | --- |
+| Fal | `fal` | `FAL_KEY` |
+| MiniMax (direct API) | `minimax` | `MINIMAX_API_KEY` |
+| OpenRouter | `openrouter` | `OPENROUTER_API_KEY` |
+| Black Forest Labs | `bfl` | `BFL_API_KEY` |
+| Replicate | `replicate` | `REPLICATE_API_TOKEN` |
+| Google | `google` | `GEMINI_API_KEY` |
+| Runway | `runway` | `RUNWAYML_API_SECRET` |
+| Luma | `luma` | `LUMA_API_KEY` |
+| ElevenLabs | `elevenlabs` | `ELEVENLABS_API_KEY` |
 
 Use the key for the provider serving the contract, not just the model's brand.
 For example, a MiniMax model served through Fal uses `FAL_KEY`; the direct

@@ -67,7 +67,7 @@ everycli_install() (
     env_file="$install_root/everycli-env"
     [ ! -L "$env_file" ] || fail 'Refusing to overwrite a symlinked PATH configuration.'
     quoted_bin=$(quote "$install_dir")
-    printf 'export PATH=%s:"$PATH"\n' "$quoted_bin" > "$env_file"
+    printf 'case ":${PATH}:" in\n  *:%s:*) ;;\n  *) export PATH=%s:"$PATH" ;;\nesac\n' "$quoted_bin" "$quoted_bin" > "$env_file"
     source_line=". $(quote "$env_file")"
     for profile in "$HOME/.profile" "$HOME/.bashrc" "$HOME/.zshrc"; do
       if [ -L "$profile" ]; then
@@ -76,9 +76,15 @@ everycli_install() (
         printf '\n# Everyframe CLI\n%s\n' "$source_line" >> "$profile"
       fi
     done
-    printf 'Restart your terminal, or run:\n  %s\n' "$source_line"
+    case ":${PATH}:" in
+      *:"$install_dir":*) ;; # Already usable in the calling shell.
+      *) printf 'To use everycli in this terminal, run:\n  %s\nOr open a new terminal.\n' "$source_line" ;;
+    esac
   else
-    printf 'PATH was not modified. Add %s to PATH.\n' "$install_dir"
+    case ":${PATH}:" in
+      *:"$install_dir":*) ;;
+      *) printf 'PATH was not modified. Add %s to PATH.\n' "$install_dir" ;;
+    esac
   fi
   printf 'Then run: everycli --version\nUpgrade later: everycli update\n'
 )

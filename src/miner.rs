@@ -180,7 +180,28 @@ impl Miner<'_> {
     pub fn init(&self, envelope: &Value, creds: &Value) -> Result<Value> {
         let _lock = self.state.lock()?;
         let inv = self.validate(envelope, false)?;
-        Self::token(creds, &inv)?;
+        let registration = self.state.read("registration", true)?;
+        if !registration.is_null() {
+            need(
+                registration["hotkey"] == inv["hotkey"]
+                    && registration["network"] == inv["network"],
+                "hotkey_does_not_match_deployment",
+            )?;
+        }
+        let mut merged = self.state.read("credentials", true)?;
+        if merged.is_null() {
+            merged = json!({});
+        }
+        let object = merged
+            .as_object_mut()
+            .ok_or(Error("invalid_credentials_file"))?;
+        for (k, v) in creds.as_object().ok_or(Error("invalid_credential"))? {
+            object.insert(k.clone(), v.clone());
+        }
+        if inv["authMode"] == "hotkey-v1" {
+            object.remove("MINER_TOKEN");
+        }
+        Self::token(&merged, &inv)?;
         need(
             compose_hash(&inv["request"]["compose_file"])? == inv["composeHash"],
             "compose_hash_mismatch",
@@ -203,7 +224,7 @@ impl Miner<'_> {
                 "reconciliation_required",
             )?
         };
-        self.state.write("credentials", creds)?;
+        self.state.write("credentials", &merged)?;
         self.state.write("config",&json!({"version":1,"invitation":envelope,"initializedAt":old.get("initializedAt").cloned().unwrap_or(json!(now()))}))?;
         Ok(
             json!({"state":"configured","minerId":inv["minerId"],"network":inv["network"],"netuid":inv["netuid"],"hotkey":inv["hotkey"],"generationSubmitted":false,"next":"Run miner doctor, then review hosting with miner deploy --max-hourly-usd."}),
@@ -372,9 +393,16 @@ impl Miner<'_> {
         Ok(json!({"ok":checks.iter().all(|c|c["ok"]==true),"checks":checks}))
     }
     pub fn providers(&self) -> Result<Value> {
+        self.state.prepare()?;
+        if self.state.read("config", true)?.is_null() {
+            let creds = self.state.read("credentials", true)?;
+            return Ok(
+                json!({"providers":invitation::provider_summary(&json!({}), &creds),"phalaConfigured":configured(&creds["PHALA_CLOUD_API_KEY"]),"note":"Local credential presence only. Initialize a signed deployment to determine release permissions."}),
+            );
+        }
         let c = self.load(false)?;
         Ok(
-            json!({"providers":invitation::provider_summary(&c.invitation,&c.credentials),"note":"Credential presence only; admission and pricing remain required."}),
+            json!({"providers":invitation::provider_summary(&c.invitation,&c.credentials),"phalaConfigured":configured(&c.credentials["PHALA_CLOUD_API_KEY"]),"note":"Local credential presence only; saved changes are not automatically applied to a running worker. Admission and pricing remain required."}),
         )
     }
     pub fn offers(&self) -> Result<Value> {
@@ -568,10 +596,21 @@ impl Miner<'_> {
         )
     }
     pub fn activate(&self, confirm: &dyn Fn(&str) -> Result<()>) -> Result<Value> {
+        self.activate_keys(confirm, false)
+    }
+    pub fn apply_api_keys(&self, confirm: &dyn Fn(&str) -> Result<()>) -> Result<Value> {
+        self.activate_keys(confirm, true)
+    }
+    fn activate_keys(&self, confirm: &dyn Fn(&str) -> Result<()>, refresh: bool) -> Result<Value> {
         let _lock = self.state.lock()?;
         let c = self.load(true)?;
         need(
-            c.deployment["phase"] == "awaiting_attestation",
+            if refresh {
+                ["running", "drained", "awaiting_readmission"]
+                    .contains(&c.deployment["phase"].as_str().unwrap_or(""))
+            } else {
+                c.deployment["phase"] == "awaiting_attestation"
+            },
             "activation_not_ready",
         )?;
         self.approved(&c, &self.api(&c, "status", json!({}))?)?;

@@ -63,24 +63,72 @@ esac
         self.dir.path().join("cargo space'quoted/bin/everycli")
     }
     fn run(&self, fail: bool) -> Output {
+        self.run_path(fail, false, false)
+    }
+    fn run_path(&self, fail: bool, on_path: bool, modify: bool) -> Output {
         Command::new("sh")
             .arg(self.dir.path().join("installer.sh"))
             .env(
                 "PATH",
                 format!(
-                    "{}:{}",
+                    "{}:{}:{}",
                     self.dir.path().join("mock-bin").display(),
+                    if on_path {
+                        self.installed().parent().unwrap().display().to_string()
+                    } else {
+                        "/nonexistent-test-bin".into()
+                    },
                     std::env::var("PATH").unwrap()
                 ),
             )
             .env("CARGO_HOME", self.dir.path().join("cargo space'quoted"))
-            .env("EVERYCLI_NO_MODIFY_PATH", "1")
+            .env("HOME", self.dir.path())
+            .env("EVERYCLI_NO_MODIFY_PATH", if modify { "0" } else { "1" })
             .env("EVERYCLI_TEST_BINARY", env!("CARGO_BIN_EXE_everycli"))
             .env("EVERYCLI_TEST_SUM", self.dir.path().join("checksum"))
             .env("EVERYCLI_TEST_FAIL", if fail { "1" } else { "0" })
             .output()
             .unwrap()
     }
+}
+
+#[test]
+fn installer_only_requests_path_setup_when_needed_and_does_not_duplicate_path() {
+    let f = Fixture::new();
+    for modify in [true, false] {
+        let out = f.run_path(false, true, modify);
+        assert!(out.status.success());
+        let text = String::from_utf8(out.stdout).unwrap();
+        assert!(!text.contains("run:\n"));
+        assert!(!text.contains("terminal"));
+        assert!(!text.contains("Add "));
+    }
+    let out = f.run_path(false, false, true);
+    assert!(out.status.success());
+    assert!(
+        String::from_utf8(out.stdout)
+            .unwrap()
+            .contains("To use everycli in this terminal")
+    );
+    let bin = f
+        .installed()
+        .parent()
+        .unwrap()
+        .to_string_lossy()
+        .to_string();
+    let out = Command::new("sh")
+        .args(["-c", ". \"$1\"; . \"$1\"; printf '%s' \"$PATH\"", "test"])
+        .arg(f.dir.path().join("cargo space'quoted/everycli-env"))
+        .env("PATH", format!("{bin}:/usr/bin:/bin"))
+        .output()
+        .unwrap();
+    assert!(out.status.success());
+    assert_eq!(
+        String::from_utf8(out.stdout).unwrap(),
+        format!("{bin}:/usr/bin:/bin")
+    );
+    let profile = fs::read_to_string(f.dir.path().join(".zshrc")).unwrap();
+    assert_eq!(profile.matches("# Everyframe CLI").count(), 1);
 }
 
 #[test]

@@ -334,6 +334,71 @@ fn bootstrap_activation_restart_and_shutdown() {
         "awaiting_readmission"
     );
 }
+
+#[test]
+fn managed_keys_survive_init_and_only_apply_after_confirmation_and_idle_drain() {
+    use everyframe_miner::onboarding;
+    let r = Rig::new();
+    onboarding::save_keys(&r.state(), &json!({"FAL_KEY":"synthetic-replacement-key", "MINIMAX_API_KEY":"synthetic-other-provider"}), None).unwrap();
+    r.miner().init(&r.sign(&r.inv), &json!({})).unwrap();
+    assert_eq!(
+        r.state().read("credentials", false).unwrap()["FAL_KEY"],
+        "synthetic-replacement-key"
+    );
+    assert!(r.miner().apply_api_keys(&|_| Ok(())).is_err());
+    r.deploy().unwrap();
+    r.miner().activate(&|_| Ok(())).unwrap();
+    r.status.borrow_mut()["attestation"]["at"] = json!(now() + 1000);
+    r.miner().resume(&|_| Ok(())).unwrap();
+    let env_count = r.envs.borrow().len();
+    onboarding::save_keys(
+        &r.state(),
+        &json!({"FAL_KEY":"synthetic-rotated-key"}),
+        None,
+    )
+    .unwrap();
+    assert_eq!(r.envs.borrow().len(), env_count);
+    assert!(
+        r.miner()
+            .apply_api_keys(&|_| Err(Error("cancelled")))
+            .is_err()
+    );
+    assert_eq!(r.envs.borrow().len(), env_count);
+    r.status.borrow_mut()["activeJobs"] = json!(1);
+    assert_eq!(
+        r.miner().apply_api_keys(&|_| Ok(())).unwrap_err(),
+        Error("draining_in_progress")
+    );
+    assert_eq!(r.envs.borrow().len(), env_count);
+    r.status.borrow_mut()["activeJobs"] = json!(0);
+    r.status.borrow_mut()["attestation"]["state"] = json!("pending");
+    assert!(r.miner().apply_api_keys(&|_| Ok(())).is_err());
+    r.status.borrow_mut()["attestation"]["state"] = json!("accepted");
+    r.status.borrow_mut()["attestation"]["at"] = json!(now());
+    assert_eq!(
+        r.miner().apply_api_keys(&|_| Ok(())).unwrap()["phase"],
+        "awaiting_readmission"
+    );
+    assert!(
+        r.envs
+            .borrow()
+            .last()
+            .unwrap()
+            .to_string()
+            .contains("synthetic-rotated-key")
+    );
+    assert!(
+        !r.envs
+            .borrow()
+            .last()
+            .unwrap()
+            .to_string()
+            .contains("synthetic-other-provider")
+    );
+    assert!(r.miner().resume(&|_| Ok(())).is_err());
+    r.status.borrow_mut()["attestation"]["at"] = json!(now() + 1000);
+    assert!(r.miner().resume(&|_| Ok(())).is_ok());
+}
 #[test]
 fn ambiguous_cloud_mutations_keep_durable_intents() {
     for (path, phase) in [

@@ -17,6 +17,29 @@ CLI self-updates do not alter or bypass signed worker image admission.
 
 ## Miner runtime
 
+### Local onboarding and credential changes (v0.1.2)
+
+`register-hotkey` queries fixed public Bittensor HTTPS RPCs, checks the pinned
+genesis, and reads both hotkey-to-UID and UID-to-hotkey storage at one finalized
+block. It relies on that RPC's response (not a locally verified storage proof).
+It does not sign transactions, prove ownership, or grant coordinator admission.
+Public-address mode never reads a wallet. Wallet mode reads only the specified
+owner-only hotkey JSON, records its public address/path, and never uploads it.
+
+`set-api-keys` accepts hidden terminal input or a bounded, explicit stdin pipe for
+one provider; secret values are not accepted as command arguments. Blank terminal
+input keeps existing values. Updates preserve unrelated keys/delegates and use
+the existing private, atomic, locked state store. Profiles are plaintext on disk
+with owner-only permissions, not an encrypted vault. Key presence is safe to show;
+values are never printed. Local key removal is not upstream revocation.
+
+Saved changes never mutate a running workload. `apply-api-keys` is a separate,
+confirmed operation that reuses exact-policy admission, idle drain, pinned KMS
+encryption, durable restart intent, and post-restart admission checks. It cannot
+enable providers absent from the signed deployment configuration. Retiring the
+last generation credential requires stopping the worker rather than applying an
+empty provider configuration.
+
 ### Hotkey authentication (v0.1.2)
 
 The CLI reads an owner-only, unencrypted sr25519 hotkey JSON locally during

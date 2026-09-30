@@ -3,6 +3,7 @@ use crate::{
     miner::{Miner, read_secrets},
     need,
     network::PublicHttp,
+    onboarding,
     state::{State, read_json},
 };
 use serde_json::{Value, json};
@@ -11,7 +12,36 @@ use std::{
     io::{self, IsTerminal, Write},
     path::Path,
 };
-pub const HELP: &str = "everycli · Everyframe miner tools\n\nUsage: everycli miner COMMAND [options]\n\nCommands: init, doctor, status, providers, offers, offer, earnings, deploy, activate, resume, update, stop, start, reconcile\n\nOptions:\n  --network mainnet|testnet (default mainnet SN117; testnet SN566)\n  --state-dir DIR\n  --invitation FILE --secrets-file FILE (init)\n  --wallet NAME --hotkey NAME (init; default hotkey: default)\n  --hotkey-file FILE (init; alternative to wallet/name)\n  --release FILE (update)\n  --max-hourly-usd N (deploy/start; storage extra)\n  --model ID --discount-pct PCT | --withdraw (offer)\n  --drain-only (stop)\n  --yes --json --help --version\n\nNo Node.js, Python or GPU. Hotkey signs locally; no chain transaction or coldkey access.\nHosting/provider charges are real. No guaranteed earnings or automatic total spending cap.\n";
+pub const HELP: &str = "everycli · Everyframe miner tools
+
+Usage: everycli miner COMMAND [options]
+
+Setup: register-hotkey, set-api-keys, remove-api-key, init
+Manage: doctor, status, providers, offers, offer, earnings, deploy, activate,
+        apply-api-keys, resume, update, stop, start, reconcile
+
+Options:
+  --network mainnet|testnet (default mainnet SN117; testnet SN566)
+  --state-dir DIR
+  --wallet NAME --hotkey NAME (register-hotkey/init; default hotkey: default)
+  --hotkey-file FILE (alternative to wallet/name)
+  --hotkey-ss58 ADDRESS (register-hotkey; public address only)
+  --provider NAME (set-api-keys/remove-api-key; includes phala)
+  --stdin (set-api-keys --provider NAME; read one key from a pipe)
+  --invitation FILE (init; signed deployment configuration)
+  --secrets-file FILE (init; optional legacy credential import)
+  --release FILE (update)
+  --max-hourly-usd N (deploy/start; storage extra)
+  --model ID --discount-pct PCT | --withdraw (offer)
+  --drain-only (stop)
+  --yes --json --help --version
+
+set-api-keys prompts privately; Enter keeps existing keys. Saved locally only.
+apply-api-keys explicitly drains/restarts a reviewed worker; fresh admission required.
+register-hotkey verifies finalized subnet membership; it does not register on-chain.
+No Node.js, Python or GPU. Hotkey signs locally; no chain transaction or coldkey access.
+Hosting/provider charges are real. No guaranteed earnings or automatic total spending cap.
+";
 pub struct Args {
     pub command: String,
     pub options: HashMap<String, String>,
@@ -48,6 +78,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
             "--drain-only",
             "--withdraw",
             "--check",
+            "--stdin",
         ]
         .contains(&a)
         {
@@ -67,6 +98,8 @@ pub fn parse(args: &[String]) -> Result<Args> {
                     "--hotkey-file",
                     "--wallet",
                     "--hotkey",
+                    "--hotkey-ss58",
+                    "--provider",
                     "--release",
                     "--max-hourly-usd",
                     "--model",
@@ -113,6 +146,10 @@ pub fn parse(args: &[String]) -> Result<Args> {
             && positionals[0] == "miner"
             && [
                 "init",
+                "register-hotkey",
+                "set-api-keys",
+                "remove-api-key",
+                "apply-api-keys",
                 "doctor",
                 "status",
                 "providers",
@@ -140,6 +177,9 @@ pub fn parse(args: &[String]) -> Result<Args> {
             "--hotkey",
         ],
         "deploy" | "start" => vec!["--max-hourly-usd"],
+        "register-hotkey" => vec!["--wallet", "--hotkey", "--hotkey-file", "--hotkey-ss58"],
+        "set-api-keys" => vec!["--provider", "--stdin"],
+        "remove-api-key" => vec!["--provider"],
         "offer" => vec!["--model", "--discount-pct", "--withdraw"],
         "update" => vec!["--release"],
         "stop" => vec!["--drain-only"],
@@ -173,6 +213,65 @@ fn question(label: &str, json_mode: bool) -> Result<String> {
         .map_err(|_| Error("interrupted"))?;
     Ok(line.trim().into())
 }
+fn local_hotkey(args: &Args) -> Result<Option<std::path::PathBuf>> {
+    need(
+        !(args.get("--hotkey-file").is_some()
+            && (args.get("--wallet").is_some() || args.get("--hotkey").is_some())),
+        "choose_wallet_or_hotkey_file",
+    )?;
+    if let Some(path) = args.get("--hotkey-file") {
+        return Ok(Some(Path::new(path).to_path_buf()));
+    }
+    if args.get("--wallet").is_some() || args.get("--hotkey").is_some() {
+        return Ok(Some(onboarding::wallet_path(
+            args.required("--wallet")?,
+            args.get("--hotkey").unwrap_or("default"),
+        )?));
+    }
+    Ok(None)
+}
+fn set_keys(args: &Args, state: &State) -> Result<Value> {
+    let selected = if let Some(provider) = args.get("--provider") {
+        onboarding::credential_key(provider)?;
+        vec![provider]
+    } else {
+        need(!args.flag("--stdin"), "stdin_requires_provider")?;
+        std::iter::once("phala")
+            .chain(invitation::PROVIDERS.iter().map(|(p, _)| *p))
+            .collect()
+    };
+    let mut updates = json!({});
+    for provider in selected {
+        let key = onboarding::credential_key(provider)?;
+        let value = if args.flag("--stdin") {
+            use std::io::Read;
+            need(!io::stdin().is_terminal(), "stdin_requires_pipe")?;
+            let mut value = String::new();
+            io::stdin()
+                .take(8003)
+                .read_to_string(&mut value)
+                .map_err(|_| Error("invalid_credential"))?;
+            need(value.len() <= 8002, "invalid_credential")?;
+            let value = value.trim_end_matches(['\n', '\r']).to_string();
+            need(!value.is_empty(), "invalid_credential")?;
+            value
+        } else {
+            need(
+                io::stdin().is_terminal() && !args.flag("--json"),
+                "hidden_input_required_or_use_stdin_with_provider",
+            )?;
+            rpassword::prompt_password(format!(
+                "{provider} API key (hidden; Enter keeps existing): "
+            ))
+            .map_err(|_| Error("interrupted"))?
+        };
+        let value = zeroize::Zeroizing::new(value);
+        if !value.is_empty() {
+            updates[key] = json!(*value);
+        }
+    }
+    onboarding::save_keys(state, &updates, None)
+}
 pub fn run(args: &Args) -> Result<Value> {
     if args.command == "self-update" {
         return crate::update::run(args.flag("--check"));
@@ -201,48 +300,80 @@ pub fn run(args: &Args) -> Result<Value> {
         }
     };
     match args.command.as_str() {
+        "register-hotkey" => {
+            let path = local_hotkey(args)?;
+            need(
+                !(path.is_some() && args.get("--hotkey-ss58").is_some()),
+                "choose_address_or_wallet",
+            )?;
+            let address = if let Some(address) = args.get("--hotkey-ss58") {
+                address.to_string()
+            } else if let Some(path) = &path {
+                onboarding::file_address(path)?
+            } else {
+                return Err(Error("hotkey_address_or_wallet_required"));
+            };
+            let mut out = onboarding::check_registration(miner.http, network, &address)?;
+            if out["registered"] == true {
+                onboarding::save_registration(&miner.state, &out, path.as_deref())?;
+            } else if let Some(wallet) = args.get("--wallet") {
+                out["registrationCommand"] = json!(format!(
+                    "btcli subnet register --netuid {} --subtensor.network {} --wallet.name {} --wallet.hotkey {}",
+                    miner.trust["netuid"],
+                    if network == "mainnet" {
+                        "finney"
+                    } else {
+                        "test"
+                    },
+                    wallet,
+                    args.get("--hotkey").unwrap_or("default")
+                ));
+            }
+            Ok(out)
+        }
+        "set-api-keys" => set_keys(args, &miner.state),
+        "remove-api-key" => {
+            let provider = args.required("--provider")?;
+            onboarding::credential_key(provider)?;
+            confirm(&format!(
+                "Remove the locally saved {provider} key? This does not revoke the key at the provider or remove it from a running worker."
+            ))?;
+            onboarding::save_keys(&miner.state, &json!({}), Some(provider))
+        }
+        "apply-api-keys" => miner.apply_api_keys(&confirm),
         "init" => {
             let inv = args
                 .get("--invitation")
                 .map(str::to_string)
                 .map(Ok)
                 .unwrap_or_else(|| question("Signed invitation file: ", args.flag("--json")))?;
-            let creds = args
-                .get("--secrets-file")
-                .map(str::to_string)
-                .map(Ok)
-                .unwrap_or_else(|| {
-                    question("Private credentials file (mode 600): ", args.flag("--json"))
-                })?;
             let envelope = read_json(Path::new(&inv), false)?;
             let deployment = miner.validate(&envelope, false)?;
-            let mut credentials = read_secrets(Path::new(&creds))?;
-            if deployment["authMode"] == "hotkey-v1" {
+            let mut credentials = if let Some(file) = args.get("--secrets-file") {
+                read_secrets(Path::new(file))?
+            } else {
+                json!({})
+            };
+            miner.state.prepare()?;
+            let registration = miner.state.read("registration", true)?;
+            if !registration.is_null() {
                 need(
-                    !(args.get("--hotkey-file").is_some()
-                        && (args.get("--wallet").is_some() || args.get("--hotkey").is_some())),
-                    "choose_wallet_or_hotkey_file",
+                    registration["hotkey"] == deployment["hotkey"]
+                        && registration["network"] == network,
+                    "hotkey_does_not_match_deployment",
                 )?;
-                let path = if let Some(p) = args.get("--hotkey-file") {
-                    p.to_string()
-                } else {
-                    let wallet = args.required("--wallet")?;
-                    let key = args.get("--hotkey").unwrap_or("default");
-                    need(
-                        crate::matches("[A-Za-z0-9_-]{1,80}", &json!(wallet))
-                            && crate::matches("[A-Za-z0-9_-]{1,80}", &json!(key)),
-                        "invalid_wallet_name",
-                    )?;
-                    format!(
-                        "{}/.bittensor/wallets/{wallet}/hotkeys/{key}",
-                        std::env::var("HOME").map_err(|_| Error("home_required"))?
-                    )
-                };
+            }
+            if deployment["authMode"] == "hotkey-v1" {
+                let path = local_hotkey(args)?
+                    .or_else(|| {
+                        registration["hotkeyFile"]
+                            .as_str()
+                            .map(std::path::PathBuf::from)
+                    })
+                    .ok_or(Error("local_hotkey_required_use_wallet_or_hotkey_file"))?;
                 credentials.as_object_mut().unwrap().remove("MINER_TOKEN");
-                credentials["CONSOLE_AUTH"] =
-                    crate::hotkey::create(Path::new(&path), &deployment, "console")?;
-                credentials["WORKER_AUTH"] =
-                    crate::hotkey::create(Path::new(&path), &deployment, "worker")?;
+                credentials["CONSOLE_AUTH"] = crate::hotkey::create(&path, &deployment, "console")?;
+                credentials["WORKER_AUTH"] = crate::hotkey::create(&path, &deployment, "worker")?;
             } else {
                 need(
                     args.get("--hotkey-file").is_none()
@@ -324,7 +455,8 @@ pub fn main_entry() -> i32 {
             }
         );
         Ok(
-            if (a.command == "doctor" && out["ok"] != true)
+            if (a.command == "register-hotkey" && out["registered"] != true)
+                || (a.command == "doctor" && out["ok"] != true)
                 || (a.command == "status"
                     && (!out["coordinatorError"].is_null() || !out["cloudError"].is_null()))
                 || (a.command == "reconcile" && out["resolved"] == false)

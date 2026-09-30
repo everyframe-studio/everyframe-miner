@@ -101,7 +101,7 @@ impl State {
     }
     pub fn path(&self, name: &str) -> Result<PathBuf> {
         need(
-            ["config", "credentials", "deployment"].contains(&name),
+            ["config", "credentials", "deployment", "registration"].contains(&name),
             "invalid_state_file",
         )?;
         Ok(self.directory.join(format!("{name}.json")))

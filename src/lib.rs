@@ -5,6 +5,7 @@ pub mod invitation;
 pub mod miner;
 pub mod models;
 pub mod network;
+pub mod onboarding;
 pub mod protocol;
 pub mod providers;
 pub mod state;
