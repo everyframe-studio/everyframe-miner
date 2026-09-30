@@ -50,7 +50,7 @@ For a specific release, replace `latest/download` with `download/<tag>`:
 
 ```sh
 curl --proto '=https' --tlsv1.2 -LsSf \
-  https://github.com/everyframe-studios/everyframe-miner/releases/download/v0.1.2/everycli-installer.sh | sh
+  https://github.com/everyframe-studios/everyframe-miner/releases/download/v0.1.3/everycli-installer.sh | sh
 ```
 
 Every release's installer is pinned to that version. To avoid modifying shell
@@ -83,7 +83,7 @@ and HTTPS.
 
 ## Set up a miner
 
-The onboarding and hotkey flow below requires **everycli v0.1.2 or later**.
+The onboarding and hotkey flow below requires **everycli v0.1.3 or later**.
 Version v0.1.1 uses the legacy token flow. Hotkey authentication also requires
 a compatible, separately reviewed worker image and coordinator configuration;
 updating the CLI alone does not migrate an existing deployment.

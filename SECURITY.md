@@ -17,7 +17,7 @@ CLI self-updates do not alter or bypass signed worker image admission.
 
 ## Miner runtime
 
-### Local onboarding and credential changes (v0.1.2)
+### Local onboarding and credential changes (v0.1.3)
 
 `register-hotkey` queries fixed public Bittensor HTTPS RPCs, checks the pinned
 genesis, and reads both hotkey-to-UID and UID-to-hotkey storage at one finalized
@@ -40,7 +40,7 @@ enable providers absent from the signed deployment configuration. Retiring the
 last generation credential requires stopping the worker rather than applying an
 empty provider configuration.
 
-### Hotkey authentication (v0.1.2)
+### Hotkey authentication (v0.1.3)
 
 The CLI reads an owner-only, unencrypted sr25519 hotkey JSON locally during
 initialization. It verifies the SS58 checksum and matches the derived public key

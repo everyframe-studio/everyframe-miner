@@ -11,8 +11,8 @@ After reviewing and committing the release changes, the maintainer can publish
 the corrected version (these commands create an external release when pushed):
 
 ```sh
-git tag v0.1.2
-git push origin v0.1.2
+git tag v0.1.3
+git push origin v0.1.3
 ```
 
 For subsequent releases, bump Cargo.toml and Cargo.lock first, then tag the
@@ -33,7 +33,11 @@ license notices. The installer URL serves the latest published release; local
 source changes are not distributed until a new release is published. No GitHub token or miner login is needed to install from a
 public repository. Private repositories are not supported by the public installer.
 
-For hotkey authentication, publish the v0.1.2 CLI and a separately reviewed worker
+The v0.1.2 attempt did not publish because macOS requires mutable null pointers
+for the terminal-input test's `openpty` arguments. v0.1.3 fixes that portable test
+call without changing terminal-input behavior. Preserve the failed tag.
+
+For hotkey authentication, publish the v0.1.3 CLI and a separately reviewed worker
 image. A v2 deployment configuration replaces `tokenHash` with `authMode: hotkey-v1`
 and `keyVersion`, and replaces `MINER_TOKEN` with `MINER_AUTH` in both the compose
 environment and `allowed_envs`. Configure the coordinator's approved hotkey binding

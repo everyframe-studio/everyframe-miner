@@ -326,8 +326,8 @@ fn interactive_prompt_hides_key_and_blank_input_preserves_it() {
                     &mut master_fd,
                     &mut slave_fd,
                     std::ptr::null_mut(),
-                    std::ptr::null(),
-                    std::ptr::null(),
+                    std::ptr::null_mut(),
+                    std::ptr::null_mut(),
                 )
             },
             0

@@ -2,7 +2,7 @@
 
 Ported from `codex/github-preparation/everyframe-miner`, worker protocol v1 and
 Python `everycli` 0.5.0. The original repository remains separate and unchanged.
-Package versions are independent of the original CLI. v0.1.2 adds hotkey-backed
+Package versions are independent of the original CLI. v0.1.3 adds hotkey-backed
 authentication and local onboarding commands; publishing a CLI still does not
 admit a new worker image.
 
@@ -25,8 +25,8 @@ signed invitations are supported. Error wording is redacted and may differ.
 
 Hotkey deployments use `everyframe-miner-deployment-v2`, `authMode: hotkey-v1`,
 and a positive `keyVersion` instead of `tokenHash`. Their allowed environment
-contains `MINER_AUTH`, not `MINER_TOKEN`. The v0.1.2 coordinator and worker are
-required. Legacy v1 profiles are retained for staged migration; mixing the two
+contains `MINER_AUTH`, not `MINER_TOKEN`. A hotkey-capable coordinator and worker
+are required. Legacy v1 profiles are retained for staged migration; mixing the two
 environment/authentication formats is rejected. New wallet flags only read local
 hotkeys and do not introduce blockchain transaction signing.
 
