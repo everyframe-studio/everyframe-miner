@@ -1,0 +1,1671 @@
+{
+  "minimax/h3-max-turbo/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "H3 Max Turbo",
+    "vendor": "MiniMax",
+    "family": "H3",
+    "app": "minimax/h3-max-turbo",
+    "params": {
+      "duration": 5,
+      "resolution": "768P",
+      "aspect_ratio": "16:9",
+      "prompt_expansion_mode": "balanced",
+      "enable_safety_checker": true
+    },
+    "seed": true,
+    "duration": 5,
+    "resolution": "768p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1344,
+        768
+      ],
+      [
+        1360,
+        768
+      ]
+    ],
+    "deadlineMs": 120000,
+    "feeMultiplier": 1,
+    "audio": false,
+    "codecs": [
+      "h264"
+    ],
+    "maxPrompt": 8000,
+    "description": "The Turbo contract for rapid visual exploration.",
+    "schemaUrl": "https://fal.ai/models/minimax/h3-max-turbo/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "minimax/h3-max/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "H3 Max",
+    "vendor": "MiniMax",
+    "family": "H3",
+    "app": "minimax/h3-max",
+    "params": {
+      "duration": 5,
+      "resolution": "768P",
+      "aspect_ratio": "16:9",
+      "prompt_expansion_mode": "balanced",
+      "enable_safety_checker": true
+    },
+    "seed": true,
+    "duration": 5,
+    "resolution": "768p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1344,
+        768
+      ],
+      [
+        1360,
+        768
+      ]
+    ],
+    "deadlineMs": 120000,
+    "feeMultiplier": 1,
+    "audio": false,
+    "codecs": [
+      "h264"
+    ],
+    "maxPrompt": 8000,
+    "description": "The full Max contract for your next scene.",
+    "schemaUrl": "https://fal.ai/models/minimax/h3-max/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "bytedance/seedance-2.5/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Seedance 2.5",
+    "vendor": "ByteDance",
+    "family": "Seedance",
+    "app": "bytedance/seedance-2.5",
+    "params": {
+      "duration": "5",
+      "resolution": "1080p",
+      "aspect_ratio": "16:9",
+      "generate_audio": true,
+      "bitrate_mode": "standard"
+    },
+    "seed": false,
+    "duration": 5,
+    "resolution": "1080p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1920,
+        1080
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 6,
+    "audio": true,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 8000,
+    "description": "A 1080p contract with synchronized audio.",
+    "schemaUrl": "https://fal.ai/models/bytedance/seedance-2.5/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/veo3.1": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Veo 3.1",
+    "vendor": "Google",
+    "family": "Veo",
+    "app": "fal-ai/veo3.1",
+    "params": {
+      "duration": "4s",
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "generate_audio": true,
+      "auto_fix": false,
+      "safety_tolerance": "4"
+    },
+    "seed": true,
+    "duration": 4,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 2,
+    "audio": true,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Veo 3.1 · 4-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/veo3.1/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/veo3.1/fast": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Veo 3.1 Fast",
+    "vendor": "Google",
+    "family": "Veo",
+    "app": "fal-ai/veo3.1",
+    "params": {
+      "duration": "4s",
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "generate_audio": true,
+      "auto_fix": false,
+      "safety_tolerance": "4"
+    },
+    "seed": true,
+    "duration": 4,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 2,
+    "audio": true,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Veo 3.1 Fast · 4-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/veo3.1/fast/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/veo3": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Veo 3",
+    "vendor": "Google",
+    "family": "Veo",
+    "app": "fal-ai/veo3",
+    "params": {
+      "duration": "4s",
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "generate_audio": true,
+      "auto_fix": false,
+      "safety_tolerance": "4"
+    },
+    "seed": true,
+    "duration": 4,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 2,
+    "audio": true,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Veo 3 · 4-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/veo3/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/veo3/fast": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Veo 3 Fast",
+    "vendor": "Google",
+    "family": "Veo",
+    "app": "fal-ai/veo3",
+    "params": {
+      "duration": "4s",
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "generate_audio": true,
+      "auto_fix": false,
+      "safety_tolerance": "4"
+    },
+    "seed": true,
+    "duration": 4,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 2,
+    "audio": true,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Veo 3 Fast · 4-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/veo3/fast/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/veo2": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Veo 2",
+    "vendor": "Google",
+    "family": "Veo",
+    "app": "fal-ai/veo2",
+    "params": {
+      "duration": "5s",
+      "aspect_ratio": "16:9",
+      "enhance_prompt": false,
+      "auto_fix": false
+    },
+    "seed": true,
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 2,
+    "audio": false,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Veo 2 · 5-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/veo2/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/kling-video/v3/pro/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Kling 3 Pro",
+    "vendor": "Kuaishou",
+    "family": "Kling",
+    "app": "fal-ai/kling-video",
+    "params": {
+      "duration": "5",
+      "aspect_ratio": "16:9",
+      "negative_prompt": "",
+      "generate_audio": true,
+      "shot_type": "customize"
+    },
+    "seed": false,
+    "duration": 5,
+    "resolution": "1080p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1920,
+        1080
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 1,
+    "audio": true,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Kling 3 Pro · 5-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/kling-video/v3/pro/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/kling-video/v3/standard/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Kling 3 Standard",
+    "vendor": "Kuaishou",
+    "family": "Kling",
+    "app": "fal-ai/kling-video",
+    "params": {
+      "duration": "5",
+      "aspect_ratio": "16:9",
+      "negative_prompt": "",
+      "generate_audio": true,
+      "shot_type": "customize"
+    },
+    "seed": false,
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 1,
+    "audio": true,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Kling 3 Standard · 5-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/kling-video/v3/standard/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/kling-video/v2.6/pro/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Kling 2.6 Pro",
+    "vendor": "Kuaishou",
+    "family": "Kling",
+    "app": "fal-ai/kling-video",
+    "params": {
+      "duration": "5",
+      "aspect_ratio": "16:9",
+      "negative_prompt": "",
+      "generate_audio": true
+    },
+    "seed": false,
+    "duration": 5,
+    "resolution": "1080p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1920,
+        1080
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 1,
+    "audio": true,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Kling 2.6 Pro · 5-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/kling-video/v2.6/pro/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/kling-video/v2.5-turbo/pro/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Kling 2.5 Turbo Pro",
+    "vendor": "Kuaishou",
+    "family": "Kling",
+    "app": "fal-ai/kling-video",
+    "params": {
+      "duration": "5",
+      "aspect_ratio": "16:9",
+      "negative_prompt": ""
+    },
+    "seed": false,
+    "duration": 5,
+    "resolution": "1080p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1920,
+        1080
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 1,
+    "audio": false,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Kling 2.5 Turbo Pro · 5-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/kling-video/v2.5-turbo/pro/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/kling-video/v2.1/master/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Kling 2.1 Master",
+    "vendor": "Kuaishou",
+    "family": "Kling",
+    "app": "fal-ai/kling-video",
+    "params": {
+      "duration": "5",
+      "aspect_ratio": "16:9",
+      "negative_prompt": ""
+    },
+    "seed": false,
+    "duration": 5,
+    "resolution": "1080p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1920,
+        1080
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 2,
+    "audio": false,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Kling 2.1 Master · 5-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/kling-video/v2.1/master/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/kling-video/v2/master/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Kling 2 Master",
+    "vendor": "Kuaishou",
+    "family": "Kling",
+    "app": "fal-ai/kling-video",
+    "params": {
+      "duration": "5",
+      "aspect_ratio": "16:9",
+      "negative_prompt": ""
+    },
+    "seed": false,
+    "duration": 5,
+    "resolution": "1080p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1920,
+        1080
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 2,
+    "audio": false,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Kling 2 Master · 5-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/kling-video/v2/master/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/kling-video/v1.6/pro/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Kling 1.6 Pro",
+    "vendor": "Kuaishou",
+    "family": "Kling",
+    "app": "fal-ai/kling-video",
+    "params": {
+      "duration": "5",
+      "aspect_ratio": "16:9",
+      "negative_prompt": ""
+    },
+    "seed": false,
+    "duration": 5,
+    "resolution": "1080p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1920,
+        1080
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 1,
+    "audio": false,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Kling 1.6 Pro · 5-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/kling-video/v1.6/pro/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/kling-video/v1.6/standard/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Kling 1.6 Standard",
+    "vendor": "Kuaishou",
+    "family": "Kling",
+    "app": "fal-ai/kling-video",
+    "params": {
+      "duration": "5",
+      "aspect_ratio": "16:9",
+      "negative_prompt": ""
+    },
+    "seed": false,
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 1,
+    "audio": false,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Kling 1.6 Standard · 5-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/kling-video/v1.6/standard/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "wan/v2.6/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Wan 2.6",
+    "vendor": "Alibaba",
+    "family": "Wan",
+    "app": "wan/v2.6",
+    "params": {
+      "duration": "5",
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "enable_prompt_expansion": false,
+      "enable_safety_checker": true,
+      "multi_shots": false
+    },
+    "seed": true,
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 1,
+    "audio": true,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Wan 2.6 · 5-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/wan/v2.6/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/wan-25-preview/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Wan 2.5 Preview",
+    "vendor": "Alibaba",
+    "family": "Wan",
+    "app": "fal-ai/wan-25-preview",
+    "params": {
+      "duration": "5",
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "enable_prompt_expansion": false,
+      "enable_safety_checker": true
+    },
+    "seed": true,
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 1,
+    "audio": true,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Wan 2.5 Preview · 5-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/wan-25-preview/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/wan/v2.2-a14b/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Wan 2.2 A14B",
+    "vendor": "Alibaba",
+    "family": "Wan",
+    "app": "fal-ai/wan",
+    "params": {
+      "num_frames": 121,
+      "frames_per_second": 24,
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "enable_prompt_expansion": false,
+      "enable_safety_checker": true,
+      "enable_output_safety_checker": true,
+      "interpolator_model": "none",
+      "num_interpolated_frames": 0,
+      "adjust_fps_for_interpolation": false
+    },
+    "seed": true,
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 1,
+    "audio": false,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Wan 2.2 A14B · 5-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/wan/v2.2-a14b/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/wan/v2.2-5b/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Wan 2.2 5B",
+    "vendor": "Alibaba",
+    "family": "Wan",
+    "app": "fal-ai/wan",
+    "params": {
+      "num_frames": 121,
+      "frames_per_second": 24,
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "enable_prompt_expansion": false,
+      "enable_safety_checker": true,
+      "enable_output_safety_checker": true,
+      "interpolator_model": "none",
+      "num_interpolated_frames": 0,
+      "adjust_fps_for_interpolation": false
+    },
+    "seed": true,
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 1,
+    "audio": false,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Wan 2.2 5B · 5-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/wan/v2.2-5b/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/ltx-2/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "LTX 2 Pro",
+    "vendor": "Lightricks",
+    "family": "LTX",
+    "app": "fal-ai/ltx-2",
+    "params": {
+      "duration": 6,
+      "resolution": "1080p",
+      "fps": 25,
+      "generate_audio": true
+    },
+    "seed": false,
+    "duration": 6,
+    "resolution": "1080p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1920,
+        1080
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 1,
+    "audio": true,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "LTX 2 Pro · 6-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/ltx-2/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/ltx-2.3/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "LTX 2.3 Pro",
+    "vendor": "Lightricks",
+    "family": "LTX",
+    "app": "fal-ai/ltx-2.3",
+    "params": {
+      "duration": 6,
+      "resolution": "1080p",
+      "fps": 25,
+      "generate_audio": true,
+      "aspect_ratio": "16:9"
+    },
+    "seed": false,
+    "duration": 6,
+    "resolution": "1080p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1920,
+        1080
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 1,
+    "audio": true,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "LTX 2.3 Pro · 6-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/ltx-2.3/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/ltx-2.3/text-to-video/fast": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "LTX 2.3 Fast",
+    "vendor": "Lightricks",
+    "family": "LTX",
+    "app": "fal-ai/ltx-2.3",
+    "params": {
+      "duration": 6,
+      "resolution": "1080p",
+      "fps": 25,
+      "generate_audio": true,
+      "aspect_ratio": "16:9"
+    },
+    "seed": false,
+    "duration": 6,
+    "resolution": "1080p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1920,
+        1080
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 1,
+    "audio": true,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "LTX 2.3 Fast · 6-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/ltx-2.3/text-to-video/fast/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/pixverse/v6/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "PixVerse 6",
+    "vendor": "PixVerse",
+    "family": "PixVerse",
+    "app": "fal-ai/pixverse",
+    "params": {
+      "duration": 5,
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "negative_prompt": "",
+      "generate_audio_switch": true,
+      "generate_multi_clip_switch": false
+    },
+    "seed": true,
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 1,
+    "audio": true,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "PixVerse 6 · 5-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/pixverse/v6/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/pixverse/v5.5/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "PixVerse 5.5",
+    "vendor": "PixVerse",
+    "family": "PixVerse",
+    "app": "fal-ai/pixverse",
+    "params": {
+      "duration": "5",
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "negative_prompt": "",
+      "generate_audio_switch": true,
+      "generate_multi_clip_switch": false
+    },
+    "seed": true,
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 1,
+    "audio": true,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "PixVerse 5.5 · 5-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/pixverse/v5.5/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/pixverse/v5/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "PixVerse 5",
+    "vendor": "PixVerse",
+    "family": "PixVerse",
+    "app": "fal-ai/pixverse",
+    "params": {
+      "duration": "5",
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "negative_prompt": ""
+    },
+    "seed": true,
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 1,
+    "audio": false,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "PixVerse 5 · 5-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/pixverse/v5/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/pixverse/v4.5/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "PixVerse 4.5",
+    "vendor": "PixVerse",
+    "family": "PixVerse",
+    "app": "fal-ai/pixverse",
+    "params": {
+      "duration": "5",
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "negative_prompt": ""
+    },
+    "seed": true,
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 1,
+    "audio": false,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "PixVerse 4.5 · 5-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/pixverse/v4.5/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/minimax/hailuo-02/standard/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Hailuo 02 Standard",
+    "vendor": "MiniMax",
+    "family": "Hailuo",
+    "app": "fal-ai/minimax",
+    "params": {
+      "duration": "6",
+      "prompt_optimizer": false
+    },
+    "seed": false,
+    "duration": 6,
+    "resolution": "768p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1366,
+        768
+      ],
+      [
+        1360,
+        768
+      ],
+      [
+        1344,
+        768
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 1,
+    "audio": false,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Hailuo 02 Standard · 6-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/minimax/hailuo-02/standard/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/minimax/hailuo-02/pro/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Hailuo 02 Pro",
+    "vendor": "MiniMax",
+    "family": "Hailuo",
+    "app": "fal-ai/minimax",
+    "params": {
+      "prompt_optimizer": false
+    },
+    "seed": false,
+    "duration": 6,
+    "resolution": "1080p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1920,
+        1080
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 1,
+    "audio": false,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Hailuo 02 Pro · 6-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/minimax/hailuo-02/pro/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/bytedance/seedance/v1/pro/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Seedance 1 Pro",
+    "vendor": "ByteDance",
+    "family": "Seedance",
+    "app": "fal-ai/bytedance",
+    "params": {
+      "duration": "5",
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "camera_fixed": false,
+      "enable_safety_checker": true
+    },
+    "seed": true,
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 1,
+    "audio": false,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Seedance 1 Pro · 5-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/bytedance/seedance/v1/pro/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/bytedance/seedance/v1/pro/fast/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Seedance 1 Pro Fast",
+    "vendor": "ByteDance",
+    "family": "Seedance",
+    "app": "fal-ai/bytedance",
+    "params": {
+      "duration": "5",
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "camera_fixed": false,
+      "enable_safety_checker": true
+    },
+    "seed": true,
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 1,
+    "audio": false,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Seedance 1 Pro Fast · 5-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/bytedance/seedance/v1/pro/fast/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/bytedance/seedance/v1/lite/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Seedance 1 Lite",
+    "vendor": "ByteDance",
+    "family": "Seedance",
+    "app": "fal-ai/bytedance",
+    "params": {
+      "duration": "5",
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "camera_fixed": false,
+      "enable_safety_checker": true
+    },
+    "seed": true,
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 1,
+    "audio": false,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Seedance 1 Lite · 5-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/bytedance/seedance/v1/lite/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/bytedance/seedance/v1.5/pro/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Seedance 1.5 Pro",
+    "vendor": "ByteDance",
+    "family": "Seedance",
+    "app": "fal-ai/bytedance",
+    "params": {
+      "duration": "5",
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "camera_fixed": false,
+      "enable_safety_checker": true,
+      "generate_audio": true
+    },
+    "seed": true,
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 1,
+    "audio": true,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Seedance 1.5 Pro · 5-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/bytedance/seedance/v1.5/pro/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "xai/grok-imagine-video/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Grok Imagine Video",
+    "vendor": "xAI",
+    "family": "Grok",
+    "app": "xai/grok-imagine-video",
+    "params": {
+      "duration": 5,
+      "resolution": "720p",
+      "aspect_ratio": "16:9"
+    },
+    "seed": false,
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 1,
+    "audio": true,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Grok Imagine Video · 5-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/xai/grok-imagine-video/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "xai/grok-imagine-video/v1.5/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Grok Imagine 1.5",
+    "vendor": "xAI",
+    "family": "Grok",
+    "app": "xai/grok-imagine-video",
+    "params": {
+      "duration": 5,
+      "resolution": "720p",
+      "aspect_ratio": "16:9"
+    },
+    "seed": false,
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 1,
+    "audio": true,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Grok Imagine 1.5 · 5-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/xai/grok-imagine-video/v1.5/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/sora-2/text-to-video": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Sora 2",
+    "vendor": "OpenAI",
+    "family": "Sora",
+    "app": "fal-ai/sora-2",
+    "params": {
+      "duration": 4,
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "delete_video": true,
+      "detect_and_block_ip": true,
+      "model": "sora-2"
+    },
+    "seed": false,
+    "duration": 4,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 1,
+    "audio": true,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Sora 2 · 4-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/sora-2/text-to-video/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "fal-ai/sora-2/text-to-video/pro": {
+    "provider": "fal",
+    "kind": "video",
+    "mime": "video/mp4",
+    "name": "Sora 2 Pro",
+    "vendor": "OpenAI",
+    "family": "Sora",
+    "app": "fal-ai/sora-2",
+    "params": {
+      "duration": 4,
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "delete_video": true,
+      "detect_and_block_ip": true
+    },
+    "seed": false,
+    "duration": 4,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "deadlineMs": 480000,
+    "feeMultiplier": 2,
+    "audio": true,
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "maxPrompt": 2000,
+    "description": "Sora 2 Pro · 4-second landscape video contract.",
+    "schemaUrl": "https://fal.ai/models/fal-ai/sora-2/text-to-video/pro/api",
+    "schemaCheckedAt": "2026-09-15"
+  },
+  "direct/minimax/hailuo-2.3": {
+    "kind": "video",
+    "mime": "video/mp4",
+    "duration": 6,
+    "resolution": "1080p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1920,
+        1080
+      ]
+    ],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "deadlineMs": 480000,
+    "seed": false,
+    "audio": false,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "provider": "minimax",
+    "apiModel": "MiniMax-Hailuo-2.3",
+    "name": "Hailuo 2.3 (direct)",
+    "vendor": "MiniMax",
+    "family": "Hailuo",
+    "params": {
+      "duration": 6,
+      "resolution": "1080P",
+      "prompt_optimizer": false
+    },
+    "schemaUrl": "https://platform.minimax.io/docs/api-reference/video-generation-t2v",
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-09-16",
+    "validationStatus": "documentation-reviewed",
+    "description": "Hailuo 2.3 (direct) via minimax. Candidate contract; paid/TEE verification and pricing required."
+  },
+  "direct/openrouter/veo-3.1": {
+    "kind": "video",
+    "mime": "video/mp4",
+    "duration": 4,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "deadlineMs": 480000,
+    "seed": false,
+    "audio": true,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "provider": "openrouter",
+    "apiModel": "google/veo-3.1",
+    "name": "Veo 3.1 (OpenRouter)",
+    "vendor": "Google",
+    "family": "Veo",
+    "params": {
+      "duration": 4,
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "generate_audio": true
+    },
+    "schemaUrl": "https://openrouter.ai/docs/guides/overview/multimodal/video-generation",
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-09-16",
+    "validationStatus": "documentation-reviewed",
+    "description": "Veo 3.1 (OpenRouter) via openrouter. Candidate contract; paid/TEE verification and pricing required."
+  },
+  "direct/bfl/flux-2-pro": {
+    "kind": "image",
+    "mime": "image/png",
+    "duration": null,
+    "resolution": "1024px",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "codecs": [
+      "png"
+    ],
+    "deadlineMs": 480000,
+    "seed": true,
+    "audio": false,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "provider": "bfl",
+    "apiModel": "flux-2-pro",
+    "name": "FLUX.2 Pro (direct)",
+    "vendor": "Black Forest Labs",
+    "family": "FLUX",
+    "params": {
+      "width": 1024,
+      "height": 1024,
+      "output_format": "png",
+      "safety_tolerance": 2
+    },
+    "schemaUrl": "https://docs.bfl.ai/flux_2/flux2_text_to_image",
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-09-16",
+    "validationStatus": "documentation-reviewed",
+    "description": "FLUX.2 Pro (direct) via bfl. Candidate contract; paid/TEE verification and pricing required."
+  },
+  "direct/replicate/hailuo-02": {
+    "kind": "video",
+    "mime": "video/mp4",
+    "duration": 6,
+    "resolution": "1080p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1920,
+        1080
+      ]
+    ],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "deadlineMs": 480000,
+    "seed": false,
+    "audio": false,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "provider": "replicate",
+    "apiModel": "minimax/hailuo-02",
+    "name": "Hailuo 02 (Replicate)",
+    "vendor": "MiniMax",
+    "family": "Hailuo",
+    "params": {
+      "duration": 6,
+      "resolution": "1080p",
+      "prompt_optimizer": false
+    },
+    "schemaUrl": "https://replicate.com/minimax/hailuo-02/api/schema",
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-09-16",
+    "validationStatus": "documentation-reviewed",
+    "description": "Hailuo 02 (Replicate) via replicate. Candidate contract; paid/TEE verification and pricing required."
+  },
+  "direct/google/veo-3.1": {
+    "kind": "video",
+    "mime": "video/mp4",
+    "duration": 4,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "deadlineMs": 480000,
+    "seed": false,
+    "audio": true,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "provider": "google",
+    "apiModel": "veo-3.1-generate-preview",
+    "name": "Veo 3.1 (Google)",
+    "vendor": "Google",
+    "family": "Veo",
+    "params": {
+      "durationSeconds": 4,
+      "resolution": "720p",
+      "aspectRatio": "16:9",
+      "sampleCount": 1
+    },
+    "schemaUrl": "https://ai.google.dev/gemini-api/docs/veo",
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-09-16",
+    "validationStatus": "documentation-reviewed",
+    "description": "Veo 3.1 (Google) via google. Candidate contract; paid/TEE verification and pricing required."
+  },
+  "direct/runway/gen4.5": {
+    "kind": "video",
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "codecs": [
+      "h264"
+    ],
+    "deadlineMs": 480000,
+    "seed": true,
+    "audio": false,
+    "maxPrompt": 1000,
+    "feeMultiplier": 1,
+    "provider": "runway",
+    "apiModel": "gen4.5",
+    "name": "Gen-4.5 (Runway)",
+    "vendor": "Runway",
+    "family": "Gen-4.5",
+    "params": {
+      "duration": 5,
+      "ratio": "1280:720",
+      "outputFormat": "mp4"
+    },
+    "schemaUrl": "https://docs.dev.runwayml.com/api/",
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-09-16",
+    "validationStatus": "documentation-reviewed",
+    "description": "Gen-4.5 (Runway) via runway. Candidate contract; paid/TEE verification and pricing required."
+  },
+  "direct/luma/ray-2": {
+    "kind": "video",
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "deadlineMs": 480000,
+    "seed": false,
+    "audio": false,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "provider": "luma",
+    "apiModel": "ray-2",
+    "name": "Ray 2 (Luma)",
+    "vendor": "Luma",
+    "family": "Ray",
+    "params": {
+      "duration": "5s",
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "loop": false
+    },
+    "schemaUrl": "https://docs.lumalabs.ai/reference/creategeneration",
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-09-16",
+    "validationStatus": "documentation-reviewed",
+    "description": "Ray 2 (Luma) via luma. Candidate contract; paid/TEE verification and pricing required."
+  },
+  "direct/elevenlabs/multilingual-v2-rachel": {
+    "kind": "audio",
+    "mime": "audio/mpeg",
+    "duration": null,
+    "resolution": null,
+    "aspect": null,
+    "dimensions": [],
+    "codecs": [
+      "mp3"
+    ],
+    "deadlineMs": 120000,
+    "seed": false,
+    "audio": true,
+    "maxPrompt": 500,
+    "feeMultiplier": 1,
+    "provider": "elevenlabs",
+    "apiModel": "eleven_multilingual_v2",
+    "name": "Multilingual v2 · Rachel",
+    "vendor": "ElevenLabs",
+    "family": "Speech",
+    "params": {
+      "voice_id": "21m00Tcm4TlvDq8ikWAM",
+      "output_format": "mp3_44100_128"
+    },
+    "schemaUrl": "https://elevenlabs.io/docs/api-reference/text-to-speech/convert",
+    "sampleRate": 44100,
+    "maxDurationMs": 120000,
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-09-16",
+    "validationStatus": "documentation-reviewed",
+    "description": "Multilingual v2 · Rachel via elevenlabs. Candidate contract; paid/TEE verification and pricing required."
+  }
+}

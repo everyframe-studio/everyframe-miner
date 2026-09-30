@@ -1,0 +1,11 @@
+**
+!Cargo.toml
+!Cargo.lock
+!src/
+!src/**
+!config/
+!config/models.json
+!config/release.json
+!config/mainnet.json
+!config/testnet.json
+!Dockerfile

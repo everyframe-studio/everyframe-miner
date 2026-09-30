@@ -1,0 +1,50 @@
+{
+  "provenance": "Generated locally from legacy CLI 0.4.1 and @phala/cloud 0.4.0 on 2026-09-23. Synthetic data only; fixed X25519 test key must never be used operationally.",
+  "value": {
+    "𐀀": "emoji 🎬",
+    "": "x",
+    "array": [
+      1,
+      true,
+      null
+    ],
+    "quote": "\"a\""
+  },
+  "canonical": "{\"array\":[1,true,null],\"quote\":\"\\\"a\\\"\",\"𐀀\":\"emoji 🎬\",\"\":\"x\"}",
+  "publicKey": "MCowBQYDK2VwAyEA8/njm2Q8B/ofvP67TPkNEpoptFF3vBnLiyKC2rBUYvU=",
+  "envelope": {
+    "value": {
+      "𐀀": "emoji 🎬",
+      "": "x",
+      "array": [
+        1,
+        true,
+        null
+      ],
+      "quote": "\"a\""
+    },
+    "signature": "Yz4lwperFm7I5p2hqUbKDrEBJlDz68gLM4/65g+wXjUz4Z3j4YEEDCFuAyrz+i+//9qJSb1XApmogZoAi1+jAA=="
+  },
+  "compose": {
+    "name": "synthetic-test-only",
+    "features": [
+      "kms"
+    ],
+    "allowed_envs": [
+      "FAL_KEY"
+    ],
+    "docker_compose_file": "services: {}"
+  },
+  "composeHash": "5b28f122686469a28a48b5e124e5ca1809d8e27c3e168f80281564b34ccbd2b9",
+  "encryption": {
+    "privateHex": "1111111111111111111111111111111111111111111111111111111111111111",
+    "publicHex": "7b4e909bbe7ffe44c465a220037d608ee35897d31ef972f07f74892cb0f73f13",
+    "environment": [
+      {
+        "key": "FAL_KEY",
+        "value": "synthetic-fixture-not-a-real-key"
+      }
+    ],
+    "encryptedHex": "d988a610c72683e1543ccad8cc777e2cb27430436cf54cafa70a5da7ad7c4c4f724692b0ba704b74d9abb9cfe7f4d6da3c5c82c000aa0c80b70c907770427e390cb149504179e71838f0972eff74f02967eba87ff9f40d7e1e26914861ca828383a6d4144c99ef8d0af5accec290cf6602e7e0d9ac983e2db00a552301388619da36"
+  }
+}

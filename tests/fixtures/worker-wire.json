@@ -1,0 +1,16 @@
+{
+  "provenance": "Synthetic Node worker wire fixture; no operational keys",
+  "privateHex": "1111111111111111111111111111111111111111111111111111111111111111",
+  "value": {
+    "prompt": "Across languages 🎬",
+    "seed": 42
+  },
+  "context": "fixture-session:fixture-nonce",
+  "packet": {
+    "ephemeral": "MCowBQYDK2VuAyEAsRLh9sBKlAoyZR+bLe8npP2OUNEJTxJsfQWCzFHMuy4=",
+    "iv": "1aYDgZs/faQlDu64",
+    "data": "eImDu57hG7b5e7vTP7Qm2ftJHLpzV3J+lirRQE5eUx6U26jbJo9UATIg/6A=",
+    "tag": "By5WzzOorEAtHiGltXglYg=="
+  },
+  "reportData": "d12d3972227c929f24dbd65b2b20db3f04c39d15c05d0d05cfd94f8f1964d338981ec5a1fd0dcd1b91dc0cf91f4dae3fe8aa27c0156424dfdfdd1196dbec2d1e"
+}

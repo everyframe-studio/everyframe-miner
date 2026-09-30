@@ -1,0 +1,23 @@
+name: Rust checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install formatting and lint components
+        run: rustup component add rustfmt clippy
+      - run: cargo fmt --check
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo test --locked
+      - run: cargo build --release --locked --bins
+      - name: Native CLI and fail-closed public worker
+        run: |
+          target/release/everycli --version --json
+          target/release/everycli miner --help
+          if target/release/everyframe-worker; then
+            echo "Public worker must not run without an approved release"
+            exit 1
+          fi

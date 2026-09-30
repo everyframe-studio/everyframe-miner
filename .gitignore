@@ -1,0 +1,12 @@
+/target/
+.env
+.env.*
+*.env
+*.key
+*.pem
+*.db
+*.log
+credentials.json
+invitation*.json
+state/
+wallets/

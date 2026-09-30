@@ -1,0 +1,40 @@
+[package]
+name = "everyframe-miner"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+description = "Everyframe attested worker and native Rust operator CLI"
+license = "Apache-2.0"
+publish = false
+
+[[bin]]
+name = "everyframe-worker"
+path = "src/bin/worker.rs"
+
+[[bin]]
+name = "everycli"
+path = "src/bin/everycli.rs"
+
+[dependencies]
+aes-gcm = "0.10"
+base64 = "0.22"
+ed25519-dalek = { version = "2.2", features = ["rand_core"] }
+hex = "0.4"
+hkdf = "0.12"
+libc = "0.2"
+rand = "0.8"
+regex = "1"
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls-webpki-roots"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+sha2 = "0.10"
+signal-hook = "0.3"
+url = "2"
+x25519-dalek = { version = "2", features = ["static_secrets", "getrandom"] }
+
+[dev-dependencies]
+tempfile = "3"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
