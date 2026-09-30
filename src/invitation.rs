@@ -50,11 +50,11 @@ pub fn valid_environment(v: &Value) -> bool {
         .collect::<std::collections::HashSet<_>>();
     set.len() == keys.len()
         && set.contains("MINER_ID")
-        && set.contains("MINER_TOKEN")
+        && (set.contains("MINER_TOKEN") ^ set.contains("MINER_AUTH"))
         && PROVIDERS.iter().any(|(_, k)| set.contains(k))
         && (!REGISTRY.iter().any(|k| set.contains(k)) || REGISTRY.iter().all(|k| set.contains(k)))
         && keys.iter().all(|k| {
-            ["MINER_ID", "MINER_TOKEN"].contains(k)
+            ["MINER_ID", "MINER_TOKEN", "MINER_AUTH"].contains(k)
                 || REGISTRY.contains(k)
                 || PROVIDERS.iter().any(|(_, key)| key == k)
         })
@@ -86,7 +86,12 @@ pub fn validate(envelope: &Value, t: &Value, now: i64, allow_expired: bool) -> R
     let v = verified(envelope, s(&t["publicKey"])?)?;
     need(
         v.is_object()
-            && v["kind"] == "everyframe-miner-invitation-v1"
+            && [
+                "everyframe-miner-invitation-v1",
+                "everyframe-miner-deployment-v2",
+            ]
+            .iter()
+            .any(|k| v["kind"] == *k)
             && ["network", "netuid", "coordinatorUrl"]
                 .iter()
                 .all(|k| v[k] == t[k]),
@@ -101,10 +106,25 @@ pub fn validate(envelope: &Value, t: &Value, now: i64, allow_expired: bool) -> R
         issued <= now + 30000 && expiry > issued && (allow_expired || expiry > now),
         "invitation_expired",
     )?;
+    let hotkey_mode = v["kind"] == "everyframe-miner-deployment-v2";
     need(
-        matches("[a-zA-Z0-9_-]{1,64}", &v["minerId"]) && matches("[0-9a-f]{64}", &v["tokenHash"]),
+        matches("[a-zA-Z0-9_-]{1,64}", &v["minerId"])
+            && if hotkey_mode {
+                v["authMode"] == "hotkey-v1"
+                    && v["keyVersion"]
+                        .as_u64()
+                        .is_some_and(|n| n > 0 && n <= 9007199254740991)
+                    && v.get("tokenHash").is_none()
+            } else {
+                matches("[0-9a-f]{64}", &v["tokenHash"])
+                    && v.get("authMode").is_none()
+                    && v.get("keyVersion").is_none()
+            },
         "invalid_miner",
     )?;
+    if hotkey_mode {
+        crate::hotkey::public_address(s(&v["hotkey"])?)?;
+    }
     need(
         matches("[1-9A-HJ-NP-Za-km-z]{47,49}", &v["hotkey"])
             && v["ownershipVerifiedByOperator"] == true,
@@ -158,6 +178,19 @@ pub fn validate(envelope: &Value, t: &Value, now: i64, allow_expired: bool) -> R
         "unsafe_compose",
     )?;
     let docker = s(&c["docker_compose_file"])?;
+    let envs = c["allowed_envs"]
+        .as_array()
+        .ok_or(Error("unsafe_compose"))?;
+    need(
+        envs.iter().any(|x| {
+            x == if hotkey_mode {
+                "MINER_AUTH"
+            } else {
+                "MINER_TOKEN"
+            }
+        }),
+        "auth_environment_mismatch",
+    )?;
     let script = s(&c["pre_launch_script"])?;
     need(
         docker.len() < 20000

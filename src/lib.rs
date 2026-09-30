@@ -1,5 +1,6 @@
 pub mod cli;
 pub mod cloud;
+pub mod hotkey;
 pub mod invitation;
 pub mod miner;
 pub mod models;

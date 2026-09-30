@@ -82,24 +82,28 @@ and HTTPS.
 
 ## Set up a miner
 
+The hotkey flow below requires **everycli v0.1.2 or later**. The currently
+published v0.1.1 uses the legacy token flow; these changes must be included in
+the next CLI and worker release before upgrading an existing deployment.
+
 Before deployment, you need:
 
 - A miner hotkey registered on SN117. Registration is separate from `everycli`;
   the CLI does not create wallets, register hotkeys, or sign wallet transactions.
 - A funded Phala Cloud account and its API key for the attested workload.
 - At least one funded provider account supported by your deployment configuration.
-- Your coordinator-issued `MINER_TOKEN` and signed deployment configuration
-  file, passed to `init` as `--invitation`.
+- Your local miner hotkey file and a hotkey-enabled signed deployment
+  configuration, passed to `init` as `--invitation`. No `MINER_TOKEN` is needed.
 
 The downloads and public worker images do not require registry credentials.
 The current CLI still validates the signed deployment configuration and requires
-coordinator attestation approval before enabling provider keys. Downloading the
+coordinator attestation approval before enabling provider keys. Hotkey
+authentication does not bypass image/TEE admission. Downloading the
 CLI alone does not register or activate a miner.
 
 Store your own credentials in a private file, mode `0600`, outside this repository:
 
 ```dotenv
-MINER_TOKEN=operator-issued-token
 PHALA_CLOUD_API_KEY=your-own-cloud-key
 FAL_KEY=your-own-provider-key
 ```
@@ -117,7 +121,10 @@ execution or `${VARIABLE}` expansion. Public-image releases never send registry
 credentials, including stale credentials already stored in a profile.
 
 ```sh
-everycli miner init --invitation /private/invitation.json --secrets-file /private/miner.env
+everycli miner init \
+  --wallet my-miner --hotkey default \
+  --invitation /private/deployment.json \
+  --secrets-file /private/miner.env
 everycli miner doctor
 everycli miner deploy --max-hourly-usd 0.06
 everycli miner status
@@ -127,6 +134,25 @@ The paths above are examples. `doctor` can report that no workload is deployed
 before the initial `deploy`. Review its diagnosis rather than treating every
 pre-deployment warning as an installation failure. The hourly ceiling is an
 example; deployment is refused if the quoted compute rate exceeds it.
+
+`--wallet my-miner --hotkey default` reads
+`~/.bittensor/wallets/my-miner/hotkeys/default` locally. Alternatively, use
+`--hotkey-file /absolute/path/to/hotkey` instead of those two options. The current
+reader supports an unencrypted sr25519 wallet JSON containing `secretSeed`;
+the file must be owner-only. Encrypted keyfiles are rejected rather than silently
+decrypted or uploaded. Never paste a seed into command arguments.
+
+The hotkey signs separate, expiring console and worker authorizations. Only the
+worker's restricted delegate is sent through Phala's encrypted environment;
+the hotkey and console delegate stay on your computer. This does not sign a
+blockchain transaction or access your coldkey. Delegations last at most 30 days,
+bounded by the deployment configuration's expiry. Renew with `init` using a
+current configuration before expiry, then activate the updated worker credentials
+and wait for fresh admission before resuming work.
+
+Older token-based deployments remain compatible until explicitly migrated.
+Simply deleting a token from an old profile will not migrate it: the coordinator
+binding, deployment configuration, and worker image must all support hotkey auth.
 
 Activation happens in stages. Check `status` and `doctor` between them; do not
 run through admission failures or repeatedly retry an uncertain deployment.
@@ -171,7 +197,7 @@ resources and ongoing charges. To restart the saved workload, use
 
 | Command | Purpose |
 | --- | --- |
-| `init` | Verify signed deployment configuration and store private credentials |
+| `init` | Verify deployment configuration; sign local hotkey delegations and store credentials |
 | `doctor`, `status` | Diagnose readiness, admission, routing, and cloud state |
 | `providers` | Show credential presence and signed-release permissions, never key values |
 | `offers`, `offer` | Inspect, set, or withdraw a revision-checked model bid |
@@ -237,7 +263,8 @@ prebuilt CLI from working. Worker publishers must configure the reviewed trust
 pins, publish a digest-pinned image, and have its exact measurements admitted.
 Miners using an existing deployment configuration do not need to build an image.
 
-Neither the CLI nor worker needs your wallet seed or signing keys. Keep credentials
+The worker never receives your hotkey private key. The CLI reads the hotkey only
+to sign scoped authentication, never to move funds. Keep hotkeys, credentials,
 and private state out of Git. See [SECURITY.md](SECURITY.md) for security guidance,
 [COMPATIBILITY.md](COMPATIBILITY.md) for protocol details, and
 [RELEASING.md](RELEASING.md) for maintainer release procedures.

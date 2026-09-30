@@ -26,7 +26,13 @@ pub fn environment(inv: &Value, credentials: &Value, provider: bool) -> Result<V
     let matched = re
         .captures(s(&inv["request"]["compose_file"]["docker_compose_file"])?)
         .ok_or(Error("registry_access_required"))?;
-    let mut env = json!({"MINER_ID":inv["minerId"],"MINER_TOKEN":credentials["MINER_TOKEN"]});
+    let mut env = json!({"MINER_ID":inv["minerId"]});
+    if inv["authMode"] == "hotkey-v1" {
+        crate::hotkey::validate(&credentials["WORKER_AUTH"], inv, "worker")?;
+        env["MINER_AUTH"] = json!(credentials["WORKER_AUTH"].to_string());
+    } else {
+        env["MINER_TOKEN"] = credentials["MINER_TOKEN"].clone();
+    }
     if registry_required(inv) {
         let user = credentials
             .get("DSTACK_DOCKER_USERNAME")

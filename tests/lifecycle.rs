@@ -105,6 +105,31 @@ impl Http for Rig {
             return Err(Error("ambiguous_network_error"));
         }
         let v = if path.contains("/v1/miner/") {
+            if self.inv["authMode"] == "hotkey-v1" {
+                assert!(!r.headers.iter().any(|(k, _)| k == "authorization"));
+                let h = &r
+                    .headers
+                    .iter()
+                    .find(|(k, _)| k == "x-everyframe-auth")
+                    .unwrap()
+                    .1;
+                let a: Value = serde_json::from_slice(&protocol::decode(h).unwrap()).unwrap();
+                assert_eq!(a["certificate"]["value"]["scope"], "console");
+                let proof = protocol::verified(
+                    &a["proof"],
+                    a["certificate"]["value"]["delegateKey"].as_str().unwrap(),
+                )
+                .unwrap();
+                assert_eq!(
+                    proof["bodyHash"],
+                    protocol::digest(&if r.body.is_some() {
+                        body.clone()
+                    } else {
+                        Value::Null
+                    })
+                    .unwrap()
+                );
+            }
             let action = path.rsplit('/').next().unwrap();
             let nonce = if action == "status" {
                 u.query_pairs()
@@ -189,6 +214,58 @@ fn original_phala_encryption_vector_decrypts() {
         &StaticSecret::from([0x11; 32]),
     );
     assert_eq!(clear["env"], f["encryption"]["environment"]);
+}
+#[test]
+fn hotkey_bootstrap_encrypts_only_worker_delegate_never_token_or_hotkey() {
+    use everyframe_miner::hotkey;
+    use schnorrkel::{ExpansionMode, MiniSecretKey};
+    use std::os::unix::fs::PermissionsExt;
+    let mut r = Rig::new();
+    r.dir = common::tempdir();
+    let seed = [7u8; 32];
+    let pair = MiniSecretKey::from_bytes(&seed)
+        .unwrap()
+        .expand_to_keypair(ExpansionMode::Ed25519);
+    let address = hotkey::address(&pair.public.to_bytes());
+    let path = r.dir.path().join("hotkey");
+    std::fs::write(
+        &path,
+        json!({"secretSeed":hex::encode(seed),"ss58Address":address}).to_string(),
+    )
+    .unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+    r.inv["kind"] = json!("everyframe-miner-deployment-v2");
+    r.inv["authMode"] = json!("hotkey-v1");
+    r.inv["keyVersion"] = json!(1);
+    r.inv["hotkey"] = json!(address);
+    r.inv.as_object_mut().unwrap().remove("tokenHash");
+    r.inv["request"]["compose_file"]["allowed_envs"] = json!(["MINER_ID", "MINER_AUTH", "FAL_KEY"]);
+    r.inv["composeHash"] = json!(cloud::compose_hash(&r.inv["request"]["compose_file"]).unwrap());
+    r.info.borrow_mut()["compose_hash"] = r.inv["composeHash"].clone();
+    r.status.borrow_mut()["composeHash"] = r.inv["composeHash"].clone();
+    r.credentials.as_object_mut().unwrap().remove("MINER_TOKEN");
+    r.credentials["CONSOLE_AUTH"] = hotkey::create(&path, &r.inv, "console").unwrap();
+    r.credentials["WORKER_AUTH"] = hotkey::create(&path, &r.inv, "worker").unwrap();
+    r.miner().init(&r.sign(&r.inv), &r.credentials).unwrap();
+    assert_eq!(r.deploy().unwrap()["phase"], "awaiting_attestation");
+    r.miner().activate(&|_| Ok(())).unwrap();
+    assert!(r.miner().resume(&|_| Ok(())).is_err());
+    r.status.borrow_mut()["attestation"]["at"] = json!(now() + 1000);
+    r.miner().resume(&|_| Ok(())).unwrap();
+    for env in r.envs.borrow().iter() {
+        let text = env.to_string();
+        assert!(!text.contains("MINER_TOKEN"));
+        assert!(!text.contains(&hex::encode(seed)));
+        assert!(!text.contains(r.credentials["CONSOLE_AUTH"]["secret"].as_str().unwrap()));
+        let entry = env["env"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|e| e["key"] == "MINER_AUTH")
+            .unwrap();
+        let auth: Value = serde_json::from_str(entry["value"].as_str().unwrap()).unwrap();
+        hotkey::validate(&auth, &r.inv, "worker").unwrap();
+    }
 }
 #[test]
 fn bootstrap_activation_restart_and_shutdown() {

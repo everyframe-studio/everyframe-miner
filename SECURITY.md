@@ -17,6 +17,34 @@ CLI self-updates do not alter or bypass signed worker image admission.
 
 ## Miner runtime
 
+### Hotkey authentication (v0.1.2)
+
+The CLI reads an owner-only, unencrypted sr25519 hotkey JSON locally during
+initialization. It verifies the SS58 checksum and matches the derived public key
+to the coordinator-signed deployment configuration. It does not access the
+coldkey or submit chain transactions. It creates separate Ed25519 delegates for
+console operations and worker enrollment/job operations, signed by the hotkey
+with an application-specific domain, exact network/genesis/netuid, coordinator
+audience, miner identity, key version, scope, and expiry (maximum 30 days).
+
+Only the worker delegate is included in Phala's encrypted environment as
+`MINER_AUTH`; neither the hotkey nor the console delegate is uploaded. A delegate
+is still a secret: protect the CLI profile and encrypted workload environment.
+Every authenticated request signs its method, path/query, body hash, timestamp,
+and single-use nonce. The coordinator checks the approved hotkey binding and key
+version on each request, rejects replay/stale requests, and separates console
+from worker authority. Migrating a binding disables its legacy bearer token and
+revokes existing worker sessions. TEE admission and job receipt verification are
+still required; a registered hotkey alone does not approve an arbitrary image.
+
+Deployment configuration signing and hotkey-to-miner binding remain operator
+actions after registration/ownership checks. This change is authentication, not
+permissionless on-chain registration or automatic TEE policy approval. Existing
+token deployments retain compatibility until explicitly migrated. Keep their
+tokens until the coordinator binding, worker image, and profile are migrated.
+
+### Runtime isolation
+
 The worker has no HTTP server, arbitrary signing endpoint, wallet seed, external
 adapter loader, endpoint override, or provider fallback. Only the reviewed serial
 worker state machine creates receipts. Provider output references are bound to

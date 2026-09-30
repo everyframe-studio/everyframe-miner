@@ -11,8 +11,8 @@ After reviewing and committing the release changes, the maintainer can publish
 the corrected version (these commands create an external release when pushed):
 
 ```sh
-git tag v0.1.1
-git push origin v0.1.1
+git tag v0.1.2
+git push origin v0.1.2
 ```
 
 For subsequent releases, bump Cargo.toml and Cargo.lock first, then tag the
@@ -29,9 +29,18 @@ commit and push the fix, then publish the new matching version tag instead.
 
 Release assets include four `everycli-<target>` binaries, individual `.sha256`
 files, a version-pinned `everycli-installer.sh` with its checksum, and project
-license notices. The installer URL in the README will not work until the first
-release is published. No GitHub token or miner login is needed to install from a
+license notices. The installer URL serves the latest published release; local
+source changes are not distributed until a new release is published. No GitHub token or miner login is needed to install from a
 public repository. Private repositories are not supported by the public installer.
+
+For hotkey authentication, publish the v0.1.2 CLI and a separately reviewed worker
+image. A v2 deployment configuration replaces `tokenHash` with `authMode: hotkey-v1`
+and `keyVersion`, and replaces `MINER_TOKEN` with `MINER_AUTH` in both the compose
+environment and `allowed_envs`. Configure the coordinator's approved hotkey binding
+and exact new image measurements before activation. Do not remove an old worker's
+token while it still runs a token-only image. Binding migration must be drained
+and idle; it invalidates the old token and sessions. It is not performed by
+`everycli update` or by publishing a GitHub release.
 
 Checksums verify transfer integrity, not an independent publisher signature:
 the installer/updater trust this GitHub repository and HTTPS. Follow the signing

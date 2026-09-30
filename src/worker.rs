@@ -202,6 +202,7 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
 pub struct LiveRuntime {
     pub base: String,
     pub token: String,
+    pub auth: Option<Value>,
     pub http: crate::network::PublicHttp,
 }
 impl Runtime for LiveRuntime {
@@ -219,8 +220,12 @@ impl Runtime for LiveRuntime {
         let mut r = Request::get(url, &[&host]).json("POST", body);
         r.limit = 300000;
         r.timeout = 30;
-        r.headers
-            .push(("authorization".into(), format!("Bearer {}", self.token)));
+        if let Some(auth) = &self.auth {
+            crate::hotkey::authorize(&mut r, auth, body)?;
+        } else {
+            r.headers
+                .push(("authorization".into(), format!("Bearer {}", self.token)));
+        }
         if let Some(session) = body["value"]["sessionId"].as_str() {
             r.headers.push(("x-session-id".into(), session.into()))
         };
@@ -336,8 +341,27 @@ pub fn run_live() -> Result<()> {
         crate::matches("[a-zA-Z0-9_-]{1,64}", &json!(miner)),
         "miner_id_required",
     )?;
-    let token = std::env::var("MINER_TOKEN").map_err(|_| Error("miner_token_required"))?;
-    need(token.len() >= 32, "miner_token_required")?;
+    let auth = std::env::var("MINER_AUTH")
+        .ok()
+        .map(|raw| serde_json::from_str::<Value>(&raw).map_err(|_| Error("invalid_worker_auth")))
+        .transpose()?;
+    let token = if auth.is_none() {
+        let t = std::env::var("MINER_TOKEN").map_err(|_| Error("hotkey_worker_auth_required"))?;
+        need(t.len() >= 32, "hotkey_worker_auth_required")?;
+        t
+    } else {
+        String::new()
+    };
+    if let Some(a) = &auth {
+        let c = &a["certificate"]["value"];
+        need(
+            c["minerId"] == miner
+                && c["scope"] == "worker"
+                && c["chain"] == chain
+                && c["audience"] == base.to_string(),
+            "wrong_worker_auth_identity",
+        )?;
+    }
     let mut credentials = json!({});
     for (_, key) in crate::invitation::PROVIDERS {
         if let Ok(v) = std::env::var(key) {
@@ -359,6 +383,7 @@ pub fn run_live() -> Result<()> {
         runtime: LiveRuntime {
             base: base.to_string(),
             token,
+            auth,
             http: crate::network::PublicHttp,
         },
         provider: crate::providers::Router::new(&http, credentials),

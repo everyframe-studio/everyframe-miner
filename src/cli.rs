@@ -11,7 +11,7 @@ use std::{
     io::{self, IsTerminal, Write},
     path::Path,
 };
-pub const HELP: &str = "everycli · Everyframe miner tools (Rust)\n\nUsage: everycli miner COMMAND [options]\n\nCommands: init, doctor, status, providers, offers, offer, earnings, deploy, activate, resume, update, stop, start, reconcile\n\nOptions:\n  --network mainnet|testnet (default mainnet SN117; testnet SN566)\n  --state-dir DIR\n  --invitation FILE --secrets-file FILE (init)\n  --release FILE (update)\n  --max-hourly-usd N (deploy/start; storage extra)\n  --model ID --discount-pct PCT | --withdraw (offer)\n  --drain-only (stop)\n  --yes --json --help --version\n\nNative Rust. No Node.js, Python, GPU, wallet seed or wallet signing.\nHosting/provider charges are real. No guaranteed earnings or automatic total spending cap.\n";
+pub const HELP: &str = "everycli · Everyframe miner tools\n\nUsage: everycli miner COMMAND [options]\n\nCommands: init, doctor, status, providers, offers, offer, earnings, deploy, activate, resume, update, stop, start, reconcile\n\nOptions:\n  --network mainnet|testnet (default mainnet SN117; testnet SN566)\n  --state-dir DIR\n  --invitation FILE --secrets-file FILE (init)\n  --wallet NAME --hotkey NAME (init; default hotkey: default)\n  --hotkey-file FILE (init; alternative to wallet/name)\n  --release FILE (update)\n  --max-hourly-usd N (deploy/start; storage extra)\n  --model ID --discount-pct PCT | --withdraw (offer)\n  --drain-only (stop)\n  --yes --json --help --version\n\nNo Node.js, Python or GPU. Hotkey signs locally; no chain transaction or coldkey access.\nHosting/provider charges are real. No guaranteed earnings or automatic total spending cap.\n";
 pub struct Args {
     pub command: String,
     pub options: HashMap<String, String>,
@@ -64,6 +64,9 @@ pub fn parse(args: &[String]) -> Result<Args> {
                     "--state-dir",
                     "--invitation",
                     "--secrets-file",
+                    "--hotkey-file",
+                    "--wallet",
+                    "--hotkey",
                     "--release",
                     "--max-hourly-usd",
                     "--model",
@@ -129,7 +132,13 @@ pub fn parse(args: &[String]) -> Result<Args> {
     )?;
     out.command = positionals[1].into();
     let allowed = match out.command.as_str() {
-        "init" => vec!["--invitation", "--secrets-file"],
+        "init" => vec![
+            "--invitation",
+            "--secrets-file",
+            "--hotkey-file",
+            "--wallet",
+            "--hotkey",
+        ],
         "deploy" | "start" => vec!["--max-hourly-usd"],
         "offer" => vec!["--model", "--discount-pct", "--withdraw"],
         "update" => vec!["--release"],
@@ -205,10 +214,44 @@ pub fn run(args: &Args) -> Result<Value> {
                 .unwrap_or_else(|| {
                     question("Private credentials file (mode 600): ", args.flag("--json"))
                 })?;
-            miner.init(
-                &read_json(Path::new(&inv), false)?,
-                &read_secrets(Path::new(&creds))?,
-            )
+            let envelope = read_json(Path::new(&inv), false)?;
+            let deployment = miner.validate(&envelope, false)?;
+            let mut credentials = read_secrets(Path::new(&creds))?;
+            if deployment["authMode"] == "hotkey-v1" {
+                need(
+                    !(args.get("--hotkey-file").is_some()
+                        && (args.get("--wallet").is_some() || args.get("--hotkey").is_some())),
+                    "choose_wallet_or_hotkey_file",
+                )?;
+                let path = if let Some(p) = args.get("--hotkey-file") {
+                    p.to_string()
+                } else {
+                    let wallet = args.required("--wallet")?;
+                    let key = args.get("--hotkey").unwrap_or("default");
+                    need(
+                        crate::matches("[A-Za-z0-9_-]{1,80}", &json!(wallet))
+                            && crate::matches("[A-Za-z0-9_-]{1,80}", &json!(key)),
+                        "invalid_wallet_name",
+                    )?;
+                    format!(
+                        "{}/.bittensor/wallets/{wallet}/hotkeys/{key}",
+                        std::env::var("HOME").map_err(|_| Error("home_required"))?
+                    )
+                };
+                credentials.as_object_mut().unwrap().remove("MINER_TOKEN");
+                credentials["CONSOLE_AUTH"] =
+                    crate::hotkey::create(Path::new(&path), &deployment, "console")?;
+                credentials["WORKER_AUTH"] =
+                    crate::hotkey::create(Path::new(&path), &deployment, "worker")?;
+            } else {
+                need(
+                    args.get("--hotkey-file").is_none()
+                        && args.get("--wallet").is_none()
+                        && args.get("--hotkey").is_none(),
+                    "hotkey_deployment_required",
+                )?;
+            }
+            miner.init(&envelope, &credentials)
         }
         "doctor" => miner.doctor(),
         "status" => miner.status(),

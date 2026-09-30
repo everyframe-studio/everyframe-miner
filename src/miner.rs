@@ -107,6 +107,11 @@ impl Miner<'_> {
         invitation::validate(v, &self.trust, now(), expired)
     }
     pub fn token(creds: &Value, inv: &Value) -> Result<()> {
+        if inv["authMode"] == "hotkey-v1" {
+            crate::hotkey::validate(&creds["CONSOLE_AUTH"], inv, "console")?;
+            crate::hotkey::validate(&creds["WORKER_AUTH"], inv, "worker")?;
+            return Ok(());
+        }
         let token = s(&creds["MINER_TOKEN"])?;
         need(
             token.len() >= 32 && sha(format!("Bearer {token}")) == inv["tokenHash"],
@@ -139,16 +144,22 @@ impl Miner<'_> {
             &["subnet.everyframe.studio"],
         );
         r.limit = 100000;
-        r.headers.push((
-            "authorization".into(),
-            format!("Bearer {}", s(&c.credentials["MINER_TOKEN"])?),
-        ));
+        let mut auth_body = Value::Null;
         if action == "status" {
             r.url += &format!("?nonce={nonce}")
         } else {
             let mut body = payload;
             body["nonce"] = json!(nonce);
+            auth_body = body.clone();
             r = r.json("POST", &body)
+        }
+        if c.invitation["authMode"] == "hotkey-v1" {
+            crate::hotkey::authorize(&mut r, &c.credentials["CONSOLE_AUTH"], &auth_body)?;
+        } else {
+            r.headers.push((
+                "authorization".into(),
+                format!("Bearer {}", s(&c.credentials["MINER_TOKEN"])?),
+            ));
         }
         let out = verified(&self.http.json(r)?, s(&self.trust["publicKey"])?)?;
         need(
@@ -721,9 +732,16 @@ impl Miner<'_> {
             "update_not_ready",
         )?;
         need(
-            ["minerId", "hotkey", "tokenHash", "osImageHash"]
-                .iter()
-                .all(|k| inv[k] == old[k])
+            [
+                "minerId",
+                "hotkey",
+                "tokenHash",
+                "authMode",
+                "keyVersion",
+                "osImageHash",
+            ]
+            .iter()
+            .all(|k| inv[k] == old[k])
                 && inv["appId"] == d["appId"]
                 && inv["previousComposeHash"] == old["composeHash"]
                 && inv["composeHash"] != inv["previousComposeHash"]
