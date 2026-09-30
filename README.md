@@ -1,24 +1,23 @@
-# Everyframe miner — Rust
+# Everyframe miner
 
-Native Rust implementation of the Everyframe attested worker **and `everycli`**.
+The Everyframe attested worker **and `everycli`**, its command-line tool for miners.
 Neither executable needs Node.js, npm, Python, pip, a GPU, or wallet signing keys.
 The worker connects approved provider accounts to the Everyframe coordinator;
 it does not run generation models locally.
 
-This ports the existing miner's 45 immutable model contracts, nine provider
-adapters, signed/encrypted job protocol, and 14 miner commands, with native CLI
-self-updates. Provider charges,
-hosting charges, operator admission, and routing restrictions remain unchanged.
+Includes 45 immutable model contracts, nine provider adapters, a signed/encrypted
+job protocol, and 14 miner commands, with built-in CLI self-updates. Provider
+charges, hosting charges, operator admission, and routing restrictions remain unchanged.
 
 **Release status:** locally tested port, not a production-admitted worker image.
-The checked-in worker intentionally exits with `release_not_configured`. A Rust
-image has a new digest and measurements; it needs a new operator-reviewed release
+The checked-in worker intentionally exits with `release_not_configured`. A new
+worker image has its own digest and measurements; it needs an operator-reviewed release
 and signed invitation before it can replace a live worker. No live deployment is
 performed by building or testing this repository.
 
 ## Install everycli as a miner
 
-Use a **prebuilt `everycli` binary**. You do not need Rust, Cargo, Node.js, Python,
+Use a **prebuilt `everycli` binary**. You do not need a compiler, a language runtime,
 Docker, a GPU, or a clone of this repository on your computer to run the CLI.
 The miner worker runs separately in the deployed cloud workload.
 
@@ -35,8 +34,8 @@ pushed and the release workflow successfully publishes all platform builds. See
 A source-code archive is not a prebuilt CLI download.
 
 The installer detects your platform, verifies the binary's SHA-256 checksum, and
-installs into `~/.cargo/bin` (or `$CARGO_HOME/bin` if configured). Rust is **not**
-installed or required. It adds a PATH entry to `.profile`, `.bashrc`, and `.zshrc`
+installs into `~/.cargo/bin` (or `$CARGO_HOME/bin` if configured). No development
+toolchain is installed or required. It adds a PATH entry to `.profile`, `.bashrc`, and `.zshrc`
 without duplicating the entry; symlinked profiles are left unchanged. Restart
 your terminal or run the source command printed by the installer, then:
 
@@ -70,7 +69,7 @@ everycli update --check  # Check for an update without changing anything
 everycli --version
 ```
 
-The native Rust updater verifies the release checksum and atomically replaces
+The built-in updater verifies the release checksum and atomically replaces
 the executable in place. It does not access miner credentials, deploy anything,
 change profiles, or update running workers. A failed download or checksum leaves
 the old executable intact. It will not automatically downgrade. Run updates as
