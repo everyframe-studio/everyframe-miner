@@ -15,30 +15,61 @@ image has a new digest and measurements; it needs a new operator-reviewed releas
 and signed invitation before it can replace a live worker. No live deployment is
 performed by building or testing this repository.
 
-## Build and use
+## Install everycli as a miner
 
-Requires a Rust toolchain supporting edition 2024 (minimum declared version 1.88),
-a C linker, and a Unix environment: Linux, macOS, or Linux under WSL. Native
-Windows is not supported because credential-file protections use POSIX ownership,
-permissions, and `O_NOFOLLOW`. Linux is the worker deployment target.
+Use a **prebuilt `everycli` binary**. You do not need Rust, Cargo, Node.js, Python,
+Docker, a GPU, or a clone of this repository on your computer to run the CLI.
+The miner worker runs separately in the deployed cloud workload.
+
+**Download availability:** a public prebuilt CLI download has not been verified
+yet. The steps below apply once the operator publishes binaries and their
+SHA-256 checksums to [GitHub Releases](https://github.com/everyframe-studios/everyframe-miner/releases).
+The repository's **Source code** archives are not prebuilt CLI downloads.
+
+### Linux installation (no sudo required)
+
+1. Open GitHub Releases and choose a versioned CLI binary matching your machine.
+   Run `uname -m` to check your architecture (`x86_64` or `aarch64`); download only
+   an architecture actually listed in that release. Check its Linux/glibc
+   requirements too. The CLI has been tested on Linux x86-64; other builds must
+   be published and validated separately.
+2. Download the executable (extract it first if it is archived), save it as
+   `everycli`, and open a terminal in that download directory.
+3. Copy its published SHA-256 checksum from the same official release. Replace
+   the placeholder below, then verify and install:
 
 ```sh
-cargo build --release --locked --bins
-./target/release/everycli --version
-./target/release/everycli miner --help
+(
+  set -eu
+  expected_sha256='REPLACE_WITH_THE_PUBLISHED_BINARY_SHA256'
+  printf '%s  %s\n' "$expected_sha256" everycli | sha256sum --check -
+  install -d "$HOME/.local/bin"
+  install -m 0755 everycli "$HOME/.local/bin/everycli"
+  "$HOME/.local/bin/everycli" --version
+  "$HOME/.local/bin/everycli" miner --help
+)
 ```
 
-The two distributable binaries are `target/release/everycli` and
-`target/release/everyframe-worker`. Copy `everycli` to a directory on your PATH,
-or install it from this checkout with:
+If the checksum does not match, installation stops; do not run that download.
+If the release publishes a checksum for an archive instead, verify the archive
+against that checksum **before extracting**, rather than comparing it to the
+extracted executable.
+
+Add the installation directory to your current shell's PATH:
 
 ```sh
-cargo install --path . --locked --bin everycli
+export PATH="$HOME/.local/bin:$PATH"
+everycli --version
 ```
 
-The binaries include the reviewed configuration at compile time; no source tree,
-JavaScript/Python interpreter, writable model registry, or external CA override is
-required at runtime. Linux binaries still require a compatible system C runtime.
+For future terminals, add that `export` line once to your shell configuration
+(for example, `~/.bashrc` for Bash). Installing a new version this way replaces
+the CLI executable, not your miner profile. Back up your profile before upgrading
+and do not replace the CLI while a command is running.
+
+For Windows, use a supported Linux distribution under WSL; native Windows is not
+supported. macOS requires a separately published, compatible macOS binary—do not
+use the Linux binary. After installation, continue with the CLI workflow below.
 
 ## CLI workflow
 
