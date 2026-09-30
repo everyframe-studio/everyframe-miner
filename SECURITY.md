@@ -1,5 +1,22 @@
 # Security and operational boundaries
 
+## CLI distribution
+
+`everycli update` is independent of miner state and uses only the fixed public
+GitHub repository. HTTPS redirects are restricted to GitHub release hosts,
+downloads are bounded, and checksums are verified before an atomic replacement.
+It does not read miner profiles or provider credentials. Installation and update
+share a per-install-directory lock. A stale `.everycli-update.lock` after a crash
+must only be removed after verifying no installer or updater is running.
+
+Release checksums are obtained from the same repository as the binaries; they
+are not independent code signatures. GitHub account, release workflow, and tag
+security remain part of the trust boundary. The installer executes a published
+shell script and modifies shell PATH configuration unless explicitly opted out.
+CLI self-updates do not alter or bypass signed worker image admission.
+
+## Miner runtime
+
 The worker has no HTTP server, arbitrary signing endpoint, wallet seed, external
 adapter loader, endpoint override, or provider fallback. Only the reviewed serial
 worker state machine creates receipts. Provider output references are bound to

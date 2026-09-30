@@ -7,6 +7,7 @@ pub mod network;
 pub mod protocol;
 pub mod providers;
 pub mod state;
+pub mod update;
 pub mod worker;
 pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -6,7 +6,8 @@ The worker connects approved provider accounts to the Everyframe coordinator;
 it does not run generation models locally.
 
 This ports the existing miner's 45 immutable model contracts, nine provider
-adapters, signed/encrypted job protocol, and 14 CLI commands. Provider charges,
+adapters, signed/encrypted job protocol, and 14 miner commands, with native CLI
+self-updates. Provider charges,
 hosting charges, operator admission, and routing restrictions remain unchanged.
 
 **Release status:** locally tested port, not a production-admitted worker image.
@@ -21,55 +22,65 @@ Use a **prebuilt `everycli` binary**. You do not need Rust, Cargo, Node.js, Pyth
 Docker, a GPU, or a clone of this repository on your computer to run the CLI.
 The miner worker runs separately in the deployed cloud workload.
 
-**Download availability:** a public prebuilt CLI download has not been verified
-yet. The steps below apply once the operator publishes binaries and their
-SHA-256 checksums to [GitHub Releases](https://github.com/everyframe-studios/everyframe-miner/releases).
-The repository's **Source code** archives are not prebuilt CLI downloads.
-
-### Linux installation (no sudo required)
-
-1. Open GitHub Releases and choose a versioned CLI binary matching your machine.
-   Run `uname -m` to check your architecture (`x86_64` or `aarch64`); download only
-   an architecture actually listed in that release. Check its Linux/glibc
-   requirements too. The CLI has been tested on Linux x86-64; other builds must
-   be published and validated separately.
-2. Download the executable (extract it first if it is archived), save it as
-   `everycli`, and open a terminal in that download directory.
-3. Copy its published SHA-256 checksum from the same official release. Replace
-   the placeholder below, then verify and install:
+Install with one command:
 
 ```sh
-(
-  set -eu
-  expected_sha256='REPLACE_WITH_THE_PUBLISHED_BINARY_SHA256'
-  printf '%s  %s\n' "$expected_sha256" everycli | sha256sum --check -
-  install -d "$HOME/.local/bin"
-  install -m 0755 everycli "$HOME/.local/bin/everycli"
-  "$HOME/.local/bin/everycli" --version
-  "$HOME/.local/bin/everycli" miner --help
-)
+curl --proto '=https' --tlsv1.2 -LsSf \
+  https://github.com/everyframe-studios/everyframe-miner/releases/latest/download/everycli-installer.sh | sh
 ```
 
-If the checksum does not match, installation stops; do not run that download.
-If the release publishes a checksum for an archive instead, verify the archive
-against that checksum **before extracting**, rather than comparing it to the
-extracted executable.
+**First release pending:** this URL becomes available after a version tag is
+pushed and the release workflow successfully publishes all platform builds. See
+[GitHub Releases](https://github.com/everyframe-studios/everyframe-miner/releases).
+A source-code archive is not a prebuilt CLI download.
 
-Add the installation directory to your current shell's PATH:
+The installer detects your platform, verifies the binary's SHA-256 checksum, and
+installs into `~/.cargo/bin` (or `$CARGO_HOME/bin` if configured). Rust is **not**
+installed or required. It adds a PATH entry to `.profile`, `.bashrc`, and `.zshrc`
+without duplicating the entry; symlinked profiles are left unchanged. Restart
+your terminal or run the source command printed by the installer, then:
 
 ```sh
-export PATH="$HOME/.local/bin:$PATH"
+everycli --version
+everycli miner --help
+```
+
+Linux x86-64/ARM64 builds require glibc 2.35 or newer (for example, Ubuntu 22.04+).
+macOS Intel and Apple Silicon builds run on the corresponding release CI runners
+(macOS 15 and 14 respectively). Older macOS versions are not validated. Native
+Windows and Alpine/musl Linux are not supported; use a compatible Linux under WSL
+on Windows. `curl` and either `sha256sum` or `shasum` are needed for installation.
+
+For a specific release, replace `latest/download` with `download/<tag>`:
+
+```sh
+curl --proto '=https' --tlsv1.2 -LsSf \
+  https://github.com/everyframe-studios/everyframe-miner/releases/download/v0.1.0/everycli-installer.sh | sh
+```
+
+Every release's installer is pinned to that version. To avoid modifying shell
+profiles, pipe into `EVERYCLI_NO_MODIFY_PATH=1 sh` instead; add the bin directory to
+PATH yourself. Fish users should use this option and configure their Fish PATH.
+
+### Upgrade everycli
+
+```sh
+everycli update          # Install the latest stable CLI; no login needed
+everycli update --check  # Check for an update without changing anything
 everycli --version
 ```
 
-For future terminals, add that `export` line once to your shell configuration
-(for example, `~/.bashrc` for Bash). Installing a new version this way replaces
-the CLI executable, not your miner profile. Back up your profile before upgrading
-and do not replace the CLI while a command is running.
+The native Rust updater verifies the release checksum and atomically replaces
+the executable in place. It does not access miner credentials, deploy anything,
+change profiles, or update running workers. A failed download or checksum leaves
+the old executable intact. It will not automatically downgrade. Run updates as
+the account that owns the installation; no sudo is needed for a normal install.
 
-For Windows, use a supported Linux distribution under WSL; native Windows is not
-supported. macOS requires a separately published, compatible macOS binary—do not
-use the Linux binary. After installation, continue with the CLI workflow below.
+`everycli update` upgrades the **CLI**; `everycli miner update --release FILE`
+updates a **deployed worker** using an approved signed release. There are no
+automatic background update checks. If a documented command is missing, check
+`everycli --version` and upgrade (rerun the installer for older CLIs without an
+`update` command). Installation does not bypass the current worker admission flow.
 
 ## CLI workflow
 

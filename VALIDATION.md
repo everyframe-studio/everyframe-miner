@@ -1,5 +1,19 @@
 # Validation — 2026-09-30
 
+## CLI installer and self-update
+
+- Added a version-pinned shell installer and native `everycli update`, separate
+  from deployed-worker updates. No Rust setup or miner login is required.
+- Local suite: **46 tests passed**, including real native-binary installation
+  with mocked downloads, repeat installation, checksum/download failure,
+  symlink rejection, path quoting, atomic replacement, and unchanged profiles.
+- Strict release Clippy, formatting, and shell syntax checks passed.
+- The release workflow targets Linux x86-64/ARM64 and macOS Intel/Apple Silicon.
+  Only Linux x86-64 has been tested locally; the other targets require successful
+  GitHub Actions runs before publication. No release has been published here.
+- Release checksums trust the official GitHub repository and HTTPS; they are not
+  independent publisher signatures. See SECURITY.md for the trust boundary.
+
 ## Live Rust canary — in progress
 
 An explicitly approved $10 / three-tempo canary uses mainnet SN117 UID129

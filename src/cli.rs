@@ -17,6 +17,7 @@ pub struct Args {
     pub options: HashMap<String, String>,
     pub flags: Vec<String>,
 }
+const UPDATE_HELP: &str = "\nCLI upgrades (no login required):\n  everycli update          Install the latest stable CLI\n  everycli update --check  Check without installing\nThis does not update the deployed worker; use miner update for that.\n";
 impl Args {
     pub fn flag(&self, k: &str) -> bool {
         self.flags.iter().any(|v| v == k)
@@ -46,6 +47,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
             "--yes",
             "--drain-only",
             "--withdraw",
+            "--check",
         ]
         .contains(&a)
         {
@@ -89,6 +91,18 @@ pub fn parse(args: &[String]) -> Result<Args> {
         || positionals.is_empty()
         || positionals == ["miner"]
     {
+        return Ok(out);
+    }
+    if positionals == ["update"] {
+        need(
+            out.options.is_empty()
+                && out
+                    .flags
+                    .iter()
+                    .all(|f| ["--check", "--json", "--yes"].contains(&f.as_str())),
+            "invalid_option",
+        )?;
+        out.command = "self-update".into();
         return Ok(out);
     }
     need(
@@ -151,6 +165,9 @@ fn question(label: &str, json_mode: bool) -> Result<String> {
     Ok(line.trim().into())
 }
 pub fn run(args: &Args) -> Result<Value> {
+    if args.command == "self-update" {
+        return crate::update::run(args.flag("--check"));
+    }
     for key in ["PHALA_CLOUD_API_PREFIX", "DEBUG", "SSLKEYLOGFILE"] {
         need(
             std::env::var(key).unwrap_or_default().is_empty(),
@@ -247,9 +264,9 @@ pub fn main_entry() -> i32 {
             println!(
                 "{}",
                 if json_mode {
-                    json!({"help":HELP}).to_string()
+                    json!({"help":format!("{HELP}{UPDATE_HELP}")}).to_string()
                 } else {
-                    HELP.to_string()
+                    format!("{HELP}{UPDATE_HELP}")
                 }
             );
             return Ok(0);
@@ -278,10 +295,18 @@ pub fn main_entry() -> i32 {
     match result {
         Ok(n) => n,
         Err(e) => {
-            let message = format!(
-                "{}. Run status/doctor before retrying uncertain operations. Raw responses and secrets suppressed.",
-                e.0.replace('_', " ")
-            );
+            let message = if raw.first().is_some_and(|a| a == "update") {
+                match e.0 {
+                    "public_release_not_available" => "No public CLI release is available yet. Publish the first tagged GitHub release, then retry.".to_string(),
+                    "unsafe_install_permissions" | "update_locked_or_directory_not_writable" => "The install directory must be writable by its owner and no other update may be running. Check installation permissions and the .everycli-update.lock directory.".to_string(),
+                    _ => format!("CLI update failed: {}. Check the official GitHub release and your network connection. Miner profiles and deployed workers are unchanged.", e.0.replace('_', " ")),
+                }
+            } else {
+                format!(
+                    "{}. Run status/doctor before retrying uncertain operations. Raw responses and secrets suppressed.",
+                    e.0.replace('_', " ")
+                )
+            };
             if json_mode {
                 println!("{}", json!({"error":e.0,"message":message}))
             } else {

@@ -1,0 +1,99 @@
+name: Release everycli
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+          - runner: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
+          - runner: macos-14
+            target: aarch64-apple-darwin
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.97.1 --profile minimal --component rustfmt --component clippy
+      - name: Validate version and target
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          EXPECTED_TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          test "$(cargo +1.97.1 metadata --locked --no-deps --format-version 1 | jq -r '.packages[0].version')" = "${RELEASE_TAG#v}"
+          rustc +1.97.1 -vV | grep -Fx "host: $EXPECTED_TARGET"
+      - name: Lint, test, and build
+        run: |
+          cargo +1.97.1 fmt --check
+          cargo +1.97.1 clippy --release --all-targets --locked -- -D warnings
+          cargo +1.97.1 test --release --locked
+          cargo +1.97.1 build --release --locked --bin everycli
+          target/release/everycli --version --json
+          target/release/everycli --help
+      - name: Package binary and notices
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          mkdir -p dist
+          cp target/release/everycli "dist/everycli-$TARGET"
+          cd dist
+          shasum -a 256 "everycli-$TARGET" > "everycli-$TARGET.sha256"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: everycli-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+  publish:
+    needs: build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: everycli-*
+          path: dist
+          merge-multiple: true
+      - name: Prepare version-pinned installer
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          sed "s/@VERSION@/$RELEASE_TAG/g" scripts/everycli-installer.sh > dist/everycli-installer.sh
+          sh -n dist/everycli-installer.sh
+          cp LICENSE LICENSE-NOTICE.md dist/
+          cd dist
+          sha256sum --check everycli-*.sha256
+          sha256sum everycli-installer.sh > everycli-installer.sh.sha256
+      - name: Create release draft, upload, then publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          # Never silently overwrite an existing release or move its tag.
+          gh release create "$RELEASE_TAG" --verify-tag --draft --title "everycli $RELEASE_TAG" --generate-notes
+          gh release upload "$RELEASE_TAG" dist/*
+          gh release edit "$RELEASE_TAG" --draft=false --latest

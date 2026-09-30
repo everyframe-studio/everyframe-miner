@@ -1,5 +1,38 @@
 # Release checklist
 
+## Publishing prebuilt CLI downloads
+
+`.github/workflows/release.yml` builds and tests native Linux x86-64/ARM64 and
+macOS Intel/Apple Silicon binaries on matching GitHub-hosted runners. It uses
+Rust 1.97.1, validates the tag against Cargo.toml, and publishes only after every
+platform passes. This is separate from worker image admission.
+
+After reviewing and committing the release changes, the maintainer can publish
+the initial version (these commands create an external release when pushed):
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+For subsequent releases, bump Cargo.toml and Cargo.lock first, then tag the
+matching `vMAJOR.MINOR.PATCH`. Prerelease tags are not supported by this workflow.
+Protect release tags and restrict who can push them. If a publication fails after
+draft creation, inspect and recover that draft manually; the workflow refuses to
+overwrite existing releases. Do not move a published tag or replace its assets.
+
+Release assets include four `everycli-<target>` binaries, individual `.sha256`
+files, a version-pinned `everycli-installer.sh` with its checksum, and project
+license notices. The installer URL in the README will not work until the first
+release is published. No GitHub token or miner login is needed to install from a
+public repository. Private repositories are not supported by the public installer.
+
+Checksums verify transfer integrity, not an independent publisher signature:
+the installer/updater trust this GitHub repository and HTTPS. Follow the signing
+and third-party notice review below before calling this an audited distribution.
+
+## Worker and distribution review
+
 1. Include the Apache-2.0 `LICENSE` and applicable third-party notices in release
    distributions, and publish a verified private security contact.
 2. Run formatting, strict Clippy, tests, and a release build with `--locked`.
