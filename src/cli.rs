@@ -14,11 +14,11 @@ use std::{
 };
 pub const HELP: &str = "everycli · Everyframe miner tools
 
-Usage: everycli miner COMMAND [options]
+Usage: everycli COMMAND [options]
 
 Setup: register-hotkey, set-api-keys, remove-api-key, init
 Manage: doctor, status, providers, balances, offers, offer, earnings, deploy, activate,
-        apply-api-keys, resume, update, stop, start, reconcile
+        apply-api-keys, resume, worker-update, stop, start, reconcile
 
 Options:
   --network mainnet|testnet (default mainnet SN117; testnet SN566)
@@ -32,7 +32,7 @@ Options:
   --stdin (set-api-keys --provider NAME; read one key from a pipe)
   --invitation FILE (init; optional legacy deployment import)
   --secrets-file FILE (init; optional legacy credential import)
-  --release FILE (update)
+  --release FILE (worker-update)
   --max-hourly-usd N (deploy/start; storage extra)
   --model ID --discount-pct PCT | --withdraw (offer)
   --drain-only (stop)
@@ -49,7 +49,7 @@ pub struct Args {
     pub options: HashMap<String, String>,
     pub flags: Vec<String>,
 }
-const UPDATE_HELP: &str = "\nCLI upgrades (no login required):\n  everycli update          Install the latest stable CLI\n  everycli update --check  Check without installing\nThis does not update the deployed worker; use miner update for that.\n";
+const UPDATE_HELP: &str = "\nCLI upgrades (no login required):\n  everycli update          Install the latest stable CLI\n  everycli update --check  Check without installing\nWorker upgrades: everycli worker-update --release FILE\nCLI upgrades never update the deployed worker.\n";
 impl Args {
     pub fn flag(&self, k: &str) -> bool {
         self.flags.iter().any(|v| v == k)
@@ -144,34 +144,40 @@ pub fn parse(args: &[String]) -> Result<Args> {
         out.command = "self-update".into();
         return Ok(out);
     }
+    // Retain the old namespace only as a compatibility alias. Bare `update`
+    // always upgrades the CLI; signed worker updates are explicitly named.
+    let command = match positionals.as_slice() {
+        ["worker-update"] => "update",
+        [command] => *command,
+        ["miner", command] => *command,
+        _ => return Err(Error("unknown_command")),
+    };
     need(
-        positionals.len() == 2
-            && positionals[0] == "miner"
-            && [
-                "init",
-                "register-hotkey",
-                "set-api-keys",
-                "remove-api-key",
-                "apply-api-keys",
-                "doctor",
-                "status",
-                "providers",
-                "balances",
-                "offers",
-                "offer",
-                "earnings",
-                "deploy",
-                "activate",
-                "resume",
-                "update",
-                "stop",
-                "start",
-                "reconcile",
-            ]
-            .contains(&positionals[1]),
+        [
+            "init",
+            "register-hotkey",
+            "set-api-keys",
+            "remove-api-key",
+            "apply-api-keys",
+            "doctor",
+            "status",
+            "providers",
+            "balances",
+            "offers",
+            "offer",
+            "earnings",
+            "deploy",
+            "activate",
+            "resume",
+            "update",
+            "stop",
+            "start",
+            "reconcile",
+        ]
+        .contains(&command),
         "unknown_command",
     )?;
-    out.command = positionals[1].into();
+    out.command = command.into();
     let allowed = match out.command.as_str() {
         "init" => vec![
             "--invitation",
@@ -496,7 +502,7 @@ pub fn main_entry() -> i32 {
                 }
             } else {
                 format!(
-                    "{}. Run status/doctor before retrying uncertain operations. Raw responses and secrets suppressed.",
+                    "{}. Use everycli --help for commands. For uncertain operations, run everycli status or everycli doctor before retrying. Raw responses and secrets suppressed.",
                     e.0.replace('_', " ")
                 )
             };

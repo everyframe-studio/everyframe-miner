@@ -155,7 +155,7 @@ pub fn check_registration(http: &dyn Http, network: &str, address: &str) -> Resu
         "chain_hotkey_mapping_mismatch",
     )?;
     Ok(
-        json!({"registered":true,"network":network,"netuid":netuid,"hotkey":address,"uid":uid,"finalizedBlock":block,"checkedAt":now(),"chainTransactionSubmitted":false,"next":"Hotkey membership verified. Set API keys, then run miner init to prove ownership and fetch the signed deployment automatically."}),
+        json!({"registered":true,"network":network,"netuid":netuid,"hotkey":address,"uid":uid,"finalizedBlock":block,"checkedAt":now(),"chainTransactionSubmitted":false,"next":"Hotkey membership verified. Set API keys, then run everycli init to prove ownership and fetch the signed deployment automatically."}),
     )
 }
 
@@ -240,6 +240,6 @@ pub fn save_keys(state: &State, updates: &Value, remove: Option<&str>) -> Result
         .chain(remove_key)
         .all(|key| crate::balances::BILLING_KEYS.iter().any(|(_, k)| *k == key));
     Ok(
-        json!({"savedLocally":true,"updated":entries.keys().collect::<Vec<_>>(),"removed":remove_key,"workerChanged":false,"next":if billing_only { "Billing-only keys stay on this device and never enter worker environments. Use miner balances to check, or miner balances --publish to sync amounts. Revoke leaked keys at the provider." } else if deployment["appId"].is_null() { "Keys saved locally. Initialize and deploy when ready." } else { "The running worker is unchanged. Use miner apply-api-keys to explicitly drain, encrypt and apply generation keys; then wait for fresh admission before resuming. Billing-only keys are never deployed. To revoke a leaked key, also revoke it at the provider." }}),
+        json!({"savedLocally":true,"updated":entries.keys().collect::<Vec<_>>(),"removed":remove_key,"workerChanged":false,"next":if billing_only { "Billing-only keys stay on this device and never enter worker environments. Use everycli balances to check, or everycli balances --publish to sync amounts. Revoke leaked keys at the provider." } else if deployment["appId"].is_null() { "Keys saved locally. Initialize and deploy when ready." } else { "The running worker is unchanged. Use everycli apply-api-keys to explicitly drain, encrypt and apply generation keys; then wait for fresh admission before resuming. Billing-only keys are never deployed. To revoke a leaked key, also revoke it at the provider." }}),
     )
 }

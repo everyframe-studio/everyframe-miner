@@ -121,9 +121,7 @@ pub fn render(command: &str, value: &Value) -> String {
                 out.push_str("Coordinator snapshot unavailable; showing local results only.\n");
             }
             if rows("balances").is_empty() {
-                out.push_str(
-                    "On the device holding API keys, run: everycli miner balances --publish\n",
-                );
+                out.push_str("On the device holding API keys, run: everycli balances --publish\n");
             }
             out
         }

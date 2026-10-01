@@ -5,6 +5,11 @@ cloud worker. The worker receives jobs from the Everyframe coordinator, calls
 your configured generation providers, and returns signed completion receipts.
 It does not run generation models locally, so you do not need a GPU.
 
+With **everycli v0.2.0+**, commands are direct: `everycli doctor`, `everycli status`,
+`everycli balances`, and so on. No command prefix is needed. Existing scripts using
+the older namespace remain compatible. `everycli update` upgrades the CLI;
+`everycli worker-update --release FILE` applies an approved worker release.
+
 This repository includes the worker, the CLI with built-in updates, 45 model
 contracts, and nine provider adapters. Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
@@ -37,7 +42,7 @@ run the source command printed by the installer or open a new terminal, then:
 
 ```sh
 everycli --version
-everycli miner --help
+everycli --help
 ```
 
 Linux x86-64/ARM64 builds require glibc 2.35 or newer (for example, Ubuntu 22.04+).
@@ -64,7 +69,7 @@ change profiles, or update running workers. A failed download or checksum leaves
 the old executable intact. It will not automatically downgrade. Run updates as
 the account that owns the installation; no sudo is needed for a normal install.
 
-`everycli update` upgrades the **CLI**; `everycli miner update --release FILE`
+`everycli update` upgrades the **CLI**; `everycli worker-update --release FILE`
 updates a **deployed worker** using an approved signed release. There are no
 automatic background update checks. If a documented command is missing, check
 `everycli --version` and upgrade (rerun the installer for older CLIs without an
@@ -76,14 +81,14 @@ and HTTPS.
 
 ## Balances and offer tables (v0.1.5+)
 
-`everycli miner offers` displays a table with each model, active/inactive offer,
+`everycli offers` displays a table with each model, active/inactive offer,
 and discount percentage. The discount applies to the base miner reward—not the
 provider's API charge. Use `--json` for the machine-readable response.
 
 ```sh
-everycli miner balances          # Remaining account credits in USD
-everycli miner offers            # Model / offer status / discount %
-everycli miner balances --json   # Includes timestamps and stale flags
+everycli balances          # Remaining account credits in USD
+everycli offers            # Model / offer status / discount %
+everycli balances --json   # Includes timestamps and stale flags
 ```
 
 Balance reads currently support Fal, Phala prepaid credits, and OpenRouter.
@@ -97,8 +102,8 @@ Fal needs billing access and OpenRouter needs a management key for account credi
 Store these optional keys privately on your management device:
 
 ```sh
-everycli miner set-api-keys --provider fal-billing
-everycli miner set-api-keys --provider openrouter-billing
+everycli set-api-keys --provider fal-billing
+everycli set-api-keys --provider openrouter-billing
 ```
 
 These billing-only keys are **never deployed to the worker**. Do not replace your
@@ -109,12 +114,12 @@ To view balances on a second device using just your hotkey, explicitly sync from
 the initialized profile on the device holding those API keys:
 
 ```sh
-everycli miner balances --publish
+everycli balances --publish
 ```
 
 Only fixed provider names, amounts, statuses and timestamps go to your miner's
 authenticated coordinator view—no API keys or raw provider responses. Then run
-`everycli miner balances` on the hotkey-only device. These are **owner-reported
+`everycli balances` on the hotkey-only device. These are **owner-reported
 snapshots**, not live provider queries from the second device. Repeat `--publish`
 to refresh; snapshots are marked stale after 15 minutes. No background sync or
 worker restart is performed automatically. Use the same `--state-dir` on each
@@ -145,7 +150,7 @@ does not register or activate a miner, and no coldkey transaction is signed.
 ### 1. Check your hotkey
 
 ```sh
-everycli miner register-hotkey --wallet my-miner --hotkey default
+everycli register-hotkey --wallet my-miner --hotkey default
 ```
 
 This reads the local hotkey's public address, checks the pinned chain genesis,
@@ -164,7 +169,7 @@ For testnet SN566, pass `--network testnet` to each command; networks are not st
 ### 2. Set your API keys
 
 ```sh
-everycli miner set-api-keys
+everycli set-api-keys
 ```
 
 The CLI prompts for Phala Cloud and all nine generation providers with hidden
@@ -177,22 +182,22 @@ at rest. Never commit the profile or share its contents.
 To change just one provider, or remove a locally saved key:
 
 ```sh
-everycli miner set-api-keys --provider minimax
-everycli miner set-api-keys --provider phala
-everycli miner remove-api-key --provider fal
-everycli miner providers
+everycli set-api-keys --provider minimax
+everycli set-api-keys --provider phala
+everycli remove-api-key --provider fal
+everycli providers
 ```
 
 Provider names: `phala`, `fal`, `minimax`, `openrouter`, `bfl`, `replicate`,
 `google`, `runway`, `luma`, `elevenlabs`. For automation, pipe a secret manager's
-output into `everycli miner set-api-keys --provider NAME --stdin`; never put the
+output into `everycli set-api-keys --provider NAME --stdin`; never put the
 key itself in command arguments or shell history. `--json` never enables prompts.
 
 Saving or removing keys is local-only. To apply saved generation keys to an
-already activated worker, run `everycli miner apply-api-keys`. This asks for
+already activated worker, run `everycli apply-api-keys`. This asks for
 confirmation, drains work, refuses to restart while jobs remain, checks the
 reviewed workload, and encrypts credentials to its pinned key. Wait for fresh
-post-restart admission, then run `everycli miner resume`. Only providers allowed
+post-restart admission, then run `everycli resume`. Only providers allowed
 by the signed deployment can be applied. At least one must remain configured;
 if retiring the last provider, stop the worker instead. Removing a local key
 does not revoke it at the provider—revoke leaked credentials there immediately.
@@ -200,10 +205,10 @@ does not revoke it at the provider—revoke leaked credentials there immediately
 ### 3. Initialize and deploy
 
 ```sh
-everycli miner init
-everycli miner doctor
-everycli miner deploy --max-hourly-usd 0.06
-everycli miner status
+everycli init
+everycli doctor
+everycli deploy --max-hourly-usd 0.06
+everycli status
 ```
 
 `init` reuses the hotkey path recorded in step 1 and the saved API keys. If you
@@ -242,13 +247,13 @@ run through admission failures or repeatedly retry an uncertain deployment.
 
 ```sh
 # Once status shows accepted attestation:
-everycli miner activate
+everycli activate
 # After fresh post-restart admission:
-everycli miner resume
-everycli miner offers
+everycli resume
+everycli offers
 # Example: offer one enabled model at a 10% discount:
-everycli miner offer --model minimax/h3-max-turbo/text-to-video --discount-pct 10
-everycli miner earnings
+everycli offer --model minimax/h3-max-turbo/text-to-video --discount-pct 10
+everycli earnings
 ```
 
 `resume` permits work but does not create a model offer. Choose an available
@@ -263,9 +268,9 @@ your mining offer; traffic and earnings are not guaranteed.
 ### Pause or stop
 
 ```sh
-everycli miner stop --drain-only  # Stop accepting new work; keep hosting running
-everycli miner stop              # Request shutdown when no active jobs remain
-everycli miner reconcile         # Check whether the requested operation completed
+everycli stop --drain-only  # Stop accepting new work; keep hosting running
+everycli stop              # Request shutdown when no active jobs remain
+everycli reconcile         # Check whether the requested operation completed
 ```
 
 If jobs are still active, `stop` returns a draining status and leaves the VM
@@ -274,7 +279,7 @@ schedule a later shutdown automatically.
 
 Shutdown does not delete the VM or its storage. Check Phala Cloud for retained
 resources and ongoing charges. To restart the saved workload, use
-`everycli miner start --max-hourly-usd 0.06`, check admission, and resume when ready.
+`everycli start --max-hourly-usd 0.06`, check admission, and resume when ready.
 
 ### Command reference
 
@@ -287,6 +292,7 @@ resources and ongoing charges. To restart the saved workload, use
 | `init` | Verify deployment configuration; sign local hotkey delegations and store credentials |
 | `doctor`, `status` | Diagnose readiness, admission, routing, and cloud state |
 | `providers` | Show credential presence and signed-release permissions, never key values |
+| `balances` | Show remaining account credits in USD; `--publish` syncs private snapshots |
 | `offers`, `offer` | Inspect, set, or withdraw a revision-checked model bid |
 | `earnings` | Read coordinator accounting; does not initiate payouts |
 | `deploy` | Create a pinned workload with provider credentials disabled |
@@ -294,7 +300,8 @@ resources and ongoing charges. To restart the saved workload, use
 | `resume` | Permit new work after post-restart admission |
 | `stop` | Drain; request shutdown only when idle. `--drain-only` keeps hosting running |
 | `start` | Restart the saved stopped workload, with a reviewed hourly ceiling |
-| `update` | Install an app-specific signed release; disables providers until readmission |
+| `update` | Upgrade the CLI executable only; `--check` checks without installing |
+| `worker-update` | Install an app-specific signed release; disables providers until readmission |
 | `reconcile` | Inspect uncertain operations without replaying paid cloud mutations |
 
 Mainnet SN117 is the default. Use `--network testnet` for SN566. Default state
@@ -343,8 +350,8 @@ After initialization, check which providers are configured and permitted, then
 inspect the available model offers:
 
 ```sh
-everycli miner providers  # Reports key presence and permissions, never key values
-everycli miner offers
+everycli providers  # Reports key presence and permissions, never key values
+everycli offers
 ```
 
 ## Tests
