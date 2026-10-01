@@ -12,6 +12,43 @@ use crate::{
 use serde_json::{Value, json};
 use std::path::Path;
 pub const PENDING: &str = "Waiting for attestation against the approved app/OS/KMS measurements. No working provider key was released. Hosting continues until stopped. Run everycli status; once accepted, run everycli activate.";
+
+fn profile_diagnostic(error: &Error) -> Value {
+    let (state, message, next) = match error.0 {
+        "profile_not_initialized" => (
+            "not_initialized",
+            "No local miner profile found for the selected network and OS user. Hotkey registration and linking have not been checked.",
+            "Connect your hotkey: everycli init --wallet <wallet> --hotkey default. If you already initialized here, use the original OS user and --state-dir/--network options.",
+        ),
+        "profile_credentials_missing" => (
+            "profile_incomplete",
+            "The local miner profile exists, but its credentials file is missing. This does not mean your hotkey is unregistered.",
+            "Use the original OS user and profile, or reconnect with everycli init --wallet <wallet> --hotkey default. Preserve your existing profile and deployment records.",
+        ),
+        "file_permission_denied" | "insecure_file" | "insecure_directory" => (
+            "profile_error",
+            "The local miner profile cannot be read securely because of its ownership or permissions. Hotkey registration has not been checked.",
+            "Use the OS user who initialized this profile. Profile directories must be owner-only (0700), and files owner-only (0600). Do not delete the profile or share credentials.",
+        ),
+        "invalid_json_file" | "invalid_file" => (
+            "profile_error",
+            "A local miner profile file is invalid or damaged. Hotkey registration has not been checked.",
+            "Preserve the profile and restore a trusted backup, or reconnect using everycli init with your hotkey. Do not delete deployment records or share credentials.",
+        ),
+        "unsafe_path" => (
+            "profile_error",
+            "The local miner profile path is unsafe or inaccessible. Hotkey registration has not been checked.",
+            "Use an owner-only profile directory without symbolic links; check your OS user and --state-dir option. Do not disable the security checks.",
+        ),
+        _ => (
+            "profile_error",
+            "The local miner profile could not be loaded or verified. Hotkey registration has not been checked.",
+            "Check the diagnostic code and your OS user, network and profile selection. Preserve the existing profile; do not retry deployment or share credentials.",
+        ),
+    };
+    json!({"ok":false,"state":state,"error":error.0,"message":message,"registration":"not_checked","next":next})
+}
+
 pub fn read_secrets(path: &Path) -> Result<Value> {
     let data =
         String::from_utf8(read(path, true, 64000)?).map_err(|_| Error("invalid_credential"))?;
@@ -120,8 +157,20 @@ impl Miner<'_> {
     }
     pub fn load(&self, current: bool) -> Result<Context> {
         self.state.prepare()?;
-        let config = self.state.read("config", false)?;
-        let credentials = self.state.read("credentials", false)?;
+        let config = self.state.read("config", false).map_err(|e| {
+            if e.0 == "file_not_found" {
+                Error("profile_not_initialized")
+            } else {
+                e
+            }
+        })?;
+        let credentials = self.state.read("credentials", false).map_err(|e| {
+            if e.0 == "file_not_found" {
+                Error("profile_credentials_missing")
+            } else {
+                e
+            }
+        })?;
         let invitation = self.validate(&config["invitation"], !current)?;
         Self::token(&credentials, &invitation)?;
         let d = self.state.read("deployment", true)?;
@@ -246,7 +295,10 @@ impl Miner<'_> {
         Ok(info)
     }
     pub fn status(&self) -> Result<Value> {
-        let c = self.load(false)?;
+        let c = match self.load(false) {
+            Ok(c) => c,
+            Err(e) => return Ok(profile_diagnostic(&e)),
+        };
         let inv = &c.invitation;
         let d = &c.deployment;
         let mut out = json!({"minerId":inv["minerId"],"network":inv["network"],"netuid":inv["netuid"],"release":inv["release"],"phase":d["phase"].as_str().unwrap_or("not_deployed"),"appId":d["appId"],"invitationExpired":n(&inv["expiresAt"])?<=now()});
@@ -271,9 +323,9 @@ impl Miner<'_> {
         let c = match self.load(false) {
             Ok(c) => c,
             Err(e) => {
-                return Ok(
-                    json!({"ok":false,"checks":[{"name":"Profile and permissions","ok":false,"detail":e.0}]}),
-                );
+                let mut out = profile_diagnostic(&e);
+                out["checks"] = json!([{"name":"Local miner profile","ok":false,"detail":e.0,"message":out["message"]}]);
+                return Ok(out);
             }
         };
         let inv = &c.invitation;

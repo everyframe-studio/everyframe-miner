@@ -51,6 +51,16 @@ fn table(headers: &[&str], rows: Vec<Vec<String>>) -> String {
 }
 
 pub fn render(command: &str, value: &Value) -> String {
+    if matches!(command, "status" | "doctor") && value["ok"] == false && value["state"].is_string()
+    {
+        // These messages are fixed local diagnostics, never raw provider responses.
+        return format!(
+            "{}\n\n{}\n\nCode: {}\n",
+            value["message"].as_str().unwrap_or("Profile unavailable."),
+            value["next"].as_str().unwrap_or(""),
+            text(&value["error"])
+        );
+    }
     let rows = |key: &str| value[key].as_array().cloned().unwrap_or_default();
     match command {
         "offers" => {

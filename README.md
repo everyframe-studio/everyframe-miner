@@ -223,6 +223,15 @@ before the initial `deploy`. Review its diagnosis rather than treating every
 pre-deployment warning as an installation failure. The hourly ceiling is an
 example; deployment is refused if the quoted compute rate exceeds it.
 
+If `status` or `doctor` reports **No local miner profile found**, connect on that
+device with `everycli init --wallet my-miner --hotkey default`. This is a local
+setup state, not proof that the hotkey is unregistered on-chain. Profiles belong
+to the current OS user, network and `--state-dir`; use the same selection as
+before if already initialized. Missing credentials, invalid files and unsafe
+permissions are reported separately. Do not delete an existing profile or deploy
+another worker merely to restore status access. `--json` retains structured
+diagnostics; an incomplete or unreadable profile exits with code 2.
+
 `--wallet my-miner --hotkey default` reads
 `~/.bittensor/wallets/my-miner/hotkeys/default` locally. Alternatively, use
 `--hotkey-file /absolute/path/to/hotkey` instead of those two options. The current
