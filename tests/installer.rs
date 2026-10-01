@@ -25,14 +25,21 @@ set -eu
 [ "${EVERYCLI_TEST_FAIL:-0}" = 0 ] || exit 22
 url=''
 dest=''
+retry=''
+connect_timeout=''
+retry_limit=''
 while [ "$#" -gt 0 ]; do
   case "$1" in
     https://github.com/everyframe-studios/everyframe-miner/releases/download/v*) url=$1 ;;
     -o) shift; dest=$1 ;;
+    --retry) shift; retry=$1 ;;
+    --connect-timeout) shift; connect_timeout=$1 ;;
+    --retry-max-time) shift; retry_limit=$1 ;;
   esac
   shift
 done
 [ -n "$url" ] && [ -n "$dest" ]
+[ "$retry" = 3 ] && [ "$connect_timeout" = 30 ] && [ "$retry_limit" = 240 ]
 case "$url" in
   *.sha256) cp "$EVERYCLI_TEST_SUM" "$dest" ;;
   *) cp "$EVERYCLI_TEST_BINARY" "$dest" ;;

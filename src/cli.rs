@@ -17,7 +17,7 @@ pub const HELP: &str = "everycli · Everyframe miner tools
 Usage: everycli miner COMMAND [options]
 
 Setup: register-hotkey, set-api-keys, remove-api-key, init
-Manage: doctor, status, providers, offers, offer, earnings, deploy, activate,
+Manage: doctor, status, providers, balances, offers, offer, earnings, deploy, activate,
         apply-api-keys, resume, update, stop, start, reconcile
 
 Options:
@@ -26,7 +26,9 @@ Options:
   --wallet NAME --hotkey NAME (register-hotkey/init; default hotkey: default)
   --hotkey-file FILE (alternative to wallet/name)
   --hotkey-ss58 ADDRESS (register-hotkey; public address only)
-  --provider NAME (set-api-keys/remove-api-key; includes phala)
+  --provider NAME (set-api-keys/remove-api-key; includes phala, fal-billing,
+                   openrouter-billing; billing-only keys stay on this device)
+  --publish (balances; sync amounts only for hotkey-only remote viewing)
   --stdin (set-api-keys --provider NAME; read one key from a pipe)
   --invitation FILE (init; optional legacy deployment import)
   --secrets-file FILE (init; optional legacy credential import)
@@ -79,6 +81,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
             "--withdraw",
             "--check",
             "--stdin",
+            "--publish",
         ]
         .contains(&a)
         {
@@ -153,6 +156,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
                 "doctor",
                 "status",
                 "providers",
+                "balances",
                 "offers",
                 "offer",
                 "earnings",
@@ -180,6 +184,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
         "register-hotkey" => vec!["--wallet", "--hotkey", "--hotkey-file", "--hotkey-ss58"],
         "set-api-keys" => vec!["--provider", "--stdin"],
         "remove-api-key" => vec!["--provider"],
+        "balances" => vec!["--publish"],
         "offer" => vec!["--model", "--discount-pct", "--withdraw"],
         "update" => vec!["--release"],
         "stop" => vec!["--drain-only"],
@@ -399,6 +404,7 @@ pub fn run(args: &Args) -> Result<Value> {
         "doctor" => miner.doctor(),
         "status" => miner.status(),
         "providers" => miner.providers(),
+        "balances" => miner.balances(args.flag("--publish")),
         "offers" => miner.offers(),
         "earnings" => miner.earnings(),
         "offer" => miner.offer(
@@ -463,7 +469,7 @@ pub fn main_entry() -> i32 {
             if json_mode {
                 out.to_string()
             } else {
-                serde_json::to_string_pretty(&out).unwrap()
+                crate::display::render(&a.command, &out)
             }
         );
         Ok(

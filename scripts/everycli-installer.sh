@@ -42,7 +42,7 @@ everycli_install() (
   asset="everycli-$target"
   base="https://github.com/everyframe-studios/everyframe-miner/releases/download/$version"
   download() {
-    curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fLsS --connect-timeout 15 --max-time 180 --max-redirs 5 --max-filesize 67108864 "$1" -o "$2"
+    curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fLsS --connect-timeout 30 --max-time 180 --retry 3 --retry-delay 2 --retry-max-time 240 --retry-connrefused --max-redirs 5 --max-filesize 67108864 "$1" -o "$2"
   }
   printf 'Installing everycli %s for %s…\n' "$version" "$target"
   download "$base/$asset.sha256" "$lock_dir/checksum" || fail 'Could not download release checksum. No binary was replaced.'

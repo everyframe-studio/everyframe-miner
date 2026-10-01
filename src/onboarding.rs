@@ -182,6 +182,12 @@ pub fn save_registration(state: &State, receipt: &Value, path: Option<&Path>) ->
 }
 
 pub fn credential_key(provider: &str) -> Result<&'static str> {
+    if let Some((_, key)) = crate::balances::BILLING_KEYS
+        .iter()
+        .find(|(p, _)| *p == provider)
+    {
+        return Ok(key);
+    }
     if provider == "phala" {
         return Ok("PHALA_CLOUD_API_KEY");
     }
@@ -195,7 +201,9 @@ pub fn save_keys(state: &State, updates: &Value, remove: Option<&str>) -> Result
     let entries = updates.as_object().ok_or(Error("invalid_credential"))?;
     for (key, value) in entries {
         need(
-            (key == "PHALA_CLOUD_API_KEY" || invitation::PROVIDERS.iter().any(|(_, k)| *k == key))
+            (key == "PHALA_CLOUD_API_KEY"
+                || invitation::PROVIDERS.iter().any(|(_, k)| *k == key)
+                || crate::balances::BILLING_KEYS.iter().any(|(_, k)| *k == key))
                 && invitation::configured(value),
             "invalid_credential",
         )?;
@@ -226,7 +234,12 @@ pub fn save_keys(state: &State, updates: &Value, remove: Option<&str>) -> Result
     if !entries.is_empty() || remove_key.is_some() {
         state.write("credentials", &creds)?;
     }
+    let billing_only = entries
+        .keys()
+        .map(String::as_str)
+        .chain(remove_key)
+        .all(|key| crate::balances::BILLING_KEYS.iter().any(|(_, k)| *k == key));
     Ok(
-        json!({"savedLocally":true,"updated":entries.keys().collect::<Vec<_>>(),"removed":remove_key,"workerChanged":false,"next":if deployment["appId"].is_null() { "Keys saved locally. Initialize and deploy when ready." } else { "The running worker is unchanged. Use miner apply-api-keys to explicitly drain, encrypt and apply these keys; then wait for fresh admission before resuming. To revoke a leaked key, also revoke it at the provider." }}),
+        json!({"savedLocally":true,"updated":entries.keys().collect::<Vec<_>>(),"removed":remove_key,"workerChanged":false,"next":if billing_only { "Billing-only keys stay on this device and never enter worker environments. Use miner balances to check, or miner balances --publish to sync amounts. Revoke leaked keys at the provider." } else if deployment["appId"].is_null() { "Keys saved locally. Initialize and deploy when ready." } else { "The running worker is unchanged. Use miner apply-api-keys to explicitly drain, encrypt and apply generation keys; then wait for fresh admission before resuming. Billing-only keys are never deployed. To revoke a leaked key, also revoke it at the provider." }}),
     )
 }

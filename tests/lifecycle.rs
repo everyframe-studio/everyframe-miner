@@ -13,6 +13,55 @@ use serde_json::{Value, json};
 use std::{cell::RefCell, path::PathBuf};
 use x25519_dalek::{PublicKey, StaticSecret};
 
+#[test]
+fn balance_publish_then_auth_only_read_never_mutates_workers_or_exports_keys() {
+    let r = Rig::new();
+    let out = r.miner().balances(true).unwrap();
+    assert_eq!(out["published"], true);
+    assert_eq!(out["balances"][0]["remainingUsd"], 12.345678);
+    assert!(!out.to_string().contains("synthetic"));
+    assert!(r.envs.borrow().is_empty());
+    let amounts = r.status.borrow()["balances"].clone();
+    assert_eq!(amounts[0]["remainingMicrousd"], 12345678);
+    r.state()
+        .write(
+            "credentials",
+            &json!({"MINER_TOKEN":r.credentials["MINER_TOKEN"]}),
+        )
+        .unwrap();
+    r.calls.borrow_mut().clear();
+    let remote = r.miner().balances(false).unwrap();
+    assert_eq!(remote["balances"][0]["remainingUsd"], 12.345678);
+    assert_eq!(remote["balances"][0]["source"], "synced");
+    assert_eq!(r.calls.borrow().len(), 1);
+    assert!(r.calls.borrow()[0].0.ends_with("/v1/miner/status"));
+    assert_eq!(
+        r.miner().balances(true).unwrap_err().0,
+        "no_local_api_keys_to_check"
+    );
+    assert_eq!(r.status.borrow()["balances"], amounts);
+}
+
+#[test]
+fn balance_failure_preserves_local_results_and_billing_keys_never_enter_worker_env() {
+    let r = Rig::new();
+    *r.fail.borrow_mut() = "/status".into();
+    let out = r.miner().balances(false).unwrap();
+    assert_eq!(out["remoteUnavailable"], true);
+    assert_eq!(out["balances"][0]["remainingUsd"], 12.345678);
+    let mut creds = r.credentials.clone();
+    creds["FAL_ADMIN_KEY"] = json!("synthetic-admin-key");
+    creds["OPENROUTER_MANAGEMENT_KEY"] = json!("synthetic-management-key");
+    let env = cloud::environment(&r.inv, &creds, true)
+        .unwrap()
+        .to_string();
+    assert!(!env.contains("ADMIN"));
+    assert!(!env.contains("MANAGEMENT"));
+    assert!(!env.contains("synthetic-admin-key"));
+    assert!(!env.contains("synthetic-management-key"));
+    assert!(!env.contains("PHALA_CLOUD_API_KEY"));
+}
+
 fn decrypt(cipher: &str, secret: &StaticSecret) -> Value {
     let b = hex::decode(cipher).unwrap();
     let peer: [u8; 32] = b[..32].try_into().unwrap();
@@ -141,6 +190,11 @@ impl Http for Rig {
                 body["nonce"].as_str().unwrap().into()
             };
             let mut status = self.status.borrow_mut();
+            if action == "balances" {
+                let raw = body.to_string();
+                assert!(!raw.contains("synthetic"));
+                status["balances"] = body["balances"].clone();
+            }
             if action == "drain" || action == "resume" {
                 status["draining"] = json!(action == "drain")
             }
@@ -157,6 +211,12 @@ impl Http for Rig {
             out["action"] = json!(action);
             out["at"] = json!(now());
             self.sign(&out)
+        } else if path.ends_with("/account/billing") {
+            assert_eq!(r.method, "GET");
+            json!({"credits":{"currency":"USD","current_balance":12.345678}})
+        } else if path.ends_with("/auth/me") {
+            assert_eq!(r.method, "GET");
+            json!({"credits":{"balance":"2","granted_balance":"3.25","is_post_paid":false}})
         } else if path.ends_with("/instance-types") {
             json!({"result":[{"items":[{"id":"tdx.small","requires_gpu":false,"hourly_rate":"0.05"}]}]})
         } else if path.ends_with("/os-images") {

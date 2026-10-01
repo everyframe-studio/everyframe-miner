@@ -1,5 +1,7 @@
+pub mod balances;
 pub mod cli;
 pub mod cloud;
+pub mod display;
 pub mod hotkey;
 pub mod invitation;
 pub mod miner;

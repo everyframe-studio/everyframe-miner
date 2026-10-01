@@ -74,6 +74,53 @@ Checksums detect corrupted or mismatched downloads; they are not independent
 publisher signatures. The installer and updater trust this GitHub repository
 and HTTPS.
 
+## Balances and offer tables (v0.1.5+)
+
+`everycli miner offers` displays a table with each model, active/inactive offer,
+and discount percentage. The discount applies to the base miner reward—not the
+provider's API charge. Use `--json` for the machine-readable response.
+
+```sh
+everycli miner balances          # Remaining account credits in USD
+everycli miner offers            # Model / offer status / discount %
+everycli miner balances --json   # Includes timestamps and stale flags
+```
+
+Balance reads currently support Fal, Phala prepaid credits, and OpenRouter.
+Other configured providers display `unsupported`; failed checks display
+`unavailable`, never a fabricated zero. Balances are account-level and may be
+shared by multiple miners; do not add them across miners or treat them as profit.
+Phala includes paid and granted credits, not a post-paid spending limit; outstanding
+invoices are not deducted here. OpenRouter's result is account credit, not a per-key budget.
+
+Fal needs billing access and OpenRouter needs a management key for account credits.
+Store these optional keys privately on your management device:
+
+```sh
+everycli miner set-api-keys --provider fal-billing
+everycli miner set-api-keys --provider openrouter-billing
+```
+
+These billing-only keys are **never deployed to the worker**. Do not replace your
+generation key with a billing/admin key. Phala uses the existing locally saved
+hosting key. Keys are saved owner-only, unencrypted, like other CLI credentials.
+
+To view balances on a second device using just your hotkey, explicitly sync from
+the initialized profile on the device holding those API keys:
+
+```sh
+everycli miner balances --publish
+```
+
+Only fixed provider names, amounts, statuses and timestamps go to your miner's
+authenticated coordinator view—no API keys or raw provider responses. Then run
+`everycli miner balances` on the hotkey-only device. These are **owner-reported
+snapshots**, not live provider queries from the second device. Repeat `--publish`
+to refresh; snapshots are marked stale after 15 minutes. No background sync or
+worker restart is performed automatically. Use the same `--state-dir` on each
+command when managing multiple profiles. Publishing requires the coordinator
+balance endpoint; reading still works against older coordinators with local keys.
+
 ## Set up a miner
 
 Self-service onboarding requires **everycli v0.1.4 or later**. Run `everycli update`

@@ -134,7 +134,7 @@ impl Miner<'_> {
     }
     pub fn api(&self, c: &Context, action: &str, payload: Value) -> Result<Value> {
         need(
-            ["status", "drain", "resume", "offer", "bind-app"].contains(&action),
+            ["status", "drain", "resume", "offer", "bind-app", "balances"].contains(&action),
             "unsupported_action",
         )?;
         let nonce = id();
@@ -403,6 +403,32 @@ impl Miner<'_> {
         let c = self.load(false)?;
         Ok(
             json!({"providers":invitation::provider_summary(&c.invitation,&c.credentials),"phalaConfigured":configured(&c.credentials["PHALA_CLOUD_API_KEY"]),"note":"Local credential presence only; saved changes are not automatically applied to a running worker. Admission and pricing remain required."}),
+        )
+    }
+    pub fn balances(&self, publish: bool) -> Result<Value> {
+        let c = self.load(false)?;
+        let local = crate::balances::collect(self.http, &c.credentials);
+        let remote = if publish {
+            need(!local.is_empty(), "no_local_api_keys_to_check")?;
+            Some(self.api(
+                &c,
+                "balances",
+                json!({"balances":crate::balances::reports(&local)}),
+            )?)
+        } else {
+            self.api(&c, "status", json!({})).ok()
+        };
+        let rows = crate::balances::merge(
+            &remote
+                .as_ref()
+                .map(|v| v["balances"].clone())
+                .unwrap_or(Value::Null),
+            local,
+            now(),
+        );
+        Ok(
+            json!({"minerId":c.invitation["minerId"],"balances":rows,"published":publish,"remoteUnavailable":remote.is_none(),
+            "note":"Account-level USD credit snapshots; not miner profit or spend allowance. Shared account balances must not be added across miners."}),
         )
     }
     pub fn offers(&self) -> Result<Value> {
