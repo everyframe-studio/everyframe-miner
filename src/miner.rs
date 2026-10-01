@@ -11,7 +11,7 @@ use crate::{
 };
 use serde_json::{Value, json};
 use std::path::Path;
-pub const PENDING: &str = "Waiting for attestation against the approved app/OS/KMS measurements. No working provider key was released. Hosting continues until stopped. Run miner status; once accepted, run miner activate.";
+pub const PENDING: &str = "Waiting for attestation against the approved app/OS/KMS measurements. No working provider key was released. Hosting continues until stopped. Run everycli status; once accepted, run everycli activate.";
 pub fn read_secrets(path: &Path) -> Result<Value> {
     let data =
         String::from_utf8(read(path, true, 64000)?).map_err(|_| Error("invalid_credential"))?;
@@ -227,7 +227,7 @@ impl Miner<'_> {
         self.state.write("credentials", &merged)?;
         self.state.write("config",&json!({"version":1,"invitation":envelope,"initializedAt":old.get("initializedAt").cloned().unwrap_or(json!(now()))}))?;
         Ok(
-            json!({"state":"configured","minerId":inv["minerId"],"network":inv["network"],"netuid":inv["netuid"],"hotkey":inv["hotkey"],"generationSubmitted":false,"next":"Run miner doctor, then review hosting with miner deploy --max-hourly-usd."}),
+            json!({"state":"configured","minerId":inv["minerId"],"network":inv["network"],"netuid":inv["netuid"],"hotkey":inv["hotkey"],"generationSubmitted":false,"next":"Run everycli doctor, then review hosting with everycli deploy --max-hourly-usd."}),
         )
     }
     pub fn target(&self, c: &Context, new: bool) -> Result<Value> {
@@ -263,7 +263,7 @@ impl Miner<'_> {
             }
         }
         out["next"] = json!(
-            "Use miner doctor for readiness. Reconcile uncertain operations; never blindly repeat a cloud mutation."
+            "Use everycli doctor for readiness. Reconcile uncertain operations; never blindly repeat a cloud mutation."
         );
         Ok(out)
     }
@@ -295,7 +295,7 @@ impl Miner<'_> {
         add(
             "Deployment configuration",
             n(&inv["expiresAt"])? > now(),
-            "Expired configurations permit diagnosis/stop only; renew with miner init.",
+            "Expired configurations permit diagnosis/stop only; renew with everycli init.",
         );
         add(
             "Phala credential",
@@ -689,7 +689,7 @@ impl Miner<'_> {
         state["providerConfigured"] = json!(true);
         self.state.write("deployment", &state)?;
         Ok(
-            json!({"phase":state["phase"],"next":"Wait for fresh post-restart TEE admission, then miner resume. No generation submitted."}),
+            json!({"phase":state["phase"],"next":"Wait for fresh post-restart TEE admission, then everycli resume. No generation submitted."}),
         )
     }
     pub fn resume(&self, confirm: &dyn Fn(&str) -> Result<()>) -> Result<Value> {
