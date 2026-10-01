@@ -482,7 +482,9 @@ pub fn main_entry() -> i32 {
             if (a.command == "register-hotkey" && out["registered"] != true)
                 || (a.command == "doctor" && out["ok"] != true)
                 || (a.command == "status"
-                    && (!out["coordinatorError"].is_null() || !out["cloudError"].is_null()))
+                    && (out["ok"] == false
+                        || !out["coordinatorError"].is_null()
+                        || !out["cloudError"].is_null()))
                 || (a.command == "reconcile" && out["resolved"] == false)
             {
                 2

@@ -45,7 +45,13 @@ pub fn read(path: &Path, secret: bool, limit: usize) -> Result<Vec<u8>> {
         .read(true)
         .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
         .open(path)
-        .map_err(|_| Error("file_unavailable"))?;
+        .map_err(|e| {
+            Error(match e.kind() {
+                std::io::ErrorKind::NotFound => "file_not_found",
+                std::io::ErrorKind::PermissionDenied => "file_permission_denied",
+                _ => "file_unavailable",
+            })
+        })?;
     let m = f.metadata().map_err(|_| Error("invalid_file"))?;
     need(m.is_file() && m.len() <= limit as u64, "invalid_file")?;
     if secret {

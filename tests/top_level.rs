@@ -114,3 +114,105 @@ fn help_and_runtime_dispatch_use_direct_commands() {
     assert!(error.contains("everycli doctor"));
     assert!(!error.contains("secret-argument-must-not-be-echoed"));
 }
+
+#[test]
+fn profile_diagnostics_distinguish_setup_from_broken_or_unsafe_files() {
+    use everyframe_miner::state::State;
+    use serde_json::json;
+    use std::{
+        fs,
+        os::unix::fs::{PermissionsExt, symlink},
+    };
+
+    let dir = common::tempdir();
+    for (case, expected) in [
+        ("fresh", "profile_not_initialized"),
+        ("keys_only", "profile_not_initialized"),
+        ("registered_only", "profile_not_initialized"),
+        ("missing_credentials", "profile_credentials_missing"),
+        ("corrupt", "invalid_json_file"),
+        ("permissions", "insecure_file"),
+        ("directory_permissions", "insecure_directory"),
+        ("symlink", "unsafe_path"),
+    ] {
+        let state = State {
+            directory: dir.path().join(case),
+        };
+        match case {
+            "keys_only" => state
+                .write("credentials", &json!({"FAL_KEY":"secret-never-print"}))
+                .unwrap(),
+            "registered_only" => state
+                .write("registration", &json!({"registered":true}))
+                .unwrap(),
+            "missing_credentials" => state.write("config", &json!({})).unwrap(),
+            "corrupt" => {
+                state.write("config", &json!({})).unwrap();
+                fs::write(state.path("config").unwrap(), b"broken secret-never-print").unwrap();
+            }
+            "permissions" => {
+                state.write("config", &json!({})).unwrap();
+                fs::set_permissions(
+                    state.path("config").unwrap(),
+                    fs::Permissions::from_mode(0o644),
+                )
+                .unwrap();
+            }
+            "directory_permissions" => {
+                state.prepare().unwrap();
+                fs::set_permissions(&state.directory, fs::Permissions::from_mode(0o755)).unwrap();
+            }
+            "symlink" => {
+                state.prepare().unwrap();
+                symlink(
+                    state.directory.join("missing"),
+                    state.path("config").unwrap(),
+                )
+                .unwrap();
+            }
+            _ => {}
+        }
+        for command in ["status", "doctor"] {
+            let output = Command::new(env!("CARGO_BIN_EXE_everycli"))
+                .args([command, "--json", "--state-dir"])
+                .arg(&state.directory)
+                .output()
+                .unwrap();
+            assert_eq!(output.status.code(), Some(2), "{case}/{command}");
+            let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+            assert_eq!(value["error"], expected, "{case}/{command}");
+            assert_eq!(value["registration"], "not_checked");
+            assert_eq!(value["ok"], false);
+            assert!(value["next"].as_str().unwrap().len() > 20);
+            if command == "doctor" {
+                assert_eq!(value["checks"][0]["detail"], expected);
+            }
+            assert!(!String::from_utf8_lossy(&output.stdout).contains("secret-never-print"));
+        }
+    }
+}
+
+#[test]
+fn missing_profile_has_actionable_human_output_including_legacy_commands() {
+    let dir = common::tempdir();
+    for command in [
+        vec!["status"],
+        vec!["doctor"],
+        vec!["miner", "status"],
+        vec!["miner", "doctor"],
+    ] {
+        let output = Command::new(env!("CARGO_BIN_EXE_everycli"))
+            .args(command)
+            .arg("--state-dir")
+            .arg(dir.path().join("fresh"))
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(2));
+        let text = String::from_utf8(output.stdout).unwrap();
+        assert!(text.contains("No local miner profile found"));
+        assert!(text.contains("everycli init --wallet <wallet> --hotkey default"));
+        assert!(text.contains("have not been checked"));
+        assert!(!text.contains("file unavailable"));
+        assert!(output.stderr.is_empty());
+    }
+}
