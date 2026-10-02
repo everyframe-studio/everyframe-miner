@@ -11,7 +11,31 @@ use crate::{
 };
 use serde_json::{Value, json};
 use std::path::Path;
-pub const PENDING: &str = "Waiting for attestation against the approved app/OS/KMS measurements. No working provider key was released. Hosting continues until stopped. Run everycli status; once accepted, run everycli activate.";
+pub const PENDING: &str = "Waiting for automatic workload attestation. No working provider key was released. Hosting continues until stopped. Run everycli status; once online with accepted attestation, run everycli activate.";
+
+fn attestation_ready(status: &Value, at: i64) -> Result<()> {
+    let a = &status["attestation"];
+    match a["state"].as_str() {
+        Some("accepted") => {}
+        Some("pending") => return Err(Error("attestation_pending")),
+        Some("rejected") => return Err(Error("attestation_rejected")),
+        _ => return Err(Error("attestation_unavailable")),
+    }
+    let verified_at = n(&a["at"]).map_err(|_| Error("attestation_timestamp_invalid"))?;
+    need(verified_at <= at + 30000, "attestation_clock_skew")?;
+    need(verified_at > at - 600000, "attestation_stale")?;
+    need(status["attested"] == true, "attestation_session_not_ready")?;
+    need(status["online"] == true, "worker_offline")
+}
+
+fn readiness_detail(code: &str) -> String {
+    let d = crate::diagnostics::value(code);
+    format!(
+        "{} {}",
+        d["message"].as_str().unwrap(),
+        d["next"].as_str().unwrap()
+    )
+}
 
 fn profile_diagnostic(error: &Error) -> Value {
     let (state, message, next) = match error.0 {
@@ -371,7 +395,7 @@ impl Miner<'_> {
                 add(
                     &format!("Provider: {}", s(&provider["provider"])?),
                     provider["releaseAllows"] == true,
-                    "Only keys permitted by the signed release are sent; per-model approval remains required.",
+                    "Only provider keys supported by the signed release are sent. Use everycli offers to see available models.",
                 );
             }
         }
@@ -405,15 +429,23 @@ impl Miner<'_> {
                     true,
                     "Signature, nonce, timestamp and miner identity verified.",
                 );
+                let enabled_detail = if v["enabled"] == true {
+                    "Miner is enabled on the coordinator.".into()
+                } else {
+                    readiness_detail("miner_disabled")
+                };
+                add("Miner enabled", v["enabled"] == true, &enabled_detail);
+                let attestation = attestation_ready(&v, now());
                 add(
-                    "Miner enabled",
-                    v["enabled"] == true,
-                    "Operator controls administrative admission.",
-                );
-                add(
-                    "TEE admission",
-                    v["online"] == true && v["attestation"]["state"] == "accepted",
-                    "Fresh reviewed evidence required.",
+                    "Workload attestation",
+                    attestation.is_ok(),
+                    &match attestation {
+                        Ok(()) => {
+                            "Automatic attestation accepted; session and heartbeat are current."
+                                .into()
+                        }
+                        Err(e) => readiness_detail(e.0),
+                    },
                 );
                 add(
                     "Accepting new work",
@@ -604,19 +636,17 @@ impl Miner<'_> {
         )?;
         Ok(offer.clone())
     }
-    pub fn approved(&self, c: &Context, status: &Value) -> Result<()> {
-        let a = &status["attestation"];
+    pub fn ensure_ready(&self, c: &Context, status: &Value) -> Result<()> {
+        need(status["enabled"] == true, "miner_disabled")?;
         need(
-            status["enabled"] == true
-                && status["online"] == true
-                && status["attested"] == true
-                && a["state"] == "accepted"
-                && n(&a["at"])? > now() - 600000
-                && n(&a["at"])? <= now() + 30000
-                && status["appId"] == c.deployment["appId"]
-                && status["composeHash"] == c.invitation["composeHash"],
-            "operator_approval_required",
-        )
+            status["appId"] == c.deployment["appId"],
+            "deployment_app_mismatch",
+        )?;
+        need(
+            status["composeHash"] == c.invitation["composeHash"],
+            "deployment_compose_mismatch",
+        )?;
+        attestation_ready(status, now())
     }
     pub fn drain(&self, c: &Context) -> Result<Value> {
         let status = self.api(c, "drain", json!({}))?;
@@ -741,7 +771,7 @@ impl Miner<'_> {
             },
             "activation_not_ready",
         )?;
-        self.approved(&c, &self.api(&c, "status", json!({}))?)?;
+        self.ensure_ready(&c, &self.api(&c, "status", json!({}))?)?;
         need(
             self.target(&c, false)?["status"] == "running",
             "worker_not_running",
@@ -754,9 +784,9 @@ impl Miner<'_> {
         )?;
         let body = encrypt(&c.invitation, &c.credentials, s(&key["public_key"])?, true)?;
         confirm(
-            "Release provider keys into this reviewed workload and restart it? Work remains drained until fresh admission and resume.",
+            "Release provider keys into this verified workload and restart it? Work remains paused until fresh attestation and everycli resume.",
         )?;
-        self.approved(&c, &self.drain(&c)?)?;
+        self.ensure_ready(&c, &self.drain(&c)?)?;
         let mut state = c.deployment.clone();
         state["phase"] = json!("activate_intent");
         state["operationAt"] = json!(now());
@@ -787,7 +817,7 @@ impl Miner<'_> {
             "resume_not_ready",
         )?;
         let status = self.api(&c, "status", json!({}))?;
-        self.approved(&c, &status)?;
+        self.ensure_ready(&c, &status)?;
         if phase == "awaiting_readmission" {
             need(
                 n(&status["attestation"]["at"])? > n(&c.deployment["operationAt"])?
@@ -803,7 +833,7 @@ impl Miner<'_> {
         confirm(
             "Accept paid provider work when routing is enabled? Your provider account pays for assignments.",
         )?;
-        self.approved(&c, &self.api(&c, "status", json!({}))?)?;
+        self.ensure_ready(&c, &self.api(&c, "status", json!({}))?)?;
         let out = self.api(&c, "resume", json!({}))?;
         need(out["draining"] == false, "resume_not_confirmed")?;
         let mut d = c.deployment;

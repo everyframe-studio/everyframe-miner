@@ -283,6 +283,12 @@ binding, deployment configuration, and worker image must all support hotkey auth
 
 Activation happens in stages. Check `status` and `doctor` between them; do not
 run through admission failures or repeatedly retry an uncertain deployment.
+Workload attestation is automatic, not a manual approval request. If activation
+cannot continue, the CLI identifies the failed check: pending or rejected
+verification, stale attestation, an unavailable session, a missing heartbeat,
+clock skew, a disabled miner, or a workload/profile mismatch. Follow that
+diagnostic rather than deploying another VM. Provider keys stay protected by
+the same attestation and workload-binding checks.
 
 ```sh
 # Once status shows accepted attestation:
