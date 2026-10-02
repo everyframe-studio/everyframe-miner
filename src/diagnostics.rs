@@ -12,6 +12,66 @@ macro_rules! reasons {
 }
 reasons![
     (
+        "miner_disabled",
+        "This miner is disabled on the coordinator.",
+        "Check everycli status. Contact Everyframe support if this is unexpected; creating another VM will not enable it."
+    ),
+    (
+        "deployment_app_mismatch",
+        "The coordinator's workload does not match this local deployment.",
+        "Compare the local and coordinator appId in everycli status. Use the original management profile; do not deploy another VM or release keys to a different workload."
+    ),
+    (
+        "deployment_compose_mismatch",
+        "The coordinator's workload configuration does not match this profile's signed release.",
+        "Check everycli status and the selected profile. Resolve the release mismatch before continuing; do not bypass verification or redeploy."
+    ),
+    (
+        "attestation_pending",
+        "Automatic workload verification is in progress.",
+        "Wait for everycli status to show accepted attestation and online: true, then retry the command. No manual approval request is needed."
+    ),
+    (
+        "attestation_rejected",
+        "The workload failed automatic security verification.",
+        "Check everycli doctor and contact Everyframe support with your public miner ID if this persists. Do not release provider keys or bypass verification."
+    ),
+    (
+        "attestation_unavailable",
+        "No recognized workload attestation result is available yet.",
+        "Check everycli status and everycli doctor. If already deployed, wait for the existing worker to connect; do not create another VM."
+    ),
+    (
+        "attestation_timestamp_invalid",
+        "The attestation response has a missing or invalid timestamp.",
+        "Check the CLI version and coordinator compatibility. Do not bypass freshness validation."
+    ),
+    (
+        "attestation_clock_skew",
+        "The attestation timestamp is ahead of this device's clock.",
+        "Enable automatic date and time on this device, then check everycli status. If this persists, report the clock mismatch to Everyframe support."
+    ),
+    (
+        "attestation_stale",
+        "The last accepted attestation is too old to continue safely.",
+        "Wait for the worker to refresh its attestation, then check everycli status. If it stays stale, check the existing workload with everycli doctor; do not redeploy."
+    ),
+    (
+        "attestation_session_not_ready",
+        "The coordinator does not report a current verified workload session.",
+        "Wait for everycli status to show attested: true. If this persists, check everycli doctor; do not bypass verification or create another VM."
+    ),
+    (
+        "worker_offline",
+        "The coordinator has not received a recent worker heartbeat.",
+        "Check the existing workload with everycli doctor. Wait for everycli status to show online: true before retrying; do not deploy another VM."
+    ),
+    (
+        "post_restart_attestation_required",
+        "The restarted worker has not supplied a fresh attestation yet.",
+        "Wait for a new accepted attestation in everycli status, then run everycli resume. Do not repeat activation or redeploy."
+    ),
+    (
         "phala_key_required",
         "No Phala Cloud API key is configured in this local profile.",
         "Save it with everycli set-api-keys --provider phala. Never paste keys into command arguments."

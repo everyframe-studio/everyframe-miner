@@ -421,6 +421,136 @@ fn hotkey_bootstrap_encrypts_only_worker_delegate_never_token_or_hotkey() {
     }
 }
 #[test]
+fn activation_reports_each_readiness_failure_without_releasing_keys() {
+    let cases = [
+        ("/enabled", json!(false), "miner_disabled"),
+        ("/appId", json!("2".repeat(40)), "deployment_app_mismatch"),
+        (
+            "/composeHash",
+            json!("e".repeat(64)),
+            "deployment_compose_mismatch",
+        ),
+        (
+            "/attestation/state",
+            json!("pending"),
+            "attestation_pending",
+        ),
+        (
+            "/attestation/state",
+            json!("rejected"),
+            "attestation_rejected",
+        ),
+        ("/attestation", Value::Null, "attestation_unavailable"),
+        (
+            "/attestation/state",
+            json!("unknown-secret"),
+            "attestation_unavailable",
+        ),
+        (
+            "/attestation/at",
+            Value::Null,
+            "attestation_timestamp_invalid",
+        ),
+        (
+            "/attestation/at",
+            json!("secret"),
+            "attestation_timestamp_invalid",
+        ),
+        (
+            "/attestation/at",
+            json!(now() + 120000),
+            "attestation_clock_skew",
+        ),
+        (
+            "/attestation/at",
+            json!(now() - 600001),
+            "attestation_stale",
+        ),
+        ("/attested", json!(false), "attestation_session_not_ready"),
+        ("/online", json!(false), "worker_offline"),
+    ];
+    for (pointer, value, code) in cases {
+        let r = Rig::new();
+        r.deploy().unwrap();
+        *r.status.borrow_mut().pointer_mut(pointer).unwrap() = value;
+        r.calls.borrow_mut().clear();
+        let err = r
+            .miner()
+            .activate(&|_| panic!("must reject before confirmation"))
+            .unwrap_err();
+        assert_eq!(err.0, code, "{pointer}");
+        let diagnostic = everyframe_miner::diagnostics::value(err.0);
+        assert_eq!(diagnostic["code"], code);
+        assert!(!diagnostic["next"].as_str().unwrap().is_empty());
+        assert!(!diagnostic.to_string().contains("secret"));
+        assert_eq!(r.envs.borrow().len(), 1); // Bootstrap only; no provider-key release.
+        assert!(
+            r.calls
+                .borrow()
+                .iter()
+                .all(|(call, _)| call.starts_with("GET "))
+        );
+        assert_eq!(
+            r.state().read("deployment", true).unwrap()["phase"],
+            "awaiting_attestation"
+        );
+    }
+}
+
+#[test]
+fn activation_rechecks_readiness_after_confirmation_without_releasing_keys() {
+    let r = Rig::new();
+    r.deploy().unwrap();
+    let err = r
+        .miner()
+        .activate(&|_| {
+            r.status.borrow_mut()["online"] = json!(false);
+            Ok(())
+        })
+        .unwrap_err();
+    assert_eq!(err.0, "worker_offline");
+    assert_eq!(r.envs.borrow().len(), 1);
+    assert_eq!(
+        r.state().read("deployment", true).unwrap()["phase"],
+        "awaiting_attestation"
+    );
+}
+
+#[test]
+fn doctor_explains_automatic_attestation_and_current_readiness() {
+    let r = Rig::new();
+    r.deploy().unwrap();
+    for (state, expected) in [
+        ("pending", "verification is in progress"),
+        ("rejected", "failed automatic security verification"),
+        ("accepted", "Automatic attestation accepted"),
+    ] {
+        r.status.borrow_mut()["attestation"]["state"] = json!(state);
+        let out = r.miner().doctor().unwrap();
+        let check = out["checks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|v| v["name"] == "Workload attestation")
+            .unwrap();
+        assert_eq!(check["ok"], state == "accepted");
+        assert!(check["detail"].as_str().unwrap().contains(expected));
+        assert!(!out.to_string().contains("Fresh reviewed evidence"));
+        assert!(!out.to_string().contains("Operator controls"));
+    }
+    r.status.borrow_mut()["attestation"]["at"] = json!(now() - 600001);
+    let out = r.miner().doctor().unwrap();
+    let check = out["checks"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|v| v["name"] == "Workload attestation")
+        .unwrap();
+    assert_eq!(check["ok"], false);
+    assert!(check["detail"].as_str().unwrap().contains("too old"));
+}
+
+#[test]
 fn bootstrap_activation_restart_and_shutdown() {
     let r = Rig::new();
     assert_eq!(r.deploy().unwrap()["phase"], "awaiting_attestation");
