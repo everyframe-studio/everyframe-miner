@@ -95,6 +95,19 @@ Balance reads currently support Fal, Phala prepaid credits, and OpenRouter.
 Other configured providers display `unsupported`; failed checks display
 `unavailable`, never a fabricated zero. Balances are account-level and may be
 shared by multiple miners; do not add them across miners or treat them as profit.
+
+Failed local checks include a safe reason and next step, such as HTTP 401
+(authentication rejected), HTTP 403 (access forbidden), HTTP 429 (rate limit),
+DNS failure, timeout, connection/TLS failure, or an invalid balance response.
+`--json` includes each row's `diagnostic.code`, `message` and `next`.
+Failed coordinator reads or publishes include `remoteError`; local balance
+results remain visible even when publishing fails. The command exits with code 2
+if a balance is unavailable, no rows are available, or a requested publish fails.
+Unsupported providers and stale successful snapshots are labeled separately.
+Remote snapshots from the existing protocol do not contain failure reasons:
+refresh from the key-holding device for a live diagnosis. No raw provider
+response, credential or authentication header is printed or published.
+
 Phala includes paid and granted credits, not a post-paid spending limit; outstanding
 invoices are not deducted here. OpenRouter's result is account credit, not a per-key budget.
 
@@ -232,6 +245,13 @@ serve; initialization alone does not start mining. Older CLIs may show
 your Phala credential is invalid. If the coordinator already has a real workload
 app ID, use the original management profile instead of deploying a duplicate.
 Preserve interrupted deployment records and run `everycli reconcile` before retrying.
+
+Cloud errors identify Phala and report safe HTTP or transport reasons, without
+guessing that every failure means an invalid key or insufficient balance. A
+connection error can include TLS failure; it is not proof of an authentication
+problem. The CLI connects directly (proxy environment variables are not used).
+After any uncertain deployment failure, inspect `status` and use `reconcile`
+before retrying; an error response or timeout is not proof that no VM was created.
 
 If `status` or `doctor` reports **No local miner profile found**, connect on that
 device with `everycli init --wallet my-miner --hotkey default`. This is a local

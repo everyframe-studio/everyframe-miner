@@ -70,6 +70,9 @@ fn fetch(http: &dyn Http, provider: &str, key: &str) -> Result<f64> {
     let v = http.json(req)?;
     let n = match provider {
         "fal" => {
+            if !v["credits"]["currency"].is_string() {
+                return Err(Error("invalid_balance"));
+            }
             if v["credits"]["currency"] != "USD" {
                 return Err(Error("non_usd_balance"));
             }
@@ -110,14 +113,34 @@ pub fn collect(http: &dyn Http, credentials: &Value) -> Vec<Value> {
             continue;
         }
         let result = fetch(http, provider, credentials[key].as_str().unwrap());
-        let (status, amount) = match result {
-            Ok(n) => ("ok", Some(n)),
-            Err(Error("unsupported_balance")) => ("unsupported", None),
-            Err(_) => ("unavailable", None),
+        let (status, amount, error) = match result {
+            Ok(n) => ("ok", Some(n), None),
+            Err(Error("unsupported_balance")) => ("unsupported", None, Some("unsupported_balance")),
+            Err(e) => ("unavailable", None, Some(e.0)),
         };
-        rows.push(row(provider, status, amount, crate::now()));
+        let mut r = row(provider, status, amount, crate::now());
+        if let Some(code) = error {
+            r["diagnostic"] = diagnostic(provider, code);
+        }
+        rows.push(r);
     }
     rows
+}
+
+pub fn diagnostic(provider: &str, code: &str) -> Value {
+    let mut d = crate::diagnostics::value(code);
+    if matches!(code, "http_401" | "http_403") {
+        d["next"] = json!(match provider {
+            "fal" =>
+                "Verify a Fal key with billing access: everycli set-api-keys --provider fal-billing. Generation access alone may not permit balance reads.",
+            "phala" =>
+                "Verify the Phala Cloud API key and its account permissions: everycli set-api-keys --provider phala.",
+            "openrouter" =>
+                "Verify an OpenRouter management key: everycli set-api-keys --provider openrouter-billing.",
+            _ => "Check the provider API key and account permissions.",
+        });
+    }
+    d
 }
 
 /// Merge only after authenticating the coordinator response. Local failures replace
@@ -170,6 +193,20 @@ pub fn merge(remote: &Value, local: Vec<Value>, now: i64) -> Vec<Value> {
             "synced"
         });
         clean["stale"] = json!(checked.is_none_or(|t| now - t > MAX_AGE_MS));
+        if clean["status"] != "ok" {
+            let code = if status == "unsupported" {
+                "unsupported_balance"
+            } else if local_row.is_some() {
+                r["diagnostic"]["code"].as_str().unwrap_or("request_failed")
+            } else if status == "ok" {
+                "invalid_balance"
+            } else {
+                // The coordinator protocol does not carry provider diagnostics.
+                // Never display arbitrary text from a remote snapshot.
+                "balance_snapshot_reason_unavailable"
+            };
+            clean["diagnostic"] = diagnostic(provider, code);
+        }
         result.push(clean);
     }
     result

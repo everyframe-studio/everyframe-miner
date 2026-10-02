@@ -147,7 +147,10 @@ impl<'a> Cloud<'a> {
                 .into(),
             ),
         ]);
-        let b = self.http.bytes(r)?;
+        let b = self
+            .http
+            .bytes(r)
+            .map_err(crate::diagnostics::phala_error)?;
         if empty && b.is_empty() {
             Ok(json!({}))
         } else {

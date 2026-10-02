@@ -142,7 +142,9 @@ impl Http for PublicHttp {
             if let Some(b) = r.body.clone() {
                 request = request.body(b)
             }
-            let response = request.send().map_err(|_| Error("remote_request_failed"))?;
+            let response = request
+                .send()
+                .map_err(|e| crate::diagnostics::transport_error(&e))?;
             if [301, 302, 303, 307, 308].contains(&response.status().as_u16())
                 && r.method == "GET"
                 && !r.redirect_hosts.is_empty()
@@ -171,10 +173,12 @@ impl Http for PublicHttp {
                 response
                     .take(4097)
                     .read_to_end(&mut bytes)
-                    .map_err(|_| Error("remote_request_failed"))?;
+                    .map_err(|_| Error("response_read_failed"))?;
                 return Err(enrollment_error(&bytes));
             }
-            need(response.status().is_success(), "remote_request_failed")?;
+            if !response.status().is_success() {
+                return Err(crate::diagnostics::http_error(response.status().as_u16()));
+            }
             need(
                 response
                     .content_length()
@@ -185,7 +189,7 @@ impl Http for PublicHttp {
             response
                 .take(r.limit as u64 + 1)
                 .read_to_end(&mut bytes)
-                .map_err(|_| Error("remote_request_failed"))?;
+                .map_err(|_| Error("response_read_failed"))?;
             need(bytes.len() <= r.limit, "response_too_large")?;
             return Ok(bytes);
         }

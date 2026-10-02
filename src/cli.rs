@@ -486,6 +486,7 @@ pub fn main_entry() -> i32 {
                         || !out["coordinatorError"].is_null()
                         || !out["cloudError"].is_null()))
                 || (a.command == "reconcile" && out["resolved"] == false)
+                || (a.command == "balances" && balance_check_failed(&out))
             {
                 2
             } else {
@@ -502,6 +503,14 @@ pub fn main_entry() -> i32 {
                     "unsafe_install_permissions" | "update_locked_or_directory_not_writable" => "The install directory must be writable by its owner and no other update may be running. Check installation permissions and the .everycli-update.lock directory.".to_string(),
                     _ => format!("CLI update failed: {}. Check the official GitHub release and your network connection. Miner profiles and deployed workers are unchanged.", e.0.replace('_', " ")),
                 }
+            } else if crate::diagnostics::message(e.0).is_some() {
+                let d = crate::diagnostics::value(e.0);
+                format!(
+                    "{} [{}]\n{}\nFor uncertain cloud operations, run everycli status and everycli reconcile before retrying. Raw responses and secrets are not displayed.",
+                    d["message"].as_str().unwrap(),
+                    e.0,
+                    d["next"].as_str().unwrap()
+                )
             } else {
                 format!(
                     "{}. Use everycli --help for commands. For uncertain operations, run everycli status or everycli doctor before retrying. Raw responses and secrets suppressed.",
@@ -516,4 +525,11 @@ pub fn main_entry() -> i32 {
             1
         }
     }
+}
+
+pub fn balance_check_failed(out: &Value) -> bool {
+    (out["publishRequested"] == true && out["published"] != true)
+        || out["balances"]
+            .as_array()
+            .is_none_or(|rows| rows.is_empty() || rows.iter().any(|r| r["status"] == "unavailable"))
 }
