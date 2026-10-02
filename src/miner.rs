@@ -280,6 +280,11 @@ impl Miner<'_> {
         )
     }
     pub fn target(&self, c: &Context, new: bool) -> Result<Value> {
+        need(!c.deployment["appId"].is_null(), "deployment_not_recorded")?;
+        need(
+            matches("[0-9a-f]{40}", &c.deployment["appId"]),
+            "invalid_deployment_app_id",
+        )?;
         let app = s(&c.deployment["appId"])?;
         let info = self.cloud(c)?.info(app)?;
         need(
@@ -440,7 +445,24 @@ impl Miner<'_> {
                 v["status"] == "running",
                 "Pinned app/name/compose checked.",
             ),
-            Err(e) => add("Phala workload", false, e.0),
+            Err(e) => add(
+                "Phala workload",
+                false,
+                match e.0 {
+                    "deployment_not_recorded"
+                        if c.deployment.as_object().is_some_and(|d| d.is_empty()) =>
+                    {
+                        "No workload deployed in this local profile. For a new miner, next: everycli deploy --max-hourly-usd <limit>. Review the hosting quote; storage costs extra and this is not a total budget. If already deployed elsewhere, use the original management profile; do not redeploy."
+                    }
+                    "deployment_not_recorded" => {
+                        "The local deployment record has no app ID; an interrupted operation may have created a paid workload. Preserve the profile and run everycli reconcile. Do not redeploy."
+                    }
+                    "invalid_deployment_app_id" => {
+                        "The local deployment app ID is invalid. Preserve the profile and restore a trusted deployment record before cloud operations. Do not redeploy."
+                    }
+                    _ => e.0,
+                },
+            ),
         };
         Ok(json!({"ok":checks.iter().all(|c|c["ok"]==true),"checks":checks}))
     }

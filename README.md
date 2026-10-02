@@ -223,6 +223,16 @@ before the initial `deploy`. Review its diagnosis rather than treating every
 pre-deployment warning as an installation failure. The hourly ceiling is an
 example; deployment is refused if the quoted compute rate exceeds it.
 
+After a new miner's `init`, `status` shows `phase: not_deployed` and a null local
+`appId`; the coordinator has no attestation, heartbeat or active model offer yet.
+Continue with `deploy` above, review the hosting quote, and follow the staged
+activation steps below. `doctor` stays `ok: false` until the miner is ready to
+serve; initialization alone does not start mining. Older CLIs may show
+`Phala workload: invalid_string` for this missing deployment ID—it does not mean
+your Phala credential is invalid. If the coordinator already has a real workload
+app ID, use the original management profile instead of deploying a duplicate.
+Preserve interrupted deployment records and run `everycli reconcile` before retrying.
+
 If `status` or `doctor` reports **No local miner profile found**, connect on that
 device with `everycli init --wallet my-miner --hotkey default`. This is a local
 setup state, not proof that the hotkey is unregistered on-chain. Profiles belong
