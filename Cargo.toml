@@ -1,6 +1,6 @@
 [package]
 name = "everyframe-miner"
-version = "0.2.2"
+version = "0.2.3"
 edition = "2024"
 rust-version = "1.88"
 description = "Everyframe attested worker and native Rust operator CLI"
