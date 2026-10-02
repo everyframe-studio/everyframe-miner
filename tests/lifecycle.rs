@@ -125,6 +125,7 @@ fn balance_failure_preserves_local_results_and_billing_keys_never_enter_worker_e
     *r.fail.borrow_mut() = "/status".into();
     let out = r.miner().balances(false).unwrap();
     assert_eq!(out["remoteUnavailable"], true);
+    assert_eq!(out["remoteError"]["code"], "request_failed");
     assert_eq!(out["balances"][0]["remainingUsd"], 12.345678);
     let mut creds = r.credentials.clone();
     creds["FAL_ADMIN_KEY"] = json!("synthetic-admin-key");
@@ -137,6 +138,21 @@ fn balance_failure_preserves_local_results_and_billing_keys_never_enter_worker_e
     assert!(!env.contains("synthetic-admin-key"));
     assert!(!env.contains("synthetic-management-key"));
     assert!(!env.contains("PHALA_CLOUD_API_KEY"));
+}
+
+#[test]
+fn failed_balance_publish_keeps_local_results_and_reports_failure() {
+    let r = Rig::new();
+    *r.fail.borrow_mut() = "/balances".into();
+    let out = r.miner().balances(true).unwrap();
+    assert_eq!(out["balances"][0]["remainingUsd"], 12.345678);
+    assert_eq!(out["published"], false);
+    assert_eq!(out["publishRequested"], true);
+    assert_eq!(out["remoteUnavailable"], true);
+    assert_eq!(out["remoteError"]["code"], "request_failed");
+    assert!(everyframe_miner::cli::balance_check_failed(&out));
+    assert!(!out.to_string().contains("synthetic"));
+    assert!(r.envs.borrow().is_empty());
 }
 
 fn decrypt(cipher: &str, secret: &StaticSecret) -> Value {

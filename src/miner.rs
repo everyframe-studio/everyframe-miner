@@ -316,7 +316,9 @@ impl Miner<'_> {
                 Ok(v) => {
                     out["cloud"] = json!({"status":v["status"],"composeHash":v["compose_hash"]})
                 }
-                Err(e) => out["cloudError"] = json!({"code":e.0,"message":e.0}),
+                Err(e) => {
+                    out["cloudError"] = json!({"code":e.0,"message":crate::diagnostics::message(e.0).unwrap_or_else(|| e.0.into())})
+                }
             }
         }
         out["next"] = json!(
@@ -439,7 +441,12 @@ impl Miner<'_> {
             }
             Err(e) => add("Coordinator", false, e.0),
         };
-        match self.target(&c, false) {
+        let workload = self.target(&c, false);
+        let workload_reason = workload
+            .as_ref()
+            .err()
+            .and_then(|e| crate::diagnostics::message(e.0));
+        match workload {
             Ok(v) => add(
                 "Phala workload",
                 v["status"] == "running",
@@ -460,7 +467,7 @@ impl Miner<'_> {
                     "invalid_deployment_app_id" => {
                         "The local deployment app ID is invalid. Preserve the profile and restore a trusted deployment record before cloud operations. Do not redeploy."
                     }
-                    _ => e.0,
+                    _ => workload_reason.as_deref().unwrap_or(e.0),
                 },
             ),
         };
@@ -482,16 +489,21 @@ impl Miner<'_> {
     pub fn balances(&self, publish: bool) -> Result<Value> {
         let c = self.load(false)?;
         let local = crate::balances::collect(self.http, &c.credentials);
-        let remote = if publish {
+        let remote_result = if publish {
             need(!local.is_empty(), "no_local_api_keys_to_check")?;
-            Some(self.api(
+            self.api(
                 &c,
                 "balances",
                 json!({"balances":crate::balances::reports(&local)}),
-            )?)
+            )
         } else {
-            self.api(&c, "status", json!({})).ok()
+            self.api(&c, "status", json!({}))
         };
+        let remote_error = remote_result
+            .as_ref()
+            .err()
+            .map(|e| crate::diagnostics::value(e.0));
+        let remote = remote_result.ok();
         let rows = crate::balances::merge(
             &remote
                 .as_ref()
@@ -501,7 +513,7 @@ impl Miner<'_> {
             now(),
         );
         Ok(
-            json!({"minerId":c.invitation["minerId"],"balances":rows,"published":publish,"remoteUnavailable":remote.is_none(),
+            json!({"minerId":c.invitation["minerId"],"balances":rows,"published":publish && remote.is_some(),"publishRequested":publish,"remoteUnavailable":remote.is_none(),"remoteError":remote_error,
             "note":"Account-level USD credit snapshots; not miner profit or spend allowance. Shared account balances must not be added across miners."}),
         )
     }

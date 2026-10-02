@@ -122,6 +122,27 @@ pub fn render(command: &str, value: &Value) -> String {
                 data,
             );
             out.push_str("\n\nAccount-level balances may be shared across miners; do not add them together.\nPhala shows credited funds, excluding post-paid limits and outstanding invoices.\nUnavailable: check billing permissions or provider connectivity. Unsupported: no supported USD balance query.\n");
+            for r in rows("balances") {
+                if r["status"] == "unavailable" || r["status"] == "unsupported" {
+                    let code = r["diagnostic"]["code"].as_str().unwrap_or(
+                        if r["status"] == "unsupported" {
+                            "unsupported_balance"
+                        } else if r["source"] == "synced" {
+                            "balance_snapshot_reason_unavailable"
+                        } else {
+                            "request_failed"
+                        },
+                    );
+                    let d = crate::balances::diagnostic(r["provider"].as_str().unwrap_or(""), code);
+                    out.push_str(&format!(
+                        "\n{} [{}]: {}\n  {}\n",
+                        text(&r["provider"]),
+                        text(&d["code"]),
+                        d["message"].as_str().unwrap(),
+                        d["next"].as_str().unwrap()
+                    ));
+                }
+            }
             if value["published"] == true {
                 out.push_str(
                     "Synced to this miner's private coordinator view. No API keys were sent.\n",
@@ -129,9 +150,24 @@ pub fn render(command: &str, value: &Value) -> String {
             }
             if value["remoteUnavailable"] == true {
                 out.push_str("Coordinator snapshot unavailable; showing local results only.\n");
+                let d = crate::diagnostics::value(
+                    value["remoteError"]["code"]
+                        .as_str()
+                        .unwrap_or("request_failed"),
+                );
+                out.push_str(&format!(
+                    "Coordinator [{}]: {} {}\n",
+                    text(&d["code"]),
+                    d["message"].as_str().unwrap(),
+                    d["next"].as_str().unwrap()
+                ));
             }
             if rows("balances").is_empty() {
+                out.push_str("No balance rows available. Configure local keys with everycli set-api-keys, or refresh the snapshot from your key-holding device.\n");
                 out.push_str("On the device holding API keys, run: everycli balances --publish\n");
+            }
+            if rows("balances").iter().any(|r| r["stale"] == true) {
+                out.push_str("Stale means older than 15 minutes or missing a valid timestamp; these are not live balances. Run everycli balances --publish on the device holding the API keys to refresh synced snapshots.\n");
             }
             out
         }
