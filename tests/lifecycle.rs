@@ -14,6 +14,83 @@ use std::{cell::RefCell, path::PathBuf};
 use x25519_dalek::{PublicKey, StaticSecret};
 
 #[test]
+fn doctor_without_local_deployment_explains_setup_without_calling_phala() {
+    // Cover both a newly enrolled miner and a fresh device viewing a remote worker.
+    for remote_app in ["0".repeat(40), "1".repeat(40)] {
+        let r = Rig::new();
+        r.status.borrow_mut()["appId"] = json!(remote_app);
+        let out = r.miner().doctor().unwrap();
+        assert_eq!(out["ok"], false);
+        let check = out["checks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|v| v["name"] == "Phala workload")
+            .unwrap();
+        assert_eq!(check["ok"], false);
+        let detail = check["detail"].as_str().unwrap();
+        assert!(detail.contains("No workload deployed in this local profile"));
+        assert!(detail.contains("everycli deploy --max-hourly-usd <limit>"));
+        assert!(detail.contains("not a total budget"));
+        assert!(detail.contains("original management profile; do not redeploy"));
+        assert!(!out.to_string().contains("invalid_string"));
+        assert_eq!(r.calls.borrow().len(), 1);
+        assert!(r.calls.borrow()[0].0.starts_with("GET "));
+        assert!(r.calls.borrow()[0].0.ends_with("/v1/miner/status"));
+        assert!(r.state().read("deployment", true).unwrap().is_null());
+    }
+}
+
+#[test]
+fn doctor_incomplete_or_invalid_deployment_does_not_recommend_new_vm() {
+    for app in [Value::Null, json!(123), json!("bad-app-id"), json!("")] {
+        let r = Rig::new();
+        let deployment = json!({"phase":"provision_intent", "appId":app});
+        r.state().write("deployment", &deployment).unwrap();
+        let out = r.miner().doctor().unwrap();
+        assert_eq!(out["ok"], false);
+        let check = out["checks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|v| v["name"] == "Phala workload")
+            .unwrap();
+        let detail = check["detail"].as_str().unwrap();
+        assert!(detail.contains("Do not redeploy"));
+        if app.is_null() {
+            assert!(detail.contains("everycli reconcile"));
+        } else {
+            assert!(detail.contains("app ID is invalid"));
+        }
+        assert!(!detail.contains("everycli deploy"));
+        assert!(!out.to_string().contains("invalid_string"));
+        assert_eq!(r.calls.borrow().len(), 1);
+        assert_eq!(r.state().read("deployment", true).unwrap(), deployment);
+    }
+}
+
+#[test]
+fn doctor_still_checks_existing_cloud_workload() {
+    let r = Rig::new();
+    r.deploy().unwrap();
+    r.calls.borrow_mut().clear();
+    let out = r.miner().doctor().unwrap();
+    let check = out["checks"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|v| v["name"] == "Phala workload")
+        .unwrap();
+    assert_eq!(check["ok"], true);
+    assert!(
+        r.calls
+            .borrow()
+            .iter()
+            .any(|(path, _)| path.contains("/cvms/"))
+    );
+}
+
+#[test]
 fn balance_publish_then_auth_only_read_never_mutates_workers_or_exports_keys() {
     let r = Rig::new();
     let out = r.miner().balances(true).unwrap();
