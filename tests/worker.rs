@@ -75,6 +75,7 @@ impl Runtime for Handle {
                 self.calls.borrow_mut().push(action.into());
                 let result = match action {
                     "claim" => {
+                        assert_eq!(request["payload"]["durationPolicy"], 1);
                         json!({"work":protocol::seal(&self.work,&self.encryption_key.borrow(),&format!("session:{}",request["nonce"].as_str().unwrap()))?})
                     }
                     "start" => {
@@ -200,6 +201,23 @@ fn ambiguous_submit_is_not_retried() {
     assert_eq!(w.step().unwrap()["state"], "unknown");
     assert_eq!(f.submits.get(), 1);
     assert!(f.calls.borrow().iter().any(|s| s == "unknown"));
+}
+#[test]
+fn longer_work_preserves_length_in_signed_receipt_without_duplicate_submission() {
+    for duration in [10, 15] {
+        let spec =
+            models::spec(&json!({"prompt":"A cinematic journey","seed":42,"duration":duration}))
+                .unwrap();
+        let hash = protocol::digest(&spec).unwrap();
+        let (mut worker, fixture) =
+            fixture(Options::default(), json!({"spec":spec,"inputHash":hash}));
+        assert_eq!(worker.step().unwrap()["state"], "accepted");
+        assert_eq!(fixture.submits.get(), 1);
+        assert_eq!(
+            fixture.receipts.borrow()[0]["receipt"]["value"]["inputHash"],
+            hash
+        );
+    }
 }
 #[test]
 fn starting_and_unknown_never_submit() {

@@ -84,7 +84,10 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
         {
             self.enroll()?
         };
-        let (result, nonce) = self.call("claim", json!({"models":self.provider.models()}))?;
+        let (result, nonce) = self.call(
+            "claim",
+            json!({"models":self.provider.models(),"durationPolicy":1}),
+        )?;
         if result["work"].is_null() {
             return Ok(Value::Null);
         };
