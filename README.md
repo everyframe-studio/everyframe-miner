@@ -418,6 +418,14 @@ admission, lifecycle commands, bids, filesystem security, and fail-closed startu
 
 ## Worker releases and security
 
+Duration-capable workers can serve every whole-second duration offered by Studio
+for H3 Max/Turbo (up to 15 seconds) and Seedance 2.5 (up to 30 seconds).
+The model offer remains quoted per base five-second clip: job value and provider
+budget scale with the requested duration, and the same discount applies.
+Other supported-model, resolution, aspect-ratio and reference restrictions still
+apply. Older workers continue receiving only their original fixed-duration jobs.
+This requires updating the **deployed worker**, not just the CLI.
+
 CLI downloads and deployed worker images are separate releases. Updating the CLI
 does not change the image selected by your deployment configuration.
 
