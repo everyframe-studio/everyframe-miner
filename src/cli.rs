@@ -12,7 +12,7 @@ use std::{
     io::{self, IsTerminal, Write},
     path::Path,
 };
-pub const HELP: &str = "everycli · Everyframe miner tools
+pub const HELP: &str = "everycli · EveryFrame miner tools
 
 Usage: everycli COMMAND [options]
 

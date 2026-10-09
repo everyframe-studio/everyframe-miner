@@ -124,7 +124,7 @@ fn credentials() -> Value {
     c
 }
 fn spec(id: &str) -> Value {
-    let mut v = json!({"model":id,"prompt":"Everyframe test"});
+    let mut v = json!({"model":id,"prompt":"EveryFrame test"});
     if models::info(id).unwrap()["seed"] == true {
         v["seed"] = json!(42)
     }

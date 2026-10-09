@@ -1,6 +1,6 @@
 # License and third-party notices
 
-Everyframe miner and its native Rust CLI are licensed under the
+EveryFrame miner and its native Rust CLI are licensed under the
 Apache License, Version 2.0. See [LICENSE](LICENSE) for the full terms.
 
 Third-party dependencies remain under their respective licenses. Preserve their

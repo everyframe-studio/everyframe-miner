@@ -73,7 +73,7 @@ everycli_install() (
       if [ -L "$profile" ]; then
         printf 'Skipped symlinked shell profile: %s\n' "$profile" >&2
       elif ! grep -Fqx "$source_line" "$profile" 2>/dev/null; then
-        printf '\n# Everyframe CLI\n%s\n' "$source_line" >> "$profile"
+        printf '\n# EveryFrame CLI\n%s\n' "$source_line" >> "$profile"
       fi
     done
     case ":${PATH}:" in

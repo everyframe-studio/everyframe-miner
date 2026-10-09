@@ -14,7 +14,7 @@ reasons![
     (
         "miner_disabled",
         "This miner is disabled on the coordinator.",
-        "Check everycli status. Contact Everyframe support if this is unexpected; creating another VM will not enable it."
+        "Check everycli status. Contact EveryFrame support if this is unexpected; creating another VM will not enable it."
     ),
     (
         "deployment_app_mismatch",
@@ -34,7 +34,7 @@ reasons![
     (
         "attestation_rejected",
         "The workload failed automatic security verification.",
-        "Check everycli doctor and contact Everyframe support with your public miner ID if this persists. Do not release provider keys or bypass verification."
+        "Check everycli doctor and contact EveryFrame support with your public miner ID if this persists. Do not release provider keys or bypass verification."
     ),
     (
         "attestation_unavailable",
@@ -49,7 +49,7 @@ reasons![
     (
         "attestation_clock_skew",
         "The attestation timestamp is ahead of this device's clock.",
-        "Enable automatic date and time on this device, then check everycli status. If this persists, report the clock mismatch to Everyframe support."
+        "Enable automatic date and time on this device, then check everycli status. If this persists, report the clock mismatch to EveryFrame support."
     ),
     (
         "attestation_stale",

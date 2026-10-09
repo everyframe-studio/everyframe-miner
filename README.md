@@ -1,7 +1,7 @@
-# Everyframe miner
+# EveryFrame miner
 
-Run an Everyframe miner on Bittensor **SN117** with `everycli` and an attested
-cloud worker. The worker receives jobs from the Everyframe coordinator, calls
+Run an EveryFrame miner on Bittensor **SN117** with `everycli` and an attested
+cloud worker. The worker receives jobs from the EveryFrame coordinator, calls
 your configured generation providers, and returns signed completion receipts.
 It does not run generation models locally, so you do not need a GPU.
 
