@@ -135,7 +135,7 @@ fn installer_only_requests_path_setup_when_needed_and_does_not_duplicate_path() 
         format!("{bin}:/usr/bin:/bin")
     );
     let profile = fs::read_to_string(f.dir.path().join(".zshrc")).unwrap();
-    assert_eq!(profile.matches("# Everyframe CLI").count(), 1);
+    assert_eq!(profile.matches("# EveryFrame CLI").count(), 1);
 }
 
 #[test]

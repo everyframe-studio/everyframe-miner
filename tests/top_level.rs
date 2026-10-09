@@ -7,6 +7,12 @@ fn parse(args: &[&str]) -> everyframe_miner::Result<cli::Args> {
 }
 
 #[test]
+fn help_uses_the_current_brand_without_renaming_the_command() {
+    assert!(cli::HELP.starts_with("everycli · EveryFrame miner tools"));
+    assert!(!cli::HELP.contains("Everyframe"));
+}
+
+#[test]
 fn every_miner_command_is_top_level_with_legacy_equivalence() {
     for command in [
         "init",
