@@ -70,7 +70,7 @@ fn all_45_original_model_hashes_match() {
     let f: Value = serde_json::from_str(include_str!("fixtures/compatibility.json")).unwrap();
     assert_eq!(models::MODELS.as_object().unwrap().len(), 45);
     for (id, hash) in f["models"].as_object().unwrap() {
-        let mut input = json!({"model":id,"prompt":"EveryFrame protocol compatibility fixture"});
+        let mut input = json!({"model":id,"prompt":"Everyframe protocol compatibility fixture"});
         if models::info(id).unwrap()["seed"] == true {
             input["seed"] = json!(42)
         }
