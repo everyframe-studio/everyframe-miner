@@ -27,7 +27,14 @@ pub fn registration_command(args: Option<&Args>) -> String {
     format!(
         "btcli subnet register --netuid {netuid} --subtensor.network {chain} --wallet.name {} --wallet.hotkey {}",
         name("--wallet", "<wallet>"),
-        name("--hotkey", "<hotkey>")
+        name(
+            "--hotkey",
+            if args.is_some_and(|a| a.get("--wallet").is_some()) {
+                "default"
+            } else {
+                "<hotkey>"
+            }
+        )
     )
 }
 
@@ -86,6 +93,9 @@ pub fn diagnostic(error: &Error, args: Option<&Args>) -> Value {
     let mut out = json!({"ok":false,"error":error.0,"message":message,"next":next});
     if let Some(ErrorContext::File(path)) = &error.1 {
         out["file"] = json!(clean(&path.to_string_lossy()));
+    }
+    if let Some(ErrorContext::Option(option)) = &error.1 {
+        out["option"] = json!(option);
     }
     if error.0 == "hotkey_not_registered" {
         out["registrationCommand"] = json!(registration_command(args));

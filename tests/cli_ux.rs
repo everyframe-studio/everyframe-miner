@@ -230,6 +230,10 @@ fn noninteractive_removal_requires_yes_and_preserves_the_key() {
 
 #[test]
 fn registration_error_uses_the_actual_network_and_never_assumes_network_failure_is_absence() {
+    assert!(
+        cli_errors::registration_command(Some(&args(&["init", "--wallet", "wallet"])))
+            .contains("--wallet.hotkey default")
+    );
     for (network, subnet, chain) in [("mainnet", "SN117", "finney"), ("testnet", "SN566", "test")] {
         let a = args(&[
             "init",
