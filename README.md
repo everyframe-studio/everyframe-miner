@@ -79,6 +79,51 @@ Checksums detect corrupted or mismatched downloads; they are not independent
 publisher signatures. The installer and updater trust this GitHub repository
 and HTTPS.
 
+## Guided setup and command help (v0.3.0+)
+
+For a new miner, use the interactive wizard:
+
+```sh
+everycli setup --wallet my-wallet --hotkey default --max-hourly-usd 0.05
+```
+
+It checks registration, prompts privately for keys, initializes the signed
+profile, then shows the live hosting quote for your explicit confirmation.
+Optionally add `--provider fal` (or another generation provider) to configure
+just that provider plus Phala. Use a Phala **workspace token from Settings →
+API Tokens**, not a Private AI inference key. The hourly ceiling excludes
+storage and is not a total budget.
+
+The wizard stops on a failed step, an existing/uncertain deployment, or an
+existing remote worker. It does not register on-chain, automatically activate
+keys, resume paid work, or submit generation. Keep the original profile after
+any interrupted deployment; use `status` and `reconcile` before retrying.
+The final message tells you the next activation, attestation, and offer steps.
+
+Every command has its own help and example, without needing a profile:
+
+```sh
+everycli help
+everycli help deploy
+everycli deploy --help
+everycli setup --help
+```
+
+For automation, use the individual commands below instead of the interactive
+wizard. Commands that need confirmation require `--yes` when there is no terminal
+or when using `--json`. `setup` intentionally does not accept `--yes` or `--json`.
+
+`providers` shows a table of saved-key presence, release permissions, and the
+reason a provider is unavailable. Before initialization, release permission is
+**Unknown** (`null` in JSON), not denied. A saved key is not proof of API access
+or worker readiness. Use `--json` for structured output.
+
+CLI success exits with `0`; unsuccessful checks and command errors exit with `2`.
+Missing-profile responses use the same error code, message, and exit status
+across commands. JSON diagnostics contain `ok`, `error`, `message`, and `next`,
+with `file` when a local file is involved. No credential contents or raw provider
+responses are printed. `doctor` may also include its structured `checks` list.
+
 ## Balances and offer tables (v0.1.5+)
 
 `everycli offers` displays a table with each model, active/inactive offer,

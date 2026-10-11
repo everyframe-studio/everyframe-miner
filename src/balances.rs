@@ -115,7 +115,9 @@ pub fn collect(http: &dyn Http, credentials: &Value) -> Vec<Value> {
         let result = fetch(http, provider, credentials[key].as_str().unwrap());
         let (status, amount, error) = match result {
             Ok(n) => ("ok", Some(n), None),
-            Err(Error("unsupported_balance")) => ("unsupported", None, Some("unsupported_balance")),
+            Err(e) if e.0 == "unsupported_balance" => {
+                ("unsupported", None, Some("unsupported_balance"))
+            }
             Err(e) => ("unavailable", None, Some(e.0)),
         };
         let mut r = row(provider, status, amount, crate::now());

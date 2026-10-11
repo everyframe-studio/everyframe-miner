@@ -15,6 +15,31 @@ use std::{
 };
 
 const ADDRESS: &str = "5HQfvwpHm2njGiF716YwjdXgeeZoEiyFLZFvFAriZaiHNKc3";
+
+#[test]
+fn init_checks_registration_before_enrollment_and_preserves_lookup_errors() {
+    let dir = common::tempdir();
+    let key = dir.path().join("hotkey");
+    fs::write(&key, json!({"ss58Address":ADDRESS}).to_string()).unwrap();
+    fs::set_permissions(&key, fs::Permissions::from_mode(0o600)).unwrap();
+    for network in ["mainnet", "testnet"] {
+        for (mode, expected) in [
+            ("absent", "hotkey_not_registered"),
+            ("rpcerror", "chain_lookup_failed"),
+        ] {
+            let chain = Chain {
+                mode,
+                calls: RefCell::default(),
+            };
+            let err =
+                onboarding::enroll_registered(&chain, &invitation::trust(network).unwrap(), &key)
+                    .unwrap_err();
+            assert_eq!(err.0, expected);
+            assert!(chain.calls.borrow().iter().all(|c| c["method"].is_string()));
+            assert!(chain.calls.borrow().len() <= 3);
+        }
+    }
+}
 struct Chain {
     mode: &'static str,
     calls: RefCell<Vec<Value>>,
@@ -352,7 +377,8 @@ fn interactive_prompt_hides_key_and_blank_input_preserves_it() {
         let mut child = cmd.spawn().unwrap();
         // Command owns copies of the slave fd; drop them so master eventually sees EOF.
         drop(cmd);
-        let deadline = Instant::now() + Duration::from_secs(5);
+        // Allow loaded CI hosts to schedule the child; still bound a stuck prompt.
+        let deadline = Instant::now() + Duration::from_secs(15);
         let mut output = Vec::new();
         let mut sent = false;
         loop {

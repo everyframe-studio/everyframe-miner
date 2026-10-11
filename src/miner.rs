@@ -37,12 +37,12 @@ fn readiness_detail(code: &str) -> String {
     )
 }
 
-fn profile_diagnostic(error: &Error) -> Value {
+pub fn profile_diagnostic(error: &Error) -> Value {
     let (state, message, next) = match error.0 {
         "profile_not_initialized" => (
             "not_initialized",
             "No local miner profile found for the selected network and OS user. Hotkey registration and linking have not been checked.",
-            "Connect your hotkey: everycli init --wallet <wallet> --hotkey default. If you already initialized here, use the original OS user and --state-dir/--network options.",
+            "Connect your hotkey: everycli init --wallet <wallet> --hotkey default. For a new miner, everycli setup guides you through all steps. If you already initialized here, use the original OS user and --state-dir/--network options.",
         ),
         "profile_credentials_missing" => (
             "profile_incomplete",
@@ -70,7 +70,11 @@ fn profile_diagnostic(error: &Error) -> Value {
             "Check the diagnostic code and your OS user, network and profile selection. Preserve the existing profile; do not retry deployment or share credentials.",
         ),
     };
-    json!({"ok":false,"state":state,"error":error.0,"message":message,"registration":"not_checked","next":next})
+    let mut out = json!({"ok":false,"state":state,"error":error.0,"message":message,"registration":"not_checked","next":next});
+    if let Some(crate::ErrorContext::File(path)) = &error.1 {
+        out["file"] = json!(path.to_string_lossy());
+    }
+    out
 }
 
 pub fn read_secrets(path: &Path) -> Result<Value> {
@@ -183,7 +187,7 @@ impl Miner<'_> {
         self.state.prepare()?;
         let config = self.state.read("config", false).map_err(|e| {
             if e.0 == "file_not_found" {
-                Error("profile_not_initialized")
+                Error("profile_not_initialized").at_file(&self.state.directory.join("config.json"))
             } else {
                 e
             }
@@ -191,6 +195,7 @@ impl Miner<'_> {
         let credentials = self.state.read("credentials", false).map_err(|e| {
             if e.0 == "file_not_found" {
                 Error("profile_credentials_missing")
+                    .at_file(&self.state.directory.join("credentials.json"))
             } else {
                 e
             }
@@ -571,6 +576,11 @@ impl Miner<'_> {
         withdraw: bool,
         confirm: &dyn Fn(&str) -> Result<()>,
     ) -> Result<Value> {
+        if !withdraw {
+            invitation::discount(
+                discount.ok_or(Error("missing_option").option("--discount-pct"))?,
+            )?;
+        }
         need(!model.is_empty() && model.len() <= 150, "model_required")?;
         let _lock = self.state.lock()?;
         let c = self.load(false)?;

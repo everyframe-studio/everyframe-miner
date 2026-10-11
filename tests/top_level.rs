@@ -114,10 +114,10 @@ fn help_and_runtime_dispatch_use_direct_commands() {
         .arg("secret-argument-must-not-be-echoed")
         .output()
         .unwrap();
-    assert_eq!(unknown.status.code(), Some(1));
+    assert_eq!(unknown.status.code(), Some(2));
     let error = String::from_utf8(unknown.stderr).unwrap();
-    assert!(error.contains("everycli --help"));
-    assert!(error.contains("everycli doctor"));
+    assert!(error.contains("everycli help"));
+    assert!(!error.contains("everycli doctor"));
     assert!(!error.contains("secret-argument-must-not-be-echoed"));
 }
 

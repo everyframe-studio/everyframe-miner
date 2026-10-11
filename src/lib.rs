@@ -1,5 +1,7 @@
 pub mod balances;
 pub mod cli;
+pub mod cli_errors;
+pub mod cli_help;
 pub mod cloud;
 pub mod diagnostics;
 pub mod display;
@@ -16,7 +18,34 @@ pub mod update;
 pub mod worker;
 pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Error(pub &'static str);
+pub enum ErrorContext {
+    File(std::path::PathBuf),
+    Option(String),
+    Command(String),
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Failure(pub &'static str, pub Option<ErrorContext>);
+pub type Error = Failure;
+// Keep the existing code-only constructor; context is explicit and local, never
+// copied from a provider response or credential value.
+#[allow(non_snake_case)]
+pub fn Error(code: &'static str) -> Error {
+    Failure(code, None)
+}
+impl Failure {
+    pub fn at_file(mut self, path: &std::path::Path) -> Self {
+        self.1 = Some(ErrorContext::File(path.to_path_buf()));
+        self
+    }
+    pub fn option(mut self, option: &str) -> Self {
+        self.1 = Some(ErrorContext::Option(option.into()));
+        self
+    }
+    pub fn command(mut self, command: &str) -> Self {
+        self.1 = Some(ErrorContext::Command(command.into()));
+        self
+    }
+}
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.0)
