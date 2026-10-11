@@ -25,11 +25,11 @@ Install with one command:
 
 ```sh
 curl --proto '=https' --tlsv1.2 -LsSf \
-  https://github.com/everyframe-studios/everyframe-miner/releases/latest/download/everycli-installer.sh | sh
+  https://github.com/everyframe-studio/everyframe-miner/releases/latest/download/everycli-installer.sh | sh
 ```
 
 Prebuilt binaries and checksums are published on
-[GitHub Releases](https://github.com/everyframe-studios/everyframe-miner/releases).
+[GitHub Releases](https://github.com/everyframe-studio/everyframe-miner/releases).
 No GitHub account or token is needed to download them. A source-code archive is
 not a prebuilt CLI download.
 

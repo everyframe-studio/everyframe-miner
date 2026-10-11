@@ -30,7 +30,7 @@ connect_timeout=''
 retry_limit=''
 while [ "$#" -gt 0 ]; do
   case "$1" in
-    https://github.com/everyframe-studios/everyframe-miner/releases/download/v*) url=$1 ;;
+    https://github.com/everyframe-studio/everyframe-miner/releases/download/v*) url=$1 ;;
     -o) shift; dest=$1 ;;
     --retry) shift; retry=$1 ;;
     --connect-timeout) shift; connect_timeout=$1 ;;
