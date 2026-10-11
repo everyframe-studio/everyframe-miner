@@ -8,6 +8,25 @@ use std::{
 };
 
 #[test]
+fn public_downloads_use_the_current_github_organization() {
+    let repo = "https://github.com/everyframe-studio/everyframe-miner";
+    let updater = include_str!("../src/update.rs");
+    let installer = include_str!("../scripts/everycli-installer.sh");
+    let readme = include_str!("../README.md");
+    assert!(updater.contains(repo));
+    assert!(updater.contains(
+        "https://api.github.com/repos/everyframe-studio/everyframe-miner/releases/latest"
+    ));
+    assert!(installer.contains(&format!("{repo}/releases/download/$version")));
+    assert!(readme.contains(&format!(
+        "{repo}/releases/latest/download/everycli-installer.sh"
+    )));
+    for text in [updater, installer, readme] {
+        assert!(!text.contains("everyframe-studios/"));
+    }
+}
+
+#[test]
 fn cli_update_is_separate_from_worker_update() {
     let parse = |a: &[&str]| cli::parse(&a.iter().map(|s| s.to_string()).collect::<Vec<_>>());
     assert_eq!(parse(&["update"]).unwrap().command, "self-update");

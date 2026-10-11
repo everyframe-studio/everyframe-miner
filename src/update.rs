@@ -11,9 +11,8 @@ use std::{
     time::Duration,
 };
 
-const REPO: &str = "https://github.com/everyframe-studios/everyframe-miner";
-const API: &str =
-    "https://api.github.com/repos/everyframe-studios/everyframe-miner/releases/latest";
+const REPO: &str = "https://github.com/everyframe-studio/everyframe-miner";
+const API: &str = "https://api.github.com/repos/everyframe-studio/everyframe-miner/releases/latest";
 
 pub fn version(tag: &str) -> Result<(u64, u64, u64)> {
     need(

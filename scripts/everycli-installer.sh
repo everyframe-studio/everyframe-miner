@@ -40,7 +40,7 @@ everycli_install() (
   trap cleanup EXIT
   trap 'exit 1' HUP INT TERM
   asset="everycli-$target"
-  base="https://github.com/everyframe-studios/everyframe-miner/releases/download/$version"
+  base="https://github.com/everyframe-studio/everyframe-miner/releases/download/$version"
   download() {
     curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fLsS --connect-timeout 30 --max-time 180 --retry 3 --retry-delay 2 --retry-max-time 240 --retry-connrefused --max-redirs 5 --max-filesize 67108864 "$1" -o "$2"
   }
