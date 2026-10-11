@@ -51,18 +51,54 @@ fn table(headers: &[&str], rows: Vec<Vec<String>>) -> String {
 }
 
 pub fn render(command: &str, value: &Value) -> String {
-    if matches!(command, "status" | "doctor") && value["ok"] == false && value["state"].is_string()
-    {
+    if value["ok"] == false && value["message"].is_string() {
         // These messages are fixed local diagnostics, never raw provider responses.
         return format!(
-            "{}\n\n{}\n\nCode: {}\n",
+            "{}{}\n\n{}\n\nCode: {}\n",
             value["message"].as_str().unwrap_or("Profile unavailable."),
+            value["file"]
+                .as_str()
+                .map(|p| format!("\nFile: {}", crate::cli_errors::clean(p)))
+                .unwrap_or_default(),
             value["next"].as_str().unwrap_or(""),
             text(&value["error"])
         );
     }
     let rows = |key: &str| value[key].as_array().cloned().unwrap_or_default();
     match command {
+        "providers" => {
+            let data = rows("providers")
+                .iter()
+                .map(|r| {
+                    vec![
+                        text(&r["provider"]),
+                        if r["configured"] == true {
+                            "Saved"
+                        } else {
+                            "Missing"
+                        }
+                        .into(),
+                        match r["releaseAllows"].as_bool() {
+                            Some(true) => "Allowed",
+                            Some(false) => "Not allowed",
+                            None => "Unknown",
+                        }
+                        .into(),
+                        text(&r["reason"]),
+                    ]
+                })
+                .collect();
+            format!(
+                "{}\n\nPhala hosting token: {}\n{}\n",
+                table(&["PROVIDER", "LOCAL KEY", "RELEASE", "REASON"], data),
+                if value["phalaConfigured"] == true {
+                    "saved"
+                } else {
+                    "missing (Settings → API Tokens, not Private AI)"
+                },
+                text(&value["note"])
+            )
+        }
         "offers" => {
             let data = rows("offers")
                 .iter()

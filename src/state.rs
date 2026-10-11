@@ -40,6 +40,9 @@ pub fn no_symlink(path: &Path) -> Result<()> {
     Ok(())
 }
 pub fn read(path: &Path, secret: bool, limit: usize) -> Result<Vec<u8>> {
+    read_inner(path, secret, limit).map_err(|e| e.at_file(path))
+}
+fn read_inner(path: &Path, secret: bool, limit: usize) -> Result<Vec<u8>> {
     no_symlink(path)?;
     let f = OpenOptions::new()
         .read(true)
@@ -65,7 +68,8 @@ pub fn read(path: &Path, secret: bool, limit: usize) -> Result<Vec<u8>> {
     Ok(out)
 }
 pub fn read_json(path: &Path, secret: bool) -> Result<Value> {
-    serde_json::from_slice(&read(path, secret, 200000)?).map_err(|_| Error("invalid_json_file"))
+    serde_json::from_slice(&read(path, secret, 200000)?)
+        .map_err(|_| Error("invalid_json_file").at_file(path))
 }
 pub struct State {
     pub directory: PathBuf,

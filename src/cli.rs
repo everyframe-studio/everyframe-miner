@@ -16,7 +16,7 @@ pub const HELP: &str = "everycli · EveryFrame miner tools
 
 Usage: everycli COMMAND [options]
 
-Setup: register-hotkey, set-api-keys, remove-api-key, init
+Setup: setup (guided), register-hotkey, set-api-keys, remove-api-key, init
 Manage: doctor, status, providers, balances, offers, offer, earnings, deploy, activate,
         apply-api-keys, resume, worker-update, stop, start, reconcile
 
@@ -44,12 +44,13 @@ register-hotkey verifies finalized subnet membership; it does not register on-ch
 No Node.js, Python or GPU. Hotkey signs locally; no chain transaction or coldkey access.
 Hosting/provider charges are real. No guaranteed earnings or automatic total spending cap.
 ";
+#[derive(Clone)]
 pub struct Args {
     pub command: String,
     pub options: HashMap<String, String>,
     pub flags: Vec<String>,
 }
-const UPDATE_HELP: &str = "\nCLI upgrades (no login required):\n  everycli update          Install the latest stable CLI\n  everycli update --check  Check without installing\nWorker upgrades: everycli worker-update --release FILE\nCLI upgrades never update the deployed worker.\n";
+pub const UPDATE_HELP: &str = "\nCLI upgrades (no login required):\n  everycli update          Install the latest stable CLI\n  everycli update --check  Check without installing\nWorker upgrades: everycli worker-update --release FILE\nCLI upgrades never update the deployed worker.\n";
 impl Args {
     pub fn flag(&self, k: &str) -> bool {
         self.flags.iter().any(|v| v == k)
@@ -58,7 +59,7 @@ impl Args {
         self.options.get(k).map(String::as_str)
     }
     pub fn required(&self, k: &str) -> Result<&str> {
-        self.get(k).ok_or(Error("missing_option"))
+        self.get(k).ok_or_else(|| Error("missing_option").option(k))
     }
 }
 pub fn parse(args: &[String]) -> Result<Args> {
@@ -117,22 +118,28 @@ pub fn parse(args: &[String]) -> Result<Args> {
                 i += 1;
                 args.get(i)
                     .map(String::as_str)
-                    .ok_or(Error("invalid_arguments"))?
+                    .filter(|v| !v.starts_with("--"))
+                    .ok_or_else(|| Error("missing_option_value").option(key))?
             };
+            need(!value.is_empty(), "missing_option_value").map_err(|e| e.option(key))?;
             out.options.insert(key.into(), value.into());
         } else {
             positionals.push(a)
         }
         i += 1
     }
-    if out.flag("--help")
-        || out.flag("--version")
-        || positionals.is_empty()
-        || positionals == ["miner"]
-    {
+    if positionals.first() == Some(&"help") {
+        positionals.remove(0);
+        out.flags.push("--help".into());
+    }
+    if out.flag("--version") || positionals.is_empty() || positionals == ["miner"] {
         return Ok(out);
     }
     if positionals == ["update"] {
+        out.command = "self-update".into();
+        if out.flag("--help") {
+            return Ok(out);
+        }
         need(
             out.options.is_empty()
                 && out
@@ -150,11 +157,12 @@ pub fn parse(args: &[String]) -> Result<Args> {
         ["worker-update"] => "update",
         [command] => *command,
         ["miner", command] => *command,
-        _ => return Err(Error("unknown_command")),
+        _ => return Err(Error("unexpected_argument")),
     };
     need(
         [
             "init",
+            "setup",
             "register-hotkey",
             "set-api-keys",
             "remove-api-key",
@@ -176,9 +184,20 @@ pub fn parse(args: &[String]) -> Result<Args> {
         ]
         .contains(&command),
         "unknown_command",
-    )?;
+    )
+    .map_err(|e| e.command(command))?;
     out.command = command.into();
+    if out.flag("--help") {
+        return Ok(out);
+    }
     let allowed = match out.command.as_str() {
+        "setup" => vec![
+            "--wallet",
+            "--hotkey",
+            "--hotkey-file",
+            "--provider",
+            "--max-hourly-usd",
+        ],
         "init" => vec![
             "--invitation",
             "--secrets-file",
@@ -283,7 +302,167 @@ fn set_keys(args: &Args, state: &State) -> Result<Value> {
     }
     onboarding::save_keys(state, &updates, None)
 }
+pub fn validate_args(args: &Args) -> Result<()> {
+    if args.flag("--help") || args.flag("--version") {
+        return Ok(());
+    }
+    if let Some(discount) = args.get("--discount-pct") {
+        invitation::discount(discount)?;
+    }
+    if let Some(limit) = args.get("--max-hourly-usd") {
+        let limit = limit
+            .parse::<f64>()
+            .map_err(|_| Error("compute_limit_required"))?;
+        need(limit.is_finite() && limit > 0., "compute_limit_required")?;
+    }
+    match args.command.as_str() {
+        "deploy" | "start" => {
+            args.required("--max-hourly-usd")?;
+        }
+        "offer" => {
+            args.required("--model")?;
+            if !args.flag("--withdraw") {
+                args.required("--discount-pct")?;
+            }
+        }
+        "update" => {
+            args.required("--release")?;
+        }
+        "remove-api-key" => {
+            onboarding::credential_key(args.required("--provider")?)?;
+        }
+        "setup" => {
+            need(
+                !args.flag("--yes") && !args.flag("--json") && io::stdin().is_terminal(),
+                "setup_requires_terminal",
+            )?;
+        }
+        _ => {}
+    }
+    if let Some(provider) = args.get("--provider") {
+        onboarding::credential_key(provider)?;
+    }
+    if ["init", "register-hotkey", "setup"].contains(&args.command.as_str()) {
+        local_hotkey(args)?;
+    }
+    Ok(())
+}
+
+fn setup(args: &Args, miner: &Miner<'_>) -> Result<Value> {
+    setup_with(
+        args,
+        &miner.state,
+        &|label| question(label, false),
+        &mut run,
+    )
+}
+
+// Injectable prompts/steps allow the complete wizard to be tested without a
+// terminal, real keys, blockchain calls or a paid VM.
+pub fn setup_with(
+    args: &Args,
+    state: &State,
+    ask: &dyn Fn(&str) -> Result<String>,
+    execute: &mut dyn FnMut(&Args) -> Result<Value>,
+) -> Result<Value> {
+    state.prepare()?;
+    // Any journal (including an incomplete/uncertain one) must be reconciled,
+    // never overwritten or treated as a request to provision a second VM.
+    need(
+        state.read("deployment", true)?.is_null(),
+        "setup_existing_deployment",
+    )?;
+    let mut base = args.clone();
+    let saved = state.read("registration", true)?;
+    if local_hotkey(&base)?.is_none() {
+        if let Some(path) = saved["hotkeyFile"].as_str() {
+            base.options.insert("--hotkey-file".into(), path.into());
+        } else {
+            let wallet = ask("Wallet name: ")?;
+            let key = ask("Hotkey name [default]: ")?;
+            base.options.insert("--wallet".into(), wallet);
+            base.options.insert(
+                "--hotkey".into(),
+                if key.is_empty() {
+                    "default".into()
+                } else {
+                    key
+                },
+            );
+            local_hotkey(&base)?;
+        }
+    }
+    let step = |command: &str, extra: &[&str]| {
+        let mut a = base.clone();
+        a.command = command.into();
+        a.options.retain(|k, _| {
+            ["--network", "--state-dir"].contains(&k.as_str()) || extra.contains(&k.as_str())
+        });
+        a
+    };
+    eprintln!("Step 1/4 — Check hotkey registration (read-only)");
+    let registration = execute(&step(
+        "register-hotkey",
+        &["--wallet", "--hotkey", "--hotkey-file"],
+    ))?;
+    if registration["registered"] != true {
+        return Ok(crate::cli_errors::diagnostic(
+            &Error("hotkey_not_registered"),
+            Some(&base),
+        ));
+    }
+    eprintln!(
+        "Step 2/4 — Save API keys locally. Phala: Settings → API Tokens, not Private AI. Enter keeps an existing key."
+    );
+    if let Some(provider) = args.get("--provider") {
+        for p in ["phala", provider] {
+            let mut a = step("set-api-keys", &[]);
+            a.options.insert("--provider".into(), p.into());
+            execute(&a)?;
+            if provider == "phala" {
+                break;
+            }
+        }
+    } else {
+        execute(&step("set-api-keys", &[]))?;
+    }
+    eprintln!("Step 3/4 — Initialize the signed miner profile (no VM created)");
+    execute(&step("init", &["--wallet", "--hotkey", "--hotkey-file"]))?;
+    let status = execute(&step("status", &[]))?;
+    need(
+        status["coordinator"].is_object() && status["coordinatorError"].is_null(),
+        "setup_status_unavailable",
+    )?;
+    let remote = &status["coordinator"];
+    need(
+        remote["appId"].is_null() || remote["appId"] == "0000000000000000000000000000000000000000",
+        "setup_existing_deployment",
+    )?;
+    eprintln!(
+        "Step 4/4 — Review paid deployment. Storage is extra; this is not a total budget. You must confirm the live quote."
+    );
+    let mut deploy = step("deploy", &["--max-hourly-usd"]);
+    if deploy.get("--max-hourly-usd").is_none() {
+        deploy.options.insert(
+            "--max-hourly-usd".into(),
+            ask("Maximum compute USD/hour: ")?,
+        );
+    }
+    validate_args(&deploy)?;
+    let mut out = execute(&deploy)?;
+    need(
+        out["ok"] != false && out["appId"].is_string(),
+        "setup_deployment_incomplete",
+    )?;
+    out["setupComplete"] = json!(true);
+    out["next"] = json!(
+        "Run everycli doctor. After accepted attestation, run everycli activate; wait for fresh attestation, then everycli resume. Use everycli offers and everycli offer to declare a model bid. No generation has been submitted."
+    );
+    Ok(out)
+}
+
 pub fn run(args: &Args) -> Result<Value> {
+    validate_args(args)?;
     if args.command == "self-update" {
         return crate::update::run(args.flag("--check"));
     }
@@ -299,7 +478,41 @@ pub fn run(args: &Args) -> Result<Value> {
         trust: invitation::trust(network)?,
         http: &PublicHttp,
     };
+    if args.command == "setup" {
+        return setup(args, &miner);
+    }
+    // Fail locally before any transport or paid-operation preparation. Providers
+    // and key management intentionally remain usable before initialization.
+    if ![
+        "register-hotkey",
+        "set-api-keys",
+        "remove-api-key",
+        "init",
+        "providers",
+        "status",
+        "doctor",
+    ]
+    .contains(&args.command.as_str())
+    {
+        miner.state.prepare()?;
+        if miner.state.read("config", true)?.is_null() {
+            return Ok(crate::miner::profile_diagnostic(
+                &Error("profile_not_initialized")
+                    .at_file(&miner.state.directory.join("config.json")),
+            ));
+        }
+        if miner.state.read("credentials", true)?.is_null() {
+            return Ok(crate::miner::profile_diagnostic(
+                &Error("profile_credentials_missing")
+                    .at_file(&miner.state.directory.join("credentials.json")),
+            ));
+        }
+    }
     let confirm = |text: &str| {
+        need(
+            args.flag("--yes") || (io::stdin().is_terminal() && !args.flag("--json")),
+            "confirmation_required",
+        )?;
         eprintln!("\n{text}");
         if args.flag("--yes") {
             Ok(())
@@ -372,7 +585,7 @@ pub fn run(args: &Args) -> Result<Value> {
             let envelope = if let Some(file) = args.get("--invitation") {
                 read_json(Path::new(file), false)?
             } else {
-                onboarding::enroll(
+                onboarding::enroll_registered(
                     miner.http,
                     &miner.trust,
                     path.as_deref()
@@ -446,6 +659,7 @@ pub fn main_entry() -> i32 {
     let raw = std::env::args().skip(1).collect::<Vec<_>>();
     let json_mode = raw.iter().any(|a| a == "--json");
     let parsed = parse(&raw);
+    let diagnostic_args = parsed.as_ref().ok().cloned();
     let result = parsed.and_then(|a| {
         if a.flag("--version") {
             println!(
@@ -462,9 +676,9 @@ pub fn main_entry() -> i32 {
             println!(
                 "{}",
                 if json_mode {
-                    json!({"help":format!("{HELP}{UPDATE_HELP}")}).to_string()
+                    json!({"help":crate::cli_help::render(&a.command)}).to_string()
                 } else {
-                    format!("{HELP}{UPDATE_HELP}")
+                    crate::cli_help::render(&a.command)
                 }
             );
             return Ok(0);
@@ -479,7 +693,8 @@ pub fn main_entry() -> i32 {
             }
         );
         Ok(
-            if (a.command == "register-hotkey" && out["registered"] != true)
+            if out["ok"] == false
+                || (a.command == "register-hotkey" && out["registered"] != true)
                 || (a.command == "doctor" && out["ok"] != true)
                 || (a.command == "status"
                     && (out["ok"] == false
@@ -497,32 +712,13 @@ pub fn main_entry() -> i32 {
     match result {
         Ok(n) => n,
         Err(e) => {
-            let message = if raw.first().is_some_and(|a| a == "update") {
-                match e.0 {
-                    "public_release_not_available" => "No public CLI release is available yet. Publish the first tagged GitHub release, then retry.".to_string(),
-                    "unsafe_install_permissions" | "update_locked_or_directory_not_writable" => "The install directory must be writable by its owner and no other update may be running. Check installation permissions and the .everycli-update.lock directory.".to_string(),
-                    _ => format!("CLI update failed: {}. Check the official GitHub release and your network connection. Miner profiles and deployed workers are unchanged.", e.0.replace('_', " ")),
-                }
-            } else if crate::diagnostics::message(e.0).is_some() {
-                let d = crate::diagnostics::value(e.0);
-                format!(
-                    "{} [{}]\n{}\nFor uncertain cloud operations, run everycli status and everycli reconcile before retrying. Raw responses and secrets are not displayed.",
-                    d["message"].as_str().unwrap(),
-                    e.0,
-                    d["next"].as_str().unwrap()
-                )
-            } else {
-                format!(
-                    "{}. Use everycli --help for commands. For uncertain operations, run everycli status or everycli doctor before retrying. Raw responses and secrets suppressed.",
-                    e.0.replace('_', " ")
-                )
-            };
+            let d = crate::cli_errors::diagnostic(&e, diagnostic_args.as_ref());
             if json_mode {
-                println!("{}", json!({"error":e.0,"message":message}))
+                println!("{d}")
             } else {
-                eprintln!("{message}")
+                eprintln!("{}", crate::display::render("error", &d))
             }
-            1
+            2
         }
     }
 }

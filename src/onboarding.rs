@@ -42,6 +42,14 @@ pub fn enroll(http: &dyn Http, trust: &Value, path: &Path) -> Result<Value> {
     Ok(envelope)
 }
 
+/// Check finalized chain state before enrollment. A transport or chain failure
+/// stays a failure; it must never be misreported as an unregistered hotkey.
+pub fn enroll_registered(http: &dyn Http, trust: &Value, path: &Path) -> Result<Value> {
+    let receipt = check_registration(http, s(&trust["network"])?, &file_address(path)?)?;
+    need(receipt["registered"] == true, "hotkey_not_registered")?;
+    enroll(http, trust, path)
+}
+
 pub fn wallet_path(wallet: &str, key: &str) -> Result<PathBuf> {
     need(
         matches("[A-Za-z0-9_-]{1,80}", &json!(wallet))

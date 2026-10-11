@@ -81,7 +81,16 @@ pub fn invited_keys(v: &Value) -> Vec<String> {
 }
 pub fn provider_summary(v: &Value, creds: &Value) -> Value {
     let allowed = invited_keys(v);
-    json!(PROVIDERS.iter().map(|(p,k)|json!({"provider":p,"key":k,"releaseAllows":allowed.iter().any(|a|a==k),"configured":configured(&creds[k]),"usable":allowed.iter().any(|a|a==k)&&configured(&creds[k])})).collect::<Vec<_>>())
+    let known = v["request"]["compose_file"]["allowed_envs"].is_array();
+    json!(PROVIDERS.iter().map(|(p,k)| {
+        let permits = allowed.iter().any(|a|a==k);
+        let saved = configured(&creds[k]);
+        let reason = if !known { "Initialize to check release policy" }
+            else if !permits { "Not included in signed release" }
+            else if !saved { "Save a key with set-api-keys --provider NAME" }
+            else { "Saved locally; verify worker readiness" };
+        json!({"provider":p,"key":k,"releaseAllows":if known { json!(permits) } else { Value::Null },"configured":saved,"usable":known&&permits&&saved,"reason":reason})
+    }).collect::<Vec<_>>())
 }
 pub fn validate(envelope: &Value, t: &Value, now: i64, allow_expired: bool) -> Result<Value> {
     let v = verified(envelope, s(&t["publicKey"])?)?;
