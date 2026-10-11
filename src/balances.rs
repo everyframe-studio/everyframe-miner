@@ -129,6 +129,12 @@ pub fn collect(http: &dyn Http, credentials: &Value) -> Vec<Value> {
 
 pub fn diagnostic(provider: &str, code: &str) -> Value {
     let mut d = crate::diagnostics::value(code);
+    if provider == "vivix" && code == "unsupported_balance" {
+        d["message"] = json!("Vivix W-credit balance lookup in USD is not supported.");
+        d["next"] = json!(
+            "Check W credits in the Vivix platform billing dashboard. Credit-pack prices vary; no USD balance is inferred from the generation key."
+        );
+    }
     if matches!(code, "http_401" | "http_403") {
         d["next"] = json!(match provider {
             "fal" =>

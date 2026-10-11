@@ -51,6 +51,17 @@ impl Http for Api {
                     assert_eq!(body["model"], *model);
                     json!({"id":"job123"})
                 }
+                "vivix" => {
+                    assert_eq!(u.host_str(), Some("api.vivix.ai"));
+                    assert_eq!(path, "/v1/videos/jobs");
+                    let mut input = self.spec["input"].clone();
+                    input.as_object_mut().unwrap().remove("seed");
+                    assert_eq!(
+                        body,
+                        json!({"model":model,"seed":self.spec["input"]["seed"],"jobs":[input]})
+                    );
+                    json!({"code":0,"data":{"results":[{"job_id":"job123","status":"queued"}]}})
+                }
                 "bfl" => {
                     assert_eq!(body, self.spec["input"]);
                     json!({"id":"job123","polling_url":"https://api.eu1.bfl.ai/v1/get_result?id=job123"})
@@ -89,6 +100,11 @@ impl Http for Api {
                     }
                 }
                 "openrouter" => json!({"id":native,"model":model,"status":"completed"}),
+                "vivix" => {
+                    assert_eq!(u.host_str(), Some("api.vivix.ai"));
+                    assert_eq!(path, "/v1/videos/jobs/job123");
+                    json!({"code":0,"data":{"job_id":native,"status":"succeeded","duration":self.spec["input"]["duration"],"aspect_ratio":"16:9","video_url":"https://static.vivi-x.ai/clips/job123/job123.mp4"}})
+                }
                 "bfl" => {
                     assert_eq!(u.host_str(), Some("api.eu1.bfl.ai"));
                     json!({"id":native,"status":"Ready","result":{"sample":"https://delivery-eu1.bfl.ai/image.png"}})
@@ -131,7 +147,7 @@ fn spec(id: &str) -> Value {
     models::spec(&v).unwrap()
 }
 #[test]
-fn all_45_models_complete_through_their_nine_adapters() {
+fn all_models_complete_through_their_provider_adapters() {
     for (id, m) in models::MODELS.as_object().unwrap() {
         let spec = spec(id);
         let api = Api {

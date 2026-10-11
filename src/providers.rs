@@ -39,6 +39,7 @@ fn prefix(p: &str) -> &str {
         "runway" => "https://api.dev.runwayml.com",
         "luma" => "https://api.lumalabs.ai",
         "elevenlabs" => "https://api.elevenlabs.io",
+        "vivix" => "https://api.vivix.ai",
         _ => "",
     }
 }
@@ -110,6 +111,27 @@ impl<'a> Router<'a> {
             req = req.json("POST", b)
         };
         let data = self.http.json(req)?;
+        if p == "vivix" {
+            // Never expose upstream messages (which may echo credentials/prompts),
+            // and never retry a POST whose acceptance is uncertain.
+            let code = data["code"]
+                .as_i64()
+                .ok_or(Error("invalid_provider_response"))?;
+            if code != 0 {
+                return Err(Error(match code {
+                    10001 | 10003 => "vivix_auth_rejected",
+                    10004 | 10005 => "vivix_billing_required",
+                    10008 | 30008 => "vivix_capacity_limited",
+                    20004 => "vivix_invalid_parameters",
+                    20005 => "vivix_job_not_found",
+                    30001 => "vivix_content_rejected",
+                    50001 | 50003 => "vivix_unavailable",
+                    _ => "provider_rejected",
+                }));
+            }
+            need(data["data"].is_object(), "invalid_provider_response")?;
+            return Ok(data["data"].clone());
+        }
         if p == "minimax" {
             need(data["base_resp"]["status_code"] == 0, "provider_rejected")?
         };
@@ -130,6 +152,20 @@ impl<'a> Router<'a> {
     fn read(&self, r: &str, spec: &Value, m: &Value, p: &str) -> Result<Value> {
         let model = m["apiModel"].as_str().unwrap_or("");
         let data = match p {
+            "vivix" => {
+                let d = self.api(p, &format!("/v1/videos/jobs/{r}"), None)?;
+                need(d["job_id"] == r, "provider_id_mismatch")?;
+                // Echo fields are optional while queued. Bind them when supplied;
+                // the encoded output is still independently checked by validators.
+                need(
+                    (d.get("duration").is_none() || d["duration"] == spec["input"]["duration"])
+                        && (d.get("aspect_ratio").is_none()
+                            || d["aspect_ratio"] == spec["input"]["aspect_ratio"])
+                        && (d.get("model").is_none() || d["model"] == model),
+                    "provider_input_mismatch",
+                )?;
+                d
+            }
             "fal" => self.api(p, &format!("/{}/requests/{r}/status", s(&m["app"])?), None)?,
             "minimax" => {
                 let d = self.api(p, &format!("/v1/query/video_generation?task_id={r}"), None)?;
@@ -263,6 +299,7 @@ impl<'a> Router<'a> {
                 &["FAILED", "CANCELLED"],
             ),
             "luma" => (&["queued"], &["dreaming"], &["completed"], &["failed"]),
+            "vivix" => (&["queued"], &["processing"], &["succeeded"], &["failed"]),
             _ => return Err(Error("unsupported_provider")),
         };
         if queue.contains(&st) {
@@ -317,6 +354,21 @@ impl Provider for Router<'_> {
         let input = &spec["input"];
         let mut body = input.clone();
         let result = match p.as_str() {
+            "vivix" => {
+                // Seed belongs to the envelope, not jobs[0]. Unknown fields,
+                // including resolution, are rejected by the provider.
+                body.as_object_mut().unwrap().remove("seed");
+                let d = self.api(
+                    &p,
+                    "/v1/videos/jobs",
+                    Some(&json!({"model":model,"seed":input["seed"],"jobs":[body]})),
+                )?;
+                let jobs = d["results"]
+                    .as_array()
+                    .ok_or(Error("invalid_provider_response"))?;
+                need(jobs.len() == 1, "invalid_provider_response")?;
+                reference(&jobs[0]["job_id"])?
+            }
             "fal" => reference(
                 &self.api(&p, &format!("/{}", s(&spec["model"])?), Some(input))?["request_id"],
             )?,
@@ -436,6 +488,7 @@ impl Provider for Router<'_> {
         )?;
         let mut metadata = data.clone();
         let media = match p.as_str() {
+            "vivix" => self.download(s(&data["video_url"])?, &["static.vivi-x.ai"], None, &[])?,
             "minimax" => {
                 let file_id = reference(&data["file_id"])?;
                 let file = self.api(&p, &format!("/v1/files/retrieve?file_id={file_id}"), None)?;
