@@ -178,7 +178,10 @@ fn key_management_is_atomic_private_and_preserves_auth_and_other_providers() {
     )
     .unwrap();
     let before = state.read("credentials", false).unwrap();
-    assert_eq!(before.as_object().unwrap().len(), 12);
+    assert_eq!(
+        before.as_object().unwrap().len(),
+        invitation::PROVIDERS.len() + 3
+    );
     assert_eq!(
         fs::metadata(state.path("credentials").unwrap())
             .unwrap()
