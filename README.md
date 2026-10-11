@@ -402,9 +402,8 @@ everycli offers
 
 ### Vivix W1
 
-Available in this source tree; the currently published v0.2.3 CLI does not
-include this provider. Use a release that includes this change before following
-these commands.
+Available in **everycli v0.2.4+**. Run `everycli update` first if you have
+v0.2.3 or earlier. Updating the CLI does not enable W1 on a deployed worker.
 
 Save your **Vivix API key**, not a Fal or OpenRouter key:
 
