@@ -11,8 +11,8 @@ After reviewing and committing the release changes, the maintainer can publish
 the corrected version (these commands create an external release when pushed):
 
 ```sh
-git tag v0.1.3
-git push origin v0.1.3
+git tag v0.2.4
+git push origin v0.2.4
 ```
 
 For subsequent releases, bump Cargo.toml and Cargo.lock first, then tag the
@@ -20,6 +20,12 @@ matching `vMAJOR.MINOR.PATCH`. Prerelease tags are not supported by this workflo
 Protect release tags and restrict who can push them. If a publication fails after
 draft creation, inspect and recover that draft manually; the workflow refuses to
 overwrite existing releases. Do not move a published tag or replace its assets.
+
+v0.2.4 adds Vivix API key management and the direct W1 candidate adapter. The CLI
+release does not update running workers or enable coordinator routing. W1 still
+requires matching coordinator pricing/contracts, a signed deployment permitting
+`VIVIX_API_KEY`, and an admitted worker image with canary verification. Do not
+describe publishing the CLI as a completed W1 production rollout.
 
 The first `v0.1.0` attempt did not publish: both macOS jobs failed because test
 fixtures used a symlinked OS temporary directory. `v0.1.1` resolves the temporary
