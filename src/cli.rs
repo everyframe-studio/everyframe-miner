@@ -26,7 +26,7 @@ Options:
   --wallet NAME --hotkey NAME (register-hotkey/init; default hotkey: default)
   --hotkey-file FILE (alternative to wallet/name)
   --hotkey-ss58 ADDRESS (register-hotkey; public address only)
-  --provider NAME (set-api-keys/remove-api-key; includes phala, fal-billing,
+  --provider NAME (set-api-keys/remove-api-key; includes vivix, phala, fal-billing,
                    openrouter-billing; billing-only keys stay on this device)
   --publish (balances; sync amounts only for hotkey-only remote viewing)
   --stdin (set-api-keys --provider NAME; read one key from a pipe)

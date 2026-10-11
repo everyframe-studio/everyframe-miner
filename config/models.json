@@ -1375,6 +1375,35 @@
     "schemaUrl": "https://fal.ai/models/fal-ai/sora-2/text-to-video/pro/api",
     "schemaCheckedAt": "2026-09-15"
   },
+  "direct/vivix/vivix-w1": {
+    "kind": "video",
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [[1264, 720], [1280, 720]],
+    "codecs": ["h264"],
+    "deadlineMs": 480000,
+    "seed": true,
+    "audio": true,
+    "maxPrompt": 8000,
+    "feeMultiplier": 1,
+    "provider": "vivix",
+    "apiModel": "vivix-w1",
+    "name": "Vivix W1 (direct)",
+    "vendor": "Vivix",
+    "family": "W1",
+    "params": {
+      "duration": 5,
+      "aspect_ratio": "16:9",
+      "output_format": "mp4"
+    },
+    "schemaUrl": "https://docs.vivix.ai/video-generation/world-video-generation",
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-10-11",
+    "validationStatus": "documentation-reviewed",
+    "description": "Vivix W1 via its direct API. Text-to-video, whole seconds 5-15. Candidate contract; paid/TEE verification and coordinator pricing required."
+  },
   "direct/minimax/hailuo-2.3": {
     "kind": "video",
     "mime": "video/mp4",

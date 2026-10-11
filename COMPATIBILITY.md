@@ -12,6 +12,11 @@ is now only an optional legacy import. Deploy/reconcile bind the exact app to th
 approved release policy automatically. Existing managed profiles are not migrated.
 
 - All 45 immutable model hashes match `tests/fixtures/compatibility.json`.
+- Vivix W1 adds a separate `direct/vivix/vivix-w1` contract and `VIVIX_API_KEY`
+  without changing those original hashes. Its 5-15 second text-to-video adapter
+  requires a matching coordinator contract and a newly admitted worker image;
+  existing signed deployment allowlists remain authoritative. No paid canary or
+  live TEE validation is implied by the local adapter tests.
 - Canonical signatures sort object keys by UTF-16 code units, matching JavaScript.
 - Ed25519 signatures and SPKI keys match the original implementation.
 - Job encryption uses X25519, HKDF-SHA256, AES-256-GCM, and session/nonce AAD.

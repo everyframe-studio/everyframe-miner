@@ -10,8 +10,8 @@ With **everycli v0.2.0+**, commands are direct: `everycli doctor`, `everycli sta
 the older namespace remain compatible. `everycli update` upgrades the CLI;
 `everycli worker-update --release FILE` applies an approved worker release.
 
-This repository includes the worker, the CLI with built-in updates, 45 model
-contracts, and nine provider adapters. Available jobs depend on the coordinator's
+This repository includes the worker, the CLI with built-in updates, 46 model
+contracts, and ten provider adapters. Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
 
@@ -185,9 +185,9 @@ For testnet SN566, pass `--network testnet` to each command; networks are not st
 everycli set-api-keys
 ```
 
-The CLI prompts for Phala Cloud and all nine generation providers with hidden
+The CLI prompts for Phala Cloud and all ten generation providers with hidden
 input. Enter skips a provider or keeps its existing key. You need a funded Phala
-account and at least one release-approved generation provider, not all nine.
+account and at least one release-approved generation provider, not all ten.
 Keys are saved in an owner-only local profile (`credentials.json`, mode `0600`);
 you do not need to create or maintain a `.env` file. Local storage is not encrypted
 at rest. Never commit the profile or share its contents.
@@ -202,7 +202,7 @@ everycli providers
 ```
 
 Provider names: `phala`, `fal`, `minimax`, `openrouter`, `bfl`, `replicate`,
-`google`, `runway`, `luma`, `elevenlabs`. For automation, pipe a secret manager's
+`google`, `runway`, `luma`, `elevenlabs`, `vivix`. For automation, pipe a secret manager's
 output into `everycli set-api-keys --provider NAME --stdin`; never put the
 key itself in command arguments or shell history. `--json` never enables prompts.
 
@@ -382,6 +382,7 @@ separate steps. The CLI does not initiate payouts.
 | Runway | `runway` | `RUNWAYML_API_SECRET` |
 | Luma | `luma` | `LUMA_API_KEY` |
 | ElevenLabs | `elevenlabs` | `ELEVENLABS_API_KEY` |
+| Vivix (direct API) | `vivix` | `VIVIX_API_KEY` |
 
 Use the key for the provider serving the contract, not just the model's brand.
 For example, a MiniMax model served through Fal uses `FAL_KEY`; the direct
@@ -399,6 +400,47 @@ everycli providers  # Reports key presence and permissions, never key values
 everycli offers
 ```
 
+### Vivix W1
+
+Available in this source tree; the currently published v0.2.3 CLI does not
+include this provider. Use a release that includes this change before following
+these commands.
+
+Save your **Vivix API key**, not a Fal or OpenRouter key:
+
+```sh
+everycli set-api-keys --provider vivix
+everycli providers
+everycli offers
+```
+
+The worker adapter uses the direct `api.vivix.ai` API. Its model contract is
+`direct/vivix/vivix-w1`: text-to-video, 720p landscape (16:9), with audio,
+and integer durations from 5 to 15 seconds (default 5). Existing W1 samples
+encode at 1264x720; the output contract accepts that size as well as 1280x720.
+The seed is sent in
+the request envelope. Image/audio references and first/last frames are **not**
+part of this miner contract; `vivix-w1-fast` and `vivix-w1-ultrafast` are not
+aliases for it. See [Vivix's API documentation](https://docs.vivix.ai/video-generation/world-video-generation).
+
+This is a **candidate contract**, tested with synthetic responses, not a claim
+of live mining availability. The coordinator must add matching contract/pricing,
+allow `VIVIX_API_KEY` in its signed deployment, and admit the new worker image
+before it can route W1 jobs. Existing signed deployments are not modified by
+saving the key. `providers` distinguishes a saved key from a release-permitted key;
+`offers` is the source of truth for available mining models. Updating everycli
+alone does not update a deployed worker.
+
+For an existing miner, use the published app-specific signed worker release with
+`everycli worker-update --release FILE`, wait for attestation, then follow the
+activation/offer/resume steps above. Do not redeploy a second VM or edit signed
+configurations to enable a key. Provider submissions are never automatically
+retried after an ambiguous response, preventing duplicate billable jobs.
+
+`everycli balances` shows Vivix as `unsupported`, with a reason: W credits are not
+USD, and no documented USD-balance endpoint is integrated. Check the Vivix billing
+dashboard; the CLI never fabricates a balance or assumes a pack's conversion rate.
+
 ## Tests
 
 For contributors only; miners installing a release do not need a compiler or
@@ -412,7 +454,7 @@ cargo test --locked
 
 Tests use synthetic keys and in-memory transports, not live accounts or paid
 generation. They cover original cross-language signature/encryption fixtures,
-all 45 contract hashes and adapter mappings, credential isolation, nonce binding,
+all 45 original contract hashes plus the Vivix contract and adapter mappings, credential isolation, nonce binding,
 stable completion receipts, ambiguous submission recovery, durable cloud intents,
 admission, lifecycle commands, bids, filesystem security, and fail-closed startup.
 

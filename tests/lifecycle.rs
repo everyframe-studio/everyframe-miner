@@ -456,27 +456,27 @@ fn activation_reports_each_readiness_failure_without_releasing_keys() {
             json!("secret"),
             "attestation_timestamp_invalid",
         ),
-        (
-            "/attestation/at",
-            json!(now() + 120000),
-            "attestation_clock_skew",
-        ),
-        (
-            "/attestation/at",
-            json!(now() - 600001),
-            "attestation_stale",
-        ),
+        ("/attestation/at", json!(120000), "attestation_clock_skew"),
+        ("/attestation/at", json!(-600001), "attestation_stale"),
         ("/attested", json!(false), "attestation_session_not_ready"),
         ("/online", json!(false), "worker_offline"),
     ];
     for (pointer, value, code) in cases {
         let r = Rig::new();
         r.deploy().unwrap();
+        // Compute relative timestamps at the point of use. Earlier cases can
+        // take >90s on a loaded runner, making a precomputed future timestamp
+        // fall inside the permitted 30s clock-skew window before it is tested.
+        let value = if ["attestation_clock_skew", "attestation_stale"].contains(&code) {
+            json!(now() + value.as_i64().unwrap())
+        } else {
+            value
+        };
         *r.status.borrow_mut().pointer_mut(pointer).unwrap() = value;
         r.calls.borrow_mut().clear();
         let err = r
             .miner()
-            .activate(&|_| panic!("must reject before confirmation"))
+            .activate(&|_| panic!("must reject {code} at {pointer} before confirmation"))
             .unwrap_err();
         assert_eq!(err.0, code, "{pointer}");
         let diagnostic = everyframe_miner::diagnostics::value(err.0);
