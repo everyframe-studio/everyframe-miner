@@ -69,6 +69,16 @@ change profiles, or update running workers. A failed download or checksum leaves
 the old executable intact. It will not automatically downgrade. Run updates as
 the account that owns the installation; no sudo is needed for a normal install.
 
+Normal output is readable text, with download percentage/size and verification
+and installation stages. If the server does not provide a size, it shows bytes
+downloaded instead of guessing a percentage. Progress goes to stderr; redirected
+logs use plain milestone lines. `everycli update --json` and
+`everycli update --check --json` suppress progress and print one JSON result for scripts.
+
+An upgrade is performed by the **currently installed** CLI. Older versions may
+still print their old output during that one upgrade; the new display applies
+once the new executable is installed.
+
 `everycli update` upgrades the **CLI**; `everycli worker-update --release FILE`
 updates a **deployed worker** using an approved signed release. There are no
 automatic background update checks. If a documented command is missing, check
@@ -79,7 +89,7 @@ Checksums detect corrupted or mismatched downloads; they are not independent
 publisher signatures. The installer and updater trust this GitHub repository
 and HTTPS.
 
-## Guided setup and command help (v0.3.1)
+## Guided setup and command help (v0.3.2)
 
 For a new miner, use the interactive wizard:
 

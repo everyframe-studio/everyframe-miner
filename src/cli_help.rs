@@ -136,7 +136,7 @@ pub fn render(command: &str) -> String {
             "reconcile",
         ),
         "update" => (
-            "Upgrade this CLI to the latest stable release. No miner login needed; profiles and deployed workers are unchanged.",
+            "Upgrade this CLI to the latest stable release. Shows download progress and a readable summary; --json emits only the structured result. No miner login needed; profiles and deployed workers are unchanged.",
             "  --check  Check the available version without installing",
             "update --check",
         ),

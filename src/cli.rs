@@ -552,7 +552,7 @@ pub fn setup_checklist(mut out: Value) -> Value {
 pub fn run(args: &Args) -> Result<Value> {
     validate_args(args)?;
     if args.command == "self-update" {
-        return crate::update::run(args.flag("--check"));
+        return crate::update::run(args.flag("--check"), args.flag("--json"));
     }
     for key in ["PHALA_CLOUD_API_PREFIX", "DEBUG", "SSLKEYLOGFILE"] {
         need(
