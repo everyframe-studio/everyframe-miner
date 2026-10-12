@@ -17,7 +17,7 @@ fn provider_name(value: &Value) -> String {
         .to_string()
 }
 fn version(value: &Value) -> String {
-    text(value).trim_start_matches('v').to_string()
+    crate::update::display_version(&text(value))
 }
 fn table(headers: &[&str], rows: Vec<Vec<String>>) -> String {
     let widths: Vec<usize> = headers

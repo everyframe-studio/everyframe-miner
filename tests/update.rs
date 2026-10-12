@@ -8,6 +8,18 @@ use std::{
 };
 
 #[test]
+fn human_release_labels_use_a_consistent_v_prefix() {
+    for value in ["0.3.2", "v0.3.2", "vv0.3.2"] {
+        assert_eq!(update::display_version(value), "v0.3.2");
+    }
+    assert_eq!(update::display_version(""), "—");
+    assert_eq!(update::display_version("—"), "—");
+    let updater = include_str!("../src/update.rs");
+    assert!(updater.contains("display_version(env!(\"CARGO_PKG_VERSION\"))"));
+    assert_eq!(updater.matches("display_version(tag)").count(), 2);
+}
+
+#[test]
 fn public_downloads_use_the_current_github_organization() {
     let repo = "https://github.com/everyframe-studio/everyframe-miner";
     let updater = include_str!("../src/update.rs");

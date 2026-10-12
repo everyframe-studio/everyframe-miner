@@ -74,6 +74,8 @@ and installation stages. If the server does not provide a size, it shows bytes
 downloaded instead of guessing a percentage. Progress goes to stderr; redirected
 logs use plain milestone lines. `everycli update --json` and
 `everycli update --check --json` suppress progress and print one JSON result for scripts.
+Human-readable update messages consistently prefix versions with `v`, such as
+`v0.3.3 → v0.3.4`. JSON version fields retain their existing format.
 
 An upgrade is performed by the **currently installed** CLI. Older versions may
 still print their old output during that one upgrade; the new display applies
@@ -89,7 +91,7 @@ Checksums detect corrupted or mismatched downloads; they are not independent
 publisher signatures. The installer and updater trust this GitHub repository
 and HTTPS.
 
-## Guided setup and command help (v0.3.3)
+## Guided setup and command help (v0.3.4)
 
 For a new miner, use the interactive wizard:
 
