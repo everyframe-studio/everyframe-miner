@@ -38,7 +38,7 @@ Options:
   --drain-only (stop)
   --yes --json --help --version
 
-set-api-keys prompts privately; Enter keeps existing keys. Saved locally only.
+set-api-keys prompts privately; Enter keeps saved keys or skips missing keys. Local only.
 apply-api-keys explicitly drains/restarts a reviewed worker; fresh admission required.
 register-hotkey verifies finalized subnet membership; it does not register on-chain.
 No Node.js, Python or GPU. Hotkey signs locally; no chain transaction or coldkey access.
@@ -51,6 +51,53 @@ pub struct Args {
     pub flags: Vec<String>,
 }
 pub const UPDATE_HELP: &str = "\nCLI upgrades (no login required):\n  everycli update          Install the latest stable CLI\n  everycli update --check  Check without installing\nWorker upgrades: everycli worker-update --release FILE\nCLI upgrades never update the deployed worker.\n";
+const VALUE_OPTIONS: &[&str] = &[
+    "--network",
+    "--state-dir",
+    "--invitation",
+    "--secrets-file",
+    "--hotkey-file",
+    "--wallet",
+    "--hotkey",
+    "--hotkey-ss58",
+    "--provider",
+    "--release",
+    "--max-hourly-usd",
+    "--model",
+    "--discount-pct",
+];
+
+// Recover only a recognized command for parse-error help. Never echo positional
+// values, unknown-option values or credentials as a command name.
+pub fn diagnostic_context(raw: &[String]) -> Option<Args> {
+    let mut words = raw.iter();
+    while let Some(word) = words.next() {
+        let key = word.split('=').next().unwrap_or("");
+        if VALUE_OPTIONS.contains(&key) {
+            if !word.contains('=') {
+                words.next();
+            }
+            continue;
+        }
+        if word.starts_with('-') || ["miner", "help"].contains(&word.as_str()) {
+            continue;
+        }
+        if !crate::cli_help::COMMANDS.contains(&word.as_str()) {
+            return None;
+        }
+        let command = match word.as_str() {
+            "update" => "self-update",
+            "worker-update" => "update",
+            c => c,
+        };
+        return Some(Args {
+            command: command.into(),
+            options: HashMap::new(),
+            flags: vec![],
+        });
+    }
+    None
+}
 impl Args {
     pub fn flag(&self, k: &str) -> bool {
         self.flags.iter().any(|v| v == k)
@@ -83,6 +130,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
             "--check",
             "--stdin",
             "--publish",
+            "--continue",
         ]
         .contains(&a)
         {
@@ -93,25 +141,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
                 .split_once('=')
                 .map(|(k, v)| (k, Some(v)))
                 .unwrap_or((a, None));
-            need(
-                [
-                    "--network",
-                    "--state-dir",
-                    "--invitation",
-                    "--secrets-file",
-                    "--hotkey-file",
-                    "--wallet",
-                    "--hotkey",
-                    "--hotkey-ss58",
-                    "--provider",
-                    "--release",
-                    "--max-hourly-usd",
-                    "--model",
-                    "--discount-pct",
-                ]
-                .contains(&key),
-                "invalid_arguments",
-            )?;
+            need(VALUE_OPTIONS.contains(&key), "invalid_option").map_err(|e| e.option(key))?;
             let value = if let Some(v) = inline {
                 v
             } else {
@@ -140,14 +170,13 @@ pub fn parse(args: &[String]) -> Result<Args> {
         if out.flag("--help") {
             return Ok(out);
         }
-        need(
-            out.options.is_empty()
-                && out
-                    .flags
-                    .iter()
-                    .all(|f| ["--check", "--json", "--yes"].contains(&f.as_str())),
-            "invalid_option",
-        )?;
+        for option in out.options.keys().chain(out.flags.iter()) {
+            need(
+                ["--check", "--json", "--yes"].contains(&option.as_str()),
+                "invalid_option",
+            )
+            .map_err(|e| e.option(option))?;
+        }
         out.command = "self-update".into();
         return Ok(out);
     }
@@ -192,6 +221,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
     }
     let allowed = match out.command.as_str() {
         "setup" => vec![
+            "--continue",
             "--wallet",
             "--hotkey",
             "--hotkey-file",
@@ -225,11 +255,12 @@ pub fn parse(args: &[String]) -> Result<Args> {
             ["--network", "--state-dir", "--yes", "--json"].contains(&option)
                 || allowed.contains(&option),
             "invalid_option",
-        )?
+        )
+        .map_err(|e| e.option(option))?
     }
     need(
         !(out.flag("--withdraw") && out.get("--discount-pct").is_some()),
-        "invalid_option",
+        "conflicting_offer_options",
     )?;
     Ok(out)
 }
@@ -270,6 +301,18 @@ fn set_keys(args: &Args, state: &State) -> Result<Value> {
             .chain(invitation::PROVIDERS.iter().map(|(p, _)| *p))
             .collect()
     };
+    if !args.flag("--stdin") {
+        need(
+            io::stdin().is_terminal() && !args.flag("--json"),
+            "hidden_input_required_or_use_stdin_with_provider",
+        )?;
+    }
+    state.prepare()?;
+    let saved = state.read("credentials", true)?;
+    need(
+        saved.is_null() || saved.is_object(),
+        "invalid_credentials_file",
+    )?;
     let mut updates = json!({});
     for provider in selected {
         let key = onboarding::credential_key(provider)?;
@@ -283,28 +326,36 @@ fn set_keys(args: &Args, state: &State) -> Result<Value> {
                 .map_err(|_| Error("invalid_credential"))?;
             need(value.len() <= 8002, "invalid_credential")?;
             let value = value.trim_end_matches(['\n', '\r']).to_string();
-            need(!value.is_empty(), "invalid_credential")?;
+            need(!value.trim().is_empty(), "empty_credential")?;
             value
         } else {
-            need(
-                io::stdin().is_terminal() && !args.flag("--json"),
-                "hidden_input_required_or_use_stdin_with_provider",
-            )?;
-            rpassword::prompt_password(format!(
-                "{provider} API key (hidden; Enter keeps existing): "
-            ))
-            .map_err(|_| Error("interrupted"))?
+            rpassword::prompt_password(key_prompt(provider, invitation::configured(&saved[key])))
+                .map_err(|_| Error("interrupted"))?
         };
         let value = zeroize::Zeroizing::new(value);
         if !value.is_empty() {
+            need(!value.trim().is_empty(), "empty_credential")?;
             updates[key] = json!(*value);
         }
     }
     onboarding::save_keys(state, &updates, None)
 }
+pub fn key_prompt(provider: &str, saved: bool) -> String {
+    format!(
+        "{provider} API key (hidden; {}): ",
+        if saved {
+            "Saved — Enter keeps existing"
+        } else {
+            "Not saved — Enter skips"
+        }
+    )
+}
 pub fn validate_args(args: &Args) -> Result<()> {
     if args.flag("--help") || args.flag("--version") {
         return Ok(());
+    }
+    if let Some(network) = args.get("--network") {
+        need(["mainnet", "testnet"].contains(&network), "invalid_network")?;
     }
     if let Some(discount) = args.get("--discount-pct") {
         invitation::discount(discount)?;
@@ -333,9 +384,19 @@ pub fn validate_args(args: &Args) -> Result<()> {
         }
         "setup" => {
             need(
-                !args.flag("--yes") && !args.flag("--json") && io::stdin().is_terminal(),
+                !args.flag("--yes")
+                    && (args.flag("--continue")
+                        || (!args.flag("--json") && io::stdin().is_terminal())),
                 "setup_requires_terminal",
             )?;
+            if args.flag("--continue") {
+                need(
+                    args.options
+                        .keys()
+                        .all(|k| ["--network", "--state-dir"].contains(&k.as_str())),
+                    "setup_continue_options",
+                )?;
+            }
         }
         _ => {}
     }
@@ -366,12 +427,23 @@ pub fn setup_with(
     execute: &mut dyn FnMut(&Args) -> Result<Value>,
 ) -> Result<Value> {
     state.prepare()?;
+    let existing = state.read("deployment", true)?;
+    if args.flag("--continue") {
+        need(existing.is_object(), "setup_no_deployment")?;
+        need(
+            !existing["phase"]
+                .as_str()
+                .unwrap_or("")
+                .ends_with("_intent"),
+            "setup_existing_deployment",
+        )?;
+        return Ok(setup_checklist(
+            json!({"phase":existing["phase"],"appId":existing["appId"]}),
+        ));
+    }
     // Any journal (including an incomplete/uncertain one) must be reconciled,
     // never overwritten or treated as a request to provision a second VM.
-    need(
-        state.read("deployment", true)?.is_null(),
-        "setup_existing_deployment",
-    )?;
+    need(existing.is_null(), "setup_existing_deployment")?;
     let mut base = args.clone();
     let saved = state.read("registration", true)?;
     if local_hotkey(&base)?.is_none() {
@@ -412,7 +484,7 @@ pub fn setup_with(
         ));
     }
     eprintln!(
-        "Step 2/4 — Save API keys locally. Phala: Settings → API Tokens, not Private AI. Enter keeps an existing key."
+        "Step 2/4 — Save API keys locally. Phala: Settings → API Tokens, not Private AI. Enter keeps saved keys or skips missing keys."
     );
     if let Some(provider) = args.get("--provider") {
         for p in ["phala", provider] {
@@ -455,10 +527,26 @@ pub fn setup_with(
         "setup_deployment_incomplete",
     )?;
     out["setupComplete"] = json!(true);
+    Ok(setup_checklist(out))
+}
+
+// A replayable checklist, not an automatic lifecycle runner. The local journal
+// cannot establish current admission or authorize paid work.
+pub fn setup_checklist(mut out: Value) -> Value {
+    out["checklistOnly"] = json!(true);
     out["next"] = json!(
-        "Run everycli doctor. After accepted attestation, run everycli activate; wait for fresh attestation, then everycli resume. Use everycli offers and everycli offer to declare a model bid. No generation has been submitted."
+        "Use everycli setup --continue in the same management profile to show this checklist again. No activation, resume or generation was performed by this checklist."
     );
-    Ok(out)
+    out["nextSteps"] = json!([
+        "Run everycli status and everycli doctor. Verify the current workload and accepted attestation; a local phase alone does not prove readiness.",
+        "If keys have not been activated, run everycli activate after accepted attestation. Review and confirm the restart. Skip this step if already activated.",
+        "After activation or any restart, check everycli status and wait for fresh accepted attestation and a current heartbeat. Do not reuse the earlier session.",
+        "Run everycli resume only when ready to accept provider-billed work. Review the confirmation; hosting charges continue while waiting.",
+        "Run everycli offers. Choose an available model and review its pricing and any existing offer.",
+        "To set a bid, run everycli offer --model MODEL --discount-pct PCT with your chosen model and discount. Review and confirm; no guaranteed traffic or profit.",
+        "Run everycli doctor again. Resolve any failed checks before expecting work. For stopped or uncertain deployments, use status/reconcile and the original profile; never deploy a duplicate."
+    ]);
+    out
 }
 
 pub fn run(args: &Args) -> Result<Value> {
@@ -540,25 +628,27 @@ pub fn run(args: &Args) -> Result<Value> {
             let mut out = onboarding::check_registration(miner.http, network, &address)?;
             if out["registered"] == true {
                 onboarding::save_registration(&miner.state, &out, path.as_deref())?;
-            } else if let Some(wallet) = args.get("--wallet") {
-                out["registrationCommand"] = json!(format!(
-                    "btcli subnet register --netuid {} --subtensor.network {} --wallet.name {} --wallet.hotkey {}",
-                    miner.trust["netuid"],
-                    if network == "mainnet" {
-                        "finney"
-                    } else {
-                        "test"
-                    },
-                    wallet,
-                    args.get("--hotkey").unwrap_or("default")
-                ));
+            } else {
+                out["registrationCommand"] =
+                    json!(crate::cli_errors::registration_command(Some(args)));
             }
             Ok(out)
         }
         "set-api-keys" => set_keys(args, &miner.state),
         "remove-api-key" => {
             let provider = args.required("--provider")?;
-            onboarding::credential_key(provider)?;
+            let key = onboarding::credential_key(provider)?;
+            miner.state.prepare()?;
+            let saved = miner.state.read("credentials", true)?;
+            need(
+                saved.is_null() || saved.is_object(),
+                "invalid_credentials_file",
+            )?;
+            if saved.get(key).is_none() {
+                return Ok(
+                    json!({"savedLocally":false,"updated":[],"removed":null,"notSaved":key,"workerChanged":false,"next":"Nothing changed. No local key was saved for this provider."}),
+                );
+            }
             confirm(&format!(
                 "Remove the locally saved {provider} key? This does not revoke the key at the provider or remove it from a running worker."
             ))?;
@@ -659,7 +749,11 @@ pub fn main_entry() -> i32 {
     let raw = std::env::args().skip(1).collect::<Vec<_>>();
     let json_mode = raw.iter().any(|a| a == "--json");
     let parsed = parse(&raw);
-    let diagnostic_args = parsed.as_ref().ok().cloned();
+    let diagnostic_args = parsed
+        .as_ref()
+        .ok()
+        .cloned()
+        .or_else(|| diagnostic_context(&raw));
     let result = parsed.and_then(|a| {
         if a.flag("--version") {
             println!(

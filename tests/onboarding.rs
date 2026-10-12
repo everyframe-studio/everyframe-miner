@@ -346,7 +346,10 @@ fn interactive_prompt_hides_key_and_blank_input_preserves_it() {
     let state = State {
         directory: tmp.path().join("profile"),
     };
-    for input in ["synthetic-terminal-key\n", "\n"] {
+    for (input, prompt) in [
+        ("synthetic-terminal-key\n", "Not saved — Enter skips"),
+        ("\n", "Saved — Enter keeps existing"),
+    ] {
         let (mut master_fd, mut slave_fd) = (-1, -1);
         assert_eq!(
             unsafe {
@@ -398,7 +401,7 @@ fn interactive_prompt_hides_key_and_blank_input_preserves_it() {
                     Ok(n) => output.extend_from_slice(&buf[..n]),
                 }
             }
-            if !sent && String::from_utf8_lossy(&output).contains("Enter keeps existing): ") {
+            if !sent && String::from_utf8_lossy(&output).contains(&format!("{prompt}): ")) {
                 // rpassword writes the prompt before switching echo off. Wait until
                 // the terminal reports ECHO disabled, never race a secret into it.
                 let mut term = std::mem::MaybeUninit::<libc::termios>::uninit();
@@ -413,6 +416,12 @@ fn interactive_prompt_hides_key_and_blank_input_preserves_it() {
         assert!(sent);
         assert!(child.wait().unwrap().success());
         assert!(!String::from_utf8_lossy(&output).contains("synthetic-terminal-key"));
+        assert!(!String::from_utf8_lossy(&output).contains("savedLocally"));
+        assert!(String::from_utf8_lossy(&output).contains(if input == "\n" {
+            "No keys changed"
+        } else {
+            "Saved locally: fal"
+        }));
         assert_eq!(
             state.read("credentials", false).unwrap()["FAL_KEY"],
             "synthetic-terminal-key"
