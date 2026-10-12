@@ -6,6 +6,18 @@ use serde_json::{Value, json};
 pub fn clean(text: &str) -> String {
     text.chars().filter(|c| !c.is_control()).take(500).collect()
 }
+// Flag names are useful context; attached values and key-like/oversized names
+// are not. Never include an arbitrary credential-bearing argument in output.
+fn safe_option(option: &str) -> bool {
+    option.starts_with("--")
+        && option.len() <= 32
+        && option[2..]
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b == b'-')
+        && !["secret", "token", "password", "api-key"]
+            .iter()
+            .any(|s| option.contains(s))
+}
 
 pub fn registration_command(args: Option<&Args>) -> String {
     let network = args.and_then(|a| a.get("--network")).unwrap_or("mainnet");
@@ -44,8 +56,13 @@ pub fn diagnostic(error: &Error, args: Option<&Args>) -> Value {
     }
     let command = args
         .map(|a| crate::cli_help::public_name(&a.command))
-        .unwrap_or("command");
-    let help = format!("Run everycli help {command} for options and an example.");
+        .filter(|c| crate::cli_help::COMMANDS.contains(c))
+        .unwrap_or("");
+    let help = if command.is_empty() {
+        "Run everycli help for available commands and examples.".into()
+    } else {
+        format!("Run everycli help {command} for options and an example.")
+    };
     let (message, next) = match error.0 {
         "missing_option" | "missing_option_value" => {
             let option = match &error.1 { Some(ErrorContext::Option(o)) => o.as_str(), _ => "the required option" };
@@ -61,22 +78,38 @@ pub fn diagnostic(error: &Error, args: Option<&Args>) -> Value {
             (message, next)
         }
         "invalid_discount" => ("--discount-pct must be between 0 and 99.90, with at most two decimal places.".into(), "Example: everycli offer --model MODEL --discount-pct 10".into()),
+        "conflicting_offer_options" => ("offer cannot combine --discount-pct with --withdraw.".into(), "Choose a discount to set an offer, or --withdraw to remove it. Run everycli help offer for examples.".into()),
+        "invalid_network" | "unknown_network" => ("Invalid --network. Use mainnet or testnet.".into(), "Example: everycli doctor --network mainnet".into()),
+        "unknown_provider" => ("Unknown provider.".into(), format!("Use --provider NAME. Valid providers: {}.", crate::onboarding::credential_providers().join(", "))),
+        "hidden_input_required_or_use_stdin_with_provider" => ("Key entry needs an interactive terminal.".into(), "Run everycli set-api-keys in a terminal, or use --provider NAME --stdin to read one key from a pipe. Never put the key in command arguments.".into()),
+        "stdin_requires_provider" => ("--stdin needs --provider NAME.".into(), "Pipe one key into everycli set-api-keys --provider NAME --stdin.".into()),
+        "stdin_requires_pipe" => ("--stdin needs piped input, not a terminal.".into(), "Pipe one key into the command, or omit --stdin to use a hidden terminal prompt.".into()),
+        "empty_credential" => ("The key was empty. Nothing was saved.".into(), "Provide a non-empty key with --provider NAME --stdin, or run everycli set-api-keys in a terminal.".into()),
         "compute_limit_required" => ("--max-hourly-usd must be a positive finite number.".into(), "Example: everycli deploy --max-hourly-usd 0.05. Storage costs extra; this is not a total budget.".into()),
         "confirmation_required" => (format!("{command} needs confirmation, but no interactive terminal is available."), "Review the operation, then add --yes to approve it non-interactively (also required with --json).".into()),
-        "setup_requires_terminal" => ("setup needs an interactive terminal and does not accept --yes or --json.".into(), "For automation, run register-hotkey, set-api-keys --provider NAME --stdin, init, then deploy --max-hourly-usd N --yes separately.".into()),
-        "setup_existing_deployment" => ("An existing or uncertain deployment was found. Setup will not create another VM.".into(), "Use the original management profile. Run everycli status; use everycli reconcile for an uncertain operation.".into()),
+        "setup_requires_terminal" => ("New setup needs an interactive terminal and does not accept --yes or --json. setup --continue also rejects --yes.".into(), "For automation, run register-hotkey, set-api-keys --provider NAME --stdin, init, then deploy --max-hourly-usd N --yes separately. For an existing deployment, setup --continue --json reads only its checklist.".into()),
+        "setup_existing_deployment" => ("An existing or uncertain deployment was found. Setup will not create another VM.".into(), "Use the original management profile. Run everycli status; use everycli reconcile for an uncertain operation. After reconciliation, everycli setup --continue shows the remaining checklist without deploying.".into()),
+        "setup_no_deployment" => ("There is no local deployment to continue.".into(), "For a new miner, run everycli setup in a terminal. If already deployed elsewhere, use the original management profile; do not create another VM.".into()),
+        "setup_continue_options" => ("setup --continue only reads the existing deployment checklist.".into(), "Use the original --network and --state-dir, optionally with --json. Omit wallet, provider and hosting-limit options; no deployment will be created.".into()),
         "setup_status_unavailable" => ("Setup could not verify whether this hotkey already has a deployed worker.".into(), "No new deployment was attempted. Check everycli status and resolve the coordinator error before continuing.".into()),
         "setup_deployment_incomplete" => ("Setup did not confirm a completed deployment.".into(), "Preserve the profile and run everycli status and everycli reconcile before retrying.".into()),
         "hotkey_not_registered" => {
             let network = args.and_then(|a| a.get("--network")).unwrap_or("mainnet");
             let subnet = if network == "testnet" { 566 } else { 117 };
             (format!("This hotkey is not registered on {network} SN{subnet}. No VM was created."),
-             format!("Register with the wallet that owns this hotkey (registration may cost TAO):\n{}\nThen rerun everycli register-hotkey and everycli init. Everycli has not submitted a chain transaction.", registration_command(args)))
+             format!("Register with the wallet that owns this hotkey (registration may cost TAO):\n{}\nThen rerun {}. No chain transaction was submitted by everycli.", registration_command(args), if command == "setup" { "everycli setup" } else { "everycli register-hotkey and everycli init" }))
         }
         "file_not_found" => ("File not found.".into(), "Check the file path and the current OS user. Do not share the file contents.".into()),
         "file_permission_denied" => ("Cannot read this file: permission denied.".into(), "Use the file owner; do not make private keys world-readable.".into()),
         "insecure_file" => ("This private file has unsafe ownership or permissions.".into(), "Use the file owner and owner-only permissions (0600).".into()),
-        "invalid_arguments" | "invalid_option" | "unexpected_argument" => (format!("Invalid arguments for {command}; an option or extra argument is not supported."), help),
+        "invalid_arguments" | "invalid_option" | "unexpected_argument" => {
+            let subject = if command.is_empty() { "this command" } else { command };
+            let message = match &error.1 {
+                Some(ErrorContext::Option(option)) if safe_option(option) => format!("Unsupported option {option} for {subject}."),
+                _ => format!("Invalid arguments for {subject}; an option or extra argument is not supported (unrecognized input omitted)."),
+            };
+            (message, help)
+        }
         "local_hotkey_required_use_wallet_or_hotkey_file" | "hotkey_address_or_wallet_required" => ("Select a hotkey first.".into(), "Use --wallet NAME --hotkey NAME, or --hotkey-file FILE. For a public membership check only, register-hotkey also accepts --hotkey-ss58 ADDRESS.".into()),
         "enrollment_failed_no_vm_created" => ("Enrollment failed; the service did not provide a recognized reason. No VM was created.".into(), "Check everycli register-hotkey, connectivity and the CLI version. This error alone does not mean the hotkey is unregistered.".into()),
         "public_release_not_available" => ("The requested public CLI release is not available.".into(), "Check the official GitHub releases and try again after publication.".into()),
@@ -94,7 +127,9 @@ pub fn diagnostic(error: &Error, args: Option<&Args>) -> Value {
     if let Some(ErrorContext::File(path)) = &error.1 {
         out["file"] = json!(clean(&path.to_string_lossy()));
     }
-    if let Some(ErrorContext::Option(option)) = &error.1 {
+    if let Some(ErrorContext::Option(option)) = &error.1
+        && safe_option(option)
+    {
         out["option"] = json!(option);
     }
     if error.0 == "hotkey_not_registered" {

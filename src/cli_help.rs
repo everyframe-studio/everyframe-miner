@@ -37,7 +37,7 @@ pub fn render(command: &str) -> String {
     let (summary, options, example) = match name {
         "setup" => (
             "Guided first-time setup: check registration, save keys, initialize, then review deployment. Interactive only. Existing deployment records stop the wizard; it never activates or resumes paid work automatically.",
-            "  --wallet NAME --hotkey NAME | --hotkey-file FILE\n  --max-hourly-usd N  Optional compute ceiling; prompted if omitted\n  --provider NAME     Optional generation provider to configure (Phala is also prompted)",
+            "  --wallet NAME --hotkey NAME | --hotkey-file FILE\n  --max-hourly-usd N  Optional compute ceiling; prompted if omitted\n  --provider NAME     Optional generation provider to configure (Phala is also prompted)\n  --continue          Show the numbered checklist for an existing local deployment; no paid operations",
             "setup --wallet my-wallet --hotkey default --max-hourly-usd 0.05",
         ),
         "register-hotkey" => (
@@ -51,7 +51,7 @@ pub fn render(command: &str) -> String {
             "init --wallet my-wallet --hotkey default",
         ),
         "set-api-keys" => (
-            "Save keys locally with hidden prompts. Enter keeps an existing key; running workers are unchanged.",
+            "Save keys locally with hidden prompts showing Saved or Not saved. Enter keeps saved keys or skips missing ones; running workers are unchanged.",
             "  --provider NAME  Select one provider (phala, fal, vivix, etc.)\n  --stdin          With --provider, read one key from a pipe; never pass keys as arguments",
             "set-api-keys --provider fal",
         ),
@@ -151,7 +151,21 @@ pub fn render(command: &str) -> String {
     let common = if name == "update" {
         "  --json  Machine-readable output\n  --help  Show this page"
     } else if name == "setup" {
-        "  --network mainnet|testnet (default mainnet SN117; testnet SN566)\n  --state-dir DIR\n  --help\n  Interactive only; --yes/--json are not supported."
+        "  --network mainnet|testnet (default mainnet SN117; testnet SN566)\n  --state-dir DIR\n  --help\n  New setup is interactive only: no --yes/--json.\n  --continue is read-only and also supports --json without a terminal."
+    } else if ![
+        "deploy",
+        "start",
+        "activate",
+        "apply-api-keys",
+        "resume",
+        "worker-update",
+        "stop",
+        "offer",
+        "remove-api-key",
+    ]
+    .contains(&name)
+    {
+        "  --network mainnet|testnet (default mainnet SN117; testnet SN566)\n  --state-dir DIR\n  --json\n  --help"
     } else {
         "  --network mainnet|testnet (default mainnet SN117; testnet SN566)\n  --state-dir DIR\n  --json\n  --yes  Approve confirmation prompts (does not bypass safety checks)\n  --help"
     };

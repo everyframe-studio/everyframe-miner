@@ -8,6 +8,14 @@ fn text(v: &Value) -> String {
         .take(160)
         .collect()
 }
+fn provider_name(value: &Value) -> String {
+    let key = value.as_str().unwrap_or("");
+    crate::onboarding::credential_providers()
+        .into_iter()
+        .find(|p| crate::onboarding::credential_key(p).is_ok_and(|k| k == key))
+        .unwrap_or("provider")
+        .to_string()
+}
 fn table(headers: &[&str], rows: Vec<Vec<String>>) -> String {
     let widths: Vec<usize> = headers
         .iter()
@@ -66,6 +74,91 @@ pub fn render(command: &str, value: &Value) -> String {
     }
     let rows = |key: &str| value[key].as_array().cloned().unwrap_or_default();
     match command {
+        "setup" if value["nextSteps"].is_array() => {
+            let mut out = format!(
+                "Deployment checklist\nLocal phase: {}\nThis is not a live readiness check. Use the same --network and --state-dir for every command below.\n\n",
+                text(&value["phase"])
+            );
+            for (index, step) in rows("nextSteps").iter().enumerate() {
+                out.push_str(&format!(
+                    "{}. {}\n\n",
+                    index + 1,
+                    step.as_str().unwrap_or("")
+                ));
+            }
+            out.push_str(value["next"].as_str().unwrap_or(""));
+            out
+        }
+        "register-hotkey" => {
+            let registered = value["registered"] == true;
+            let mut out = format!(
+                "Hotkey {} on {} SN{}.\nHotkey: {}\n",
+                if registered {
+                    "registered"
+                } else {
+                    "not registered"
+                },
+                text(&value["network"]),
+                value["netuid"]
+                    .as_u64()
+                    .map(|v| v.to_string())
+                    .unwrap_or("—".into()),
+                text(&value["hotkey"])
+            );
+            if let Some(uid) = value["uid"].as_u64() {
+                out.push_str(&format!("UID: {uid}\n"));
+            }
+            if !registered && let Some(command) = value["registrationCommand"].as_str() {
+                out.push_str(&format!("\nRegister using the wallet that owns this hotkey (fees may apply):\n{command}\nReplace <wallet> and <hotkey> with the owning wallet names if shown.\n"));
+            }
+            out.push_str("No chain transaction was submitted and no registration fee was paid by everycli.\n");
+            out.push_str(value["next"].as_str().unwrap_or(""));
+            out
+        }
+        "set-api-keys" | "remove-api-key" => {
+            let names = rows("updated")
+                .iter()
+                .map(provider_name)
+                .collect::<Vec<_>>();
+            let mut out = if value["removed"].is_string() {
+                format!(
+                    "Removed {} key from this local profile.\n",
+                    provider_name(&value["removed"])
+                )
+            } else if value["notSaved"].is_string() {
+                format!(
+                    "No {} key is saved in this local profile. Nothing removed.\n",
+                    provider_name(&value["notSaved"])
+                )
+            } else if names.is_empty() {
+                "No keys changed. Existing keys were kept; empty entries were skipped.\n".into()
+            } else {
+                format!("Saved locally: {}.\n", names.join(", "))
+            };
+            out.push_str("Running workers are unchanged.\n");
+            out.push_str(value["next"].as_str().unwrap_or(""));
+            out
+        }
+        "self-update" => {
+            if value["updated"] == true {
+                format!(
+                    "Updated everycli from {} to {}.\nProfiles and deployed workers are unchanged.",
+                    text(&value["previous"]),
+                    text(&value["version"])
+                )
+            } else {
+                format!(
+                    "Installed: {}\nLatest: {}\n{}",
+                    text(&value["current"]),
+                    text(&value["latest"]),
+                    if value["updateAvailable"] == true {
+                        "Update available. Run everycli update to install it."
+                    } else {
+                        "No update available. The installed CLI was not changed."
+                    }
+                )
+            }
+        }
         "providers" => {
             let data = rows("providers")
                 .iter()

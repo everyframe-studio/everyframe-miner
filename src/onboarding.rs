@@ -189,6 +189,12 @@ pub fn save_registration(state: &State, receipt: &Value, path: Option<&Path>) ->
     state.write("registration", &record)
 }
 
+pub fn credential_providers() -> Vec<&'static str> {
+    std::iter::once("phala")
+        .chain(invitation::PROVIDERS.iter().map(|(p, _)| *p))
+        .chain(crate::balances::BILLING_KEYS.iter().map(|(p, _)| *p))
+        .collect()
+}
 pub fn credential_key(provider: &str) -> Result<&'static str> {
     if let Some((_, key)) = crate::balances::BILLING_KEYS
         .iter()
@@ -236,10 +242,8 @@ pub fn save_keys(state: &State, updates: &Value, remove: Option<&str>) -> Result
     for (k, v) in entries {
         object.insert(k.clone(), v.clone());
     }
-    if let Some(k) = remove_key {
-        object.remove(k);
-    }
-    if !entries.is_empty() || remove_key.is_some() {
+    let removed = remove_key.filter(|k| object.remove(*k).is_some());
+    if !entries.is_empty() || removed.is_some() {
         state.write("credentials", &creds)?;
     }
     let billing_only = entries
@@ -247,7 +251,29 @@ pub fn save_keys(state: &State, updates: &Value, remove: Option<&str>) -> Result
         .map(String::as_str)
         .chain(remove_key)
         .all(|key| crate::balances::BILLING_KEYS.iter().any(|(_, k)| *k == key));
+    let next = if remove_key.is_some() && removed.is_none() {
+        "Nothing changed. No local key was saved for this provider."
+    } else if entries.is_empty() && removed.is_none() {
+        "No keys changed. Run everycli providers to review saved-key presence."
+    } else if billing_only {
+        "Billing-only keys stay on this device and never enter worker environments. Use everycli balances to check, or everycli balances --publish to sync amounts. Revoke leaked keys at the provider."
+    } else if entries
+        .keys()
+        .map(String::as_str)
+        .chain(remove_key)
+        .all(|key| key == "PHALA_CLOUD_API_KEY")
+    {
+        "The Phala hosting token is local only; no worker restart is needed. Remote tokens were not revoked."
+    } else if deployment["appId"].is_null() {
+        if removed.is_some() {
+            "The local key was removed. Remote credentials were not revoked; running workers were not changed."
+        } else {
+            "Local key entry finished. Initialize and deploy when ready."
+        }
+    } else {
+        "The running worker is unchanged. Use everycli apply-api-keys to explicitly drain, encrypt and apply generation keys; then wait for fresh admission before resuming. Billing-only keys are never deployed. To revoke a leaked key, also revoke it at the provider."
+    };
     Ok(
-        json!({"savedLocally":true,"updated":entries.keys().collect::<Vec<_>>(),"removed":remove_key,"workerChanged":false,"next":if billing_only { "Billing-only keys stay on this device and never enter worker environments. Use everycli balances to check, or everycli balances --publish to sync amounts. Revoke leaked keys at the provider." } else if deployment["appId"].is_null() { "Keys saved locally. Initialize and deploy when ready." } else { "The running worker is unchanged. Use everycli apply-api-keys to explicitly drain, encrypt and apply generation keys; then wait for fresh admission before resuming. Billing-only keys are never deployed. To revoke a leaked key, also revoke it at the provider." }}),
+        json!({"savedLocally":!entries.is_empty() || removed.is_some(),"updated":entries.keys().collect::<Vec<_>>(),"removed":removed,"notSaved":remove_key.filter(|_| removed.is_none()),"workerChanged":false,"next":next}),
     )
 }

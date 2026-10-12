@@ -79,7 +79,7 @@ Checksums detect corrupted or mismatched downloads; they are not independent
 publisher signatures. The installer and updater trust this GitHub repository
 and HTTPS.
 
-## Guided setup and command help (v0.3.0+)
+## Guided setup and command help (v0.3.1)
 
 For a new miner, use the interactive wizard:
 
@@ -98,7 +98,18 @@ The wizard stops on a failed step, an existing/uncertain deployment, or an
 existing remote worker. It does not register on-chain, automatically activate
 keys, resume paid work, or submit generation. Keep the original profile after
 any interrupted deployment; use `status` and `reconcile` before retrying.
-The final message tells you the next activation, attestation, and offer steps.
+The final message gives a numbered checklist for readiness checks, activation,
+fresh attestation, resuming and model offers. To show it again from the original
+management profile, without creating a VM or changing the worker:
+
+```sh
+everycli setup --continue
+```
+
+This reads the local deployment journal, not live readiness. Use the same
+`--network` and `--state-dir` for the follow-up commands. It stops on an uncertain
+operation until you reconcile it. Follow only the steps still needed; it never
+activates keys or resumes paid work for you.
 
 Every command has its own help and example, without needing a profile:
 
@@ -111,7 +122,13 @@ everycli setup --help
 
 For automation, use the individual commands below instead of the interactive
 wizard. Commands that need confirmation require `--yes` when there is no terminal
-or when using `--json`. `setup` intentionally does not accept `--yes` or `--json`.
+or when using `--json`. New `setup` is interactive and does not accept `--yes` or
+`--json`; the read-only `setup --continue` checklist also supports `--json`.
+
+Registration, key changes and update checks print readable summaries by default;
+use `--json` for structured output. Key prompts show **Saved — Enter keeps existing**
+or **Not saved — Enter skips**, without exposing key values. Removing an absent
+key reports that nothing changed and does not ask for confirmation.
 
 `providers` shows a table of saved-key presence, release permissions, and the
 reason a provider is unavailable. Before initialization, release permission is
@@ -375,6 +392,7 @@ resources and ongoing charges. To restart the saved workload, use
 
 | Command | Purpose |
 | --- | --- |
+| `setup` | Guided initial deployment with explicit confirmation; `--continue` reprints a read-only post-deployment checklist |
 | `register-hotkey` | Check finalized subnet membership and record the public identity; no chain transaction |
 | `set-api-keys` | Privately prompt for all keys or one provider; save locally |
 | `remove-api-key` | Remove one local credential after confirmation; does not revoke it remotely |
@@ -406,9 +424,10 @@ offer changes require interactive confirmation or `--yes`; `--json` does not
 imply consent. `init` with a local hotkey and saved credentials does not prompt
 for confirmation and does not create a paid VM. The optional legacy deployment
 file import remains available for existing managed deployments.
-Exit codes: `0` success, `1` command error, `2` unhealthy diagnosis or unresolved
-reconciliation (also an unregistered hotkey). Normal command output is formatted
-JSON; `--json` uses compact JSON.
+Exit codes: `0` success, `2` command errors or unsuccessful checks (including an
+unregistered hotkey). Registration, key changes, updates, provider/offer/balance
+tables and contextual errors use readable text by default. Other lifecycle
+results retain formatted JSON; `--json` always requests compact structured output.
 
 `earnings` shows coordinator accounting, not proof of an on-chain alpha payment.
 Reward eligibility, validator weight submission, reveal, and chain emissions are

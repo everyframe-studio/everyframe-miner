@@ -317,7 +317,13 @@ fn setup_runs_in_order_and_never_auto_activates_or_resumes() {
         ]
     );
     assert_eq!(out["setupComplete"], true);
-    assert!(out["next"].as_str().unwrap().contains("everycli activate"));
+    assert!(
+        out["next"]
+            .as_str()
+            .unwrap()
+            .contains("everycli setup --continue")
+    );
+    assert_eq!(out["nextSteps"].as_array().unwrap().len(), 7);
 }
 
 #[test]
@@ -358,7 +364,14 @@ fn setup_stops_at_failures_cancellation_and_existing_workloads() {
             }
         });
         if failure == "unregistered" {
-            assert_eq!(out.unwrap()["error"], "hotkey_not_registered");
+            let out = out.unwrap();
+            assert_eq!(out["error"], "hotkey_not_registered");
+            assert!(
+                out["next"]
+                    .as_str()
+                    .unwrap()
+                    .contains("rerun everycli setup")
+            );
         } else {
             assert!(out.is_err(), "{failure}");
         }
