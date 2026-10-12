@@ -303,13 +303,15 @@ fn run_with_progress(check_only: bool, progress: &mut dyn FnMut(ProgressEvent)) 
     let name = asset(std::env::consts::OS, std::env::consts::ARCH)?;
     let base = format!("{REPO}/releases/download/{tag}/{name}");
     progress(ProgressEvent::Stage(format!(
-        "Update available: {} → {tag}",
-        env!("CARGO_PKG_VERSION")
+        "Update available: {} → {}",
+        env!("CARGO_PKG_VERSION"),
+        tag.trim_start_matches('v')
     )));
     progress(ProgressEvent::Stage("Fetching release checksum…".into()));
     let checksum = download(&client, &format!("{base}.sha256"), 1024, &mut |_| {})?;
     progress(ProgressEvent::Stage(format!(
-        "Downloading everycli {tag} ({name})…"
+        "Downloading everycli {} ({name})…",
+        tag.trim_start_matches('v')
     )));
     let bytes = download(&client, &base, 64 * 1024 * 1024, progress)?;
     progress(ProgressEvent::Stage(format!(

@@ -51,6 +51,16 @@ pub fn registration_command(args: Option<&Args>) -> String {
 }
 
 pub fn diagnostic(error: &Error, args: Option<&Args>) -> Value {
+    if error.0 == "file_not_found"
+        && let Some(ErrorContext::File(path)) = &error.1
+        && let Ok(home) = std::env::var("HOME")
+        && let Some(out) = wallet_file_diagnostic(
+            path,
+            &std::path::Path::new(&home).join(".bittensor/wallets"),
+        )
+    {
+        return out;
+    }
     if ["profile_not_initialized", "profile_credentials_missing"].contains(&error.0) {
         return crate::miner::profile_diagnostic(error);
     }
@@ -85,6 +95,7 @@ pub fn diagnostic(error: &Error, args: Option<&Args>) -> Value {
         "stdin_requires_provider" => ("--stdin needs --provider NAME.".into(), "Pipe one key into everycli set-api-keys --provider NAME --stdin.".into()),
         "stdin_requires_pipe" => ("--stdin needs piped input, not a terminal.".into(), "Pipe one key into the command, or omit --stdin to use a hidden terminal prompt.".into()),
         "empty_credential" => ("The key was empty. Nothing was saved.".into(), "Provide a non-empty key with --provider NAME --stdin, or run everycli set-api-keys in a terminal.".into()),
+        "credential_too_short" => ("That key looks too short (minimum 10 characters).".into(), "Nothing was saved. Copy the full API key from the provider and try again; do not share it here.".into()),
         "compute_limit_required" => ("--max-hourly-usd must be a positive finite number.".into(), "Example: everycli deploy --max-hourly-usd 0.05. Storage costs extra; this is not a total budget.".into()),
         "confirmation_required" => (format!("{command} needs confirmation, but no interactive terminal is available."), "Review the operation, then add --yes to approve it non-interactively (also required with --json).".into()),
         "setup_requires_terminal" => ("New setup needs an interactive terminal and does not accept --yes or --json. setup --continue also rejects --yes.".into(), "For automation, run register-hotkey, set-api-keys --provider NAME --stdin, init, then deploy --max-hourly-usd N --yes separately. For an existing deployment, setup --continue --json reads only its checklist.".into()),
@@ -136,4 +147,59 @@ pub fn diagnostic(error: &Error, args: Option<&Args>) -> Value {
         out["registrationCommand"] = json!(registration_command(args));
     }
     out
+}
+
+/// Discover directory names only, never wallet/key contents or symlink targets.
+/// Other missing files and permission errors keep their original diagnostics.
+pub fn wallet_file_diagnostic(path: &std::path::Path, root: &std::path::Path) -> Option<Value> {
+    use std::{fs, io::ErrorKind};
+    let relative = path.strip_prefix(root).ok()?;
+    let parts = relative
+        .iter()
+        .map(|p| p.to_str())
+        .collect::<Option<Vec<_>>>()?;
+    let valid_name = |name: &str| {
+        !name.is_empty()
+            && name.len() <= 80
+            && name
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
+    };
+    if parts.len() != 3 || parts[1] != "hotkeys" || !valid_name(parts[0]) || !valid_name(parts[2]) {
+        return None;
+    }
+    crate::state::no_symlink(root).ok()?;
+    match fs::symlink_metadata(root.join(parts[0])) {
+        Err(e) if e.kind() == ErrorKind::NotFound => {}
+        _ => return None,
+    }
+    let mut wallets = vec![];
+    match fs::read_dir(root) {
+        Ok(entries) => {
+            for entry in entries.take(1000).flatten() {
+                if entry.file_type().is_ok_and(|t| t.is_dir())
+                    && let Ok(name) = entry.file_name().into_string()
+                    && valid_name(&name)
+                {
+                    wallets.push(name);
+                }
+            }
+        }
+        Err(e) if e.kind() == ErrorKind::NotFound => {}
+        Err(_) => return None,
+    }
+    wallets.sort();
+    wallets.truncate(100);
+    let available = if wallets.is_empty() {
+        "No wallets found in this directory.".to_string()
+    } else {
+        format!("Available wallets (up to 100): {}.", wallets.join(", "))
+    };
+    Some(json!({
+        "ok":false,"error":"wallet_not_found",
+        "message":format!("Wallet ‘{}’ not found.", parts[0]),
+        "wallet":parts[0],"availableWallets":wallets,
+        "walletDirectory":clean(&root.to_string_lossy()),
+        "next":format!("{available}\nWallet directory: {}\nUse --wallet NAME for an available wallet, or --hotkey-file FILE for a wallet stored elsewhere. Check that you are using the correct OS user.", clean(&root.to_string_lossy()))
+    }))
 }

@@ -146,7 +146,7 @@ pub fn check_registration(http: &dyn Http, network: &str, address: &str) -> Resu
     )?;
     if stored.is_null() {
         return Ok(
-            json!({"registered":false,"network":network,"netuid":netuid,"hotkey":address,"finalizedBlock":block,"chainTransactionSubmitted":false,"next":format!("Register with your wallet tool on {network} SN{netuid}, then rerun this command. No registration fee has been paid by everycli.")}),
+            json!({"registered":false,"network":network,"netuid":netuid,"hotkey":address,"finalizedBlock":block,"chainTransactionSubmitted":false,"next":format!("Register with your wallet tool on {network} SN{netuid}, then rerun this command.")}),
         );
     }
     need(matches("0x[0-9a-fA-F]{4}", &stored), "invalid_chain_uid")?;
@@ -214,6 +214,10 @@ pub fn credential_key(provider: &str) -> Result<&'static str> {
 pub fn save_keys(state: &State, updates: &Value, remove: Option<&str>) -> Result<Value> {
     let entries = updates.as_object().ok_or(Error("invalid_credential"))?;
     for (key, value) in entries {
+        if let Some(value) = value.as_str() {
+            need(!value.trim().is_empty(), "empty_credential")?;
+            need(value.len() >= 10, "credential_too_short")?;
+        }
         need(
             (key == "PHALA_CLOUD_API_KEY"
                 || invitation::PROVIDERS.iter().any(|(_, k)| *k == key)
@@ -266,7 +270,7 @@ pub fn save_keys(state: &State, updates: &Value, remove: Option<&str>) -> Result
         "The Phala hosting token is local only; no worker restart is needed. Remote tokens were not revoked."
     } else if deployment["appId"].is_null() {
         if removed.is_some() {
-            "The local key was removed. Remote credentials were not revoked; running workers were not changed."
+            "Remote credentials were not revoked."
         } else {
             "Local key entry finished. Initialize and deploy when ready."
         }

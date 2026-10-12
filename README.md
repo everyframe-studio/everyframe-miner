@@ -108,8 +108,10 @@ The wizard stops on a failed step, an existing/uncertain deployment, or an
 existing remote worker. It does not register on-chain, automatically activate
 keys, resume paid work, or submit generation. Keep the original profile after
 any interrupted deployment; use `status` and `reconcile` before retrying.
-The final message gives a numbered checklist for readiness checks, activation,
-fresh attestation, resuming and model offers. To show it again from the original
+Deployment is step 4, not the end of setup. The final message gives steps 5–11
+for readiness checks, activation, fresh attestation, resuming and model offers;
+it does not mark the miner ready merely because the VM was created.
+To show the checklist again from the original
 management profile, without creating a VM or changing the worker:
 
 ```sh

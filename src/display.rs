@@ -16,6 +16,9 @@ fn provider_name(value: &Value) -> String {
         .unwrap_or("provider")
         .to_string()
 }
+fn version(value: &Value) -> String {
+    text(value).trim_start_matches('v').to_string()
+}
 fn table(headers: &[&str], rows: Vec<Vec<String>>) -> String {
     let widths: Vec<usize> = headers
         .iter()
@@ -76,13 +79,13 @@ pub fn render(command: &str, value: &Value) -> String {
     match command {
         "setup" if value["nextSteps"].is_array() => {
             let mut out = format!(
-                "Deployment checklist\nLocal phase: {}\nThis is not a live readiness check. Use the same --network and --state-dir for every command below.\n\n",
+                "Finish miner setup — steps 5–11\nLocal phase: {}\nDeployment alone does not make the miner ready for work. This is not a live readiness check. Use the same --network and --state-dir for every command below.\n\n",
                 text(&value["phase"])
             );
             for (index, step) in rows("nextSteps").iter().enumerate() {
                 out.push_str(&format!(
                     "{}. {}\n\n",
-                    index + 1,
+                    index + 5,
                     step.as_str().unwrap_or("")
                 ));
             }
@@ -109,7 +112,17 @@ pub fn render(command: &str, value: &Value) -> String {
                 out.push_str(&format!("UID: {uid}\n"));
             }
             if !registered && let Some(command) = value["registrationCommand"].as_str() {
-                out.push_str(&format!("\nRegister using the wallet that owns this hotkey (fees may apply):\n{command}\nReplace <wallet> and <hotkey> with the owning wallet names if shown.\n"));
+                out.push_str(&format!("\nRegister using the wallet that owns this hotkey (fees may apply):\n{command}\n"));
+                let placeholders = ["<wallet>", "<hotkey>"]
+                    .into_iter()
+                    .filter(|name| command.contains(name))
+                    .collect::<Vec<_>>();
+                if !placeholders.is_empty() {
+                    out.push_str(&format!(
+                        "Replace {} with the owning wallet names.\n",
+                        placeholders.join(" and ")
+                    ));
+                }
             }
             out.push_str("No chain transaction was submitted and no registration fee was paid by everycli.\n");
             out.push_str(value["next"].as_str().unwrap_or(""));
@@ -143,14 +156,14 @@ pub fn render(command: &str, value: &Value) -> String {
             if value["updated"] == true {
                 format!(
                     "Updated everycli from {} to {}.\nProfiles and deployed workers are unchanged.",
-                    text(&value["previous"]),
-                    text(&value["version"])
+                    version(&value["previous"]),
+                    version(&value["version"])
                 )
             } else {
                 format!(
                     "Installed: {}\nLatest: {}\n{}",
-                    text(&value["current"]),
-                    text(&value["latest"]),
+                    version(&value["current"]),
+                    version(&value["latest"]),
                     if value["updateAvailable"] == true {
                         "Update available. Run everycli update to install it."
                     } else {

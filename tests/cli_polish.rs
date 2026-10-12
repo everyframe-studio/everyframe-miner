@@ -106,6 +106,11 @@ fn key_and_network_errors_are_actionable_without_leaking_values() {
         ),
         (
             vec!["set-api-keys", "--provider", "fal", "--stdin"],
+            b"short-key\n".as_slice(),
+            "That key looks too short (minimum 10 characters)",
+        ),
+        (
+            vec!["set-api-keys", "--provider", "fal", "--stdin"],
             b"\n".as_slice(),
             "The key was empty",
         ),
@@ -168,6 +173,8 @@ fn key_changes_are_human_by_default_and_absent_removal_is_a_noop() {
     );
     assert!(out.status.success());
     assert!(output(&out).contains("Removed fal key"));
+    assert!(out.stderr.is_empty());
+    assert_eq!(output(&out).to_lowercase().matches("removed").count(), 1);
     assert!(!output(&out).contains("Keys saved locally"));
     assert!(
         state
@@ -198,10 +205,97 @@ fn public_registration_and_updates_have_readable_summaries() {
     for available in [true, false] {
         let v = json!({"current":"0.3.0","latest":"v0.3.1","updated":false,"updateAvailable":available});
         let text = display::render("self-update", &v);
-        assert!(text.contains("Installed: 0.3.0") && text.contains("Latest: v0.3.1"));
+        assert!(text.contains("Installed: 0.3.0") && text.contains("Latest: 0.3.1"));
         assert_eq!(text.contains("Run everycli update"), available);
         assert!(!text.starts_with('{'));
     }
+    let a = cli::parse(
+        &["register-hotkey", "--wallet", "alice", "--hotkey", "miner"].map(str::to_string),
+    )
+    .unwrap();
+    let text = display::render(
+        "register-hotkey",
+        &json!({"registered":false,"registrationCommand":cli_errors::registration_command(Some(&a))}),
+    );
+    assert!(text.contains("--wallet.name alice --wallet.hotkey miner"));
+    assert!(!text.contains("Replace <"));
+    let text = display::render(
+        "self-update",
+        &json!({"previous":"0.3.1","version":"v0.3.2","updated":true}),
+    );
+    assert!(text.contains("from 0.3.1 to 0.3.2"));
+}
+
+#[test]
+fn missing_wallet_lists_only_safe_directory_names_without_reading_keys() {
+    use std::{fs, os::unix::fs::symlink};
+    let dir = common::tempdir();
+    let root = dir.path().join("wallets");
+    fs::create_dir_all(root.join("zeta")).unwrap();
+    fs::create_dir(root.join("alpha")).unwrap();
+    fs::create_dir(root.join("bad\nname")).unwrap();
+    fs::write(root.join("not-a-wallet"), "DO-NOT-ECHO").unwrap();
+    symlink(root.join("alpha"), root.join("linked")).unwrap();
+    let path = root.join("nosuch/hotkeys/default");
+    let out = cli_errors::wallet_file_diagnostic(&path, &root).unwrap();
+    assert_eq!(out["message"], "Wallet ‘nosuch’ not found.");
+    assert_eq!(out["error"], "wallet_not_found");
+    assert_eq!(out["availableWallets"], json!(["alpha", "zeta"]));
+    let human = display::render("error", &out);
+    assert!(human.contains("alpha, zeta"));
+    assert!(!human.contains("DO-NOT-ECHO") && !human.contains("linked"));
+    assert!(
+        cli_errors::wallet_file_diagnostic(&root.join("alpha/hotkeys/missing"), &root).is_none()
+    );
+    assert!(cli_errors::wallet_file_diagnostic(&dir.path().join("elsewhere"), &root).is_none());
+    let absent = dir.path().join("no-wallet-directory");
+    let out = cli_errors::wallet_file_diagnostic(&absent.join("nosuch/hotkeys/default"), &absent)
+        .unwrap();
+    assert_eq!(out["availableWallets"], json!([]));
+    assert!(out["next"].as_str().unwrap().contains("No wallets found"));
+    let linked = dir.path().join("linked-root");
+    symlink(&root, &linked).unwrap();
+    assert!(
+        cli_errors::wallet_file_diagnostic(&linked.join("nosuch/hotkeys/default"), &linked)
+            .is_none()
+    );
+}
+
+#[test]
+fn short_key_json_errors_preserve_existing_credentials_and_yes_removal_is_quiet() {
+    let dir = common::tempdir();
+    let state = State {
+        directory: dir.path().join("profile"),
+    };
+    onboarding::save_keys(&state, &json!({"FAL_KEY":"synthetic-saved-key"}), None).unwrap();
+    let before = state.read("credentials", false).unwrap();
+    for key in ["x", "short-key"] {
+        let out = run(
+            &["set-api-keys", "--provider", "fal", "--stdin", "--json"],
+            &state.directory,
+            key.as_bytes(),
+        );
+        assert_eq!(out.status.code(), Some(2));
+        assert!(out.stderr.is_empty());
+        let v: Value = serde_json::from_slice(&out.stdout).unwrap();
+        assert_eq!(v["error"], "credential_too_short");
+        assert_eq!(
+            v["message"],
+            "That key looks too short (minimum 10 characters)."
+        );
+        assert_eq!(state.read("credentials", false).unwrap(), before);
+    }
+    let out = run(
+        &["remove-api-key", "--provider", "fal", "--yes", "--json"],
+        &state.directory,
+        b"",
+    );
+    assert!(out.status.success());
+    assert!(out.stderr.is_empty());
+    assert_eq!(
+        serde_json::from_slice::<Value>(&out.stdout).unwrap()["removed"],
+        "FAL_KEY"
+    );
 }
 
 #[test]
@@ -229,7 +323,9 @@ fn continue_setup_is_replayable_local_only_and_never_exposes_the_journal() {
         assert!(!v.to_string().contains("DO-NOT-ECHO"));
         assert_eq!(state.read("deployment", false).unwrap(), before);
         let text = display::render("setup", &v);
-        assert!(text.contains("1. Run everycli status") && text.contains("7. Run everycli doctor"));
+        assert!(
+            text.contains("5. Run everycli status") && text.contains("11. Run everycli doctor")
+        );
         assert!(text.contains("--state-dir") && text.contains("no"));
         let out = run(&["setup", "--continue", "--json"], &state.directory, b"");
         assert!(out.status.success());
