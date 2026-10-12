@@ -157,13 +157,25 @@ responses are printed. `doctor` may also include its structured `checks` list.
 
 ## Balances and offer tables (v0.1.5+)
 
-`everycli offers` displays a table with each model, active/inactive offer,
-and discount percentage. The discount applies to the base miner reward—not the
-provider's API charge. Use `--json` for the machine-readable response.
+`everycli offers` displays each model, provider, offer status, discount and
+readiness. With an updated coordinator, the table includes Studio's API-backed
+catalog, including models not yet enabled for your worker. `Integration pending`,
+`Pricing required` and `Worker release required` are **not** runnable offers.
+Discovery does not enable models or place bids. Local-only rendering is excluded.
+Older coordinators still return only their admitted model list.
+
+The discount applies to the base miner reward—not the provider's API charge.
+Use `--json` for all readiness blockers and local key/release-permission fields.
+
+If `doctor` says a saved provider key is not permitted by the signed deployment,
+this is **not an API authentication failure**. Updating everycli alone does not
+update the cloud worker or its permitted keys. Keep the existing profile and
+worker; apply the signed app-specific worker update when available, reconcile,
+activate, wait for fresh attestation, then resume. Do not deploy a second VM.
 
 ```sh
 everycli balances          # Remaining account credits in USD
-everycli offers            # Model / offer status / discount %
+everycli offers            # Model / provider / offer / discount / readiness
 everycli balances --json   # Includes timestamps and stale flags
 ```
 

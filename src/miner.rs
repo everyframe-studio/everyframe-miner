@@ -400,7 +400,7 @@ impl Miner<'_> {
                 add(
                     &format!("Provider: {}", s(&provider["provider"])?),
                     provider["releaseAllows"] == true,
-                    "Only provider keys supported by the signed release are sent. Use everycli offers to see available models.",
+                    invitation::provider_check_detail(provider["releaseAllows"] == true),
                 );
             }
         }
@@ -558,7 +558,11 @@ impl Miner<'_> {
         let c = self.load(false)?;
         let v = self.api(&c, "status", json!({}))?;
         need(v["offers"].is_array(), "offers_not_supported")?;
-        Ok(json!({"minerId":v["minerId"],"routingPolicy":v["routingPolicy"],"offers":v["offers"]}))
+        Ok(crate::offer_catalog::offers(
+            &v,
+            &c.invitation,
+            &c.credentials,
+        ))
     }
     pub fn earnings(&self) -> Result<Value> {
         let c = self.load(false)?;

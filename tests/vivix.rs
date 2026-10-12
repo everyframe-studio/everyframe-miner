@@ -39,7 +39,7 @@ impl Http for Api {
                 "Never send the API key to a media host"
             );
             assert!(r.redirect_hosts.is_empty());
-            assert_eq!(r.hosts, ["static.vivi-x.ai"]);
+            assert_eq!(r.hosts, ["static.vivi-x.ai", "clipgen-us.vivi-x.ai"]);
             self.calls.borrow_mut().push(r);
             return Ok(b"synthetic MP4 bytes".to_vec());
         }
@@ -184,6 +184,8 @@ fn vivix_result_urls_fail_closed() {
         Value::Null,
         json!("https://169.254.169.254/latest/meta-data"),
         json!("https://static.vivi-x.ai.evil.test/video.mp4"),
+        json!("https://clipgen-us.vivi-x.ai.evil.test/video.mp4"),
+        json!("https://unreviewed.vivi-x.ai/video.mp4"),
         json!("http://static.vivi-x.ai/video.mp4"),
         json!("https://user:pass@static.vivi-x.ai/video.mp4"),
         json!("https://static.vivi-x.ai:8443/video.mp4"),
@@ -199,6 +201,18 @@ fn vivix_result_urls_fail_closed() {
         );
         assert_eq!(api.calls.borrow().len(), 1);
     }
+}
+
+#[test]
+fn vivix_authenticated_result_cdn_is_downloaded_without_credentials() {
+    let mut response = status("succeeded");
+    response["data"]["video_url"] = json!("https://clipgen-us.vivi-x.ai/clips/job_test.mp4");
+    let api = Api::new(vec![response]);
+    Router::new(&api, credentials())
+        .result("vivix_job_test", &spec(5))
+        .unwrap();
+    assert!(api.calls.borrow()[1].headers.is_empty());
+    assert!(api.calls.borrow()[1].redirect_hosts.is_empty());
 }
 
 #[test]

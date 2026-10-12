@@ -488,7 +488,14 @@ impl Provider for Router<'_> {
         )?;
         let mut metadata = data.clone();
         let media = match p.as_str() {
-            "vivix" => self.download(s(&data["video_url"])?, &["static.vivi-x.ai"], None, &[])?,
+            // Exact CDN hosts: clipgen-us was returned by the authenticated
+            // W1 API in the 2026-10-12 smoke test. No wildcard or redirects.
+            "vivix" => self.download(
+                s(&data["video_url"])?,
+                &["static.vivi-x.ai", "clipgen-us.vivi-x.ai"],
+                None,
+                &[],
+            )?,
             "minimax" => {
                 let file_id = reference(&data["file_id"])?;
                 let file = self.api(&p, &format!("/v1/files/retrieve?file_id={file_id}"), None)?;
