@@ -206,10 +206,11 @@ pub fn render(command: &str, value: &Value) -> String {
             )
         }
         "offers" => {
+            let catalog = value["catalogAvailable"] == true;
             let data = rows("offers")
                 .iter()
                 .map(|r| {
-                    vec![
+                    let mut row = vec![
                         text(&r["model"]),
                         if r["offered"] == true {
                             if r["pricingCurrent"] == true {
@@ -217,6 +218,8 @@ pub fn render(command: &str, value: &Value) -> String {
                             } else {
                                 "Stale pricing"
                             }
+                        } else if catalog && r["offerable"] == false {
+                            "Unavailable"
                         } else {
                             "Inactive"
                         }
@@ -226,12 +229,29 @@ pub fn render(command: &str, value: &Value) -> String {
                             .filter(|n| *n <= 9990)
                             .map(|n| format!("{:.2}%", n as f64 / 100.0))
                             .unwrap_or("—".into()),
-                    ]
+                    ];
+                    if catalog {
+                        row.insert(1, text(&r["provider"]));
+                        row.push(crate::offer_catalog::readiness(r).into());
+                    }
+                    row
                 })
                 .collect();
             format!(
-                "{}\n\nDiscount is off the base miner reward, not your provider's API price.\n",
-                table(&["MODEL", "OFFER", "DISCOUNT"], data)
+                "{}\n\nDiscount is off the base miner reward, not your provider's API price.\n{}",
+                table(
+                    if catalog {
+                        &["MODEL", "PROVIDER", "OFFER", "DISCOUNT", "READINESS"]
+                    } else {
+                        &["MODEL", "OFFER", "DISCOUNT"]
+                    },
+                    data
+                ),
+                if catalog {
+                    "Catalog entries are not automatically enabled. A saved API key does not update your deployed worker. Integration/pricing/release requirements are coordinator-side; use --json for all blockers and contract limits. EveryFrame Local is not an API model.\n"
+                } else {
+                    "This coordinator returned only its allowlisted models, not the full Studio catalog.\n"
+                }
             )
         }
         "balances" => {

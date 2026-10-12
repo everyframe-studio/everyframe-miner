@@ -10,6 +10,7 @@ pub mod invitation;
 pub mod miner;
 pub mod models;
 pub mod network;
+pub mod offer_catalog;
 pub mod onboarding;
 pub mod protocol;
 pub mod providers;

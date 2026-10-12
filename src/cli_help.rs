@@ -81,7 +81,7 @@ pub fn render(command: &str) -> String {
             "balances --publish",
         ),
         "offers" => (
-            "List available model offers, discounts and pricing status.",
+            "List Studio models, offers, discounts and model readiness. A saved key does not enable routing.",
             "  No command-specific options.",
             "offers",
         ),
