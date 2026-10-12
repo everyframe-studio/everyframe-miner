@@ -1,5 +1,5 @@
 mod common;
-use everyframe_miner::{Error, cli, cli_errors, cli_help, invitation, state::State};
+use everyframe_miner::{Error, cli, cli_errors, cli_help, display, invitation, state::State};
 use serde_json::{Value, json};
 use std::{
     process::{Command, Output},
@@ -316,7 +316,21 @@ fn setup_runs_in_order_and_never_auto_activates_or_resumes() {
             "deploy:"
         ]
     );
-    assert_eq!(out["setupComplete"], true);
+    assert_eq!(out["deploymentComplete"], true);
+    assert_eq!(out["setupComplete"], false);
+    assert_eq!(out["readinessVerified"], false);
+    let text = display::render("setup", &out);
+    assert!(text.contains("Finish miner setup — steps 5–11"));
+    for step in [
+        "5. Run everycli status",
+        "6. If keys",
+        "everycli activate",
+        "everycli resume",
+        "everycli offer --model",
+        "11. Run everycli doctor",
+    ] {
+        assert!(text.contains(step), "{text}");
+    }
     assert!(
         out["next"]
             .as_str()

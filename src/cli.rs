@@ -472,7 +472,7 @@ pub fn setup_with(
         });
         a
     };
-    eprintln!("Step 1/4 — Check hotkey registration (read-only)");
+    eprintln!("Step 1/11 — Check hotkey registration (read-only)");
     let registration = execute(&step(
         "register-hotkey",
         &["--wallet", "--hotkey", "--hotkey-file"],
@@ -484,7 +484,7 @@ pub fn setup_with(
         ));
     }
     eprintln!(
-        "Step 2/4 — Save API keys locally. Phala: Settings → API Tokens, not Private AI. Enter keeps saved keys or skips missing keys."
+        "Step 2/11 — Save API keys locally. Phala: Settings → API Tokens, not Private AI. Enter keeps saved keys or skips missing keys."
     );
     if let Some(provider) = args.get("--provider") {
         for p in ["phala", provider] {
@@ -498,7 +498,7 @@ pub fn setup_with(
     } else {
         execute(&step("set-api-keys", &[]))?;
     }
-    eprintln!("Step 3/4 — Initialize the signed miner profile (no VM created)");
+    eprintln!("Step 3/11 — Initialize the signed miner profile (no VM created)");
     execute(&step("init", &["--wallet", "--hotkey", "--hotkey-file"]))?;
     let status = execute(&step("status", &[]))?;
     need(
@@ -511,7 +511,7 @@ pub fn setup_with(
         "setup_existing_deployment",
     )?;
     eprintln!(
-        "Step 4/4 — Review paid deployment. Storage is extra; this is not a total budget. You must confirm the live quote."
+        "Step 4/11 — Review paid deployment. Storage is extra; this is not a total budget. You must confirm the live quote. Activation and model offers follow in steps 5–11."
     );
     let mut deploy = step("deploy", &["--max-hourly-usd"]);
     if deploy.get("--max-hourly-usd").is_none() {
@@ -526,7 +526,8 @@ pub fn setup_with(
         out["ok"] != false && out["appId"].is_string(),
         "setup_deployment_incomplete",
     )?;
-    out["setupComplete"] = json!(true);
+    out["deploymentComplete"] = json!(true);
+    out["setupComplete"] = json!(false);
     Ok(setup_checklist(out))
 }
 
@@ -534,6 +535,8 @@ pub fn setup_with(
 // cannot establish current admission or authorize paid work.
 pub fn setup_checklist(mut out: Value) -> Value {
     out["checklistOnly"] = json!(true);
+    out["nextStepNumber"] = json!(5);
+    out["readinessVerified"] = json!(false);
     out["next"] = json!(
         "Use everycli setup --continue in the same management profile to show this checklist again. No activation, resume or generation was performed by this checklist."
     );
@@ -601,7 +604,11 @@ pub fn run(args: &Args) -> Result<Value> {
             args.flag("--yes") || (io::stdin().is_terminal() && !args.flag("--json")),
             "confirmation_required",
         )?;
-        eprintln!("\n{text}");
+        // Keep hosting quotes and lifecycle notices visible. Only local key
+        // removal suppresses its already-approved question with --yes.
+        if !(args.flag("--yes") && args.command == "remove-api-key") {
+            eprintln!("\n{text}");
+        }
         if args.flag("--yes") {
             Ok(())
         } else {

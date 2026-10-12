@@ -132,6 +132,8 @@ fn registration_checks_genesis_finalized_forward_and_reverse_mapping() {
     )
     .unwrap();
     assert_eq!(absent["registered"], false);
+    let text = everyframe_miner::display::render("register-hotkey", &absent);
+    assert_eq!(text.matches("registration fee").count(), 1);
     let tmp = common::tempdir();
     let state = State {
         directory: tmp.path().join("profile"),
