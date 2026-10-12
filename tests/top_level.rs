@@ -77,7 +77,6 @@ fn upgrades_have_unambiguous_names_and_scoped_flags() {
     );
     for args in [
         vec!["update", "--release", "approved.json"],
-        vec!["worker-update", "--check"],
         vec!["status", "--publish"],
         vec!["doctor", "--stdin"],
         vec!["offer", "--withdraw", "--discount-pct", "10"],

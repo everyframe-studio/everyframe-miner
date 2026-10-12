@@ -67,7 +67,10 @@ fn missing_options_and_bad_values_fail_before_profile_creation() {
     let state = dir.path().join("never-created");
     for (words, expected) in [
         (vec!["deploy"], "deploy needs --max-hourly-usd"),
-        (vec!["worker-update"], "worker-update needs --release"),
+        (
+            vec!["worker-update", "--check", "--release", "file.json"],
+            "cannot combine --check with --release",
+        ),
         (vec!["remove-api-key"], "remove-api-key needs --provider"),
         (
             vec!["offer", "--discount-pct", "150"],

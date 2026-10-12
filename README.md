@@ -8,7 +8,8 @@ It does not run generation models locally, so you do not need a GPU.
 With **everycli v0.2.0+**, commands are direct: `everycli doctor`, `everycli status`,
 `everycli balances`, and so on. No command prefix is needed. Existing scripts using
 the older namespace remain compatible. `everycli update` upgrades the CLI;
-`everycli worker-update --release FILE` applies an approved worker release.
+`everycli worker-update` updates the existing worker using its latest compatible
+signed release (one-command flow in v0.3.7 and later).
 
 This repository includes the worker, the CLI with built-in updates, 46 model
 contracts, and ten provider adapters. Available jobs depend on the coordinator's
@@ -81,7 +82,7 @@ An upgrade is performed by the **currently installed** CLI. Older versions may
 still print their old output during that one upgrade; the new display applies
 once the new executable is installed.
 
-`everycli update` upgrades the **CLI**; `everycli worker-update --release FILE`
+`everycli update` upgrades the **CLI**; `everycli worker-update`
 updates a **deployed worker** using an approved signed release. There are no
 automatic background update checks. If a documented command is missing, check
 `everycli --version` and upgrade (rerun the installer for older CLIs without an
@@ -463,7 +464,7 @@ resources and ongoing charges. To restart the saved workload, use
 | `stop` | Drain; request shutdown only when idle. `--drain-only` keeps hosting running |
 | `start` | Restart the saved stopped workload, with a reviewed hourly ceiling |
 | `update` | Upgrade the CLI executable only; `--check` checks without installing |
-| `worker-update` | Install an app-specific signed release; disables providers until readmission |
+| `worker-update` | Discover and install a signed update on the existing VM, then restore its accepting/paused state; `--check` is read-only |
 | `reconcile` | Inspect uncertain operations without replaying paid cloud mutations |
 
 Mainnet SN117 is the default. Use `--network testnet` for SN566. Default state
@@ -548,9 +549,33 @@ saving the key. `providers` distinguishes a saved key from a release-permitted k
 `offers` is the source of truth for available mining models. Updating everycli
 alone does not update a deployed worker.
 
-For an existing miner, use the published app-specific signed worker release with
-`everycli worker-update --release FILE`, wait for attestation, then follow the
-activation/offer/resume steps above. Do not redeploy a second VM or edit signed
+For an existing miner, use the original management profile and run:
+
+```sh
+everycli worker-update --check
+everycli worker-update
+```
+
+The one-command flow is available in **everycli v0.3.7 and later**. It
+fetches a compatible signed package for your miner and app automatically: no
+manual JSON download. After one confirmation it drains current jobs, updates the
+same VM, waits for verified attestation, reactivates previously enabled keys,
+waits for fresh post-restart attestation, and restores the previous accepting or
+paused state. A paused miner stays paused. Existing offers and discounts are
+unchanged; newly available models still need their own offers. No VM is created
+or deleted, no stopped VM is started, and no paid test generation is submitted.
+
+Progress is readable by default; `--json` emits only the structured result.
+Non-interactive updates require `--yes`. Waiting is bounded to about ten minutes;
+rerun the same command with the same profile to continue a saved update. A lost
+cloud response is not blindly replayed: ambiguous provisioning/key activation
+may require reconciliation. Keep the profile and journal. After a hard process
+kill, a stale `operation.lock` may also require inspection before continuing.
+
+If no compatible package is published, the command says so and changes nothing;
+that is not a claim that all providers are already supported. The advanced
+`everycli worker-update --release FILE` path remains available and retains its
+manual reconcile/activation steps. Do not redeploy a second VM or edit signed
 configurations to enable a key. Provider submissions are never automatically
 retried after an ambiguous response, preventing duplicate billable jobs.
 

@@ -53,10 +53,20 @@ fn cli_update_is_separate_from_worker_update() {
             .command,
         "update"
     );
+    assert!(
+        parse(&["worker-update", "--check"])
+            .unwrap()
+            .flag("--check")
+    );
+    assert!(
+        parse(&["miner", "update", "--check"])
+            .unwrap()
+            .flag("--check")
+    );
+    assert_eq!(parse(&["worker-update"]).unwrap().command, "update");
     for a in [
         vec!["update", "--state-dir", "/private"],
         vec!["update", "--release", "file"],
-        vec!["miner", "update", "--check"],
     ] {
         assert!(parse(&a).is_err());
     }
