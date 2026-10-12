@@ -61,6 +61,255 @@ fn table(headers: &[&str], rows: Vec<Vec<String>>) -> String {
     out.join("\n")
 }
 
+// Explicit state words survive pipes, monochrome terminals and screen readers.
+// Add ANSI only after computing widths; --json never passes through this path.
+pub fn render_with_color(command: &str, value: &Value, color: bool) -> String {
+    let mut out = render(command, value);
+    if color && ["health", "status"].contains(&command) {
+        for (label, code) in [
+            ("[PASS]", 32),
+            ("[FAIL]", 31),
+            ("[WARN]", 33),
+            ("[INFO]", 36),
+        ] {
+            out = out.replace(label, &format!("\x1b[{code}m{label}\x1b[0m"));
+        }
+    }
+    out
+}
+
+fn count(value: &Value) -> String {
+    value
+        .as_u64()
+        .map(|n| n.to_string())
+        .unwrap_or_else(|| "Not reported".into())
+}
+
+fn wrapped(value: &str, width: usize) -> Vec<String> {
+    let clean: String = value
+        .chars()
+        .filter(|c| !c.is_control())
+        .take(1600)
+        .collect();
+    let mut lines = vec![String::new()];
+    for word in clean.split_whitespace() {
+        let line = lines.last_mut().unwrap();
+        if !line.is_empty() && line.chars().count() + word.chars().count() + 1 > width {
+            lines.push(String::new());
+        }
+        // Long model identifiers must not stretch the whole terminal table.
+        for ch in word.chars() {
+            let line = lines.last_mut().unwrap();
+            if line.chars().count() >= width {
+                lines.push(String::new());
+            }
+            lines.last_mut().unwrap().push(ch);
+        }
+        lines.last_mut().unwrap().push(' ');
+    }
+    lines.iter().map(|s| s.trim_end().to_string()).collect()
+}
+
+fn check_table(checks: &[Value]) -> String {
+    let mut rows = vec![];
+    for check in checks {
+        let state = match check["state"].as_str() {
+            Some("PASS") => "[PASS]",
+            Some("WARN") => "[WARN]",
+            Some("INFO") => "[INFO]",
+            Some("FAIL") => "[FAIL]",
+            _ if check["ok"] == true => "[PASS]",
+            _ => "[FAIL]",
+        };
+        let names = wrapped(check["name"].as_str().unwrap_or("Check"), 28);
+        let details = wrapped(check["detail"].as_str().unwrap_or("Not reported"), 68);
+        for i in 0..names.len().max(details.len()) {
+            rows.push(vec![
+                names.get(i).cloned().unwrap_or_default(),
+                if i == 0 { state.into() } else { String::new() },
+                details.get(i).cloned().unwrap_or_default(),
+            ]);
+        }
+    }
+    table(&["CHECK", "STATE", "DETAIL"], rows)
+}
+
+fn bool_check(name: &str, value: &Value, expected: bool, yes: &str, no: &str) -> Value {
+    let state = match value.as_bool() {
+        Some(v) if v == expected => "PASS",
+        Some(_) => "FAIL",
+        None => "WARN",
+    };
+    serde_json::json!({"name":name,"state":state,"detail":match state {
+        "PASS" => yes, "FAIL" => no, _ => "Not reported; cannot verify this check."
+    }})
+}
+
+fn activity_table(value: &Value) -> String {
+    let mut out = table(
+        &["ACTIVITY", "COUNT"],
+        vec![
+            vec!["Active jobs".into(), count(&value["activeJobs"])],
+            vec![
+                "Historically accepted jobs".into(),
+                count(&value["acceptedJobs"]),
+            ],
+        ],
+    );
+    if let Some(rows) = value["jobs"].as_array() {
+        let rows = rows
+            .iter()
+            .filter(|r| r["state"] != "accepted")
+            .map(|r| vec![text(&r["state"]), count(&r["count"])])
+            .collect::<Vec<_>>();
+        if !rows.is_empty() {
+            out.push_str(&format!(
+                "\n\n{}",
+                table(&["OTHER JOB STATES (HISTORICAL)", "COUNT"], rows)
+            ));
+        }
+    }
+    out.push_str("\n\nZero active jobs is normal when idle. Historical acceptance is not a live test of every model.\nNo paid generation or API balance check was performed.");
+    out
+}
+
+fn health_table(value: &Value) -> String {
+    let checks = value["checks"].as_array().cloned().unwrap_or_default();
+    let all_pass = !checks.is_empty()
+        && value["ok"] == true
+        && checks.iter().all(|c| {
+            c["ok"] == true && !["WARN", "FAIL"].contains(&c["state"].as_str().unwrap_or(""))
+        });
+    let failed = checks
+        .iter()
+        .any(|c| c["ok"] != true && c["state"] != "WARN");
+    let mut out = format!(
+        "Miner health — {}\n\n{}\n\n{}\n",
+        if all_pass {
+            "[PASS] All readiness checks passed"
+        } else if failed {
+            "[FAIL] Readiness needs attention"
+        } else {
+            "[WARN] Readiness could not be fully verified"
+        },
+        check_table(&checks),
+        activity_table(&value["activity"])
+    );
+    if all_pass {
+        out.push_str("Ready to accept work based on this snapshot. This does not guarantee traffic, provider funds, successful future jobs or earnings.\n");
+    } else {
+        out.push_str("Resolve failed or unverified checks before calling the miner fully ready. No activation, resume or redeployment was performed.\n");
+    }
+    out
+}
+
+fn status_table(value: &Value) -> String {
+    let remote = &value["coordinator"];
+    let mut identity = vec![
+        vec!["Miner".into(), text(&value["minerId"])],
+        vec![
+            "Network".into(),
+            format!(
+                "{} / SN{}",
+                text(&value["network"]),
+                count(&value["netuid"])
+            ),
+        ],
+        vec!["Release".into(), text(&value["release"])],
+        vec!["Local phase".into(), text(&value["phase"])],
+        vec!["Local app".into(), text(&value["appId"])],
+    ];
+    if remote["appId"].is_string() {
+        identity.push(vec!["Coordinator app".into(), text(&remote["appId"])]);
+    }
+    let mut checks = vec![bool_check(
+        "Deployment configuration",
+        &value["invitationExpired"],
+        false,
+        "Signed configuration is current.",
+        "Signed configuration expired; renew with everycli init.",
+    )];
+    let coordinator_ok = remote.is_object() && value["coordinatorError"].is_null();
+    checks.push(serde_json::json!({"name":"Coordinator","state":if coordinator_ok {"PASS"} else {"WARN"},
+        "detail":if coordinator_ok {"Signed response verified.".into()} else {format!("Unavailable: {}. Run everycli doctor.", text(&value["coordinatorError"]["code"]))}}));
+    let cloud_state = value["cloud"]["status"].as_str();
+    checks.push(serde_json::json!({"name":"Phala workload","state":match cloud_state {Some("running")=>"PASS",Some(_)=>"FAIL",None=>"WARN"},
+        "detail":if let Some(state) = cloud_state {format!("Cloud state: {state}")} else if !value["cloudError"].is_null() {
+            format!("Cloud check failed: {}. Run everycli doctor.", text(&value["cloudError"]["code"]))
+        } else {"Not checked from this profile. Use the original management profile; do not redeploy.".into()}}));
+    checks.extend([
+        bool_check(
+            "Miner enabled",
+            &remote["enabled"],
+            true,
+            "Enabled on coordinator.",
+            "Disabled on coordinator.",
+        ),
+        bool_check(
+            "Worker online",
+            &remote["online"],
+            true,
+            "Coordinator reports worker online.",
+            "Worker is offline.",
+        ),
+        bool_check(
+            "Workload attested",
+            &remote["attested"],
+            true,
+            "Coordinator reports an attested workload.",
+            "Workload is not currently attested.",
+        ),
+        bool_check(
+            "Routing enabled",
+            &remote["routingEnabled"],
+            true,
+            "Miner routing enabled.",
+            "Miner routing disabled.",
+        ),
+        bool_check(
+            "Accepting new work",
+            &remote["draining"],
+            false,
+            "Not draining; other readiness checks still apply.",
+            "Draining or paused; not accepting new jobs.",
+        ),
+    ]);
+    // Status is an overview, not a second implementation of doctor. Show time and
+    // capability evidence, but never claim the full health checklist passed.
+    checks.extend(crate::health::runtime_checks(remote, crate::now()));
+    let offers = remote["offers"].as_array().cloned().unwrap_or_default();
+    let offer_rows = offers
+        .iter()
+        .map(|r| {
+            vec![
+                text(&r["model"]),
+                if r["offered"] == true {
+                    if r["pricingCurrent"] == true {
+                        "Active"
+                    } else {
+                        "Stale pricing"
+                    }
+                } else {
+                    "Inactive"
+                }
+                .into(),
+                r["discountBp"]
+                    .as_u64()
+                    .filter(|n| *n <= 9990)
+                    .map(|n| format!("{:.2}%", n as f64 / 100.))
+                    .unwrap_or_else(|| "—".into()),
+            ]
+        })
+        .collect();
+    format!(
+        "Miner status\n\n{}\n\n{}\n\n{}\n\n{}\n\nRun everycli health for the full readiness checklist. The local phase alone does not prove readiness.\nUse everycli status --json for full fields; everycli offers for model blockers.\n",
+        table(&["MINER", "VALUE"], identity),
+        check_table(&checks),
+        table(&["MODEL OFFER", "STATE", "DISCOUNT"], offer_rows),
+        activity_table(&crate::health::activity(remote))
+    )
+}
+
 pub fn render(command: &str, value: &Value) -> String {
     if value["ok"] == false && value["message"].is_string() {
         // These messages are fixed local diagnostics, never raw provider responses.
@@ -77,6 +326,8 @@ pub fn render(command: &str, value: &Value) -> String {
     }
     let rows = |key: &str| value[key].as_array().cloned().unwrap_or_default();
     match command {
+        "health" => health_table(value),
+        "status" => status_table(value),
         "setup" if value["nextSteps"].is_array() => {
             let mut out = format!(
                 "Finish miner setup — steps 5–11\nLocal phase: {}\nDeployment alone does not make the miner ready for work. This is not a live readiness check. Use the same --network and --state-dir for every command below.\n\n",

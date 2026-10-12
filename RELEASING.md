@@ -11,8 +11,8 @@ After reviewing and committing the release changes, the maintainer can publish
 the corrected version (these commands create an external release when pushed):
 
 ```sh
-git tag v0.2.4
-git push origin v0.2.4
+git tag v0.3.6
+git push origin v0.3.6
 ```
 
 For subsequent releases, bump Cargo.toml and Cargo.lock first, then tag the
@@ -21,7 +21,13 @@ Protect release tags and restrict who can push them. If a publication fails afte
 draft creation, inspect and recover that draft manually; the workflow refuses to
 overwrite existing releases. Do not move a published tag or replace its assets.
 
-v0.2.4 adds Vivix API key management and the direct W1 candidate adapter. The CLI
+v0.3.6 adds `everycli health` and default human-readable `status` tables. Both
+commands support `--json`. Health is read-only: all green means the current
+readiness checks passed, not that provider balances or future generations are
+guaranteed. Historical accepted jobs are shown separately. This CLI release does
+not change a deployed worker, release provider keys or resume paid work.
+
+v0.2.4 added Vivix API key management and the direct W1 candidate adapter. The CLI
 release does not update running workers or enable coordinator routing. W1 still
 requires matching coordinator pricing/contracts, a signed deployment permitting
 `VIVIX_API_KEY`, and an admitted worker image with canary verification. Do not

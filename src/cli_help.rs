@@ -7,6 +7,7 @@ pub const COMMANDS: &[&str] = &[
     "remove-api-key",
     "init",
     "doctor",
+    "health",
     "status",
     "providers",
     "balances",
@@ -65,10 +66,15 @@ pub fn render(command: &str) -> String {
             "  No command-specific options.",
             "doctor",
         ),
+        "health" => (
+            "Read-only readiness checklist with green PASS, amber WARN and red FAIL rows. All green means current readiness checks passed, not a paid generation test or guaranteed traffic. Exit 0 when all checks pass; 2 otherwise. Use --json for structured checks.",
+            "  No command-specific options. No activation, restart or generation is submitted.",
+            "health",
+        ),
         "status" => (
-            "Read local deployment and signed coordinator status.",
+            "Show deployment, worker, routing and job activity as tables. Use --json for the original signed coordinator fields. For a complete readiness checklist, run everycli health.",
             "  No command-specific options.",
-            "status --json",
+            "status",
         ),
         "providers" => (
             "List saved key presence and signed-release permissions. Keys are never displayed; presence is not a billing/authentication check.",

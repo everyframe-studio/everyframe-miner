@@ -157,6 +157,32 @@ responses are printed. `doctor` may also include its structured `checks` list.
 
 ## Balances and offer tables (v0.1.5+)
 
+### Check whether your miner is ready
+
+```bash
+everycli health          # Green PASS / amber WARN / red FAIL readiness checklist
+everycli status          # Deployment, routing, offers and job activity as tables
+everycli health --json   # Structured checks; exit 0 only when all checks pass
+everycli status --json   # Full status fields, unchanged for scripts
+```
+
+All green in `health` means the current readiness checks passed: local profile,
+signed configuration, coordinator, cloud workload, fresh attestation/heartbeat,
+routing and support for your active model offers. Missing capability evidence is
+an amber warning, never an assumed pass. `health` exits with code 2 if any check
+fails or cannot be verified. These commands are read-only: no activation, restart,
+new deployment or paid generation is performed.
+
+Readiness does **not** guarantee traffic, provider funds, future successful jobs or
+earnings. Historical accepted jobs are displayed separately as evidence of past
+work, not a live test of every model. Zero active jobs is normal when idle. Use
+`everycli balances` to check supported account balances separately. A saved key
+not allowed by your worker release prevents an all-green result, but does not by
+itself stop other supported providers from serving.
+
+Colors appear in supported interactive terminals. Piped output stays plain text;
+set `NO_COLOR=1` to disable colors. State labels remain visible without color.
+
 `everycli offers` displays each model, provider, offer status, discount and
 readiness. With an updated coordinator, the table includes Studio's API-backed
 catalog, including models not yet enabled for your worker. `Integration pending`,
@@ -424,7 +450,9 @@ resources and ongoing charges. To restart the saved workload, use
 | `remove-api-key` | Remove one local credential after confirmation; does not revoke it remotely |
 | `apply-api-keys` | Explicitly drain and apply saved keys to an activated, reviewed worker; fresh admission required |
 | `init` | Verify deployment configuration; sign local hotkey delegations and store credentials |
-| `doctor`, `status` | Diagnose readiness, admission, routing, and cloud state |
+| `health` | Color-coded readiness checklist; `--json` for scripts; exit 0 only when all checks pass |
+| `status` | Deployment, routing, offers and job activity tables; `--json` for full fields |
+| `doctor` | Detailed diagnostics for readiness, admission, routing, and cloud state |
 | `providers` | Show credential presence and signed-release permissions, never key values |
 | `balances` | Show remaining account credits in USD; `--publish` syncs private snapshots |
 | `offers`, `offer` | Inspect, set, or withdraw a revision-checked model bid |

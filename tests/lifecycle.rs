@@ -177,6 +177,90 @@ struct Rig {
     calls: RefCell<Vec<(String, String)>>,
     envs: RefCell<Vec<Value>>,
 }
+
+#[test]
+fn health_reads_one_signed_snapshot_and_cloud_without_changing_worker_or_profile() {
+    let r = Rig::new();
+    r.deploy().unwrap();
+    {
+        let mut status = r.status.borrow_mut();
+        status["routingEnabled"] = json!(true);
+        status["draining"] = json!(false);
+        status["lastSeen"] = json!(now());
+        status["sessionExpires"] = json!(now() + 60000);
+        status["offers"][0]["offered"] = json!(true);
+        status["modelCatalog"] = json!([{"model":"fixture/video","workerAvailable":true,"offerable":true,"blockers":[]}]);
+        status["jobs"] = json!([]);
+    }
+    let before = r.state().read("deployment", false).unwrap();
+    let credentials = r.state().read("credentials", false).unwrap();
+    r.calls.borrow_mut().clear();
+    r.envs.borrow_mut().clear();
+    let report = r.miner().health().unwrap();
+    assert_eq!(report["ok"], true, "{report}");
+    assert_eq!(report["generationSubmitted"], false);
+    assert_eq!(report["activity"]["acceptedJobs"], 0);
+    assert!(
+        report["checks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|c| c["ok"] == true)
+    );
+    assert_eq!(
+        r.calls
+            .borrow()
+            .iter()
+            .filter(|(p, _)| p.ends_with("/v1/miner/status"))
+            .count(),
+        1
+    );
+    assert!(r.calls.borrow().iter().all(|(p, _)| p.starts_with("GET ")));
+    assert!(r.envs.borrow().is_empty());
+    assert_eq!(r.state().read("deployment", false).unwrap(), before);
+    assert_eq!(r.state().read("credentials", false).unwrap(), credentials);
+    assert!(!report.to_string().contains("synthetic-provider-key"));
+    for (key, bad) in [
+        ("draining", json!(true)),
+        ("online", json!(false)),
+        ("enabled", json!(false)),
+    ] {
+        let old = r.status.borrow()[key].clone();
+        r.status.borrow_mut()[key] = bad;
+        assert_eq!(r.miner().health().unwrap()["ok"], false, "{key}");
+        r.status.borrow_mut()[key] = old;
+    }
+    *r.fail.borrow_mut() = "/status".into();
+    assert_eq!(r.miner().health().unwrap()["ok"], false);
+}
+
+#[test]
+fn health_never_hides_an_optional_saved_provider_release_mismatch() {
+    let r = Rig::new();
+    let mut credentials = r.credentials.clone();
+    credentials["VIVIX_API_KEY"] = json!("synthetic-vivix-not-in-release");
+    r.state().write("credentials", &credentials).unwrap();
+    let report = r.miner().health().unwrap();
+    assert_eq!(report["ok"], false);
+    let check = report["checks"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|c| c["name"] == "Provider: vivix")
+        .unwrap();
+    assert_eq!(check["ok"], false);
+    assert!(
+        check["detail"]
+            .as_str()
+            .unwrap()
+            .contains("not a rejected API key")
+    );
+    assert!(
+        !report
+            .to_string()
+            .contains("synthetic-vivix-not-in-release")
+    );
+}
 impl Rig {
     fn new() -> Self {
         let dir = common::tempdir();
