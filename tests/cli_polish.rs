@@ -205,7 +205,7 @@ fn public_registration_and_updates_have_readable_summaries() {
     for available in [true, false] {
         let v = json!({"current":"0.3.0","latest":"v0.3.1","updated":false,"updateAvailable":available});
         let text = display::render("self-update", &v);
-        assert!(text.contains("Installed: 0.3.0") && text.contains("Latest: 0.3.1"));
+        assert!(text.contains("Installed: v0.3.0") && text.contains("Latest: v0.3.1"));
         assert_eq!(text.contains("Run everycli update"), available);
         assert!(!text.starts_with('{'));
     }
@@ -223,7 +223,22 @@ fn public_registration_and_updates_have_readable_summaries() {
         "self-update",
         &json!({"previous":"0.3.1","version":"v0.3.2","updated":true}),
     );
-    assert!(text.contains("from 0.3.1 to 0.3.2"));
+    assert!(text.contains("from v0.3.1 to v0.3.2"));
+}
+
+#[test]
+fn update_summaries_use_one_v_prefix_without_changing_json_values() {
+    for previous in ["0.3.2", "v0.3.2"] {
+        for latest in ["0.3.3", "v0.3.3"] {
+            let value = json!({"previous":previous,"version":latest,"updated":true});
+            let before = value.clone();
+            assert!(
+                display::render("self-update", &value)
+                    .starts_with("Updated everycli from v0.3.2 to v0.3.3.")
+            );
+            assert_eq!(value, before);
+        }
+    }
 }
 
 #[test]

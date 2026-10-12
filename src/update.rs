@@ -258,6 +258,15 @@ pub fn replace_binary(target: &Path, bytes: &[u8]) -> Result<()> {
     Ok(())
 }
 
+/// Human-facing release labels always include exactly one `v` prefix.
+/// Machine-readable version fields retain their existing representation.
+pub fn display_version(value: &str) -> String {
+    if value.is_empty() || value == "—" {
+        return "—".into();
+    }
+    format!("v{}", value.trim_start_matches('v'))
+}
+
 pub fn run(check_only: bool, json_mode: bool) -> Result<Value> {
     let stderr = io::stderr();
     let mut progress = Progress::new(stderr.lock(), !json_mode, stderr.is_terminal());
@@ -304,14 +313,14 @@ fn run_with_progress(check_only: bool, progress: &mut dyn FnMut(ProgressEvent)) 
     let base = format!("{REPO}/releases/download/{tag}/{name}");
     progress(ProgressEvent::Stage(format!(
         "Update available: {} → {}",
-        env!("CARGO_PKG_VERSION"),
-        tag.trim_start_matches('v')
+        display_version(env!("CARGO_PKG_VERSION")),
+        display_version(tag)
     )));
     progress(ProgressEvent::Stage("Fetching release checksum…".into()));
     let checksum = download(&client, &format!("{base}.sha256"), 1024, &mut |_| {})?;
     progress(ProgressEvent::Stage(format!(
         "Downloading everycli {} ({name})…",
-        tag.trim_start_matches('v')
+        display_version(tag)
     )));
     let bytes = download(&client, &base, 64 * 1024 * 1024, progress)?;
     progress(ProgressEvent::Stage(format!(
