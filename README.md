@@ -9,7 +9,7 @@ With **everycli v0.2.0+**, commands are direct: `everycli doctor`, `everycli sta
 `everycli balances`, and so on. No command prefix is needed. Existing scripts using
 the older namespace remain compatible. `everycli update` upgrades the CLI;
 `everycli worker-update` updates the existing worker using its latest compatible
-signed release (one-command flow in the next CLI release).
+signed release (one-command flow in v0.3.7 and later).
 
 This repository includes the worker, the CLI with built-in updates, 46 model
 contracts, and ten provider adapters. Available jobs depend on the coordinator's
@@ -556,7 +556,7 @@ everycli worker-update --check
 everycli worker-update
 ```
 
-The one-command flow is available in the **next CLI release**, not v0.3.6. It
+The one-command flow is available in **everycli v0.3.7 and later**. It
 fetches a compatible signed package for your miner and app automatically: no
 manual JSON download. After one confirmation it drains current jobs, updates the
 same VM, waits for verified attestation, reactivates previously enabled keys,
