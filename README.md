@@ -89,7 +89,7 @@ Checksums detect corrupted or mismatched downloads; they are not independent
 publisher signatures. The installer and updater trust this GitHub repository
 and HTTPS.
 
-## Guided setup and command help (v0.3.2)
+## Guided setup and command help (v0.3.3)
 
 For a new miner, use the interactive wizard:
 
