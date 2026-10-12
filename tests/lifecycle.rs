@@ -262,6 +262,55 @@ fn health_never_hides_an_optional_saved_provider_release_mismatch() {
     );
 }
 impl Rig {
+    fn staged_update(&self, accepting: bool, activated: bool) -> Value {
+        self.deploy().unwrap();
+        let mut d = self.state().read("deployment", false).unwrap();
+        d["phase"] = json!(if activated {
+            "running"
+        } else {
+            "awaiting_attestation"
+        });
+        d["providerConfigured"] = json!(activated);
+        self.state().write("deployment", &d).unwrap();
+        let mut inv = self.inv.clone();
+        inv["release"] = json!("test-release-2");
+        inv["appId"] = self.info.borrow()["app_id"].clone();
+        inv["previousComposeHash"] = inv["composeHash"].clone();
+        let compose = &mut inv["request"]["compose_file"];
+        compose["docker_compose_file"] = json!(
+            compose["docker_compose_file"]
+                .as_str()
+                .unwrap()
+                .replace(&"a".repeat(64), &"b".repeat(64))
+        );
+        inv["composeHash"] = json!(cloud::compose_hash(&inv["request"]["compose_file"]).unwrap());
+        let envelope = self.sign(&inv);
+        let mut status = self.status.borrow_mut();
+        status["draining"] = json!(!accepting);
+        status["routingEnabled"] = json!(true);
+        status["update"] = json!({"state":"available","release":envelope});
+        status["sessionExpires"] = json!(now() + 60000);
+        self.calls.borrow_mut().clear();
+        self.envs.borrow_mut().clear();
+        envelope
+    }
+    fn advance_update(&self, stage: &str, envelope: &Value) -> bool {
+        match stage {
+            "draining" => self.status.borrow_mut()["activeJobs"] = json!(0),
+            "applying" => {
+                self.info.borrow_mut()["compose_hash"] = envelope["value"]["composeHash"].clone()
+            }
+            "attesting" | "readmitting" => {
+                let mut status = self.status.borrow_mut();
+                status["composeHash"] = envelope["value"]["composeHash"].clone();
+                status["attestation"]["at"] =
+                    json!(now().max(status["attestation"]["at"].as_i64().unwrap()) + 2);
+                status["sessionExpires"] = json!(now() + 60000);
+            }
+            _ => panic!("unexpected wait: {stage}"),
+        }
+        true
+    }
     fn new() -> Self {
         let dir = common::tempdir();
         let key = Keys::default();
@@ -315,6 +364,327 @@ impl Rig {
             .into()
     }
 }
+#[test]
+fn automatic_worker_update_restores_accepting_paused_and_unactivated_states() {
+    for (accepting, activated) in [(true, true), (false, true), (false, false)] {
+        let r = Rig::new();
+        let envelope = r.staged_update(accepting, activated);
+        r.status.borrow_mut()["activeJobs"] = json!(2);
+        let offers = r.status.borrow()["offers"].clone();
+        let confirms = std::cell::Cell::new(0);
+        let waits = std::cell::Cell::new(0);
+        let out = r
+            .miner()
+            .worker_update_with_wait(
+                false,
+                &|_| {
+                    confirms.set(confirms.get() + 1);
+                    Ok(())
+                },
+                &|_| {},
+                &|stage| {
+                    waits.set(waits.get() + 1);
+                    assert!(waits.get() < 10);
+                    r.advance_update(stage, &envelope)
+                },
+            )
+            .unwrap();
+        assert_eq!(out["state"], "complete");
+        assert_eq!(out["accepting"], accepting);
+        assert_eq!(out["keysReactivated"], activated);
+        assert_eq!(confirms.get(), 1);
+        assert_eq!(r.status.borrow()["draining"], !accepting);
+        assert_eq!(r.status.borrow()["offers"], offers);
+        assert_eq!(
+            r.state().read("worker-update", false).unwrap()["stage"],
+            "complete"
+        );
+        assert_eq!(
+            r.phase(),
+            if accepting {
+                "running"
+            } else if activated {
+                "drained"
+            } else {
+                "awaiting_attestation"
+            }
+        );
+        let calls = r.calls.borrow();
+        assert_eq!(
+            calls
+                .iter()
+                .filter(|(p, _)| p.ends_with("/compose_file") && p.starts_with("PATCH"))
+                .count(),
+            1
+        );
+        assert_eq!(
+            calls.iter().filter(|(p, _)| p.ends_with("/envs")).count(),
+            usize::from(activated)
+        );
+        assert!(!calls.iter().any(|(p, _)| p.ends_with("/cvms")
+            || p.ends_with("/cvms/provision")
+            || p.ends_with("/offer")));
+        assert!(!out.to_string().contains("synthetic"));
+    }
+}
+
+#[test]
+fn automatic_update_check_and_declined_confirmation_are_read_only() {
+    let r = Rig::new();
+    r.staged_update(true, true);
+    let before = r.state().read("deployment", false).unwrap();
+    let check = r
+        .miner()
+        .worker_update_with_wait(
+            true,
+            &|_| panic!("check must not confirm"),
+            &|_| {},
+            &|_| panic!(),
+        )
+        .unwrap();
+    assert_eq!(check["state"], "available");
+    assert!(r.calls.borrow().iter().all(|(p, _)| p.starts_with("GET")));
+    assert!(r.state().read("worker-update", true).unwrap().is_null());
+    assert_eq!(
+        r.miner()
+            .worker_update_with_wait(
+                false,
+                &|_| Err(Error("confirmation_declined")),
+                &|_| {},
+                &|_| panic!()
+            )
+            .unwrap_err()
+            .0,
+        "confirmation_declined"
+    );
+    assert_eq!(r.state().read("deployment", false).unwrap(), before);
+    assert_eq!(r.status.borrow()["draining"], false);
+}
+
+#[test]
+fn automatic_update_waits_for_jobs_and_can_be_rerun_without_reapplying() {
+    let r = Rig::new();
+    let envelope = r.staged_update(true, true);
+    r.status.borrow_mut()["activeJobs"] = json!(1);
+    let out = r
+        .miner()
+        .worker_update_with_wait(false, &|_| Ok(()), &|_| {}, &|_| false)
+        .unwrap();
+    assert_eq!(out["stage"], "draining");
+    assert!(r.envs.borrow().is_empty());
+    r.status.borrow_mut()["activeJobs"] = json!(0);
+    let out = r
+        .miner()
+        .worker_update_with_wait(false, &|_| Ok(()), &|_| {}, &|stage| {
+            if stage == "attesting" {
+                false
+            } else {
+                r.advance_update(stage, &envelope)
+            }
+        })
+        .unwrap();
+    assert_eq!(out["stage"], "attesting");
+    assert_eq!(r.envs.borrow().len(), 1); // Disabled keys only; old attestation cannot activate.
+    let out = r
+        .miner()
+        .worker_update_with_wait(false, &|_| Ok(()), &|_| {}, &|stage| {
+            r.advance_update(stage, &envelope)
+        })
+        .unwrap();
+    assert_eq!(out["state"], "complete");
+    assert_eq!(
+        r.calls
+            .borrow()
+            .iter()
+            .filter(|(p, _)| p.starts_with("PATCH") && p.ends_with("/compose_file"))
+            .count(),
+        1
+    );
+}
+
+#[test]
+fn automatic_update_does_not_replay_ambiguous_cloud_mutations() {
+    for failure in ["/compose_file/provision", "/compose_file", "/envs"] {
+        let r = Rig::new();
+        let envelope = r.staged_update(true, true);
+        *r.fail.borrow_mut() = failure.into();
+        let result = r
+            .miner()
+            .worker_update_with_wait(false, &|_| Ok(()), &|_| {}, &|stage| {
+                r.advance_update(stage, &envelope)
+            });
+        assert!(result.is_err());
+        *r.fail.borrow_mut() = String::new();
+        r.calls.borrow_mut().clear();
+        let result = r
+            .miner()
+            .worker_update_with_wait(false, &|_| Ok(()), &|_| {}, &|stage| {
+                r.advance_update(stage, &envelope)
+            });
+        if failure == "/compose_file" {
+            assert_eq!(result.unwrap()["state"], "complete");
+        } else {
+            assert_eq!(result.unwrap_err().0, "worker_update_uncertain_operation");
+        }
+        assert!(
+            !r.calls
+                .borrow()
+                .iter()
+                .any(|(p, _)| !p.starts_with("GET") && p.ends_with(failure)),
+            "{failure}"
+        );
+    }
+}
+
+#[test]
+fn automatic_update_rejects_tampered_or_wrong_target_packages_before_draining() {
+    for field in [
+        "appId",
+        "minerId",
+        "previousComposeHash",
+        "osImageHash",
+        "expiresAt",
+        "signature",
+    ] {
+        let r = Rig::new();
+        let mut envelope = r.staged_update(true, true);
+        if field == "signature" {
+            envelope["signature"] = json!("bad");
+        } else {
+            envelope["value"][field] = match field {
+                "expiresAt" => json!(now() - 1),
+                "minerId" => json!("other"),
+                "appId" => json!("2".repeat(40)),
+                _ => json!("f".repeat(64)),
+            };
+            envelope = r.sign(&envelope["value"]);
+        }
+        r.status.borrow_mut()["update"]["release"] = envelope;
+        assert!(
+            r.miner()
+                .worker_update_with_wait(
+                    false,
+                    &|_| panic!("invalid update must not confirm"),
+                    &|_| {},
+                    &|_| panic!()
+                )
+                .is_err(),
+            "{field}"
+        );
+        assert!(r.calls.borrow().iter().all(|(p, _)| p.starts_with("GET")));
+        assert!(r.state().read("worker-update", true).unwrap().is_null());
+    }
+}
+
+#[test]
+fn automatic_update_unavailable_and_current_are_not_claims_of_readiness() {
+    let r = Rig::new();
+    let envelope = r.staged_update(false, true);
+    r.status.borrow_mut()["update"] = json!({"state":"unavailable"});
+    let out = r
+        .miner()
+        .worker_update_with_wait(false, &|_| panic!(), &|_| {}, &|_| panic!())
+        .unwrap();
+    assert_eq!(out["state"], "unavailable");
+    assert_eq!(out["ok"], false);
+    let mut config = r.state().read("config", false).unwrap();
+    config["invitation"] = envelope.clone();
+    r.state().write("config", &config).unwrap();
+    r.info.borrow_mut()["compose_hash"] = envelope["value"]["composeHash"].clone();
+    r.status.borrow_mut()["update"] = json!({"state":"current","release":envelope});
+    let out = r
+        .miner()
+        .worker_update_with_wait(false, &|_| panic!(), &|_| {}, &|_| panic!())
+        .unwrap();
+    assert_eq!(out["state"], "current");
+    assert!(out["next"].as_str().unwrap().contains("health"));
+    assert!(r.calls.borrow().iter().all(|(p, _)| p.starts_with("GET")));
+}
+
+#[test]
+fn automatic_update_requires_fresh_session_and_never_overrides_admin_disable() {
+    for disabled in [false, true] {
+        let r = Rig::new();
+        let envelope = r.staged_update(true, true);
+        let out = r
+            .miner()
+            .worker_update_with_wait(false, &|_| Ok(()), &|_| {}, &|stage| {
+                if stage == "attesting" {
+                    r.advance_update(stage, &envelope);
+                    if disabled {
+                        r.status.borrow_mut()["enabled"] = json!(false);
+                    } else {
+                        r.status.borrow_mut()["sessionExpires"] = json!(now() - 1);
+                    }
+                    return false;
+                }
+                r.advance_update(stage, &envelope)
+            })
+            .unwrap();
+        assert_eq!(out["stage"], "attesting");
+        let resumed = r
+            .miner()
+            .worker_update_with_wait(false, &|_| Ok(()), &|_| {}, &|_| false);
+        if disabled {
+            assert_eq!(resumed.unwrap_err().0, "worker_update_miner_disabled");
+        } else {
+            assert_eq!(resumed.unwrap()["stage"], "attesting");
+        }
+        assert_eq!(r.envs.borrow().len(), 1);
+        assert_eq!(r.status.borrow()["draining"], true);
+        assert!(!r.calls.borrow().iter().any(|(p, _)| p.ends_with("/resume")));
+    }
+}
+
+#[test]
+fn automatic_update_graceful_interrupt_saves_state_and_releases_profile_lock() {
+    // A separate test-process is used so the signal handler cannot affect any
+    // concurrently running lifecycle test.
+    const MARKER: &str = "EVERYFRAME_WORKER_UPDATE_SIGNAL_TEST";
+    if std::env::var_os(MARKER).is_some() {
+        let r = Rig::new();
+        r.staged_update(true, true);
+        let out = r
+            .miner()
+            .worker_update(false, &|_| Ok(()), &|message| {
+                if message.starts_with("Applying") {
+                    unsafe {
+                        libc::raise(libc::SIGINT);
+                    }
+                }
+            })
+            .unwrap();
+        assert_eq!(out["state"], "waiting");
+        assert_ne!(
+            r.state().read("worker-update", false).unwrap()["stage"],
+            "complete"
+        );
+        assert!(!r.path().join("operation.lock").exists());
+        assert!(
+            r.calls
+                .borrow()
+                .iter()
+                .filter(|(p, _)| p.starts_with("PATCH") && p.ends_with("/compose_file"))
+                .count()
+                <= 1
+        );
+        return;
+    }
+    let out = std::process::Command::new(std::env::current_exe().unwrap())
+        .args([
+            "--exact",
+            "automatic_update_graceful_interrupt_saves_state_and_releases_profile_lock",
+            "--nocapture",
+        ])
+        .env(MARKER, "1")
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stdout)
+    );
+}
 impl Http for Rig {
     fn bytes(&self, r: Request) -> Result<Vec<u8>> {
         let u = url::Url::parse(&r.url).unwrap();
@@ -357,7 +727,7 @@ impl Http for Rig {
                 );
             }
             let action = path.rsplit('/').next().unwrap();
-            let nonce = if action == "status" {
+            let nonce = if ["status", "worker-update"].contains(&action) {
                 u.query_pairs()
                     .find(|(k, _)| k == "nonce")
                     .unwrap()

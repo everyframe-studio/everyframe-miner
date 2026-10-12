@@ -212,7 +212,16 @@ impl Miner<'_> {
     }
     pub fn api(&self, c: &Context, action: &str, payload: Value) -> Result<Value> {
         need(
-            ["status", "drain", "resume", "offer", "bind-app", "balances"].contains(&action),
+            [
+                "status",
+                "drain",
+                "resume",
+                "offer",
+                "bind-app",
+                "balances",
+                "worker-update",
+            ]
+            .contains(&action),
             "unsupported_action",
         )?;
         let nonce = id();
@@ -223,7 +232,7 @@ impl Miner<'_> {
         );
         r.limit = 100000;
         let mut auth_body = Value::Null;
-        if action == "status" {
+        if ["status", "worker-update"].contains(&action) {
             r.url += &format!("?nonce={nonce}")
         } else {
             let mut body = payload;
@@ -799,6 +808,13 @@ impl Miner<'_> {
     }
     fn activate_keys(&self, confirm: &dyn Fn(&str) -> Result<()>, refresh: bool) -> Result<Value> {
         let _lock = self.state.lock()?;
+        self.activate_keys_locked(confirm, refresh)
+    }
+    pub(crate) fn activate_keys_locked(
+        &self,
+        confirm: &dyn Fn(&str) -> Result<()>,
+        refresh: bool,
+    ) -> Result<Value> {
         let c = self.load(true)?;
         need(
             if refresh {
@@ -848,6 +864,9 @@ impl Miner<'_> {
     }
     pub fn resume(&self, confirm: &dyn Fn(&str) -> Result<()>) -> Result<Value> {
         let _lock = self.state.lock()?;
+        self.resume_locked(confirm)
+    }
+    pub(crate) fn resume_locked(&self, confirm: &dyn Fn(&str) -> Result<()>) -> Result<Value> {
         let c = self.load(true)?;
         let phase = s(&c.deployment["phase"])?;
         need(
@@ -958,12 +977,25 @@ impl Miner<'_> {
     }
     pub fn update(&self, envelope: &Value, confirm: &dyn Fn(&str) -> Result<()>) -> Result<Value> {
         let _lock = self.state.lock()?;
+        self.update_locked(envelope, confirm)
+    }
+    pub(crate) fn update_locked(
+        &self,
+        envelope: &Value,
+        confirm: &dyn Fn(&str) -> Result<()>,
+    ) -> Result<Value> {
         let c = self.load(false)?;
         let inv = self.validate(envelope, false)?;
         let old = &c.invitation;
         let d = &c.deployment;
         need(
-            ["running", "awaiting_attestation", "awaiting_readmission"].contains(&s(&d["phase"])?),
+            [
+                "running",
+                "drained",
+                "awaiting_attestation",
+                "awaiting_readmission",
+            ]
+            .contains(&s(&d["phase"])?),
             "update_not_ready",
         )?;
         need(
@@ -1031,6 +1063,9 @@ impl Miner<'_> {
     }
     pub fn reconcile(&self) -> Result<Value> {
         let _lock = self.state.lock()?;
+        self.reconcile_locked()
+    }
+    pub(crate) fn reconcile_locked(&self) -> Result<Value> {
         let c = self.load(false)?;
         need(
             c.deployment["appId"].is_string(),

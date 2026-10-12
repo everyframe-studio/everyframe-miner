@@ -98,7 +98,7 @@ pub fn provider_check_detail(allowed: bool) -> &'static str {
     if allowed {
         "Key saved locally and permitted by the signed release. This does not verify the key or confirm it is installed on the running worker."
     } else {
-        "Key saved locally, but this signed deployment does not permit it. A signed worker update supporting this provider is required; updating everycli alone is not enough. This is not a rejected API key. Existing permitted providers can continue serving. Do not redeploy."
+        "Key saved locally, but this signed deployment does not permit it. A signed worker update supporting this provider is required; updating everycli alone is not enough. Run everycli worker-update --check to look for a compatible update, then everycli worker-update to install it. This is not a rejected API key. Existing permitted providers can continue serving. Do not redeploy."
     }
 }
 pub fn validate(envelope: &Value, t: &Value, now: i64, allow_expired: bool) -> Result<Value> {

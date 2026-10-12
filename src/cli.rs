@@ -50,7 +50,7 @@ pub struct Args {
     pub options: HashMap<String, String>,
     pub flags: Vec<String>,
 }
-pub const UPDATE_HELP: &str = "\nCLI upgrades (no login required):\n  everycli update          Install the latest stable CLI\n  everycli update --check  Check without installing\nWorker upgrades: everycli worker-update --release FILE\nCLI upgrades never update the deployed worker.\n";
+pub const UPDATE_HELP: &str = "\nCLI upgrades (no login required):\n  everycli update          Install the latest stable CLI\n  everycli update --check  Check without installing\nWorker upgrades:\n  everycli worker-update          Discover, update and restore previous state\n  everycli worker-update --check  Check without updating\n  everycli worker-update --release FILE  Advanced manual flow\nCLI upgrades never update the deployed worker.\n";
 const VALUE_OPTIONS: &[&str] = &[
     "--network",
     "--state-dir",
@@ -242,7 +242,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
         "remove-api-key" => vec!["--provider"],
         "balances" => vec!["--publish"],
         "offer" => vec!["--model", "--discount-pct", "--withdraw"],
-        "update" => vec!["--release"],
+        "update" => vec!["--release", "--check"],
         "stop" => vec!["--drain-only"],
         _ => vec![],
     };
@@ -378,7 +378,10 @@ pub fn validate_args(args: &Args) -> Result<()> {
             }
         }
         "update" => {
-            args.required("--release")?;
+            need(
+                !(args.flag("--check") && args.get("--release").is_some()),
+                "worker_update_conflicting_options",
+            )?;
         }
         "remove-api-key" => {
             onboarding::credential_key(args.required("--provider")?)?;
@@ -746,10 +749,17 @@ pub fn run(args: &Args) -> Result<Value> {
         "activate" => miner.activate(&confirm),
         "resume" => miner.resume(&confirm),
         "stop" => miner.stop(args.flag("--drain-only"), &confirm),
-        "update" => miner.update(
-            &read_json(Path::new(args.required("--release")?), false)?,
-            &confirm,
-        ),
+        "update" => {
+            if let Some(file) = args.get("--release") {
+                miner.update(&read_json(Path::new(file), false)?, &confirm)
+            } else {
+                miner.worker_update(args.flag("--check"), &confirm, &|message| {
+                    if !args.flag("--json") {
+                        eprintln!("{message}");
+                    }
+                })
+            }
+        }
         "reconcile" => miner.reconcile(),
         _ => Err(Error("unknown_command")),
     }

@@ -127,9 +127,9 @@ pub fn render(command: &str) -> String {
             "resume",
         ),
         "worker-update" => (
-            "Apply an approved signed worker release. This does not upgrade the CLI; preserve state and reconcile uncertain operations.",
-            "  --release FILE  Required signed worker release",
-            "worker-update --release ./worker-release.json",
+            "Fetch the latest compatible signed worker update, drain jobs, update the existing VM, wait for attestation and restore its previous accepting/paused state. Previously active keys are reactivated. Offers and discounts stay unchanged. Rerun to continue a saved update; uncertain cloud mutations are never blindly repeated. Use the original management profile. This does not upgrade the CLI.",
+            "  --check         Check availability without changing the worker\n  --release FILE  Advanced: apply an explicit signed file (manual reconcile/activation)",
+            "worker-update",
         ),
         "stop" => (
             "Drain work and stop the existing worker after confirmation. Stopped workloads may retain billable storage.",

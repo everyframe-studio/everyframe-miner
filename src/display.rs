@@ -326,6 +326,21 @@ pub fn render(command: &str, value: &Value) -> String {
     }
     let rows = |key: &str| value[key].as_array().cloned().unwrap_or_default();
     match command {
+        "update" => format!(
+            "Worker update — {}\n{}{}\n{}\n",
+            text(value.get("state").unwrap_or(&value["phase"])),
+            value["release"]
+                .as_str()
+                .map(|v| format!("Release: {}\n", crate::cli_errors::clean(v)))
+                .unwrap_or_default(),
+            value["reason"]
+                .as_str()
+                .map(|v| format!("{}\n", crate::cli_errors::clean(v)))
+                .unwrap_or_default(),
+            value["next"]
+                .as_str()
+                .unwrap_or("Run everycli status to inspect the worker.")
+        ),
         "health" => health_table(value),
         "status" => status_table(value),
         "setup" if value["nextSteps"].is_array() => {
