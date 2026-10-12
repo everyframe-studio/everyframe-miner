@@ -21,6 +21,7 @@ fn every_miner_command_is_top_level_with_legacy_equivalence() {
         "remove-api-key",
         "apply-api-keys",
         "doctor",
+        "health",
         "status",
         "providers",
         "balances",

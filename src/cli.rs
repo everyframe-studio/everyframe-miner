@@ -17,7 +17,7 @@ pub const HELP: &str = "everycli · EveryFrame miner tools
 Usage: everycli COMMAND [options]
 
 Setup: setup (guided), register-hotkey, set-api-keys, remove-api-key, init
-Manage: doctor, status, providers, balances, offers, offer, earnings, deploy, activate,
+Manage: health, doctor, status, providers, balances, offers, offer, earnings, deploy, activate,
         apply-api-keys, resume, worker-update, stop, start, reconcile
 
 Options:
@@ -197,6 +197,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
             "remove-api-key",
             "apply-api-keys",
             "doctor",
+            "health",
             "status",
             "providers",
             "balances",
@@ -582,6 +583,7 @@ pub fn run(args: &Args) -> Result<Value> {
         "providers",
         "status",
         "doctor",
+        "health",
     ]
     .contains(&args.command.as_str())
     {
@@ -718,6 +720,7 @@ pub fn run(args: &Args) -> Result<Value> {
             miner.init(&envelope, &credentials)
         }
         "doctor" => miner.doctor(),
+        "health" => miner.health(),
         "status" => miner.status(),
         "providers" => miner.providers(),
         "balances" => miner.balances(args.flag("--publish")),
@@ -790,13 +793,19 @@ pub fn main_entry() -> i32 {
             if json_mode {
                 out.to_string()
             } else {
-                crate::display::render(&a.command, &out)
+                crate::display::render_with_color(
+                    &a.command,
+                    &out,
+                    io::stdout().is_terminal()
+                        && std::env::var_os("NO_COLOR").is_none()
+                        && std::env::var("TERM").as_deref() != Ok("dumb"),
+                )
             }
         );
         Ok(
             if out["ok"] == false
                 || (a.command == "register-hotkey" && out["registered"] != true)
-                || (a.command == "doctor" && out["ok"] != true)
+                || (["doctor", "health"].contains(&a.command.as_str()) && out["ok"] != true)
                 || (a.command == "status"
                     && (out["ok"] == false
                         || !out["coordinatorError"].is_null()

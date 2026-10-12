@@ -356,6 +356,12 @@ impl Miner<'_> {
         Ok(out)
     }
     pub fn doctor(&self) -> Result<Value> {
+        self.diagnose(false)
+    }
+    pub fn health(&self) -> Result<Value> {
+        self.diagnose(true)
+    }
+    fn diagnose(&self, health: bool) -> Result<Value> {
         let c = match self.load(false) {
             Ok(c) => c,
             Err(e) => {
@@ -366,6 +372,7 @@ impl Miner<'_> {
         };
         let inv = &c.invitation;
         let providers = invitation::provider_summary(inv, &c.credentials);
+        let mut snapshot = Value::Null;
         let mut checks = vec![];
         let mut add = |name: &str, ok: bool, detail: &str| {
             checks.push(json!({"name":name,"ok":ok,"detail":detail}))
@@ -429,6 +436,7 @@ impl Miner<'_> {
         );
         match self.api(&c, "status", json!({})) {
             Ok(v) => {
+                snapshot = v.clone();
                 add(
                     "Coordinator",
                     true,
@@ -455,7 +463,13 @@ impl Miner<'_> {
                 add(
                     "Accepting new work",
                     v["routingEnabled"] == true && v["draining"] == false,
-                    "Routing can intentionally be disabled.",
+                    if v["routingEnabled"] != true {
+                        "Coordinator routing is disabled or unreported. Inspect everycli status."
+                    } else if v["draining"] != false {
+                        "Miner is draining or paused. Review everycli health before choosing to resume provider-billed work."
+                    } else {
+                        "Routing enabled and miner is not draining."
+                    },
                 );
                 if v["routingPolicy"] == "discount-lottery-v1" {
                     add(
@@ -464,7 +478,7 @@ impl Miner<'_> {
                             a.iter()
                                 .any(|o| o["offered"] == true && o["pricingCurrent"] == true)
                         }),
-                        "Declare a current model offer.",
+                        "At least one active offer with current pricing is required. Use everycli offers to review bids and model readiness.",
                     )
                 };
                 if !c.deployment["appId"].is_null() {
@@ -508,7 +522,17 @@ impl Miner<'_> {
                 },
             ),
         };
-        Ok(json!({"ok":checks.iter().all(|c|c["ok"]==true),"checks":checks}))
+        if health {
+            checks.extend(crate::health::runtime_checks(&snapshot, now()));
+            Ok(json!({
+                "ok":checks.iter().all(|c|c["ok"]==true),"checks":checks,
+                "minerId":inv["minerId"],"network":inv["network"],"netuid":inv["netuid"],
+                "checkedAt":now(),"activity":crate::health::activity(&snapshot),
+                "generationSubmitted":false
+            }))
+        } else {
+            Ok(json!({"ok":checks.iter().all(|c|c["ok"]==true),"checks":checks}))
+        }
     }
     pub fn providers(&self) -> Result<Value> {
         self.state.prepare()?;
