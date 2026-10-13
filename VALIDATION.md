@@ -1,4 +1,45 @@
-# Validation — 2026-09-30
+# Validation
+
+## v0.4.0 public worker and website verification — 13 October 2026
+
+The published v0.4.0 CLI and signed worker update were exercised through the
+normal public commands on an existing owner miner (SN117 UID 127). The same VM
+was retained: CLI update, provider-key setup, worker-update discovery and apply,
+fresh hardware-verified attestation, explicit model offers, resume and doctor.
+The coordinator's shared public upgrade implementation passed 158 local tests.
+
+Two clearly labeled operator-funded requests were submitted by clicking Generate
+on app.everyframe.studio using an authorized test account:
+
+| Path | Accepted output | Website completion time |
+|---|---|---:|
+| H3 Max Turbo, portrait, 5 seconds, 768p | 768×1344 H.264/AAC, 5.184 seconds | about 12.6 seconds |
+| Grok Imagine Image, portrait | 720×1280 JPEG | about 15.4 seconds |
+
+Both completed through the miner, with accepted signed receipts and verified
+worker-output hashes, without direct fallback. Website delivery can remux video
+or resize images after acceptance; derivative hashes are not receipt hashes.
+These timings are completed-delivery observations, not first-frame latency or
+an SLA. They do not validate all 27 priced contracts, all settings, or all miners.
+
+An earlier video attempt used direct fallback and is **not** a miner pass. It
+exposed obsolete owner-specific test isolation/deadline guards. Those restrictions
+were removed for this owner only; other miner restrictions, TEE checks and the
+daily budget guard were retained. Green readiness alone does not prove delivery.
+
+The three website requests consumed 66 credits; the conservative provider estimate
+was $0.42, not a reconciled provider invoice. No outputs were published to the
+gallery, and these tests were not marked reward-eligible. No alpha payment was
+verified. The miner was returned to its previous paused state and the temporary
+offers were withdrawn; the pre-existing VM remained running and billable.
+
+**Known billing issue:** a 10% bid reduced the miner serving value from $0.20 to
+$0.18, but the successful video still cost the customer 30 credits rather than
+27. Customer-credit pass-through remains unresolved.
+
+## Historical validation — 30 September 2026
+
+The sections below are dated experiment records, not current release status.
 
 ## v0.1.1 release fix
 

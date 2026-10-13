@@ -1,5 +1,15 @@
 # Compatibility
 
+Current v0.4.0 adds 11 settings-bound Studio video contracts and 12 Studio media
+contracts alongside the 46 legacy contracts. Their IDs, signed settings and
+explicit offers are separate from the legacy routes; a legacy text-only offer
+does not authorize reference, image or audio jobs. Updating the CLI alone does
+not change a deployed worker's permissions. Public compatible updates preserve
+the existing VM and require fresh verified attestation before permissions expand.
+See [current live verification and limitations](VALIDATION.md#v040-public-worker-and-website-verification--13-october-2026).
+
+The notes below describe the original port and incremental compatibility changes.
+
 Ported from `codex/github-preparation/everyframe-miner`, worker protocol v1 and
 Python `everycli` 0.5.0. The original repository remains separate and unchanged.
 Package versions are independent of the original CLI. v0.1.3 adds hotkey-backed
