@@ -11,10 +11,29 @@ the older namespace remain compatible. `everycli update` upgrades the CLI;
 `everycli worker-update` updates the existing worker using its latest compatible
 signed release (one-command flow in v0.3.7 and later).
 
-This repository includes the worker, the CLI with built-in updates, 46 model
-contracts, and ten provider adapters. Available jobs depend on the coordinator's
+This repository includes the worker, the CLI with built-in updates, 46 legacy
+contracts, 11 flexible Studio video contracts, 12 Studio media contracts,
+and ten provider adapters. Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
+
+### v0.4.0 media coverage
+
+The new worker supports H3 Max image/video/audio references, including measured
+video frame counts for input-cost estimates; all seven Studio image models
+(with ordered references and Ideogram precision masks); and ElevenLabs voice-over
+and sound effects, MiniMax Music 3, and Stable Audio 2.5 instrumental scores.
+Image models use Fal or OpenRouter; these audio models use Fal.
+
+Run `everycli update`, then `everycli worker-update` to update the existing
+workload. Updating the CLI alone does not change a running worker. Check
+`everycli offers --json`, review the settings-specific price estimates, and
+declare offers for the new `studio/media/` models you want to serve.
+The new contracts require their own accepted offers; existing discounts are not
+automatically copied. Routing also requires fresh attestation, credentials,
+capacity, and budget. Local tools, unsupported models and unavailable miners may
+still use the app's direct fallback; this is not a promise that all app traffic
+will reach miners. Never deploy a second workload just to upgrade.
 
 ## Install everycli as a miner
 

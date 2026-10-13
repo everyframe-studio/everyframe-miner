@@ -215,6 +215,78 @@ impl<'a> Router<'a> {
         };
         Ok(if p == "fal" { r } else { format!("{p}_{r}") })
     }
+    fn media_submit(&mut self, spec: &Value, p: &str) -> Result<String> {
+        use base64::{Engine, engine::general_purpose::STANDARD};
+        let checked = crate::studio_media::references(self.http, spec)?;
+        // Inline exactly the verified bytes for synchronous image APIs. Fal's
+        // video queue receives immutable owned attachment URLs after hashing.
+        let urls = checked
+            .iter()
+            .map(|(a, b)| {
+                if p == "openrouter" {
+                    format!(
+                        "data:{};base64,{}",
+                        a["mime"].as_str().unwrap(),
+                        STANDARD.encode(b)
+                    )
+                } else {
+                    a["url"].as_str().unwrap().to_string()
+                }
+            })
+            .collect::<Vec<_>>();
+        let (path, body) = crate::studio_media::body(spec, &urls)?;
+        if p == "fal" {
+            return reference(&self.api(p, &path, Some(&body))?["request_id"]);
+        }
+        need(p == "openrouter", "unsupported_provider")?;
+        self.speech = None;
+        let mut req = Request::get(format!("https://openrouter.ai{path}"), &["openrouter.ai"])
+            .json("POST", &body);
+        req.headers.extend(self.auth(p)?);
+        req.timeout = 300;
+        req.limit = 40 * 1024 * 1024;
+        let data = self.http.json(req)?;
+        need(data.get("error").is_none(), "provider_rejected")?;
+        let media = if path == "/api/v1/images" {
+            need(
+                data["data"].as_array().is_some_and(|a| a.len() == 1),
+                "provider_no_media",
+            )?;
+            STANDARD
+                .decode(s(&data["data"][0]["b64_json"])?)
+                .map_err(|_| Error("invalid_provider_media"))?
+        } else {
+            let images = &data["choices"][0]["message"]["images"];
+            need(
+                images.as_array().is_some_and(|a| a.len() == 1),
+                "provider_no_media",
+            )?;
+            let uri = s(&images[0]["image_url"]["url"])?;
+            let (prefix, encoded) = uri.split_once(',').ok_or(Error("invalid_provider_media"))?;
+            need(
+                [
+                    "data:image/png;base64",
+                    "data:image/jpeg;base64",
+                    "data:image/webp;base64",
+                ]
+                .contains(&prefix),
+                "invalid_provider_media",
+            )?;
+            STANDARD
+                .decode(encoded)
+                .map_err(|_| Error("invalid_provider_media"))?
+        };
+        need(
+            !media.is_empty() && media.len() <= 20 * 1024 * 1024,
+            "invalid_media_size",
+        )?;
+        let local = format!("openrouter_sync_{}", id());
+        let hash = digest(
+            &json!({"inputHash":digest(spec)?,"outputHash":sha(&media),"responseId":data["id"],"localId":local}),
+        )?;
+        self.speech = Some((local.clone(), digest(spec)?, media, hash));
+        Ok(local)
+    }
     fn read(&self, r: &str, spec: &Value, m: &Value, p: &str) -> Result<Value> {
         let model = m["apiModel"].as_str().unwrap_or("");
         let data = match p {
@@ -422,6 +494,9 @@ impl Provider for Router<'_> {
     }
     fn submit(&mut self, spec: &Value) -> Result<String> {
         let (m, p) = self.context(spec)?;
+        if s(&spec["model"])?.starts_with("studio/media/") {
+            return self.media_submit(spec, &p);
+        }
         if s(&spec["model"])?.starts_with("studio/") {
             return self.studio_submit(spec, &p);
         }
@@ -542,15 +617,57 @@ impl Provider for Router<'_> {
     }
     fn poll(&mut self, r: &str, spec: &Value) -> Result<String> {
         let (m, p) = self.context(spec)?;
+        if r.starts_with("openrouter_sync_") {
+            need(
+                p == "openrouter" && m["kind"] == "image",
+                "provider_ref_namespace",
+            )?;
+            need(
+                self.speech
+                    .as_ref()
+                    .is_some_and(|(id, h, _, _)| id == r && digest(spec).is_ok_and(|d| d == *h)),
+                "synchronous_result_unavailable",
+            )?;
+            return Ok("COMPLETED".into());
+        }
         let r = self.native(r, &p)?;
         Ok(Self::state(&p, &self.read(r, spec, m, &p)?)?.into())
     }
     fn result(&mut self, r: &str, spec: &Value) -> Result<Output> {
         let (m, p) = self.context(spec)?;
+        if r.starts_with("openrouter_sync_") {
+            need(
+                p == "openrouter" && m["kind"] == "image",
+                "provider_ref_namespace",
+            )?;
+            let (id, h, media, hash) = self
+                .speech
+                .as_ref()
+                .ok_or(Error("synchronous_result_unavailable"))?;
+            need(id == r && *h == digest(spec)?, "provider_input_mismatch")?;
+            return Ok(Output {
+                media: media.clone(),
+                response_hash: hash.clone(),
+            });
+        }
         let r = self.native(r, &p)?;
         if p == "fal" {
             let data = self.api(&p, &format!("/{}/requests/{r}", s(&m["app"])?), None)?;
-            let media = self.download(s(&data["video"]["url"])?, &["*.fal.media"], None, &[])?;
+            let url = match m["kind"].as_str() {
+                Some("image") => {
+                    need(
+                        data["images"].as_array().is_some_and(|a| a.len() == 1),
+                        "provider_no_media",
+                    )?;
+                    s(&data["images"][0]["url"])?
+                }
+                Some("audio") => data["audio"]
+                    .as_str()
+                    .or_else(|| data["audio"]["url"].as_str())
+                    .ok_or(Error("provider_no_media"))?,
+                _ => s(&data["video"]["url"])?,
+            };
+            let media = self.download(url, &["*.fal.media"], None, &[])?;
             return Ok(Output {
                 media,
                 response_hash: sha(data.to_string()),

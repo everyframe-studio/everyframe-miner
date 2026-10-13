@@ -6,12 +6,21 @@ use crate::{
 use serde_json::{Value, json};
 use std::sync::LazyLock;
 pub const DEFAULT_MODEL: &str = "minimax/h3-max-turbo/text-to-video";
-pub const MAX_MEDIA: usize = 50 * 1024 * 1024;
+pub const MAX_MEDIA: usize = 64 * 1024 * 1024;
 pub static MODELS: LazyLock<Value> = LazyLock::new(|| {
     serde_json::from_str(include_str!("../config/models.json"))
         .expect("embedded reviewed model registry")
 });
-pub static STUDIO_MODELS: LazyLock<Value> = LazyLock::new(crate::studio_video::model_registry);
+pub static STUDIO_MODELS: LazyLock<Value> = LazyLock::new(|| {
+    let mut models = crate::studio_video::model_registry();
+    models.as_object_mut().unwrap().extend(
+        crate::studio_media::model_registry()
+            .as_object()
+            .unwrap()
+            .clone(),
+    );
+    models
+});
 pub fn info(id: &str) -> Result<&'static Value> {
     MODELS
         .get(id)
@@ -37,7 +46,11 @@ pub fn spec(v: &Value) -> Result<Value> {
             .ok_or(Error("invalid_fields"))?
             .remove("model");
         let value = json!({"model":model,"input":input});
-        crate::studio_video::check(&value)?;
+        if model.starts_with("studio/media/") {
+            crate::studio_media::check(&value)?;
+        } else {
+            crate::studio_video::check(&value)?;
+        }
         return Ok(value);
     }
     let m = info(model)?;
@@ -85,6 +98,9 @@ pub fn spec(v: &Value) -> Result<Value> {
 }
 pub fn check(v: &Value) -> Result<()> {
     let model = s(&v["model"])?;
+    if model.starts_with("studio/media/") {
+        return crate::studio_media::check(v);
+    }
     if model.starts_with("studio/") {
         return crate::studio_video::check(v);
     }
