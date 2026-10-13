@@ -35,6 +35,32 @@ capacity, and budget. Local tools, unsupported models and unavailable miners may
 still use the app's direct fallback; this is not a promise that all app traffic
 will reach miners. Never deploy a second workload just to upgrade.
 
+**Public rollout snapshot — 13 October 2026:** the shared coordinator release
+contains 69 contracts, with 27 currently priced across Fal, OpenRouter and Vivix.
+Compatible existing public miners can discover their own signed update; no
+operator-provided invitation file is needed. Permissions change only after fresh
+verified attestation. This is not an automatic fleet-wide worker upgrade.
+
+From your original management profile:
+
+```sh
+everycli update
+everycli worker-update --check
+everycli worker-update
+everycli offers
+everycli doctor
+```
+
+If only three models remain available, check the **worker** release and current
+attestation, not just `everycli --version`. Preserve your profile and existing VM.
+An unbound or uncertain deployment must be reconciled before updating. Add the
+needed provider keys and explicit offers for new contracts; old offers and the
+worker's accepting/paused state are preserved.
+
+Paid website tests passed for H3 Max Turbo portrait video and Grok Imagine image
+through an updated owner miner. They do not certify all contracts or other miners.
+See [validation and limits](VALIDATION.md#v040-public-worker-and-website-verification--13-october-2026).
+
 ## Install everycli as a miner
 
 Use a **prebuilt `everycli` binary**. You do not need a compiler, a language runtime,
@@ -236,19 +262,25 @@ catalog, including models not yet enabled for your worker. `Integration pending`
 Discovery does not enable models or place bids. Local-only rendering is excluded.
 Older coordinators still return only their admitted model list.
 
-Models prefixed with `studio/` use a separate flexible video contract: supported
-portrait/square/landscape formats, resolution tiers, clip lengths, and reference
-media are bound to the signed job. They require a matching signed **worker**
+Models prefixed with `studio/` use settings-bound video, image or audio contracts:
+supported formats, resolutions, lengths and reference media are bound to the
+signed job. They require a matching signed **worker**
 update, the provider key, and a new explicit offer; an old text-only offer does
 not authorize them. Updating the CLI alone does not update the deployed worker.
 Run `everycli worker-update --check`, then review `everycli offers --json`.
-The base quote is a five-second reference point, not a fixed price for every
-job. The coordinator calculates each job's value and spending reservation from
+For video, the base quote is a five-second reference point, not a fixed price for
+every job. Image and audio contracts use their own units and settings.
+The coordinator calculates each job's value and spending reservation from
 its actual settings and reference inputs before applying your discount.
 Unsupported combinations and unpriced reference inputs remain unavailable.
 
 The discount applies to the base miner reward—not the provider's API charge.
 Use `--json` for all readiness blockers and local key/release-permission fields.
+
+**Known customer-billing limitation (13 October 2026):** a 10% miner bid reduced
+the tested serving value from $0.20 to $0.18, but Studio still charged 30 credits,
+not 27. Passing the miner discount through to customer credits is intended but
+not implemented in this tested path. Do not advertise that saving as delivered.
 
 If `doctor` says a saved provider key is not permitted by the signed deployment,
 this is **not an API authentication failure**. Updating everycli alone does not
@@ -468,7 +500,7 @@ everycli activate
 everycli resume
 everycli offers
 # Example: offer one enabled model at a 10% discount:
-everycli offer --model minimax/h3-max-turbo/text-to-video --discount-pct 10
+everycli offer --model studio/fal/minimax/h3-max-turbo/text-to-video --discount-pct 10
 everycli earnings
 ```
 
