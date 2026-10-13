@@ -316,7 +316,12 @@ fn vivix_requires_its_own_key_and_respects_signed_environment() {
     }
     assert_eq!(
         Router::new(&Api::new(vec![]), credentials()).models(),
-        [MODEL]
+        [
+            MODEL,
+            "studio/vivix/vivix-w1",
+            "studio/vivix/vivix-w1-fast",
+            "studio/vivix/vivix-w1-ultrafast"
+        ]
     );
     let mut inv = json!({"minerId":"test-miner","request":{"compose_file":{"allowed_envs":["MINER_ID","MINER_TOKEN","VIVIX_API_KEY"],"docker_compose_file":"services:\n  worker:\n    image: ghcr.io/everyframe-studios/everyframe-miner:fixture\n","pre_launch_script":invitation::PUBLIC_SCRIPT}}});
     let creds =

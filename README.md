@@ -217,6 +217,17 @@ catalog, including models not yet enabled for your worker. `Integration pending`
 Discovery does not enable models or place bids. Local-only rendering is excluded.
 Older coordinators still return only their admitted model list.
 
+Models prefixed with `studio/` use a separate flexible video contract: supported
+portrait/square/landscape formats, resolution tiers, clip lengths, and reference
+media are bound to the signed job. They require a matching signed **worker**
+update, the provider key, and a new explicit offer; an old text-only offer does
+not authorize them. Updating the CLI alone does not update the deployed worker.
+Run `everycli worker-update --check`, then review `everycli offers --json`.
+The base quote is a five-second reference point, not a fixed price for every
+job. The coordinator calculates each job's value and spending reservation from
+its actual settings and reference inputs before applying your discount.
+Unsupported combinations and unpriced reference inputs remain unavailable.
+
 The discount applies to the base miner reward—not the provider's API charge.
 Use `--json` for all readiness blockers and local key/release-permission fields.
 

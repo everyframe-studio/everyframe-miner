@@ -17,8 +17,10 @@ pub mod onboarding;
 pub mod protocol;
 pub mod providers;
 pub mod state;
+pub mod studio_video;
 pub mod update;
 pub mod worker;
+pub mod worker_balances;
 pub mod worker_update;
 pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug, Clone, PartialEq, Eq)]

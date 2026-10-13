@@ -1,0 +1,295 @@
+{
+  "studio/fal/minimax/h3-max/text-to-video": {
+    "provider": "fal",
+    "apiModel": "minimax/h3-max/text-to-video",
+    "name": "H3 Max",
+    "aspects": [
+      "21:9",
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+    ],
+    "min": 1,
+    "max": 15,
+    "resolutions": [
+      "480p",
+      "768p",
+      "1080p"
+    ],
+    "refs": {
+      "image": 9,
+      "video": 3,
+      "audio": 3
+    },
+    "frames": 2,
+    "mixed": true,
+    "maxPrompt": 50000
+  },
+  "studio/fal/minimax/h3-max-turbo/text-to-video": {
+    "provider": "fal",
+    "apiModel": "minimax/h3-max-turbo/text-to-video",
+    "name": "H3 Max Turbo",
+    "aspects": [
+      "21:9",
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+    ],
+    "min": 1,
+    "max": 15,
+    "resolutions": [
+      "480p",
+      "768p",
+      "1080p"
+    ],
+    "refs": {
+      "image": 0,
+      "video": 0,
+      "audio": 0
+    },
+    "frames": 2,
+    "mixed": false,
+    "maxPrompt": 50000
+  },
+  "studio/fal/alibaba/wan-3.0/text-to-video": {
+    "provider": "fal",
+    "apiModel": "alibaba/wan-3.0/text-to-video",
+    "name": "Wan 3.0",
+    "aspects": [
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+    ],
+    "min": 2,
+    "max": 30,
+    "resolutions": [
+      "480p",
+      "720p",
+      "1080p"
+    ],
+    "refs": {
+      "image": 9,
+      "video": 0,
+      "audio": 0
+    },
+    "frames": 2,
+    "mixed": false,
+    "maxPrompt": 50000
+  },
+  "studio/fal/bytedance/seedance-2.5/text-to-video": {
+    "provider": "fal",
+    "apiModel": "bytedance/seedance-2.5/text-to-video",
+    "name": "Seedance 2.5 (Fal)",
+    "aspects": [
+      "21:9",
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+    ],
+    "min": 4,
+    "max": 30,
+    "resolutions": [
+      "480p",
+      "720p",
+      "1080p"
+    ],
+    "refs": {
+      "image": 9,
+      "video": 3,
+      "audio": 3
+    },
+    "frames": 2,
+    "mixed": false,
+    "maxPrompt": 50000
+  },
+  "studio/fal/xai/grok-imagine-video/text-to-video": {
+    "provider": "fal",
+    "apiModel": "xai/grok-imagine-video/text-to-video",
+    "name": "Grok Imagine Video",
+    "aspects": [
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+    ],
+    "min": 1,
+    "max": 15,
+    "resolutions": [
+      "480p",
+      "720p"
+    ],
+    "refs": {
+      "image": 0,
+      "video": 0,
+      "audio": 0
+    },
+    "frames": 1,
+    "mixed": false,
+    "maxPrompt": 50000
+  },
+  "studio/vivix/vivix-w1": {
+    "provider": "vivix",
+    "apiModel": "vivix-w1",
+    "name": "vivix-w1",
+    "aspects": [
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+    ],
+    "min": 5,
+    "max": 15,
+    "resolutions": [
+      "720p"
+    ],
+    "refs": {
+      "image": 5,
+      "video": 0,
+      "audio": 3
+    },
+    "frames": 2,
+    "mixed": false,
+    "maxPrompt": 50000
+  },
+  "studio/vivix/vivix-w1-fast": {
+    "provider": "vivix",
+    "apiModel": "vivix-w1-fast",
+    "name": "vivix-w1-fast",
+    "aspects": [
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+    ],
+    "min": 5,
+    "max": 15,
+    "resolutions": [
+      "720p"
+    ],
+    "refs": {
+      "image": 5,
+      "video": 0,
+      "audio": 3
+    },
+    "frames": 2,
+    "mixed": false,
+    "maxPrompt": 50000
+  },
+  "studio/vivix/vivix-w1-ultrafast": {
+    "provider": "vivix",
+    "apiModel": "vivix-w1-ultrafast",
+    "name": "vivix-w1-ultrafast",
+    "aspects": [
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+    ],
+    "min": 5,
+    "max": 15,
+    "resolutions": [
+      "720p"
+    ],
+    "refs": {
+      "image": 5,
+      "video": 0,
+      "audio": 3
+    },
+    "frames": 2,
+    "mixed": false,
+    "maxPrompt": 50000
+  },
+  "studio/openrouter/bytedance/seedance-2.0-mini": {
+    "provider": "openrouter",
+    "apiModel": "bytedance/seedance-2.0-mini",
+    "name": "bytedance/seedance-2.0-mini",
+    "aspects": [
+      "21:9",
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+    ],
+    "min": 4,
+    "max": 15,
+    "resolutions": [
+      "480p",
+      "720p"
+    ],
+    "refs": {
+      "image": 9,
+      "video": 3,
+      "audio": 3
+    },
+    "frames": 2,
+    "mixed": false,
+    "maxPrompt": 50000
+  },
+  "studio/openrouter/bytedance/seedance-2.0-fast": {
+    "provider": "openrouter",
+    "apiModel": "bytedance/seedance-2.0-fast",
+    "name": "bytedance/seedance-2.0-fast",
+    "aspects": [
+      "21:9",
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+    ],
+    "min": 4,
+    "max": 15,
+    "resolutions": [
+      "480p",
+      "720p"
+    ],
+    "refs": {
+      "image": 9,
+      "video": 3,
+      "audio": 3
+    },
+    "frames": 2,
+    "mixed": false,
+    "maxPrompt": 50000
+  },
+  "studio/openrouter/bytedance/seedance-2.5": {
+    "provider": "openrouter",
+    "apiModel": "bytedance/seedance-2.5",
+    "name": "bytedance/seedance-2.5",
+    "aspects": [
+      "21:9",
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+    ],
+    "min": 4,
+    "max": 30,
+    "resolutions": [
+      "480p",
+      "720p"
+    ],
+    "refs": {
+      "image": 9,
+      "video": 3,
+      "audio": 3
+    },
+    "frames": 2,
+    "mixed": false,
+    "maxPrompt": 50000
+  }
+}

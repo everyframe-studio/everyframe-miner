@@ -149,6 +149,72 @@ impl<'a> Router<'a> {
             Ok(v)
         }
     }
+    fn studio_submit(&self, spec: &Value, p: &str) -> Result<String> {
+        let checked = crate::studio_video::references(self.http, spec)?;
+        let mut urls = vec![];
+        for (a, bytes) in checked {
+            if p != "vivix" {
+                urls.push(s(&a["url"])?.to_string());
+                continue;
+            }
+            let mime = s(&a["mime"])?;
+            let kind = if mime.starts_with("image/") {
+                "images"
+            } else {
+                "audios"
+            };
+            let ext = match mime {
+                "image/jpeg" => "jpg",
+                "image/png" => "png",
+                "image/webp" => "webp",
+                "audio/mpeg" => "mp3",
+                "audio/wav" => "wav",
+                "audio/mp4" => "m4a",
+                "audio/ogg" => "ogg",
+                "audio/webm" => "webm",
+                _ => return Err(Error("invalid_reference_mime")),
+            };
+            let boundary = format!("everyframe-{}", id());
+            let mut data=format!("--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"reference.{ext}\"\r\nContent-Type: {mime}\r\n\r\n").into_bytes();
+            data.extend_from_slice(&bytes);
+            data.extend_from_slice(format!("\r\n--{boundary}--\r\n").as_bytes());
+            let mut req = Request::get(
+                format!("https://api.vivix.ai/v1/files/{kind}"),
+                &["api.vivix.ai"],
+            );
+            req.method = "POST".into();
+            req.headers = self.auth("vivix")?;
+            req.headers.push((
+                "content-type".into(),
+                format!("multipart/form-data; boundary={boundary}"),
+            ));
+            req.body = Some(data);
+            req.timeout = 60;
+            let result = self.http.json(req)?;
+            need(result["code"] == 0, "reference_upload_failed")?;
+            let url = s(&result["data"]["url"])?;
+            safe_url(
+                url,
+                &["static.vivi-x.ai".into(), "clipgen-us.vivi-x.ai".into()],
+            )?;
+            urls.push(url.into());
+        }
+        let (path, body) = crate::studio_video::body(spec, &urls)?;
+        let result = self.api(p, &path, Some(&body))?;
+        let r = match p {
+            "fal" => reference(&result["request_id"])?,
+            "openrouter" => reference(&result["id"])?,
+            "vivix" => {
+                need(
+                    result["results"].as_array().is_some_and(|a| a.len() == 1),
+                    "invalid_provider_response",
+                )?;
+                reference(&result["results"][0]["job_id"])?
+            }
+            _ => return Err(Error("unsupported_provider")),
+        };
+        Ok(if p == "fal" { r } else { format!("{p}_{r}") })
+    }
     fn read(&self, r: &str, spec: &Value, m: &Value, p: &str) -> Result<Value> {
         let model = m["apiModel"].as_str().unwrap_or("");
         let data = match p {
@@ -160,7 +226,12 @@ impl<'a> Router<'a> {
                 need(
                     (d.get("duration").is_none() || d["duration"] == spec["input"]["duration"])
                         && (d.get("aspect_ratio").is_none()
-                            || d["aspect_ratio"] == spec["input"]["aspect_ratio"])
+                            || d["aspect_ratio"]
+                                == if s(&spec["model"])?.starts_with("studio/") {
+                                    spec["input"]["aspect"].clone()
+                                } else {
+                                    spec["input"]["aspect_ratio"].clone()
+                                })
                         && (d.get("model").is_none() || d["model"] == model),
                     "provider_input_mismatch",
                 )?;
@@ -340,6 +411,7 @@ impl Provider for Router<'_> {
             .as_object()
             .unwrap()
             .iter()
+            .chain(models::STUDIO_MODELS.as_object().unwrap().iter())
             .filter(|(_, m)| {
                 PROVIDERS
                     .iter()
@@ -350,6 +422,9 @@ impl Provider for Router<'_> {
     }
     fn submit(&mut self, spec: &Value) -> Result<String> {
         let (m, p) = self.context(spec)?;
+        if s(&spec["model"])?.starts_with("studio/") {
+            return self.studio_submit(spec, &p);
+        }
         let model = m["apiModel"].as_str().unwrap_or("");
         let input = &spec["input"];
         let mut body = input.clone();
