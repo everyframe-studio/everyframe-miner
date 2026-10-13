@@ -258,7 +258,9 @@ mod tests {
     fn disabled_and_locked_skip_updater_and_crashed_locks_do_not_stick() {
         let dir = tempfile::tempdir().unwrap();
         let s = State {
-            directory: dir.path().join("cache"),
+            // macOS exposes TMPDIR through /var -> /private/var. Resolve
+            // this test-owned directory, not a user's credential/state path.
+            directory: fs::canonicalize(dir.path()).unwrap().join("cache"),
         };
         s.write("auto-update-settings", &json!({"enabled":false}))
             .unwrap();
