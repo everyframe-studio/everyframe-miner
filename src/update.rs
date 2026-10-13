@@ -215,9 +215,17 @@ impl Drop for Staging {
 }
 
 pub fn replace_binary(target: &Path, bytes: &[u8]) -> Result<()> {
+    replace_binary_checked(target, bytes, None)
+}
+
+fn replace_binary_checked(target: &Path, bytes: &[u8], expected: Option<(u64, u64)>) -> Result<()> {
     let parent = target.parent().ok_or(Error("invalid_install_path"))?;
     let dir = fs::symlink_metadata(parent).map_err(|_| Error("install_directory_unavailable"))?;
     let old = fs::symlink_metadata(target).map_err(|_| Error("installed_binary_unavailable"))?;
+    need(
+        expected.is_none_or(|(dev, ino)| old.dev() == dev && old.ino() == ino),
+        "installed_binary_changed",
+    )?;
     let uid = unsafe { libc::geteuid() };
     need(
         dir.is_dir()
@@ -270,14 +278,25 @@ pub fn display_version(value: &str) -> String {
 pub fn run(check_only: bool, json_mode: bool) -> Result<Value> {
     let stderr = io::stderr();
     let mut progress = Progress::new(stderr.lock(), !json_mode, stderr.is_terminal());
-    let result = run_with_progress(check_only, &mut |event| progress.event(event));
+    let result = run_with_progress(check_only, &mut |event| progress.event(event), &|| true);
     // End an in-place line even if a download failed. JSON mode emits nothing
     // here; main_entry owns its single structured success/error response.
     progress.finish();
     result
 }
 
-fn run_with_progress(check_only: bool, progress: &mut dyn FnMut(ProgressEvent)) -> Result<Value> {
+pub(crate) fn background(allowed: &dyn Fn() -> bool) -> Result<Value> {
+    run_with_progress(false, &mut |_| {}, allowed)
+}
+
+fn run_with_progress(
+    check_only: bool,
+    progress: &mut dyn FnMut(ProgressEvent),
+    allowed: &dyn Fn() -> bool,
+) -> Result<Value> {
+    let target = std::env::current_exe().map_err(|_| Error("installed_binary_unavailable"))?;
+    let original =
+        fs::symlink_metadata(&target).map_err(|_| Error("installed_binary_unavailable"))?;
     progress(ProgressEvent::Stage("Checking for updates…".into()));
     let client = Client::builder()
         .no_proxy()
@@ -333,9 +352,14 @@ fn run_with_progress(check_only: bool, progress: &mut dyn FnMut(ProgressEvent)) 
         &name,
     )?;
     need(!bytes.is_empty(), "empty_release_binary")?;
-    let target = std::env::current_exe().map_err(|_| Error("installed_binary_unavailable"))?;
+    let current = fs::symlink_metadata(&target).map_err(|_| Error("installed_binary_changed"))?;
+    need(
+        current.dev() == original.dev() && current.ino() == original.ino(),
+        "installed_binary_changed",
+    )?;
+    need(allowed(), "auto_update_disabled")?;
     progress(ProgressEvent::Stage("Installing update…".into()));
-    replace_binary(&target, &bytes)?;
+    replace_binary_checked(&target, &bytes, Some((original.dev(), original.ino())))?;
     Ok(
         json!({"previous":env!("CARGO_PKG_VERSION"),"version":tag,"updated":true,"message":"CLI updated. Miner profiles and deployed workers are unchanged."}),
     )
@@ -344,6 +368,27 @@ fn run_with_progress(check_only: bool, progress: &mut dyn FnMut(ProgressEvent)) 
 #[cfg(test)]
 mod progress_tests {
     use super::*;
+
+    #[test]
+    fn background_download_cannot_overwrite_a_concurrently_updated_binary() {
+        let tmp = tempfile::tempdir().unwrap();
+        fs::set_permissions(tmp.path(), fs::Permissions::from_mode(0o700)).unwrap();
+        let target = tmp.path().join("everycli");
+        fs::write(&target, b"original").unwrap();
+        let old = fs::metadata(&target).unwrap();
+        replace_binary(&target, b"newer manual update").unwrap();
+        assert_eq!(
+            replace_binary_checked(
+                &target,
+                b"stale background update",
+                Some((old.dev(), old.ino()))
+            )
+            .unwrap_err()
+            .0,
+            "installed_binary_changed"
+        );
+        assert_eq!(fs::read(&target).unwrap(), b"newer manual update");
+    }
 
     #[test]
     fn streaming_reports_real_bytes_and_handles_unknown_sizes() {

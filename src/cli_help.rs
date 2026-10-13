@@ -23,6 +23,7 @@ pub const COMMANDS: &[&str] = &[
     "start",
     "reconcile",
     "update",
+    "auto-update",
 ];
 
 pub fn public_name(command: &str) -> &str {
@@ -141,6 +142,11 @@ pub fn render(command: &str) -> String {
             "  No command-specific options.",
             "reconcile",
         ),
+        "auto-update" => (
+            "Show automatic CLI update settings and the last attempt. Native user installs check in the background after successful interactive commands, at most once every six hours. Downloads are checksum-verified and installed atomically for the next invocation. Never updates workers or changes offers. JSON/CI/help/version invocations do not launch the updater.",
+            "  --enable   Enable automatic CLI updates (default)\n  --disable  Disable automatic CLI updates; manual everycli update still works\n  EVERYCLI_DISABLE_AUTO_UPDATE=1 disables background updates for this environment.\n  No flags: show status. Settings apply across miner profiles.",
+            "auto-update --disable",
+        ),
         "update" => (
             "Upgrade this CLI to the latest stable release. Shows download progress and a readable summary; --json emits only the structured result. No miner login needed; profiles and deployed workers are unchanged.",
             "  --check  Check the available version without installing",
@@ -154,7 +160,7 @@ pub fn render(command: &str) -> String {
             );
         }
     };
-    let common = if name == "update" {
+    let common = if name == "update" || name == "auto-update" {
         "  --json  Machine-readable output\n  --help  Show this page"
     } else if name == "setup" {
         "  --network mainnet|testnet (default mainnet SN117; testnet SN566)\n  --state-dir DIR\n  --help\n  New setup is interactive only: no --yes/--json.\n  --continue is read-only and also supports --json without a terminal."

@@ -521,16 +521,18 @@ fn automatic_update_does_not_replay_ambiguous_cloud_mutations() {
             .worker_update_with_wait(false, &|_| Ok(()), &|_| {}, &|stage| {
                 r.advance_update(stage, &envelope)
             });
-        if failure == "/compose_file" {
+        if failure == "/compose_file" || failure == "/compose_file/provision" {
             assert_eq!(result.unwrap()["state"], "complete");
         } else {
             assert_eq!(result.unwrap_err().0, "worker_update_uncertain_operation");
         }
         assert!(
-            !r.calls
-                .borrow()
-                .iter()
-                .any(|(p, _)| !p.starts_with("GET") && p.ends_with(failure)),
+            failure == "/compose_file/provision"
+                || !r
+                    .calls
+                    .borrow()
+                    .iter()
+                    .any(|(p, _)| !p.starts_with("GET") && p.ends_with(failure)),
             "{failure}"
         );
     }
@@ -574,6 +576,73 @@ fn automatic_update_rejects_tampered_or_wrong_target_packages_before_draining() 
         assert!(r.calls.borrow().iter().all(|(p, _)| p.starts_with("GET")));
         assert!(r.state().read("worker-update", true).unwrap().is_null());
     }
+}
+
+#[test]
+fn legacy_provision_intent_recovers_only_an_unchanged_bound_worker() {
+    for changed in [
+        "none",
+        "processing",
+        "compose",
+        "app",
+        "signature",
+        "release_target",
+    ] {
+        let r = Rig::new();
+        let mut envelope = r.staged_update(false, true);
+        if changed == "signature" {
+            envelope["signature"] = json!("bad");
+        }
+        if changed == "release_target" {
+            envelope["value"]["appId"] = json!("2".repeat(40));
+            envelope = r.sign(&envelope["value"]);
+        }
+        let mut d = r.state().read("deployment", false).unwrap();
+        d["phase"] = json!("update_provision_intent");
+        d["pendingInvitation"] = envelope;
+        r.state().write("deployment", &d).unwrap();
+        match changed {
+            "processing" => r.info.borrow_mut()["status"] = json!("processing"),
+            "compose" => r.info.borrow_mut()["compose_hash"] = json!("f".repeat(64)),
+            "app" => r.info.borrow_mut()["app_id"] = json!("2".repeat(40)),
+            _ => {}
+        }
+        r.calls.borrow_mut().clear();
+        let result = r.miner().reconcile();
+        if changed == "none" {
+            assert_eq!(result.unwrap()["resolved"], true);
+            assert_eq!(r.phase(), "drained");
+            assert_eq!(
+                r.state().read("deployment", false).unwrap()["providerConfigured"],
+                true
+            );
+        } else {
+            assert!(result.is_err(), "{changed}");
+            assert_eq!(r.state().read("deployment", false).unwrap(), d);
+        }
+        assert!(r.calls.borrow().iter().all(|(p, _)| p.starts_with("GET")));
+    }
+}
+
+#[test]
+fn stop_can_safely_recover_provision_without_repeating_update() {
+    let r = Rig::new();
+    let envelope = r.staged_update(false, true);
+    let mut d = r.state().read("deployment", false).unwrap();
+    d["phase"] = json!("update_provision_intent");
+    d["pendingInvitation"] = envelope;
+    r.state().write("deployment", &d).unwrap();
+    r.calls.borrow_mut().clear();
+    assert_eq!(
+        r.miner().stop(false, &|_| Ok(())).unwrap()["phase"],
+        "stopping"
+    );
+    assert!(
+        !r.calls
+            .borrow()
+            .iter()
+            .any(|(p, _)| p.ends_with("/compose_file/provision") || p.ends_with("/compose_file"))
+    );
 }
 
 #[test]
@@ -777,7 +846,13 @@ impl Http for Rig {
             json!({"public_key":hex::encode(PublicKey::from(&StaticSecret::from([0x11;32])).as_bytes())})
         } else if path.ends_with("/compose_file/provision") {
             assert_eq!(self.phase(), "update_provision_intent");
-            json!({"compose_hash":cloud::compose_hash(&body).unwrap()})
+            assert_eq!(
+                body["update_env_vars"], true,
+                "Required to change provider allowlist"
+            );
+            let mut compose = body.clone();
+            compose.as_object_mut().unwrap().remove("update_env_vars");
+            json!({"compose_hash":cloud::compose_hash(&compose).unwrap()})
         } else if path.ends_with("/envs")
             || path.ends_with("/compose_file")
             || path.ends_with("/cvms") && r.method == "POST"

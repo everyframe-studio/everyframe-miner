@@ -1,3 +1,4 @@
+pub mod auto_update;
 pub mod balances;
 pub mod cli;
 pub mod cli_errors;
