@@ -141,9 +141,32 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
             grant = start["grantNonce"].clone();
             reference = match self.provider.submit(&work["spec"]) {
                 Ok(r) => json!(r),
-                Err(_) => {
-                    self.call("unknown", json!({"attemptId":attempt}))?;
-                    return Ok(json!({"state":"unknown"}));
+                Err(error) => {
+                    let rejected = crate::submission::rejected(error.0);
+                    let reason = rejected.unwrap_or_else(|| crate::submission::uncertain(error.0));
+                    let action = if rejected.is_some() {
+                        "submission_rejected"
+                    } else {
+                        "submission_uncertain"
+                    };
+                    // Only fixed codes and public job/attempt identifiers; no keys,
+                    // prompts, upstream bodies or credential-bearing URLs.
+                    eprintln!(
+                        "{}",
+                        json!({"event":action,"jobId":work["jobId"],"attemptId":attempt,"reason":reason})
+                    );
+                    while self.runtime.now() < deadline {
+                        if self
+                            .call(action, json!({"attemptId":attempt,"reason":reason}))
+                            .is_ok()
+                        {
+                            return Ok(
+                                json!({"state":if rejected.is_some(){"rejected"}else{"unknown"},"reason":reason}),
+                            );
+                        }
+                        self.runtime.sleep(1000);
+                    }
+                    return Ok(json!({"state":"reconcile","reason":reason}));
                 }
             };
             let mut recorded = false;

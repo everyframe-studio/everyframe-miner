@@ -177,6 +177,15 @@ impl Http for PublicHttp {
                 return Err(enrollment_error(&bytes));
             }
             if !response.status().is_success() {
+                if u.host_str() == Some("api.vivix.ai") {
+                    let status = response.status().as_u16();
+                    let mut bytes = Vec::new();
+                    response
+                        .take(64001)
+                        .read_to_end(&mut bytes)
+                        .map_err(|_| Error("response_read_failed"))?;
+                    return Err(crate::submission::vivix_http_error(status, &bytes));
+                }
                 return Err(crate::diagnostics::http_error(response.status().as_u16()));
             }
             need(
