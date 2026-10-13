@@ -1,0 +1,360 @@
+{
+  "studio/media/fal/fal-ai/ideogram/v4.5": {
+    "provider": "fal",
+    "apiModel": "fal-ai/ideogram/v4.5",
+    "name": "Ideogram 4.5",
+    "kind": "image",
+    "maxReferences": 5,
+    "path": "ideogram/v4.5",
+    "deadlineMs": 480000,
+    "parameters": {
+      "negative": {
+        "type": "string",
+        "max": 50000
+      },
+      "quality": {
+        "enum": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "editPrecision": {
+        "enum": [
+          "none",
+          "high"
+        ]
+      },
+      "maskIndex": {
+        "type": "integer",
+        "min": -1,
+        "max": 15
+      }
+    }
+  },
+  "studio/media/fal/xai/grok-imagine-image": {
+    "provider": "fal",
+    "apiModel": "xai/grok-imagine-image",
+    "name": "Grok Imagine Image",
+    "kind": "image",
+    "maxReferences": 3,
+    "path": "xai/grok-imagine-image",
+    "deadlineMs": 480000,
+    "parameters": {
+      "negative": {
+        "type": "string",
+        "max": 50000
+      },
+      "quality": {
+        "enum": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "editPrecision": {
+        "enum": [
+          "none",
+          "high"
+        ]
+      },
+      "maskIndex": {
+        "type": "integer",
+        "min": -1,
+        "max": 15
+      }
+    }
+  },
+  "studio/media/fal/blackforestlabs/flux-3": {
+    "provider": "fal",
+    "apiModel": "blackforestlabs/flux-3",
+    "name": "Flux 3",
+    "kind": "image",
+    "maxReferences": 10,
+    "path": "blackforestlabs/flux-3",
+    "deadlineMs": 480000,
+    "parameters": {
+      "negative": {
+        "type": "string",
+        "max": 50000
+      },
+      "quality": {
+        "enum": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "editPrecision": {
+        "enum": [
+          "none",
+          "high"
+        ]
+      },
+      "maskIndex": {
+        "type": "integer",
+        "min": -1,
+        "max": 15
+      }
+    }
+  },
+  "studio/media/fal/google/nano-banana-2.1": {
+    "provider": "fal",
+    "apiModel": "google/nano-banana-2.1",
+    "name": "Nano Banana 2.1",
+    "kind": "image",
+    "maxReferences": 10,
+    "path": "google/nano-banana-2.1",
+    "deadlineMs": 480000,
+    "parameters": {
+      "negative": {
+        "type": "string",
+        "max": 50000
+      },
+      "quality": {
+        "enum": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "editPrecision": {
+        "enum": [
+          "none",
+          "high"
+        ]
+      },
+      "maskIndex": {
+        "type": "integer",
+        "min": -1,
+        "max": 15
+      }
+    }
+  },
+  "studio/media/openrouter/openai/gpt-image-2.5-sunburst": {
+    "provider": "openrouter",
+    "apiModel": "openai/gpt-image-2.5-sunburst",
+    "name": "GPT Image 2.5",
+    "kind": "image",
+    "maxReferences": 16,
+    "path": "/api/v1/images",
+    "deadlineMs": 480000,
+    "parameters": {
+      "negative": {
+        "type": "string",
+        "max": 50000
+      },
+      "quality": {
+        "enum": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "editPrecision": {
+        "enum": [
+          "none",
+          "high"
+        ]
+      },
+      "maskIndex": {
+        "type": "integer",
+        "min": -1,
+        "max": 15
+      }
+    }
+  },
+  "studio/media/openrouter/google/gemini-3.1-flash-lite-image": {
+    "provider": "openrouter",
+    "apiModel": "google/gemini-3.1-flash-lite-image",
+    "name": "Gemini Flash Lite Image",
+    "kind": "image",
+    "maxReferences": 16,
+    "path": "/api/v1/chat/completions",
+    "deadlineMs": 480000,
+    "parameters": {
+      "negative": {
+        "type": "string",
+        "max": 50000
+      },
+      "quality": {
+        "enum": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "editPrecision": {
+        "enum": [
+          "none",
+          "high"
+        ]
+      },
+      "maskIndex": {
+        "type": "integer",
+        "min": -1,
+        "max": 15
+      }
+    }
+  },
+  "studio/media/openrouter/google/gemini-3-pro-image": {
+    "provider": "openrouter",
+    "apiModel": "google/gemini-3-pro-image",
+    "name": "Gemini Pro Image",
+    "kind": "image",
+    "maxReferences": 16,
+    "path": "/api/v1/chat/completions",
+    "deadlineMs": 480000,
+    "parameters": {
+      "negative": {
+        "type": "string",
+        "max": 50000
+      },
+      "quality": {
+        "enum": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "editPrecision": {
+        "enum": [
+          "none",
+          "high"
+        ]
+      },
+      "maskIndex": {
+        "type": "integer",
+        "min": -1,
+        "max": 15
+      }
+    }
+  },
+  "studio/media/fal/fal-ai/elevenlabs/tts/eleven-v4": {
+    "provider": "fal",
+    "apiModel": "fal-ai/elevenlabs/tts/eleven-v4",
+    "name": "ElevenLabs v4 Voice",
+    "kind": "audio",
+    "maxReferences": 0,
+    "path": "fal-ai/elevenlabs/tts/eleven-v4",
+    "deadlineMs": 480000,
+    "maxDurationMs": 600000,
+    "parameters": {
+      "text": {
+        "type": "string",
+        "min": 1,
+        "max": 5000
+      },
+      "voice": {
+        "type": "string",
+        "min": 1,
+        "max": 128
+      },
+      "language_code": {
+        "type": "string",
+        "min": 1,
+        "max": 8,
+        "optional": true
+      },
+      "output_format": {
+        "enum": [
+          "mp3_44100_128"
+        ]
+      }
+    }
+  },
+  "studio/media/fal/minimax/music-3": {
+    "provider": "fal",
+    "apiModel": "minimax/music-3",
+    "name": "MiniMax Music 3",
+    "kind": "audio",
+    "maxReferences": 0,
+    "path": "minimax/music-3",
+    "deadlineMs": 480000,
+    "maxDurationMs": 300000,
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "min": 1,
+        "max": 1200
+      },
+      "lyrics": {
+        "type": "string",
+        "min": 1,
+        "max": 10000
+      },
+      "duration": {
+        "type": "integer",
+        "min": 1,
+        "max": 300
+      }
+    }
+  },
+  "studio/media/fal/fal-ai/stable-audio-25/text-to-audio": {
+    "provider": "fal",
+    "apiModel": "fal-ai/stable-audio-25/text-to-audio",
+    "name": "Stable Audio 2.5 Score",
+    "kind": "audio",
+    "maxReferences": 0,
+    "path": "fal-ai/stable-audio-25/text-to-audio",
+    "deadlineMs": 480000,
+    "maxDurationMs": 180000,
+    "parameters": {
+      "prompt": {
+        "type": "string",
+        "min": 1,
+        "max": 1500
+      },
+      "seconds_total": {
+        "type": "integer",
+        "min": 10,
+        "max": 180
+      },
+      "num_inference_steps": {
+        "enum": [
+          8
+        ]
+      }
+    }
+  },
+  "studio/media/fal/fal-ai/elevenlabs/sound-effects/v2": {
+    "provider": "fal",
+    "apiModel": "fal-ai/elevenlabs/sound-effects/v2",
+    "name": "ElevenLabs Sound Effects",
+    "kind": "audio",
+    "maxReferences": 0,
+    "path": "fal-ai/elevenlabs/sound-effects/v2",
+    "deadlineMs": 480000,
+    "maxDurationMs": 22000,
+    "parameters": {
+      "text": {
+        "type": "string",
+        "min": 1,
+        "max": 450
+      },
+      "duration_seconds": {
+        "type": "integer",
+        "min": 1,
+        "max": 22
+      },
+      "loop": {
+        "type": "boolean"
+      },
+      "output_format": {
+        "enum": [
+          "mp3_44100_128"
+        ]
+      }
+    }
+  },
+  "studio/media/fal/minimax/h3-max/text-to-video": {
+    "provider": "fal",
+    "apiModel": "minimax/h3-max/text-to-video",
+    "name": "H3 Max References v2",
+    "kind": "video",
+    "maxReferences": 14,
+    "path": "minimax/h3-max/reference-to-video",
+    "deadlineMs": 480000,
+    "parameters": {}
+  }
+}

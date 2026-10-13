@@ -639,7 +639,9 @@ impl Miner<'_> {
             )?;
             let reward =
                 (base.checked_mul(10000 - bp).ok_or(Error("invalid_price"))? + 9999) / 10000;
-            let scope = if model.starts_with("studio/") {
+            let scope = if model.starts_with("studio/media/") {
+                "example media work-value target; each job is repriced for its settings and references. This is not an actual provider invoice. Review everycli offers --json for the rate schedule"
+            } else if model.starts_with("studio/") {
                 "five-second reference target; actual job value varies with duration, resolution, aspect and reference media. Review everycli offers --json for the rate schedule"
             } else {
                 "job target"
