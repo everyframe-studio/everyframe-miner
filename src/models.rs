@@ -11,8 +11,12 @@ pub static MODELS: LazyLock<Value> = LazyLock::new(|| {
     serde_json::from_str(include_str!("../config/models.json"))
         .expect("embedded reviewed model registry")
 });
+pub static STUDIO_MODELS: LazyLock<Value> = LazyLock::new(crate::studio_video::model_registry);
 pub fn info(id: &str) -> Result<&'static Value> {
-    MODELS.get(id).ok_or(Error("unsupported_model"))
+    MODELS
+        .get(id)
+        .or_else(|| STUDIO_MODELS.get(id))
+        .ok_or(Error("unsupported_model"))
 }
 // Explicit integer durations; Fal schemas checked 2026-10-08. Five-second
 // canonical bodies remain unchanged for existing orders and signed fixtures.
@@ -26,6 +30,16 @@ pub fn duration_range(model: &str) -> Option<(i64, i64)> {
 }
 pub fn spec(v: &Value) -> Result<Value> {
     let model = v.get("model").map(s).transpose()?.unwrap_or(DEFAULT_MODEL);
+    if model.starts_with("studio/") {
+        let mut input = v.clone();
+        input
+            .as_object_mut()
+            .ok_or(Error("invalid_fields"))?
+            .remove("model");
+        let value = json!({"model":model,"input":input});
+        crate::studio_video::check(&value)?;
+        return Ok(value);
+    }
     let m = info(model)?;
     let mut keys = vec!["prompt"];
     if v.get("model").is_some() {
@@ -71,6 +85,9 @@ pub fn spec(v: &Value) -> Result<Value> {
 }
 pub fn check(v: &Value) -> Result<()> {
     let model = s(&v["model"])?;
+    if model.starts_with("studio/") {
+        return crate::studio_video::check(v);
+    }
     let mut input = json!({"model":model,"prompt":v["input"]["prompt"]});
     if info(model)?["seed"] == true {
         input["seed"] = v["input"]["seed"].clone()

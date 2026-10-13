@@ -37,6 +37,30 @@ pub fn reports(rows: &[Value]) -> Vec<Value> {
         .collect()
 }
 
+/// Worker telemetry uses deployed generation credentials only. Billing/admin
+/// and Phala hosting keys remain local to the operator's console device.
+pub fn worker_reports(http: &dyn Http, credentials: &Value) -> Vec<Value> {
+    let mut deployed = json!({});
+    for (_, key) in PROVIDERS {
+        if configured(&credentials[key]) {
+            deployed[key] = credentials[key].clone();
+        }
+    }
+    let local = collect(http, &deployed);
+    reports(&local)
+        .into_iter()
+        .filter_map(|mut row| {
+            let provider = row["provider"].as_str()?;
+            let (_, key) = PROVIDERS.iter().find(|(name, _)| *name == provider)?;
+            let value = deployed[key].as_str()?;
+            row["credentialRef"] = json!(crate::protocol::sha(format!(
+                "everyframe-worker-balance-credential-v1\0{provider}\0{value}"
+            )));
+            Some(row)
+        })
+        .collect()
+}
+
 fn fetch(http: &dyn Http, provider: &str, key: &str) -> Result<f64> {
     let (url, host, header, value) = match provider {
         "fal" => (
@@ -197,10 +221,15 @@ pub fn merge(remote: &Value, local: Vec<Value>, now: i64) -> Vec<Value> {
         );
         clean["source"] = json!(if local_row.is_some() {
             "local"
+        } else if r["source"] == "attested-worker" {
+            "worker"
         } else {
             "synced"
         });
-        clean["stale"] = json!(checked.is_none_or(|t| now - t > MAX_AGE_MS));
+        clean["stale"] = json!(
+            checked.is_none_or(|t| now - t > MAX_AGE_MS)
+                || local_row.is_none() && (r["stale"] == true || r["attestationCurrent"] == false)
+        );
         if clean["status"] != "ok" {
             let code = if status == "unsupported" {
                 "unsupported_balance"

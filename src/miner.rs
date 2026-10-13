@@ -639,8 +639,13 @@ impl Miner<'_> {
             )?;
             let reward =
                 (base.checked_mul(10000 - bp).ok_or(Error("invalid_price"))? + 9999) / 10000;
+            let scope = if model.starts_with("studio/") {
+                "five-second reference target; actual job value varies with duration, resolution, aspect and reference media. Review everycli offers --json for the rate schedule"
+            } else {
+                "job target"
+            };
             confirm(&format!(
-                "Offer {model} at {}% discount, ${:.6}/job target. Provider bills do not decrease; no guaranteed traffic or profit.",
+                "Offer {model} at {}% discount, ${:.6}/{scope}. Provider bills do not decrease; no guaranteed traffic or profit.",
                 bp as f64 / 100.,
                 reward as f64 / 1e6
             ))?

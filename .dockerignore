@@ -5,6 +5,7 @@
 !src/**
 !config/
 !config/models.json
+!config/studio-video.json
 !config/release.json
 !config/mainnet.json
 !config/testnet.json

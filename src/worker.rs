@@ -18,6 +18,10 @@ use std::{
 pub trait Runtime {
     fn post(&self, path: &str, body: &Value) -> Result<Value>;
     fn quote(&self, data: &[u8]) -> Result<Value>;
+    fn balances_enabled(&self) -> bool {
+        false
+    }
+    fn balance_session(&self, _session: &Value, _keys: &Keys) {}
     fn now(&self) -> i64 {
         crate::now()
     }
@@ -84,10 +88,14 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
         {
             self.enroll()?
         };
-        let (result, nonce) = self.call(
-            "claim",
-            json!({"models":self.provider.models(),"durationPolicy":1}),
-        )?;
+        let mut capabilities = json!({"models":self.provider.models(),"durationPolicy":1});
+        if self.runtime.balances_enabled() {
+            capabilities["balancePolicy"] = json!(1);
+        }
+        let (result, nonce) = self.call("claim", capabilities)?;
+        if self.runtime.balances_enabled() {
+            self.runtime.balance_session(&self.session, &self.keys);
+        }
         if result["work"].is_null() {
             return Ok(Value::Null);
         };
@@ -207,8 +215,25 @@ pub struct LiveRuntime {
     pub token: String,
     pub auth: Option<Value>,
     pub http: crate::network::PublicHttp,
+    pub balance_session: Option<crate::worker_balances::SharedSession>,
 }
 impl Runtime for LiveRuntime {
+    fn balances_enabled(&self) -> bool {
+        self.balance_session.is_some()
+    }
+    fn balance_session(&self, session: &Value, keys: &Keys) {
+        if let Some(shared) = &self.balance_session
+            && let Ok(mut state) = shared.try_lock()
+            && let (Some(id), Some(expires)) =
+                (session["sessionId"].as_str(), session["expires"].as_i64())
+        {
+            *state = Some(crate::worker_balances::BalanceSession {
+                id: id.into(),
+                expires,
+                signing: keys.signing.clone(),
+            });
+        }
+    }
     fn post(&self, path: &str, body: &Value) -> Result<Value> {
         need(
             ["/v1/challenge", "/v1/attest", "/v1/action"].contains(&path),
@@ -222,7 +247,11 @@ impl Runtime for LiveRuntime {
             .to_string();
         let mut r = Request::get(url, &[&host]).json("POST", body);
         r.limit = 300000;
-        r.timeout = 30;
+        r.timeout = if body["value"]["action"] == "balances" {
+            5
+        } else {
+            30
+        };
         if let Some(auth) = &self.auth {
             crate::hotkey::authorize(&mut r, auth, body)?;
         } else {
@@ -377,6 +406,27 @@ pub fn run_live() -> Result<()> {
             .map_err(|_| Error("signal_handler_failed"))?;
     }
     let http = crate::network::PublicHttp;
+    let balance_session = Arc::new(std::sync::Mutex::new(None));
+    let balance_runtime = LiveRuntime {
+        base: base.to_string(),
+        token: token.clone(),
+        auth: auth.clone(),
+        http: crate::network::PublicHttp,
+        balance_session: None,
+    };
+    // A separately bounded thread: no new credentials, provider access, or
+    // publishing authority beyond the exact admitted workload/session.
+    let reporting = crate::worker_balances::start(
+        credentials.clone(),
+        balance_runtime,
+        balance_session.clone(),
+        s(&release["coordinatorSigningKey"])?.into(),
+        stop.clone(),
+    )
+    .is_ok();
+    if !reporting {
+        eprintln!("balance_reporter_unavailable");
+    }
     let mut w = Worker {
         miner_id: miner,
         coordinator_key: s(&release["coordinatorSigningKey"])?.into(),
@@ -388,6 +438,7 @@ pub fn run_live() -> Result<()> {
             token,
             auth,
             http: crate::network::PublicHttp,
+            balance_session: reporting.then_some(balance_session),
         },
         provider: crate::providers::Router::new(&http, credentials),
     };
