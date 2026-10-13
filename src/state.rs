@@ -117,6 +117,8 @@ impl State {
                 "deployment",
                 "registration",
                 "worker-update",
+                "auto-update-settings",
+                "auto-update-result",
             ]
             .contains(&name),
             "invalid_state_file",

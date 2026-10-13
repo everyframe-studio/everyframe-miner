@@ -287,7 +287,11 @@ impl Miner<'_> {
                     flow["stage"] = json!("applying");
                 }
                 "applying" => {
-                    if ["update_provision_intent", "activate_intent"].contains(&phase) {
+                    if phase == "update_provision_intent" {
+                        self.reconcile_locked()?;
+                        continue;
+                    }
+                    if phase == "activate_intent" {
                         return Err(Error("worker_update_uncertain_operation"));
                     }
                     if ["update_commit_intent", "updating"].contains(&phase) {

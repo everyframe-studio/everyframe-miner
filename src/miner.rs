@@ -900,6 +900,9 @@ impl Miner<'_> {
     }
     pub fn stop(&self, drain_only: bool, confirm: &dyn Fn(&str) -> Result<()>) -> Result<Value> {
         let _lock = self.state.lock()?;
+        if self.load(false)?.deployment["phase"] == "update_provision_intent" {
+            self.reconcile_locked()?;
+        }
         let c = self.load(false)?;
         let phase = c.deployment["phase"].as_str().unwrap_or("");
         need(!phase.ends_with("_intent"), "reconciliation_required")?;
@@ -1040,12 +1043,25 @@ impl Miner<'_> {
         state["operationAt"] = json!(now());
         self.state.write("deployment", &state)?;
         let path = Cloud::app_path(s(&d["appId"])?)?;
+        // Phala otherwise retains the old allowed_envs even when the signed
+        // compose changes it, yielding a different hash (e.g. adding Vivix).
+        // This is a request option, NOT part of the signed compose/hash.
+        let mut provision = inv["request"]["compose_file"].clone();
+        provision["update_env_vars"] = json!(true);
         let result = cloud.mutate(
             &format!("{path}/compose_file/provision"),
             "POST",
-            &inv["request"]["compose_file"],
+            &provision,
             false,
         )?;
+        // Store only bounded public diagnostics, never raw provider responses.
+        state["updateProvisionResponse"] = json!({
+            "expectedComposeHash":inv["composeHash"],
+            "returnedComposeHash":result["compose_hash"].as_str()
+                .filter(|v| v.len()==64 && v.bytes().all(|b| b.is_ascii_hexdigit())),
+            "updateEnvVars":true
+        });
+        self.state.write("deployment", &state)?;
         need(
             result["compose_hash"] == inv["composeHash"],
             "update_compose_mismatch",
@@ -1074,6 +1090,45 @@ impl Miner<'_> {
         let info = self.target(&c, true)?;
         let phase = s(&c.deployment["phase"])?;
         let status = s(&info["status"])?;
+        if phase == "update_provision_intent" {
+            // The provision endpoint validates/caches a candidate only. The
+            // separate PATCH that restarts the VM is preceded by a durable
+            // update_commit_intent write. Thus this phase cannot contain a
+            // CLI-issued commit, even after a lost provision response in 0.3.7.
+            // Never infer that a commit is safe from elapsed time or retry it.
+            let inv = self.validate(&c.deployment["pendingInvitation"], true)?;
+            need(
+                inv["appId"] == c.deployment["appId"]
+                    && inv["previousComposeHash"] == c.invitation["composeHash"]
+                    && inv["request"]["name"] == c.invitation["request"]["name"]
+                    && [
+                        "minerId",
+                        "hotkey",
+                        "tokenHash",
+                        "authMode",
+                        "keyVersion",
+                        "osImageHash",
+                    ]
+                    .iter()
+                    .all(|k| inv[k] == c.invitation[k])
+                    && status == "running"
+                    && info["compose_hash"] == c.invitation["composeHash"],
+                "update_provision_state_changed",
+            )?;
+            let mut d = c.deployment.clone();
+            d["phase"] = json!(if d["providerConfigured"] == true {
+                "drained"
+            } else {
+                "awaiting_attestation"
+            });
+            d["provisionReconciledAt"] = json!(now());
+            d.as_object_mut().unwrap().remove("pendingInvitation");
+            self.state.write("deployment", &d)?;
+            return Ok(
+                json!({"phase":d["phase"],"resolved":true,"cloudStatus":status,
+                "next":"The existing worker is unchanged; preparation was not committed. Run everycli worker-update to continue, or everycli stop to shut down. No cloud mutation or resume was performed."}),
+            );
+        }
         if status == "running"
             && ["commit_intent", "provisioned", "awaiting_attestation"].contains(&phase)
         {

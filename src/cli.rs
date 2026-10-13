@@ -19,6 +19,7 @@ Usage: everycli COMMAND [options]
 Setup: setup (guided), register-hotkey, set-api-keys, remove-api-key, init
 Manage: health, doctor, status, providers, balances, offers, offer, earnings, deploy, activate,
         apply-api-keys, resume, worker-update, stop, start, reconcile
+CLI updates: update, auto-update (--enable / --disable)
 
 Options:
   --network mainnet|testnet (default mainnet SN117; testnet SN566)
@@ -131,6 +132,8 @@ pub fn parse(args: &[String]) -> Result<Args> {
             "--stdin",
             "--publish",
             "--continue",
+            "--enable",
+            "--disable",
         ]
         .contains(&a)
         {
@@ -211,6 +214,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
             "stop",
             "start",
             "reconcile",
+            "auto-update",
         ]
         .contains(&command),
         "unknown_command",
@@ -221,6 +225,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
         return Ok(out);
     }
     let allowed = match out.command.as_str() {
+        "auto-update" => vec!["--enable", "--disable"],
         "setup" => vec![
             "--continue",
             "--wallet",
@@ -246,6 +251,19 @@ pub fn parse(args: &[String]) -> Result<Args> {
         "stop" => vec!["--drain-only"],
         _ => vec![],
     };
+    if out.command == "auto-update" {
+        for option in out.options.keys().chain(out.flags.iter()) {
+            need(
+                ["--enable", "--disable", "--json"].contains(&option.as_str()),
+                "invalid_option",
+            )
+            .map_err(|e| e.option(option))?;
+        }
+        need(
+            !(out.flag("--enable") && out.flag("--disable")),
+            "conflicting_auto_update_options",
+        )?;
+    }
     for option in out
         .options
         .keys()
@@ -561,6 +579,9 @@ pub fn run(args: &Args) -> Result<Value> {
     if args.command == "self-update" {
         return crate::update::run(args.flag("--check"), args.flag("--json"));
     }
+    if args.command == "auto-update" {
+        return crate::auto_update::settings(args.flag("--enable"), args.flag("--disable"));
+    }
     for key in ["PHALA_CLOUD_API_PREFIX", "DEBUG", "SSLKEYLOGFILE"] {
         need(
             std::env::var(key).unwrap_or_default().is_empty(),
@@ -767,6 +788,9 @@ pub fn run(args: &Args) -> Result<Value> {
 pub fn main_entry() -> i32 {
     unsafe { libc::umask(0o077) };
     let raw = std::env::args().skip(1).collect::<Vec<_>>();
+    if crate::auto_update::internal(&raw) {
+        return crate::auto_update::background_entry();
+    }
     let json_mode = raw.iter().any(|a| a == "--json");
     let parsed = parse(&raw);
     let diagnostic_args = parsed
@@ -829,7 +853,7 @@ pub fn main_entry() -> i32 {
             },
         )
     });
-    match result {
+    let exit_code = match result {
         Ok(n) => n,
         Err(e) => {
             let d = crate::cli_errors::diagnostic(&e, diagnostic_args.as_ref());
@@ -840,7 +864,15 @@ pub fn main_entry() -> i32 {
             }
             2
         }
+    };
+    if let Some(args) = diagnostic_args.as_ref() {
+        // Never auto-update on parse/validation failures. The command itself
+        // completes using the current executable; a new version is for next time.
+        if exit_code == 0 {
+            crate::auto_update::maybe_launch(args);
+        }
     }
+    exit_code
 }
 
 pub fn balance_check_failed(out: &Value) -> bool {

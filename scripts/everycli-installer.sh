@@ -86,6 +86,6 @@ everycli_install() (
       *) printf 'PATH was not modified. Add %s to PATH.\n' "$install_dir" ;;
     esac
   fi
-  printf 'Then run: everycli --version\nUpgrade later: everycli update\n'
+  printf 'Then run: everycli --version\nUpgrade later: everycli update\nAutomatic CLI updates: everycli auto-update (disable with --disable). Workers are unchanged.\n'
 )
 everycli_install "$@"

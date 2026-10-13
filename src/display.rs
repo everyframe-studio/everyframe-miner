@@ -326,6 +326,51 @@ pub fn render(command: &str, value: &Value) -> String {
     }
     let rows = |key: &str| value[key].as_array().cloned().unwrap_or_default();
     match command {
+        "auto-update" => {
+            let enabled = if value["enabled"] == true {
+                "On"
+            } else {
+                "Off"
+            };
+            let effective = if value["environmentDisabled"] == true {
+                "Disabled by EVERYCLI_DISABLE_AUTO_UPDATE=1"
+            } else if value["nativeInstallation"] != true {
+                "Manual updates for this installation path"
+            } else if value["effective"] == true {
+                "Enabled for interactive commands"
+            } else {
+                "Disabled"
+            };
+            let last = &value["lastAttempt"];
+            let status = if last.is_null() {
+                "Not checked yet".into()
+            } else {
+                text(&last["state"])
+            };
+            let mut out = table(
+                &["CLI AUTO-UPDATE", "STATUS"],
+                vec![
+                    vec!["Preference".into(), enabled.into()],
+                    vec!["Effective mode".into(), effective.into()],
+                    vec!["Check interval".into(), "6 hours".into()],
+                    vec!["Last attempt".into(), status],
+                ],
+            );
+            if !last["code"].is_null() {
+                out.push_str(&format!(
+                    "\nLast error: {}. Manual retry: everycli update.\n",
+                    text(&last["code"])
+                ));
+            }
+            if last["result"]["updated"] == true {
+                out.push_str(&format!(
+                    "\nInstalled {}. The new version is used on the next invocation.\n",
+                    version(&last["result"]["version"])
+                ));
+            }
+            out.push_str("\nCLI only: deployed workers, keys and offers are unchanged.\nDisable: everycli auto-update --disable · Enable: everycli auto-update --enable\n");
+            out
+        }
         "update" => format!(
             "Worker update — {}\n{}{}\n{}\n",
             text(value.get("state").unwrap_or(&value["phase"])),

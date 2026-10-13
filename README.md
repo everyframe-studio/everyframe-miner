@@ -83,14 +83,40 @@ still print their old output during that one upgrade; the new display applies
 once the new executable is installed.
 
 `everycli update` upgrades the **CLI**; `everycli worker-update`
-updates a **deployed worker** using an approved signed release. There are no
-automatic background update checks. If a documented command is missing, check
+updates a **deployed worker** using an approved signed release. If a documented command is missing, check
 `everycli --version` and upgrade (rerun the installer for older CLIs without an
 `update` command).
 
 Checksums detect corrupted or mismatched downloads; they are not independent
 publisher signatures. The installer and updater trust this GitHub repository
 and HTTPS.
+
+### Automatic CLI updates (v0.3.8)
+
+Native user installations check for the latest stable release in the background
+after successful interactive commands, at most once every six hours. Downloads
+are checksum-verified and atomically installed; the new version runs on the next
+invocation. Your current command completes normally, even when an update fails.
+
+```sh
+everycli auto-update            # Show settings and the last attempt
+everycli auto-update --disable  # Opt out; manual everycli update still works
+everycli auto-update --enable   # Restore the default
+everycli auto-update --json     # Structured settings/result, no background work
+```
+
+`EVERYCLI_DISABLE_AUTO_UPDATE=1` also disables background updates. No background
+check runs for JSON, CI, non-interactive, help, version, or explicit update commands.
+Auto-updates are restricted to owner-managed native installs in
+`${CARGO_HOME:-$HOME/.cargo}/bin/everycli` or `~/.local/bin/everycli`.
+Build directories, package-manager paths, custom symlink launchers and unsafe
+permissions remain manual. Settings and the last result live separately from
+miner profiles in `~/.config/everycli-updater/`. No daemon or system service is installed.
+
+Only the CLI executable is updated: cloud workers, saved keys, model offers,
+discounts, running jobs and routing are never changed. Install this feature once
+using `everycli update` after its release; older CLIs cannot gain auto-update
+behavior without that first manual upgrade.
 
 ## Guided setup and command help (v0.3.4)
 
@@ -568,8 +594,12 @@ or deleted, no stopped VM is started, and no paid test generation is submitted.
 Progress is readable by default; `--json` emits only the structured result.
 Non-interactive updates require `--yes`. Waiting is bounded to about ten minutes;
 rerun the same command with the same profile to continue a saved update. A lost
-cloud response is not blindly replayed: ambiguous provisioning/key activation
-may require reconciliation. Keep the profile and journal. After a hard process
+cloud commit or key-activation response is not blindly replayed. v0.3.8
+also recovers v0.3.7's `update_provision_intent`: it verifies the exact old VM is
+still running the original signed configuration before retrying preparation.
+Preparation only caches a candidate; committing/restarting is a separate operation.
+Run `everycli reconcile` to perform that read-only cloud verification explicitly.
+A genuinely different VM/configuration still fails closed. Keep the profile and journal. After a hard process
 kill, a stale `operation.lock` may also require inspection before continuing.
 
 If no compatible package is published, the command says so and changes nothing;
