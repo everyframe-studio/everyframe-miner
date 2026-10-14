@@ -18,6 +18,16 @@ jobs:
       - run: cargo +1.97.1 clippy --release --locked --all-targets -- -D warnings
       - run: cargo +1.97.1 test --release --locked
       - run: cargo +1.97.1 build --release --locked --bins
+      - name: Install browser test dependencies
+        if: matrix.runner == 'ubuntu-22.04'
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Browser setup and lifecycle regressions
+        if: matrix.runner == 'ubuntu-22.04'
+        env:
+          EVERYCLI_BIN: target/release/everycli
+        run: npm run test:ui
       - name: Native CLI and fail-closed public worker
         run: |
           target/release/everycli --version --json

@@ -323,3 +323,50 @@ fn page_assets_stay_local_and_text_only() {
     .to_string();
     assert!(!js.contains("everyframe-studios"));
 }
+
+#[test]
+fn overview_exposes_lifecycle_reconciliation_and_local_label() {
+    let dir = common::tempdir();
+    let sh = shared(dir.path());
+    let state = everyframe_miner::state::State::new("testnet", sh.state_dir.as_deref()).unwrap();
+    state.prepare().unwrap();
+    state
+        .write("label", &json!({"name":"studio-worker-1"}))
+        .unwrap();
+    for phase in [
+        "starting",
+        "stopping",
+        "provisioned",
+        "updating",
+        "deleting",
+        "stop_intent",
+    ] {
+        state
+            .write(
+                "deployment",
+                &json!({"phase":phase,"appId":"11".repeat(20)}),
+            )
+            .unwrap();
+        let o = ui::overview(&sh).unwrap();
+        assert_eq!(o["deployment"]["needsReconcile"], true, "{phase}");
+        assert_eq!(o["label"], "studio-worker-1");
+    }
+    state
+        .write(
+            "deployment",
+            &json!({"phase":"running","appId":"11".repeat(20)}),
+        )
+        .unwrap();
+    assert_eq!(
+        ui::overview(&sh).unwrap()["deployment"]["needsReconcile"],
+        false
+    );
+    let (args, changes) = ui::action_args(&sh, "stop", &json!({"force":true})).unwrap();
+    assert!(changes && args.flag("--force"));
+    assert!(ui::action_args(&sh, "resume", &json!({"force":true})).is_err());
+    assert!(
+        ui::action_args(&sh, "register-hotkey", &json!({"hotkeySs58":"test"}))
+            .unwrap()
+            .1
+    );
+}

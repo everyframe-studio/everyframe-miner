@@ -616,7 +616,14 @@ impl Miner<'_> {
             &["subnet.everyframe.studio"],
         );
         req.limit = 1000000;
-        let out = verified(&self.http.json(req)?, s(&self.trust["publicKey"])?)?;
+        let response = self.http.json(req).map_err(|e| {
+            if e.0 == "http_404" {
+                Error("public_catalog_unavailable")
+            } else {
+                e
+            }
+        })?;
+        let out = verified(&response, s(&self.trust["publicKey"])?)?;
         need(
             out["protocol"] == 1
                 && out["action"] == "catalog"

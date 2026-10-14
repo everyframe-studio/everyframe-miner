@@ -54,7 +54,7 @@ const ACTIONS: &[(&str, &[&str], &[&str], bool)] = &[
     ("balances", &["balances"], &[], false),
     ("offers", &["offers"], &[], false),
     ("earnings", &["earnings"], &[], false),
-    ("register-hotkey", &["register-hotkey"], &[], false),
+    ("register-hotkey", &["register-hotkey"], &[], true),
     (
         "worker-update-check",
         &["worker-update"],
@@ -70,6 +70,8 @@ const ACTIONS: &[(&str, &[&str], &[&str], bool)] = &[
     ("apply-api-keys", &["apply-api-keys"], &[], true),
     ("resume", &["resume"], &[], true),
     ("stop", &["stop"], &[], true),
+    ("label", &["label"], &[], true),
+    ("logs", &["logs"], &[], false),
     ("worker-update", &["worker-update"], &[], true),
     ("reconcile", &["reconcile"], &[], true),
     ("remove-api-key", &["remove-api-key"], &[], true),
@@ -86,8 +88,13 @@ const PARAMS: &[(&str, &str)] = &[
     ("discountPct", "--discount-pct"),
     ("maxHourlyUsd", "--max-hourly-usd"),
     ("provider", "--provider"),
+    ("name", "--name"),
 ];
-const FLAG_PARAMS: &[(&str, &str)] = &[("withdraw", "--withdraw"), ("drainOnly", "--drain-only")];
+const FLAG_PARAMS: &[(&str, &str)] = &[
+    ("withdraw", "--withdraw"),
+    ("drainOnly", "--drain-only"),
+    ("force", "--force"),
+];
 
 struct Job {
     action: String,
@@ -294,6 +301,7 @@ pub fn overview(sh: &Shared) -> Result<Value> {
     let config = state.read("config", true)?;
     let credentials = state.read("credentials", true)?;
     let deployment = state.read("deployment", true)?;
+    let label = state.read("label", true)?;
     let saved = |key: &str| invitation::configured(&credentials[key]);
     let keys: Vec<Value> = onboarding::credential_providers()
         .into_iter()
@@ -328,6 +336,10 @@ pub fn overview(sh: &Shared) -> Result<Value> {
         .iter()
         .filter_map(|k| credentials[*k]["certificate"]["value"]["expiresAt"].as_i64())
         .min();
+    let delegation_non_expiring = ["CONSOLE_AUTH", "WORKER_AUTH"].iter().all(|k| {
+        credentials[*k]["certificate"]["value"]["kind"] == "everyframe-hotkey-delegation-v2"
+            && credentials[*k]["certificate"]["value"]["expiresAt"].is_null()
+    });
     let phase = deployment["phase"].as_str().unwrap_or("not_deployed");
     let deployed = deployment["appId"].is_string();
     let activated = [
@@ -358,8 +370,9 @@ pub fn overview(sh: &Shared) -> Result<Value> {
         },
         "initialized":!config.is_null(),"profile":profile,
         "deployment":{"phase":phase,"appId":deployment["appId"],"computeHourlyUsd":deployment["computeHourlyUsd"],
-            "needsReconcile":phase.ends_with("_intent")},
-        "delegationExpiresAt":delegation_expires,
+            "needsReconcile":phase.ends_with("_intent") || ["provisioned","starting","stopping","updating","deleting"].contains(&phase)},
+        "label":label["name"],
+        "delegationExpiresAt":delegation_expires,"delegationNonExpiring":delegation_non_expiring,
         "keys":keys,"steps":steps,"checkedAt":now()
     }))
 }

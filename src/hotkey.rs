@@ -43,7 +43,15 @@ pub fn create(path: &Path, inv: &Value, scope: &str) -> Result<Value> {
     let key = SigningKey::from_bytes(&protocol::random::<32>());
     let issued = now();
     need(n(&inv["expiresAt"])? > issued, "deployment_expired")?;
-    let value = json!({"kind":"everyframe-hotkey-delegation-v2","chain":chain(inv)?,"audience":inv["coordinatorUrl"].as_str().unwrap_or("").trim_end_matches('/').to_string()+"/","minerId":inv["minerId"],"hotkey":inv["hotkey"],"delegateKey":protocol::export(key.verifying_key().as_bytes(),true),"scope":scope,"keyVersion":inv["keyVersion"],"issuedAt":issued,"expiresAt":null});
+    // Opt in only through a verified signed deployment, after coordinator and
+    // worker upgrades. Existing signatures are never rewritten or extended.
+    let v2 = inv["hotkeyDelegationVersion"] == 2;
+    let expiry = if v2 {
+        Value::Null
+    } else {
+        json!(n(&inv["expiresAt"])?.min(issued + 30 * 86400000))
+    };
+    let value = json!({"kind":if v2 {"everyframe-hotkey-delegation-v2"} else {"everyframe-hotkey-delegation-v1"},"chain":chain(inv)?,"audience":inv["coordinatorUrl"].as_str().unwrap_or("").trim_end_matches('/').to_string()+"/","minerId":inv["minerId"],"hotkey":inv["hotkey"],"delegateKey":protocol::export(key.verifying_key().as_bytes(),true),"scope":scope,"keyVersion":inv["keyVersion"],"issuedAt":issued,"expiresAt":expiry});
     let signature = pair.sign_simple(b"substrate", protocol::canonical(&value)?.as_bytes());
     Ok(
         json!({"secret":hex::encode(key.to_bytes()),"certificate":{"value":value,"signature":hex::encode(signature.to_bytes())}}),

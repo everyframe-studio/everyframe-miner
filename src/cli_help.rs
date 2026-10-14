@@ -25,6 +25,9 @@ pub const COMMANDS: &[&str] = &[
     "update",
     "auto-update",
     "ui",
+    "delete",
+    "logs",
+    "label",
 ];
 
 pub fn public_name(command: &str) -> &str {
@@ -135,13 +138,28 @@ pub fn render(command: &str) -> String {
         ),
         "stop" => (
             "Drain work and stop the existing worker after confirmation. Stopped workloads may retain billable storage.",
-            "  --drain-only  Pause new work without stopping the VM",
+            "  --drain-only  Pause new work without stopping the VM\n  --force       Emergency shutdown without coordinator availability; may lose paid in-flight work",
             "stop --drain-only",
         ),
         "reconcile" => (
             "Inspect a recorded uncertain operation and reconcile its state. Never blindly repeat a cloud mutation.",
             "  No command-specific options.",
             "reconcile",
+        ),
+        "delete" => (
+            "Permanently delete the verified VM and its storage after exact-ID confirmation. Stops compute/storage billing for that VM, not unrelated resources. Irreversible; in-flight work may be lost.",
+            "  --app-id ID  Required exact VM ID from status\n  --yes        Explicit consent without an interactive terminal",
+            "delete --app-id EXACT_APP_ID",
+        ),
+        "logs" => (
+            "Read bounded, sanitized worker events. Does not enable public log access; private logs may require the Phala console.",
+            "  No command-specific options.",
+            "logs",
+        ),
+        "label" => (
+            "Show or set a local worker label. Does not change the signed VM name or identity.",
+            "  --name NAME  Local display name, up to 64 safe characters",
+            "label --name studio-worker-1",
         ),
         "ui" => (
             "Open a local browser page with a step-by-step setup guide, a live status dashboard, model offers, API keys and worker actions. It runs the same checks and asks the same questions as the terminal commands. Listens on 127.0.0.1 only; the printed link works once. On a remote server, forward the port with ssh -L. Closing the UI never stops your worker.",

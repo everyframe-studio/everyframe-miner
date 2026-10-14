@@ -11,8 +11,8 @@ After reviewing and committing the release changes, the maintainer can publish
 the corrected version (these commands create an external release when pushed):
 
 ```sh
-git tag v0.3.6
-git push origin v0.3.6
+git tag v0.5.0
+git push origin v0.5.0
 ```
 
 For subsequent releases, bump Cargo.toml and Cargo.lock first, then tag the
@@ -20,6 +20,20 @@ matching `vMAJOR.MINOR.PATCH`. Prerelease tags are not supported by this workflo
 Protect release tags and restrict who can push them. If a publication fails after
 draft creation, inspect and recover that draft manually; the workflow refuses to
 overwrite existing releases. Do not move a published tag or replace its assets.
+
+v0.5.0 adds the local browser setup and management UI (`everycli ui`), lifecycle
+reconciliation controls, truthful readiness, native Vivix W-credit display,
+emergency stop, deletion, labels/logs and safer CLI updates/locks. Browser tests
+run against an isolated loopback server with mocked cloud command results.
+Node/Playwright are development-test dependencies only; miners install one native
+binary. They do not need Node, Python or Rust.
+
+Non-expiring v2 delegates are opt-in through the verified signed deployment's
+`hotkeyDelegationVersion: 2`. Do not enable it until both coordinator and worker
+support v2. Existing deployments keep compatible v1 creation/verification.
+The public catalog endpoint is also coordinator-dependent; its absence produces
+an actionable error, not fabricated pricing. Publishing this CLI does not deploy
+coordinator changes or update/admit any worker image.
 
 v0.3.6 adds `everycli health` and default human-readable `status` tables. Both
 commands support `--json`. Health is read-only: all green means the current

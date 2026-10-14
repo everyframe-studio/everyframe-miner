@@ -7,7 +7,7 @@ const S = {
   token: null, session: null, overview: null, wallets: null, help: null,
   health: null, healthAt: 0, offers: null, offersError: null, balances: null, earnings: null,
   cliUpdate: null, workerUpdate: null, hotkeySel: null, registration: null,
-  openStep: null, offerFilter: "ready", timers: [],
+  openStep: null, offerFilter: "ready", timers: [], refreshing: false,
 };
 try { S.token = sessionStorage.getItem("everycli-token"); } catch { /* private mode */ }
 
@@ -67,6 +67,7 @@ const LABELS = {
   "apply-api-keys": "Apply keys to worker", "resume": "Start accepting work", "stop": "Stop worker",
   "worker-update": "Update worker", "reconcile": "Re-sync operation", "remove-api-key": "Remove key",
   "balances-publish": "Publish balances",
+  "label": "Save worker label", "logs": "Worker logs",
 };
 
 // Runs a CLI command. Questions come back to the browser; approving one re-runs
@@ -151,10 +152,18 @@ function errorView(err) {
 function confirmDialog(question, title) {
   return new Promise((resolve) => {
     const wrap = $("#modal");
+    const previousFocus = document.activeElement;
     const input = h("input", { type: "text", placeholder: "yes", autocomplete: "off", "aria-label": "Type yes to continue" });
     const ok = h("button", { class: "btn primary", disabled: true }, "Continue");
-    const done = (v) => { wrap.hidden = true; wrap.replaceChildren(); document.removeEventListener("keydown", esc); resolve(v); };
-    const esc = (e) => { if (e.key === "Escape") done(false); };
+    const done = (v) => { wrap.hidden = true; wrap.replaceChildren(); $("#app").inert = false; $("#activity").inert = false; document.removeEventListener("keydown", esc); previousFocus?.focus(); resolve(v); };
+    const esc = (e) => {
+      if (e.key === "Escape") done(false);
+      if (e.key === "Tab") {
+        const controls = [...wrap.querySelectorAll("button:not(:disabled), input")];
+        const next = controls[(controls.indexOf(document.activeElement) + (e.shiftKey ? -1 : 1) + controls.length) % controls.length];
+        e.preventDefault(); next?.focus();
+      }
+    };
     input.addEventListener("input", () => { ok.disabled = input.value.trim().toLowerCase() !== "yes"; });
     input.addEventListener("keydown", (e) => { if (e.key === "Enter" && !ok.disabled) done(true); });
     ok.addEventListener("click", () => done(true));
@@ -164,6 +173,7 @@ function confirmDialog(question, title) {
       h("div", { class: "field" }, h("label", null, "Type yes to continue (same as the terminal)"), input),
       h("div", { class: "row end", style: null }, h("button", { class: "btn", onclick: () => done(false) }, "Cancel"), ok)));
     wrap.hidden = false;
+    $("#app").inert = true; $("#activity").inert = true;
     document.addEventListener("keydown", esc);
     input.focus();
   });
@@ -246,7 +256,6 @@ async function loadHealth(quiet = true) {
 async function loadBalances() { if (S.overview?.initialized) S.balances = await run("balances", {}, { quiet: true }); }
 async function loadEarnings() { if (S.overview?.initialized) S.earnings = await run("earnings", {}, { quiet: true }); }
 async function loadOffers(quiet = true) {
-  if (!S.overview?.initialized) return;
   const job = await run("offers", {}, { quiet });
   S.offers = value(job); S.offersError = errorOf(job);
 }
@@ -254,6 +263,7 @@ async function loadOffers(quiet = true) {
 // ---------- shell ----------
 const ROUTES = [["overview", "Overview"], ["setup", "Setup guide"], ["models", "Models"], ["keys", "API keys"], ["worker", "Worker"], ["help", "Help"]];
 function route() { const m = location.hash.match(/^#\/(\w+)/); return m && ROUTES.some(([r]) => r === m[1]) ? m[1] : null; }
+function currentRoute() { return route() || (S.overview?.initialized ? "overview" : "setup"); }
 function go(r) { location.hash = "#/" + r; }
 
 function renderMeta() {
@@ -267,7 +277,7 @@ function renderMeta() {
     S.cliUpdate && value(S.cliUpdate)?.updateAvailable ? h("span", { class: "pill warn" }, h("span", { class: "dot" }), "CLI update available") : null].filter(Boolean));
 }
 function renderNav() {
-  const current = route() || (S.overview?.initialized ? "overview" : "setup");
+  const current = currentRoute();
   const steps = S.overview?.steps || [];
   const done = steps.filter((x) => stepDone(x)).length;
   $("#nav").replaceChildren(...ROUTES.map(([r, label]) => h("a", { href: "#/" + r, class: r === current ? "active" : "" },
@@ -276,7 +286,7 @@ function renderNav() {
 function render() {
   if (!S.token) return renderUnpaired();
   renderMeta(); renderNav();
-  const r = route() || (S.overview?.initialized ? "overview" : "setup");
+  const r = currentRoute();
   const page = { overview: pageOverview, setup: pageSetup, models: pageModels, keys: pageKeys, worker: pageWorker, help: pageHelp }[r];
   $("#main").replaceChildren(page());
 }
@@ -313,15 +323,15 @@ function pageOverview() {
   const delegation = daysLeft(o.delegationExpiresAt);
   const activeOffers = checks.filter((c) => (c.name || "").startsWith("Model: ")).length;
   root.append(h("div", { class: "grid" },
-    stat("Worker", phase, o.profile?.workerName || "", tone),
+    stat("Worker", phase, o.label || o.profile?.workerName || "", tone),
     stat("Readiness", !S.health ? "Checking…" : (health?.ok ? "All checks pass" : (failing + warning) + " need attention"),
       S.healthAt ? "Checked " + ago(S.healthAt) : "", !S.health ? "" : health?.ok ? "ok" : failing ? "bad" : "warn"),
     stat("Accepting work", accepting ? (accepting.ok ? "Yes" : "No") : "—", accepting ? "" : "Unknown until checked", accepting ? (accepting.ok ? "ok" : "warn") : ""),
     stat("Attestation", attest ? (attest.ok ? "Verified" : "Not yet") : "—", "", attest ? (attest.ok ? "ok" : "warn") : ""),
     stat("Active offers", String(activeOffers), activeOffers ? "" : "Choose models to serve", activeOffers ? "ok" : "warn"),
     stat("Jobs", (activity.activeJobs ?? 0) + " active", (activity.acceptedJobs ?? 0) + " accepted so far"),
-    stat("Hotkey authorization", delegation == null ? "—" : delegation + " days left",
-      delegation != null && delegation < 7 ? "Renew soon: everycli init" : "Renews with everycli init",
+    stat("Hotkey authorization", o.delegationNonExpiring ? "No expiry" : delegation == null ? "—" : delegation + " days left",
+      o.delegationNonExpiring ? "Revocable by key version" : delegation != null && delegation < 7 ? "Renew soon: everycli init" : "Renews with everycli init",
       delegation == null ? "" : delegation < 3 ? "bad" : delegation < 7 ? "warn" : "ok")));
   if (o.deployment.needsReconcile) root.append(notice("warn", "An operation was interrupted", "Your last change didn't finish cleanly. Re-sync it from the Worker page before anything else; never deploy a second worker."));
   if (delegation != null && delegation < 7) root.append(notice(delegation < 3 ? "bad" : "warn", "Your hotkey authorization expires in " + delegation + " days", "When it expires the worker stops being authorized while hosting keeps billing. Renew by running everycli init in your terminal, then apply keys from the Worker page."));
@@ -337,14 +347,22 @@ function pageOverview() {
   root.append(balancesCard(), earningsCard());
   return root;
 }
+function balanceAmount(r) {
+  const native = r.nativeBalance;
+  if (r.provider === "vivix" && native?.unit === "W_CREDITS" && Number.isSafeInteger(native.remainingMicrounits)) {
+    return (native.remainingMicrounits / 1e6).toLocaleString(undefined, { maximumFractionDigits: 6 }) + " W credits";
+  }
+  return r.remainingUsd != null ? fmtUsd(r.remainingUsd) : "—";
+}
 function balancesCard() {
   const v = value(S.balances), rows = v?.balances || [];
   return card("Provider balances", [button("Refresh", async () => { S.balances = await run("balances"); render(); })],
     !S.balances ? h("p", { class: "muted" }, "Loading…") : errorOf(S.balances) ? errorView(errorOf(S.balances)) : rows.length
       ? h("div", { class: "table-wrap" }, h("table", null, h("thead", null, h("tr", null, h("th", null, "Provider"), h("th", null, "Remaining"), h("th", null, "Status"), h("th", null, "Checked"))),
         h("tbody", null, rows.map((r) => h("tr", null, h("td", null, providerName(r.provider)),
-          h("td", null, r.remainingUsd != null ? fmtUsd(r.remainingUsd) : (r.remaining != null ? String(r.remaining) + (r.unit ? " " + r.unit : "") : "—")),
-          h("td", null, h("span", { class: "badge " + (r.status === "ok" ? "ok" : "warn") }, r.status || "—"), r.stale ? h("span", { class: "small muted" }, " stale") : null),
+          h("td", null, balanceAmount(r)),
+          h("td", null, h("span", { class: "badge " + (r.status === "ok" && !r.stale ? "ok" : "warn") }, r.status || "—"), r.stale ? h("span", { class: "small muted" }, " stale") : null,
+            r.diagnostic ? errorView(r.diagnostic) : null),
           h("td", null, r.checkedAt ? ago(r.checkedAt) : "—"))))))
       : h("p", { class: "empty" }, "No balances available. Add billing keys on the API keys page to see fal or OpenRouter balances."),
     v?.note ? h("p", { class: "small muted" }, v.note) : null);
@@ -367,6 +385,7 @@ const STEP_INFO = {
   offers: "Choose models to serve", resume: "Start accepting work",
 };
 function stepDone(st) {
+  if (st.id === "resume") return findCheck("Accepting new work")?.ok === true && value(S.health)?.ok === true;
   if (st.id === "offers") {
     const bid = findCheck("Current model bid");
     return bid ? bid.ok : (value(S.health)?.checks || []).some((c) => (c.name || "").startsWith("Model: ") && checkState(c) === "PASS");
@@ -379,7 +398,7 @@ function pageSetup() {
   const open = S.openStep || firstOpen;
   const done = steps.filter(stepDone).length;
   const root = h("div", null, h("h1", null, "Setup guide"),
-    h("p", { class: "lede" }, "Eight steps from a registered hotkey to a worker that accepts paid jobs. Nothing is paid until a step says so and you confirm. You can stop at any step and come back later."),
+    h("p", { class: "lede" }, "Set up at your pace. Review costs and confirm before deploying or accepting paid work."),
     bar((done / Math.max(1, steps.length)) * 100),
     h("p", { class: "small muted" }, done + " of " + steps.length + " steps done"));
   const list = h("ol", { class: "steps" });
@@ -569,7 +588,6 @@ function readiness(r) {
 function pageModels() {
   const root = h("div", null, h("h1", null, "Models"),
     h("p", { class: "lede" }, "Models the network can route to you, and your offer for each. The discount is taken off the base miner reward, not your provider's price; your provider still bills its normal rate."));
-  if (!S.overview?.initialized) { root.append(notice("warn", "Create your miner profile first", "Models appear after step 4 of the setup guide.")); return root; }
   const refresh = button("Refresh", async () => { await loadOffers(false); render(); });
   if (!S.offers && !S.offersError) { root.append(card("Offers", [refresh], h("p", { class: "muted" }, "Loading…"))); loadOffers().then(render); return root; }
   if (S.offersError) { root.append(card("Offers", [refresh], errorView(S.offersError))); return root; }
@@ -595,7 +613,7 @@ function offerRow(r) {
     h("td", { "data-label": "Readiness" }, h("span", { class: "badge " + tone }, ready)),
     h("td", { "data-label": "Your offer" }, h("span", { class: "badge " + (r.offered ? (r.pricingCurrent ? "ok" : "warn") : "") }, yours)),
     h("td", { "data-label": "Base reward" }, base != null ? fmtUsd(base, base < 1 ? 3 : 2) : "—"),
-    h("td", { "data-label": "Change" }, h("div", { class: "row nowrap" }, disc, h("span", { class: "small muted" }, "% off"),
+    h("td", { "data-label": "Change" }, !S.overview?.initialized ? h("a", { href: "#/setup" }, "Set up to offer") : h("div", { class: "row nowrap" }, disc, h("span", { class: "small muted" }, "% off"),
       button(r.offered ? "Update" : "Offer", async () => { await run("offer", { model: r.model, discountPct: disc.value }); await loadOffers(); await loadHealth(); render(); }, "small primary"),
       r.offered ? button("Withdraw", async () => { await run("offer", { model: r.model, withdraw: true }); await loadOffers(); await loadHealth(); render(); }, "small") : null)));
 }
@@ -609,19 +627,21 @@ function pageWorker() {
   if (!o?.initialized) { root.append(notice("warn", "No miner profile yet", "Finish the setup guide first.")); return root; }
   root.append(h("div", { class: "grid" },
     stat("State", phase, d.appId ? "App " + String(d.appId).slice(0, 10) + "…" : "", tone),
-    stat("Worker name", p.workerName || "—", p.release ? "Release " + p.release : ""),
+    stat("Worker name", o.label || p.workerName || "—", p.release ? "Release " + p.release : ""),
     stat("Compute price", d.computeHourlyUsd ? "$" + d.computeHourlyUsd + "/h" : "—", "Storage extra"),
     stat("Configuration", p.configurationExpiresAt ? daysLeft(p.configurationExpiresAt) + " days left" : "—", "Renew with everycli init")));
-  if (d.needsReconcile) root.append(notice("warn", "An operation was interrupted", h("div", null,
-    h("p", null, "The last change was recorded but its result is uncertain. Re-sync checks the real state at Phala and the coordinator; nothing is repeated blindly."),
+  if (d.needsReconcile) root.append(notice("warn", "Confirm worker state", h("div", null,
+    h("p", null, "A lifecycle operation is pending. Re-sync checks its result at Phala and the coordinator without repeating the cloud operation."),
     button("Re-sync operation", async () => { await run("reconcile"); await refreshAll(); }, "primary"))));
   const ph = d.phase || "not_deployed", deployed = !!d.appId && !["stopped", "stopping"].includes(ph);
   const accepting = findCheck("Accepting new work");
   const when = (ok, el, why) => { if (!ok) { el.disabled = true; el.title = why; } return el; };
   const startLimit = h("input", { type: "number", min: "0.01", step: "0.01", value: "0.06", class: "narrow", "aria-label": "Maximum compute USD per hour" });
   const actions = [
+    ["Re-sync state", "Confirm completed starts, shutdowns or interrupted operations on this same VM.",
+      when(!!d.appId, button("Re-sync state", async () => { await run("reconcile"); await refreshAll(); }), "No deployment recorded.")],
     ["Start accepting work", "Lets the network route paid jobs to this worker again.",
-      when(["awaiting_readmission", "drained", "draining"].includes(ph) || (ph === "running" && accepting && !accepting.ok),
+      when(["awaiting_readmission", "drained"].includes(ph) || (ph === "running" && accepting && !accepting.ok),
         button("Resume", async () => { await run("resume"); await refreshAll(); }, "primary"), "Already accepting work, or the worker isn't ready.")],
     ["Pause new work", "Finishes current jobs, then stops taking new ones. The machine keeps running and billing.",
       when(ph === "running", button("Pause", async () => { await run("stop", { drainOnly: true }); await refreshAll(); }), "Only a running worker can be paused.")],
@@ -632,18 +652,25 @@ function pageWorker() {
       when(deployed, button("Apply keys", async () => { await run("apply-api-keys"); await refreshAll(); }), "No running worker.")],
     ["Shut down", "Drains work, then shuts the machine down. Storage may still be billed; nothing is deleted.",
       when(deployed, button("Shut down", async () => { await run("stop"); await refreshAll(); }, "danger"), "No running worker.")],
+    ["Emergency shutdown", "Use if the coordinator is unavailable. Can interrupt paid jobs; storage remains billable. The CLI still verifies the exact VM.",
+      when(!!d.appId && ph !== "deleted", button("Emergency shutdown", async () => { await run("stop", { force: true }); await refreshAll(); }, "danger"), "No deployment recorded.")],
     ["Start a stopped worker", "Starts the same machine again at up to this compute price.", h("div", { class: "row" }, startLimit, h("span", { class: "small muted" }, "USD/h max"),
       when(ph === "stopped", button("Start", async () => { await run("start", { maxHourlyUsd: startLimit.value }); await refreshAll(); }), "Only a stopped worker can be started."))],
   ];
   root.append(card("Actions", null, h("ul", { class: "checks" }, actions.map(([t, desc, ctl]) => h("li", { class: "action-row" },
     h("span"), h("div", { class: "row" }, h("div", { class: "grow" }, h("div", { class: "name" }, t), h("div", { class: "detail" }, desc)), ctl))))));
+  const labelInput = h("input", { type: "text", value: o.label || "", maxlength: "64", "aria-label": "Local worker label", placeholder: "studio-worker-1" });
+  root.append(card("Local label", null, h("p", { class: "small muted" }, "A friendly name on this computer. The signed VM identity stays unchanged."),
+    h("div", { class: "row" }, labelInput, button("Save label", async () => { await run("label", { name: labelInput.value }); await refreshAll(); }))));
+  root.append(card("Worker logs", [button("Read logs", async () => { await run("logs"); })],
+    h("p", { class: "small muted" }, "Read bounded, sanitized worker events. Private logs may require the Phala console.")));
   if (S.workerUpdate) root.append(card("Worker update check", null, value(S.workerUpdate) ? h("pre", { class: "out" }, S.workerUpdate.result.text) : errorView(errorOf(S.workerUpdate))));
   root.append(card("Profile", null, h("dl", { class: "kv" },
     h("dt", null, "Miner"), h("dd", { class: "mono" }, p.minerId || "—"),
     h("dt", null, "Hotkey"), h("dd", { class: "mono" }, p.hotkey || "—"),
     h("dt", null, "Network"), h("dd", null, (S.session?.network || "") + " · SN" + (S.session?.netuid || "")),
     h("dt", null, "Profile folder"), h("dd", { class: "mono" }, S.session?.stateDir || "—"),
-    h("dt", null, "Hotkey authorization"), h("dd", null, o.delegationExpiresAt ? fmtTime(o.delegationExpiresAt) + " (" + daysLeft(o.delegationExpiresAt) + " days)" : "—"))));
+    h("dt", null, "Hotkey authorization"), h("dd", null, o.delegationNonExpiring ? "No expiry · revocable" : o.delegationExpiresAt ? fmtTime(o.delegationExpiresAt) + " (" + daysLeft(o.delegationExpiresAt) + " days)" : "—"))));
   root.append(card("everycli", [button("Check for update", async () => { S.cliUpdate = await run("cli-update-check"); render(); })],
     h("p", null, "Installed: everycli " + (S.session?.version || "")),
     S.cliUpdate ? (value(S.cliUpdate) ? h("pre", { class: "out" }, S.cliUpdate.result.text) : errorView(errorOf(S.cliUpdate))) : null,
@@ -703,12 +730,14 @@ async function boot() {
   render();
   if (S.overview?.initialized) {
     await Promise.all([loadHealth(), loadBalances(), loadEarnings()]);
-    render();
+    if (currentRoute() === "overview") render(); else { renderMeta(); renderNav(); }
   }
   run("cli-update-check", {}, { quiet: true }).then((j) => { S.cliUpdate = j; renderMeta(); });
   let tick = 0;
   setInterval(async () => {
-    if (document.visibilityState !== "visible" || !S.token || $("#modal").hidden === false) return;
+    if (document.visibilityState !== "visible" || !S.token || $("#modal").hidden === false || S.refreshing) return;
+    S.refreshing = true;
+    try {
     tick++;
     await loadOverview();
     if (S.overview?.initialized) {
@@ -716,8 +745,10 @@ async function boot() {
       if (tick % 4 === 0) await Promise.all([loadBalances(), loadEarnings()]);
     }
     // Only redraw pages without typing in progress.
-    const r = route() || "overview";
-    if (r === "overview" || (r === "worker" && !document.activeElement?.matches("input"))) render(); else { renderMeta(); renderNav(); }
+    // Forms keep their DOM and drafts during background polling, even if a
+    // field lost focus. Explicit actions/navigation are the only form redraws.
+    if (currentRoute() === "overview") render(); else { renderMeta(); renderNav(); }
+    } finally { S.refreshing = false; }
   }, 30000);
 }
 window.addEventListener("hashchange", () => {

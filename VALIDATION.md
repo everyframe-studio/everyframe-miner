@@ -1,9 +1,29 @@
 # Validation
 
-## Worker safety and CLI recovery — 14 October 2026 (unreleased)
+## v0.5.0 browser UI — 14 October 2026
 
-Implemented on `fix/worker-safety-and-cli-recovery`; this is local verification,
-not a published CLI, reviewed worker image, or live coordinator deployment.
+- Real loopback-server/browser tests use an isolated profile and mocked external
+  command results. They cover pairing and reload, preserved setup/worker drafts,
+  lifecycle reconciliation controls, paused/offline readiness, native Vivix W
+  balances (including zero), actionable balance errors, keyboard-modal focus and
+  mobile overflow. No real hotkey, API key or cloud mutation is used.
+- Rust UI tests cover request admission, single-use pairing, key non-disclosure,
+  exact-question confirmation, scoped command parsing and pending lifecycle state.
+- Formatting and strict all-target Clippy passed locally. Cross-platform CI and
+  public installer/self-update checks must pass before claiming distribution.
+- Safety changes below are integrated into the source release. v2 delegate
+  creation is gated by the signed deployment's `hotkeyDelegationVersion: 2`, so
+  older coordinators/workers keep compatible v1 authorization. No production
+  coordinator or worker rollout is performed by this CLI release.
+- The live mainnet pre-setup catalog endpoint returned 404 during preparation.
+  The CLI reports this clearly; initialized miners still use signed status offers.
+  No fabricated catalog or price fallback is used.
+
+## Worker safety and CLI recovery — 14 October 2026 (source changes)
+
+Originally implemented on `fix/worker-safety-and-cli-recovery`, then integrated
+into v0.5.0. This section records local verification, not worker admission or live
+coordinator deployment.
 
 - Terminal polling/result errors stop generation polling and report failure.
   Failure acknowledgements are idempotent; already-paid jobs are not resubmitted.

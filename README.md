@@ -529,20 +529,23 @@ the file must be owner-only. Encrypted keyfiles are rejected rather than silentl
 decrypted or uploaded. Never paste a seed into command arguments.
 
 The hotkey signs separate, revocable console and worker authorizations. New v2
-authorizations do not expire. Only the
+authorizations do not expire **when the signed worker deployment explicitly
+enables `hotkeyDelegationVersion: 2`** after coordinator and worker upgrades.
+Until then, the CLI preserves compatible v1 authorizations and shows their expiry
+in the UI. A CLI upgrade alone cannot remove an existing signature's expiry. Only the
 worker's restricted delegate is sent through Phala's encrypted environment;
 the hotkey and console delegate stay on your computer. This does not sign a
 blockchain transaction or access your coldkey. Short-lived request proofs,
 onboarding challenges and TEE sessions still expire. Revoking the hotkey's
 coordinator key version invalidates its delegates. Legacy v1 delegates retain
-their signed expiry: migrate with `everycli init` using your hotkey, then
+their signed expiry: after a compatible signed worker update, migrate with `everycli init` using your hotkey, then
 `everycli apply-api-keys` to install the new worker authorization. Check fresh
 attestation before resuming. Updating the CLI alone does not change a running VM.
 
 ### Worker labels, discovery and troubleshooting
 
 ```sh
-everycli offers                     # Live signed model/pricing catalog before setup
+everycli offers                     # Signed catalog; pre-setup discovery needs coordinator support
 everycli label --name "studio-worker-1"
 everycli status
 everycli health

@@ -31,9 +31,9 @@ fn local_hotkey_delegates_scoped_auth_without_exporting_wallet() {
     let a = hotkey::create(&d.path().join("hotkey"), &inv, "worker").unwrap();
     assert_eq!(
         a["certificate"]["value"]["kind"],
-        "everyframe-hotkey-delegation-v2"
+        "everyframe-hotkey-delegation-v1"
     );
-    assert!(a["certificate"]["value"]["expiresAt"].is_null());
+    assert!(a["certificate"]["value"]["expiresAt"].as_i64().unwrap() > now());
     hotkey::validate(&a, &inv, "worker").unwrap();
     assert!(hotkey::validate(&a, &inv, "console").is_err());
     assert!(!a.to_string().contains(&hex::encode([7u8; 32])));
@@ -72,6 +72,20 @@ fn rejects_wrong_wallet_insecure_file_tampered_certificate() {
     assert!(hotkey::create(&path, &inv, "console").is_err());
     std::fs::set_permissions(path.clone(), std::fs::Permissions::from_mode(0o644)).unwrap();
     assert!(hotkey::create(&path, &inv, "console").is_err());
+}
+#[test]
+fn non_expiring_delegates_require_signed_release_capability() {
+    let (d, mut inv) = fixture();
+    inv["hotkeyDelegationVersion"] = json!(2);
+    let auth = hotkey::create(&d.path().join("hotkey"), &inv, "worker").unwrap();
+    assert_eq!(
+        auth["certificate"]["value"]["kind"],
+        "everyframe-hotkey-delegation-v2"
+    );
+    assert!(auth["certificate"]["value"]["expiresAt"].is_null());
+    hotkey::validate(&auth, &inv, "worker").unwrap();
+    inv["keyVersion"] = json!(2);
+    assert!(hotkey::validate(&auth, &inv, "worker").is_err());
 }
 #[test]
 fn rejects_bad_ss58_checksum() {

@@ -48,6 +48,14 @@ jobs:
           cargo +1.97.1 build --release --locked --bin everycli
           target/release/everycli --version --json
           target/release/everycli --help
+      - name: Browser regressions
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        env:
+          EVERYCLI_BIN: target/release/everycli
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          npm run test:ui
       - name: Package binary and notices
         env:
           TARGET: ${{ matrix.target }}
@@ -96,6 +104,10 @@ jobs:
         run: |
           set -euo pipefail
           # Never silently overwrite an existing release or move its tag.
-          gh release create "$RELEASE_TAG" --verify-tag --draft --title "everycli $RELEASE_TAG" --generate-notes
+          if [ -f "RELEASE-NOTES-$RELEASE_TAG.md" ]; then
+            gh release create "$RELEASE_TAG" --verify-tag --draft --title "everycli $RELEASE_TAG" --notes-file "RELEASE-NOTES-$RELEASE_TAG.md"
+          else
+            gh release create "$RELEASE_TAG" --verify-tag --draft --title "everycli $RELEASE_TAG" --generate-notes
+          fi
           gh release upload "$RELEASE_TAG" dist/*
           gh release edit "$RELEASE_TAG" --draft=false --latest
