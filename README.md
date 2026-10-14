@@ -20,9 +20,12 @@ and ten provider adapters. Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
 
-### Upcoming setup and batch-edit improvements (not yet released)
+### v0.5.3 simpler setup and batch model editing
 
-- Setup remembers and shows the initialized hotkey after reopening the UI.
+After updating with `everycli update`, close and reopen `everycli ui`.
+
+- Setup shows **Select your hotkey**, then **Your hotkey** once attached, with
+  its public address and verified UID. **Check registration** remains read-only.
 - Deploy refreshes rejected authorization once with the attached, matching hotkey
   before any paid cloud request. Older profiles can locate the same hotkey in
   the standard wallet folder. Missing or mismatched keys still require attention;
@@ -35,6 +38,12 @@ every model in the registry is necessarily available for mining.
   applying one discount, or withdrawing offers. One review shows the exact quotes.
   Changed quotes are not auto-approved; results are reported per model. A batch
   is not atomic, and uncertain requests are never automatically retried.
+- Overview has four cards: **Worker**, **Status**, **Active offers**, and **Jobs**.
+  Status distinguishes Ready, Working, Paused, Needs attention, and Unknown.
+  Detailed readiness and attestation checks remain under Health checks.
+
+See the [v0.5.3 release notes](RELEASE-NOTES-v0.5.3.md). This updates the local
+CLI and browser UI, not your deployed worker or model offers.
 
 ### v0.5.2 dashboard and profile recovery
 
