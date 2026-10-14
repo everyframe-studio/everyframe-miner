@@ -1,5 +1,80 @@
 # Validation
 
+## v0.5.0 browser UI — 14 October 2026
+
+- Real loopback-server/browser tests use an isolated profile and mocked external
+  command results. They cover pairing and reload, preserved setup/worker drafts,
+  lifecycle reconciliation controls, paused/offline readiness, native Vivix W
+  balances (including zero), actionable balance errors, keyboard-modal focus and
+  mobile overflow. No real hotkey, API key or cloud mutation is used.
+- Rust UI tests cover request admission, single-use pairing, key non-disclosure,
+  exact-question confirmation, scoped command parsing and pending lifecycle state.
+- Formatting and strict all-target Clippy passed locally. Cross-platform CI and
+  public installer/self-update checks must pass before claiming distribution.
+- Safety changes below are integrated into the source release. v2 delegate
+  creation is gated by the signed deployment's `hotkeyDelegationVersion: 2`, so
+  older coordinators/workers keep compatible v1 authorization. The matching
+  coordinator deployment and public worker release are recorded below; upgrading
+  the CLI itself does not mutate cloud workloads.
+- The pre-setup catalog initially returned 404. After the matching coordinator
+  deployment, real CLI discovery passed with a verified signed response. No
+  fabricated catalog or price fallback is used.
+
+## v0.5.0 matching production rollout — 14 October 2026
+
+- All **198 Rust tests passed**, with one live hotkey probe intentionally ignored;
+  strict Clippy and browser regressions passed. All **175 coordinator tests passed**.
+- Matching coordinator support is deployed, with backups and exact-source guards.
+  Public catalog discovery works; private control endpoints remain authenticated.
+  Existing offers, routing configuration and TEE requirements were preserved.
+- Published and anonymously verified worker image:
+  `ghcr.io/everyframebuilder/everyframe-subnet-worker@sha256:c818b383323127a978db39508687324ae59cf459bb0dc605e83a02036d6ec102`.
+- Public release `mainnet117-public-v050-20261014` enables v2 authorization and
+  signed same-VM upgrades. Existing operators must choose to update their workers.
+  Deployment compatibility was checked for all enabled, bound public miners.
+- An owner miner completed the same-VM update, provider-key reactivation and fresh
+  hardware attestation, preserving its paused state. Re-enrollment and key apply
+  then migrated both delegates to v2 with no expiry; post-restart attestation and
+  online heartbeat passed. The miner remains paused with no active jobs.
+- This canary exposed and fixed a cached null VM binding in post-upgrade renewal;
+  the coordinator now returns the exact bound VM without weakening CLI validation.
+- Paid generation, provider invoices and alpha payouts are not verified by this
+  release. No paid test jobs were submitted for v0.5.0.
+
+## Worker safety and CLI recovery — 14 October 2026 (source changes)
+
+Originally implemented on `fix/worker-safety-and-cli-recovery`, then integrated
+into v0.5.0. This section records local verification, not worker admission or live
+coordinator deployment.
+
+- Terminal polling/result errors stop generation polling and report failure.
+  Failure acknowledgements are idempotent; already-paid jobs are not resubmitted.
+- Paid requests are deadline-fenced after reference preparation and again after DNS.
+  Only Fal's explicit exhausted-balance rejection enables safe account failover.
+- Worker/coordinator uploads allow 180 seconds; acceptance still enforces job deadlines.
+- Vivix W=0 is rejected before generation. Any positive W amount is allowed;
+  unknown balances are not invented as zero. Coordinator serialization covers
+  miners using the same reported Vivix key, not unrelated external applications
+  or different keys belonging to the same provider workspace.
+- Emergency stop bypasses coordinator availability, not signed cloud identity.
+  Delete requires an exact app ID, confirmation, a durable intent, and a subsequent
+  cloud not-found check before reporting deletion confirmed.
+- New v2 hotkey delegates are non-expiring and key-version revocable. Legacy v1
+  expiry remains binding. Coordinator and worker support must be deployed before
+  re-signing legacy profiles with `init` and installing new worker credentials.
+- Kernel locks survive process death without manual file removal. Candidate CLI
+  binaries run a bounded version check before replacement and retain a rollback
+  binary. Source builds do not self-update. Idle logs are limited to once/minute.
+- Added scoped worker logs, local profile labels, a signed public pricing catalog,
+  and README uninstall/storage-billing instructions.
+
+Coordinator: **172 tests passed**. Miner regression suite, Rust formatting and
+strict all-target Clippy were checked locally, including crash recovery, slow
+reference deadlines, terminal failures, zero W, emergency stop, deletion fencing,
+signed unauthenticated discovery, labels and updater rollback. No paid jobs or
+cloud lifecycle mutations were used. macOS/Linux release CI and a real hardware
+worker rollout remain release gates; these results are not production evidence.
+
 ## v0.4.0 public worker and website verification — 13 October 2026
 
 The published v0.4.0 CLI and signed worker update were exercised through the

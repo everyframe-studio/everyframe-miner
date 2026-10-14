@@ -12,6 +12,26 @@ macro_rules! reasons {
 }
 reasons![
     (
+        "coordinator_unavailable_use_stop_force",
+        "The coordinator could not confirm draining; no cloud shutdown was sent.",
+        "To stop compute anyway, run everycli stop --force. This can lose paid in-flight work. Storage remains billable."
+    ),
+    (
+        "source_build_update_disabled",
+        "This executable was built from source; automatic binary replacement is disabled.",
+        "Rebuild from source, or explicitly install the official binary with the documented installer. everycli update --check still works."
+    ),
+    (
+        "update_binary_unusable",
+        "The downloaded executable failed its pre-install check. Your installed binary was not replaced.",
+        "Check platform compatibility and retry later. The existing executable is intact."
+    ),
+    (
+        "worker_logs_unavailable",
+        "This workload has no readable container logs endpoint.",
+        "Use the authenticated Phala console for private or boot logs. Do not enable public logs just for troubleshooting."
+    ),
+    (
         "miner_disabled",
         "This miner is disabled on the coordinator.",
         "Check everycli status. Contact EveryFrame support if this is unexpected; creating another VM will not enable it."
@@ -293,6 +313,15 @@ pub fn message(code: &str) -> Option<String> {
             None
         }
     })
+}
+
+/// Every fixed diagnostic, for the UI's troubleshooting page.
+pub fn catalog() -> Vec<Value> {
+    REASONS
+        .iter()
+        .filter(|(plain, ..)| *plain != "request_failed")
+        .map(|(plain, _, message, next)| json!({"code":plain,"message":message,"next":next}))
+        .collect()
 }
 
 pub fn safe_code(code: &str) -> &'static str {

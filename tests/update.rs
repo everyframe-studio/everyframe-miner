@@ -133,16 +133,25 @@ fn replacement_is_atomic_and_preserves_profiles() {
         b"untouched synthetic fixture",
     )
     .unwrap();
-    update::replace_binary(&binary, b"new").unwrap();
-    assert_eq!(fs::read(&binary).unwrap(), b"new");
+    let new = b"#!/bin/sh\nprintf '%s\\n' '{\"version\":\"0.4.2\"}'\n";
+    update::replace_binary(&binary, new).unwrap();
+    assert_eq!(fs::read(&binary).unwrap(), new);
+    assert_eq!(
+        fs::read(tmp.path().join("everycli.rollback")).unwrap(),
+        b"old"
+    );
+    assert!(update::replace_binary(&binary, b"not executable").is_err());
+    assert_eq!(fs::read(&binary).unwrap(), new);
     assert_eq!(
         fs::read(tmp.path().join("credentials.json")).unwrap(),
         b"untouched synthetic fixture"
     );
-    assert!(!tmp.path().join(".everycli-update.lock").exists());
-    fs::create_dir(tmp.path().join(".everycli-update.lock")).unwrap();
+    let lock_state = everyframe_miner::state::State {
+        directory: tmp.path().join(".everycli-update.lock"),
+    };
+    let _held = lock_state.lock().unwrap();
     assert!(update::replace_binary(&binary, b"blocked").is_err());
-    assert_eq!(fs::read(&binary).unwrap(), b"new");
+    assert_eq!(fs::read(&binary).unwrap(), new);
 }
 
 #[test]

@@ -16,6 +16,9 @@ pub struct Output {
 pub trait Provider {
     fn models(&self) -> Vec<String>;
     fn submit(&mut self, spec: &Value) -> Result<String>;
+    fn submit_before(&mut self, spec: &Value, _deadline: i64) -> Result<String> {
+        self.submit(spec)
+    }
     fn poll(&mut self, reference: &str, spec: &Value) -> Result<String>;
     fn result(&mut self, reference: &str, spec: &Value) -> Result<Output>;
 }
@@ -23,6 +26,7 @@ pub struct Router<'a> {
     pub http: &'a dyn Http,
     pub credentials: Value,
     speech: Option<(String, String, Vec<u8>, String)>,
+    submission_deadline: Option<i64>,
 }
 fn reference(v: &Value) -> Result<String> {
     need(matches("[a-zA-Z0-9_-]{1,150}", v), "invalid_provider_ref")?;
@@ -62,11 +66,19 @@ fn bfl_ref(r: &str) -> Result<(String, String)> {
     Ok((id.clone(), format!("https://{host}/v1/get_result?id={id}")))
 }
 impl<'a> Router<'a> {
+    fn guard_submission(&self, req: &mut Request) -> Result<()> {
+        if let Some(deadline) = self.submission_deadline {
+            need(crate::now() < deadline, "submission_deadline_elapsed")?;
+            req.submit_deadline = Some(deadline);
+        }
+        Ok(())
+    }
     pub fn new(http: &'a dyn Http, credentials: Value) -> Self {
         Self {
             http,
             credentials,
             speech: None,
+            submission_deadline: None,
         }
     }
     fn context(&self, spec: &Value) -> Result<(&'static Value, String)> {
@@ -108,7 +120,8 @@ impl<'a> Router<'a> {
         req.headers = self.auth(p)?;
         req.timeout = 30;
         if let Some(b) = body {
-            req = req.json("POST", b)
+            req = req.json("POST", b);
+            self.guard_submission(&mut req)?;
         };
         let data = self.http.json(req)?;
         if p == "vivix" {
@@ -190,6 +203,7 @@ impl<'a> Router<'a> {
             ));
             req.body = Some(data);
             req.timeout = 60;
+            self.guard_submission(&mut req)?;
             let result = self.http.json(req)?;
             need(result["code"] == 0, "reference_upload_failed")?;
             let url = s(&result["data"]["url"])?;
@@ -245,6 +259,7 @@ impl<'a> Router<'a> {
         req.headers.extend(self.auth(p)?);
         req.timeout = 300;
         req.limit = 40 * 1024 * 1024;
+        self.guard_submission(&mut req)?;
         let data = self.http.json(req)?;
         need(data.get("error").is_none(), "provider_rejected")?;
         let media = if path == "/api/v1/images" {
@@ -381,6 +396,9 @@ impl<'a> Router<'a> {
         Ok(data)
     }
     fn state(p: &str, d: &Value) -> Result<&'static str> {
+        if p == "fal" && !d["error"].is_null() {
+            return Ok("FAILED");
+        }
         if p == "elevenlabs" {
             return Ok("COMPLETED");
         }
@@ -404,7 +422,12 @@ impl<'a> Router<'a> {
             &d["status"]
         })?;
         let (queue, progress, complete, failed): (&[&str], &[&str], &[&str], &[&str]) = match p {
-            "fal" => (&["IN_QUEUE"], &["IN_PROGRESS"], &["COMPLETED"], &[]),
+            "fal" => (
+                &["IN_QUEUE"],
+                &["IN_PROGRESS"],
+                &["COMPLETED"],
+                &["FAILED", "ERROR", "CANCELLED", "CANCELED"],
+            ),
             "minimax" => (
                 &["Preparing", "Queueing"],
                 &["Processing"],
@@ -467,7 +490,7 @@ impl<'a> Router<'a> {
         let mut r = Request::get(url, hosts);
         safe_url(url, &r.hosts)?;
         r.limit = MAX_MEDIA;
-        r.timeout = 30;
+        r.timeout = 180;
         r.redirect_hosts = redirects.iter().map(|s| s.to_string()).collect();
         if let Some(p) = auth {
             r.headers = self.auth(p)?
@@ -478,6 +501,22 @@ impl<'a> Router<'a> {
     }
 }
 impl Provider for Router<'_> {
+    fn submit_before(&mut self, spec: &Value, deadline: i64) -> Result<String> {
+        let (_, provider) = self.context(spec)?;
+        if provider == "vivix"
+            && let Ok(balance) =
+                crate::balances::vivix_w_balance(self.http, s(&self.credentials["VIVIX_API_KEY"])?)
+            && balance["remainingMicrounits"]
+                .as_i64()
+                .is_some_and(|v| v <= 0)
+        {
+            return Err(Error("vivix_billing_required"));
+        }
+        self.submission_deadline = Some(deadline);
+        let result = self.submit(spec);
+        self.submission_deadline = None;
+        result
+    }
     fn models(&self) -> Vec<String> {
         models::MODELS
             .as_object()
@@ -594,6 +633,7 @@ impl Provider for Router<'_> {
                 r.headers.extend(self.auth(&p)?);
                 r.limit = 10 * 1024 * 1024;
                 r.timeout = 60;
+                self.guard_submission(&mut r)?;
                 let media = self.http.bytes(r)?;
                 need(
                     !media.is_empty() && media.len() <= 10 * 1024 * 1024,
@@ -653,6 +693,10 @@ impl Provider for Router<'_> {
         let r = self.native(r, &p)?;
         if p == "fal" {
             let data = self.api(&p, &format!("/{}/requests/{r}", s(&m["app"])?), None)?;
+            need(
+                data["error"].is_null() && data["detail"].is_null(),
+                "provider_generation_failed",
+            )?;
             let url = match m["kind"].as_str() {
                 Some("image") => {
                     need(
@@ -665,7 +709,9 @@ impl Provider for Router<'_> {
                     .as_str()
                     .or_else(|| data["audio"]["url"].as_str())
                     .ok_or(Error("provider_no_media"))?,
-                _ => s(&data["video"]["url"])?,
+                _ => data["video"]["url"]
+                    .as_str()
+                    .ok_or(Error("provider_no_media"))?,
             };
             let media = self.download(url, &["*.fal.media"], None, &[])?;
             return Ok(Output {

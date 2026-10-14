@@ -16,6 +16,7 @@ pub struct Request {
     pub limit: usize,
     pub timeout: u64,
     pub redirect_hosts: Vec<String>,
+    pub submit_deadline: Option<i64>,
 }
 impl Request {
     pub fn get(url: impl Into<String>, hosts: &[&str]) -> Self {
@@ -28,6 +29,7 @@ impl Request {
             limit: 200000,
             timeout: 15,
             redirect_hosts: vec![],
+            submit_deadline: None,
         }
     }
     pub fn json(mut self, method: &str, body: &Value) -> Self {
@@ -142,6 +144,11 @@ impl Http for PublicHttp {
             if let Some(b) = r.body.clone() {
                 request = request.body(b)
             }
+            // DNS, reference verification and request construction can be slow.
+            // Fence at the last boundary before any paid bytes leave the worker.
+            if let Some(deadline) = r.submit_deadline {
+                need(crate::now() < deadline, "submission_deadline_elapsed")?;
+            }
             let response = request
                 .send()
                 .map_err(|e| crate::diagnostics::transport_error(&e))?;
@@ -177,14 +184,18 @@ impl Http for PublicHttp {
                 return Err(enrollment_error(&bytes));
             }
             if !response.status().is_success() {
-                if u.host_str() == Some("api.vivix.ai") {
+                if matches!(u.host_str(), Some("api.vivix.ai" | "queue.fal.run")) {
                     let status = response.status().as_u16();
                     let mut bytes = Vec::new();
                     response
                         .take(64001)
                         .read_to_end(&mut bytes)
                         .map_err(|_| Error("response_read_failed"))?;
-                    return Err(crate::submission::vivix_http_error(status, &bytes));
+                    return Err(if u.host_str() == Some("queue.fal.run") {
+                        crate::submission::fal_http_error(status, &bytes)
+                    } else {
+                        crate::submission::vivix_http_error(status, &bytes)
+                    });
                 }
                 return Err(crate::diagnostics::http_error(response.status().as_u16()));
             }

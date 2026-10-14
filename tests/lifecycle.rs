@@ -646,6 +646,97 @@ fn stop_can_safely_recover_provision_without_repeating_update() {
 }
 
 #[test]
+fn emergency_stop_survives_coordinator_outage_and_interrupted_update() {
+    let r = Rig::new();
+    let envelope = r.staged_update(false, true);
+    let mut d = r.state().read("deployment", false).unwrap();
+    d["phase"] = json!("update_commit_intent");
+    d["pendingInvitation"] = envelope;
+    r.state().write("deployment", &d).unwrap();
+    *r.fail.borrow_mut() = "/drain".into();
+    assert_eq!(
+        r.miner().stop(false, &|_| Ok(())).unwrap_err().0,
+        "coordinator_unavailable_use_stop_force"
+    );
+    assert_eq!(
+        r.miner().stop_mode(false, true, &|_| Ok(())).unwrap()["phase"],
+        "stopping"
+    );
+    assert_eq!(
+        r.calls
+            .borrow()
+            .iter()
+            .filter(|(p, _)| p.ends_with("/shutdown"))
+            .count(),
+        1
+    );
+}
+
+#[test]
+fn labels_do_not_modify_signed_config_or_cloud() {
+    let r = Rig::new();
+    let before = r.state().read("config", false).unwrap();
+    assert_eq!(
+        r.miner().label(Some("studio-worker-1")).unwrap()["label"],
+        "studio-worker-1"
+    );
+    assert_eq!(r.state().read("config", false).unwrap(), before);
+    assert!(r.calls.borrow().is_empty());
+    assert!(r.miner().label(Some("bad\nname")).is_err());
+}
+
+#[test]
+fn deletion_requires_exact_app_confirmation_and_does_not_repeat_uncertain_requests() {
+    let r = Rig::new();
+    r.deploy().unwrap();
+    r.calls.borrow_mut().clear();
+    assert!(
+        r.miner()
+            .delete(&"2".repeat(40), &|_| panic!(
+                "wrong app must fail before confirmation"
+            ))
+            .is_err()
+    );
+    assert!(r.calls.borrow().is_empty());
+    assert!(
+        r.miner()
+            .delete(&"1".repeat(40), &|_| Err(Error("cancelled")))
+            .is_err()
+    );
+    assert!(
+        !r.calls
+            .borrow()
+            .iter()
+            .any(|(p, _)| p.starts_with("DELETE"))
+    );
+    assert_eq!(
+        r.miner().delete(&"1".repeat(40), &|_| Ok(())).unwrap()["phase"],
+        "deleting"
+    );
+    r.miner()
+        .delete(&"1".repeat(40), &|_| panic!("must not repeat deletion"))
+        .unwrap();
+    assert_eq!(
+        r.calls
+            .borrow()
+            .iter()
+            .filter(|(p, _)| p.starts_with("DELETE"))
+            .count(),
+        1
+    );
+}
+
+#[test]
+fn logs_show_only_worker_events_without_forwarding_cloud_keys() {
+    let r = Rig::new();
+    r.deploy().unwrap();
+    let out = r.miner().logs().unwrap();
+    assert_eq!(out["events"].as_array().unwrap().len(), 1);
+    assert_eq!(out["events"][0]["reason"], "http_403");
+    assert!(!out.to_string().contains("do-not-print"));
+}
+
+#[test]
 fn automatic_update_unavailable_and_current_are_not_claims_of_readiness() {
     let r = Rig::new();
     let envelope = r.staged_update(false, true);
@@ -757,6 +848,10 @@ fn automatic_update_graceful_interrupt_saves_state_and_releases_profile_lock() {
 impl Http for Rig {
     fn bytes(&self, r: Request) -> Result<Vec<u8>> {
         let u = url::Url::parse(&r.url).unwrap();
+        if u.host_str() == Some("logs.phala.network") {
+            assert!(r.headers.is_empty());
+            return Ok(b"raw do-not-print\n{\"event\":\"worker_cycle_failed\",\"reason\":\"http_403\",\"secret\":\"do-not-print\"}\n".to_vec());
+        }
         let path = u.path();
         let body: Value = r
             .body
@@ -880,6 +975,8 @@ impl Http for Rig {
         } else if path.ends_with("/start") {
             assert_eq!(self.phase(), "start_intent");
             json!({})
+        } else if path.ends_with("/composition") {
+            json!({"containers":[{"log_endpoint":"https://logs.phala.network/worker?token=do-not-print"}]})
         } else if path.contains("/cvms/app_") {
             self.info.borrow().clone()
         } else {

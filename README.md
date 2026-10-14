@@ -11,11 +11,24 @@ the older namespace remain compatible. `everycli update` upgrades the CLI;
 `everycli worker-update` updates the existing worker using its latest compatible
 signed release (one-command flow in v0.3.7 and later).
 
+New to mining? Run `everycli ui` for a guided setup page and status dashboard
+in your browser (see [Set up in your browser](#set-up-in-your-browser-everycli-ui)).
+
 This repository includes the worker, the CLI with built-in updates, 46 legacy
 contracts, 11 flexible Studio video contracts, 12 Studio media contracts,
 and ten provider adapters. Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
+
+### v0.5.0 setup and reliability
+
+The browser UI and miner reliability fixes ship together: safer provider failure
+handling and balance checks, deadline-fenced submissions, longer media transfers,
+non-expiring revocable authorization, crash-safe locks, update rollback copies,
+local worker labels, logs, emergency stop and VM deletion. See the
+[release notes](RELEASE-NOTES-v0.5.0.md) for upgrade and authorization-migration steps.
+Update both the CLI and your existing worker; third-party VMs are not automatically
+restarted. No redeployment is needed.
 
 ### v0.4.0 media coverage
 
@@ -79,8 +92,10 @@ unknown submissions and already-submitted paid jobs are not blindly regenerated.
 
 Fresh, current-policy attested zero-balance reports exclude unfunded provider
 offers. Unsupported, stale and unavailable balances are not treated as zero.
-Vivix's unsupported balance query does **not** mean it has no W credits. Check
-the workspace associated with the worker's actual API key and its W-credit balance.
+Vivix W credits are checked separately from A credits. A known zero W balance
+blocks W1 jobs; a positive balance is allowed, without assuming it can fund every
+possible job. An unavailable query is not treated as zero. The workspace must be
+the one associated with the worker's actual API key.
 
 ## Install everycli as a miner
 
@@ -121,6 +136,38 @@ on Windows. `curl` and either `sha256sum` or `shasum` are needed for installatio
 To avoid modifying shell profiles, pipe into `EVERYCLI_NO_MODIFY_PATH=1 sh`
 instead; add the bin directory to
 PATH yourself. Fish users should use this option and configure their Fish PATH.
+
+### Set up in your browser (everycli ui)
+
+Prefer a guided page to terminal commands? After installing, run:
+
+```sh
+everycli ui
+```
+
+It opens a local page with:
+
+- a step-by-step **setup guide** (hotkey check, Phala token, provider keys, profile, deploy, activate, models, resume)
+- a live **status dashboard** (health checks, jobs, balances, earnings, authorization expiry)
+- **model offers**, **API keys** and **worker actions** (pause, resume, update, apply keys, shut down)
+
+Every action runs the same everycli command and asks the same questions. Anything
+that costs money shows the live price and needs you to type `yes`, as in the
+terminal. The page and the terminal share one profile, so you can switch between them.
+
+The page listens only on `127.0.0.1`, and the link printed in your terminal works
+once (opening it prints a fresh link for another tab). Keys you enter go straight
+into your owner-only profile and are never shown again. Closing the page or
+stopping `everycli ui` (Ctrl-C) never stops your worker.
+
+On a remote server, forward the port from your own computer, then open the printed link:
+
+```sh
+ssh -N -L 47117:127.0.0.1:47117 <user>@<server>
+```
+
+Options: `--port N` (default 47117, or the next free port), `--no-open` (print
+the link without opening a browser), plus the usual `--network` and `--state-dir`.
 
 ### Upgrade everycli
 
@@ -493,13 +540,61 @@ reader supports an unencrypted sr25519 wallet JSON containing `secretSeed`;
 the file must be owner-only. Encrypted keyfiles are rejected rather than silently
 decrypted or uploaded. Never paste a seed into command arguments.
 
-The hotkey signs separate, expiring console and worker authorizations. Only the
+The hotkey signs separate, revocable console and worker authorizations. New v2
+authorizations do not expire **when the signed worker deployment explicitly
+enables `hotkeyDelegationVersion: 2`** after coordinator and worker upgrades.
+Until then, the CLI preserves compatible v1 authorizations and shows their expiry
+in the UI. A CLI upgrade alone cannot remove an existing signature's expiry. Only the
 worker's restricted delegate is sent through Phala's encrypted environment;
 the hotkey and console delegate stay on your computer. This does not sign a
-blockchain transaction or access your coldkey. Delegations last at most 30 days,
-bounded by the deployment configuration's expiry. Renew with `init` before
-expiry (it fetches a fresh signed configuration), then use `apply-api-keys` for an activated worker
-and wait for fresh admission before resuming work.
+blockchain transaction or access your coldkey. Short-lived request proofs,
+onboarding challenges and TEE sessions still expire. Revoking the hotkey's
+coordinator key version invalidates its delegates. Legacy v1 delegates retain
+their signed expiry: after a compatible signed worker update, migrate with `everycli init` using your hotkey, then
+`everycli apply-api-keys` to install the new worker authorization. Check fresh
+attestation before resuming. Updating the CLI alone does not change a running VM.
+
+### Worker labels, discovery and troubleshooting
+
+```sh
+everycli offers                     # Signed catalog; pre-setup discovery needs coordinator support
+everycli label --name "studio-worker-1"
+everycli status
+everycli health
+everycli logs                       # Bounded structured worker events
+```
+
+Labels belong to the selected local profile (`--state-dir`); they do not rename
+the signed Phala VM or change attestation. Use one management profile per worker.
+Catalog work values are not guaranteed earnings, provider prices, or alpha payouts.
+Logs never enable public logging and omit raw boot logs and secret-bearing URLs;
+use the authenticated Phala console for private/boot logs.
+
+### Stop billing and uninstall
+
+```sh
+everycli stop                       # Drain active work, then stop compute
+everycli stop --force               # Emergency stop; coordinator may be offline
+everycli delete --app-id EXACT_APP_ID # Irreversibly remove this VM and its storage
+```
+
+Emergency stop can lose already-paid in-flight work. Stop does not delete storage.
+Deletion requires the exact recorded app ID and confirmation, verifies the signed
+VM identity, and never deletes other resources. After deletion, confirm removal
+and final charges in Phala Billing. Provider subscriptions and other VMs are separate.
+An uncertain operation is journaled; do not deploy a duplicate or delete the profile.
+
+To uninstall, first stop/delete every managed VM as appropriate, then run
+`everycli auto-update --disable`. Locate the installed executable with
+`command -v everycli` and remove that exact file (normally `~/.cargo/bin/everycli`).
+Optionally remove its adjacent `everycli.rollback` backup and the installer-added
+shell PATH line if nothing else uses it. Keep your wallet and management profiles
+until all cloud billing is confirmed ended; uninstalling the CLI does not stop VMs.
+
+CLI updates validate the downloaded executable before swapping it in and keep
+the previous executable as `everycli.rollback` beside it. Source-built binaries
+are not self-replaced; rebuild from source or explicitly reinstall the official
+distribution. CLI updates and worker updates remain separate operations.
 
 Older token-based deployments remain compatible until explicitly migrated.
 Simply deleting a token from an old profile will not migrate it: the coordinator
@@ -554,6 +649,7 @@ resources and ongoing charges. To restart the saved workload, use
 
 | Command | Purpose |
 | --- | --- |
+| `ui` | Local browser page: setup guide, status dashboard, offers, keys and worker actions (127.0.0.1 only) |
 | `setup` | Guided initial deployment with explicit confirmation; `--continue` reprints a read-only post-deployment checklist |
 | `register-hotkey` | Check finalized subnet membership and record the public identity; no chain transaction |
 | `set-api-keys` | Privately prompt for all keys or one provider; save locally |

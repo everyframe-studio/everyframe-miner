@@ -90,6 +90,48 @@ fn private_state_and_exclusive_lock() {
     assert!(state.read("credentials", false).is_err());
 }
 #[test]
+fn crashed_lock_child() {
+    let Ok(path) = std::env::var("EVERYCLI_TEST_CRASH_LOCK") else {
+        return;
+    };
+    let state = State {
+        directory: path.into(),
+    };
+    let _lock = state.lock().unwrap();
+    state.write("label", &json!({"name":"lock-held"})).unwrap();
+    loop {
+        std::thread::park();
+    }
+}
+#[test]
+fn killing_a_lock_holder_does_not_require_removing_a_file() {
+    use std::process::{Command, Stdio};
+    let tmp = common::tempdir();
+    let state = State {
+        directory: tmp.path().join("profile"),
+    };
+    let mut child = Command::new(std::env::current_exe().unwrap())
+        .args(["--exact", "crashed_lock_child"])
+        .env("EVERYCLI_TEST_CRASH_LOCK", &state.directory)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .unwrap();
+    for _ in 0..100 {
+        if state.directory.join("label.json").exists() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+    let ready = state.directory.join("label.json").exists();
+    let locked = state.lock().is_err();
+    child.kill().unwrap();
+    child.wait().unwrap();
+    assert!(ready && locked);
+    assert!(state.directory.join("operation.guard").exists());
+    assert!(state.lock().is_ok());
+}
+#[test]
 fn symlinks_and_insecure_directories_are_rejected() {
     let tmp = common::tempdir();
     let target = tmp.path().join("real");

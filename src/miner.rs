@@ -345,6 +345,12 @@ impl Miner<'_> {
         let inv = &c.invitation;
         let d = &c.deployment;
         let mut out = json!({"minerId":inv["minerId"],"network":inv["network"],"netuid":inv["netuid"],"release":inv["release"],"phase":d["phase"].as_str().unwrap_or("not_deployed"),"appId":d["appId"],"invitationExpired":n(&inv["expiresAt"])?<=now()});
+        out["label"] = self.state.read("label", true)?["name"].clone();
+        out["signedVmName"] = inv["request"]["name"].clone();
+        let auth = &c.credentials["WORKER_AUTH"]["certificate"]["value"];
+        if !auth.is_null() {
+            out["authorization"] = json!({"expiresAt":auth["expiresAt"],"nonExpiring":auth["kind"]=="everyframe-hotkey-delegation-v2","remainingDays":auth["expiresAt"].as_i64().map(|x|(x-now()).max(0)/86400000),"migration":"Legacy expiring delegates require everycli init with the hotkey, then everycli apply-api-keys to install the newly signed worker authorization."});
+        }
         match self.api(&c, "status", json!({})) {
             Ok(v) => out["coordinator"] = v,
             Err(e) => out["coordinatorError"] = json!({"code":e.0,"message":e.0}),
@@ -537,7 +543,7 @@ impl Miner<'_> {
                 "ok":checks.iter().all(|c|c["ok"]==true),"checks":checks,
                 "minerId":inv["minerId"],"network":inv["network"],"netuid":inv["netuid"],
                 "checkedAt":now(),"activity":crate::health::activity(&snapshot),
-                "generationSubmitted":false
+                "generationSubmitted":false,"label":self.state.read("label",true)?["name"]
             }))
         } else {
             Ok(json!({"ok":checks.iter().all(|c|c["ok"]==true),"checks":checks}))
@@ -588,6 +594,9 @@ impl Miner<'_> {
         )
     }
     pub fn offers(&self) -> Result<Value> {
+        if self.state.read("config", true)?.is_null() {
+            return self.catalog();
+        }
         let c = self.load(false)?;
         let v = self.api(&c, "status", json!({}))?;
         need(v["offers"].is_array(), "offers_not_supported")?;
@@ -596,6 +605,40 @@ impl Miner<'_> {
             &c.invitation,
             &c.credentials,
         ))
+    }
+    pub fn catalog(&self) -> Result<Value> {
+        let nonce = id();
+        let mut req = Request::get(
+            format!(
+                "{}/v1/catalog?nonce={nonce}",
+                s(&self.trust["coordinatorUrl"])?.trim_end_matches('/')
+            ),
+            &["subnet.everyframe.studio"],
+        );
+        req.limit = 1000000;
+        let response = self.http.json(req).map_err(|e| {
+            if e.0 == "http_404" {
+                Error("public_catalog_unavailable")
+            } else {
+                e
+            }
+        })?;
+        let out = verified(&response, s(&self.trust["publicKey"])?)?;
+        need(
+            out["protocol"] == 1
+                && out["action"] == "catalog"
+                && out["nonce"] == nonce
+                && (n(&out["at"])? - now()).abs() < 30000
+                && out["chain"] == crate::hotkey::chain(&self.trust)?,
+            "invalid_coordinator_response",
+        )?;
+        let rows = out["models"]
+            .as_array()
+            .ok_or(Error("invalid_coordinator_response"))?;
+        need(rows.len() <= 512, "invalid_coordinator_response")?;
+        Ok(
+            json!({"discovery":true,"offers":rows,"note":out["note"],"next":"No wallet, provider key or VM needed to view this catalog. Run everycli setup when ready; pricing does not guarantee earnings."}),
+        )
     }
     pub fn earnings(&self) -> Result<Value> {
         let c = self.load(false)?;
@@ -906,36 +949,91 @@ impl Miner<'_> {
         Ok(json!({"phase":"running","draining":false,"routingEnabled":out["routingEnabled"]}))
     }
     pub fn stop(&self, drain_only: bool, confirm: &dyn Fn(&str) -> Result<()>) -> Result<Value> {
-        let _lock = self.state.lock()?;
-        if self.load(false)?.deployment["phase"] == "update_provision_intent" {
-            self.reconcile_locked()?;
+        self.stop_mode(drain_only, false, confirm)
+    }
+    fn cloud_context(&self) -> Result<Context> {
+        // Cloud shutdown must survive expired delegates and coordinator outages.
+        // Still verify the signed target, local permissions and cloud identity.
+        self.state.prepare()?;
+        let config = self.state.read("config", false)?;
+        let invitation = self.validate(&config["invitation"], true)?;
+        Ok(Context {
+            config,
+            invitation,
+            credentials: self.state.read("credentials", false)?,
+            deployment: self.state.read("deployment", false)?,
+        })
+    }
+    fn recover_cloud_target(&self, c: &mut Context) -> Result<()> {
+        if c.deployment["appId"].is_string() {
+            return Ok(());
         }
-        let c = self.load(false)?;
+        need(
+            c.deployment["phase"] == "provision_intent",
+            "deployment_not_recorded",
+        )?;
+        let catalog = self.cloud(c)?.catalog("/cvms/paginated")?;
+        let matches = catalog["items"]
+            .as_array()
+            .ok_or(Error("invalid_cloud_response"))?
+            .iter()
+            .filter(|v| v["name"] == c.invitation["request"]["name"])
+            .collect::<Vec<_>>();
+        need(
+            matches.len() == 1,
+            "cloud_target_ambiguous_use_phala_console",
+        )?;
+        c.deployment["appId"] = matches[0]["app_id"].clone();
+        self.target(c, true)?;
+        self.state.write("deployment", &c.deployment)
+    }
+    pub fn stop_mode(
+        &self,
+        drain_only: bool,
+        force: bool,
+        confirm: &dyn Fn(&str) -> Result<()>,
+    ) -> Result<Value> {
+        let _lock = self.state.lock()?;
+        need(!(drain_only && force), "conflicting_stop_options")?;
+        let mut c = self.cloud_context()?;
+        if !drain_only {
+            self.recover_cloud_target(&mut c)?;
+        }
         let phase = c.deployment["phase"].as_str().unwrap_or("");
-        need(!phase.ends_with("_intent"), "reconciliation_required")?;
-        if phase == "stopping" {
-            return Ok(
-                json!({"phase":"stopping","next":"Shutdown already requested. Reconcile; no second request sent."}),
-            );
-        };
         confirm(if drain_only {
             "Block new assignments while current work finishes?"
+        } else if force {
+            "Emergency shutdown of the verified VM, even if the coordinator is unreachable or a job is active? Paid in-flight work may be lost. Storage remains billable."
         } else {
             "Drain then gracefully shut down this exact VM? Storage may still cost money. No VM or data deleted."
         })?;
-        let status = self.api(&c, "drain", json!({}))?;
-        need(status["draining"] == true, "drain_not_confirmed")?;
-        if drain_only || n(&status["activeJobs"])? > 0 {
+        let status = self.api(&c, "drain", json!({}));
+        if !force && status.is_err() {
+            return Err(Error("coordinator_unavailable_use_stop_force"));
+        }
+        let status = status.unwrap_or(Value::Null);
+        if !force {
+            need(status["draining"] == true, "drain_not_confirmed")?;
+        }
+        if drain_only || (!force && n(&status["activeJobs"])? > 0) {
             return Ok(
                 json!({"phase":"draining","activeJobs":status["activeJobs"],"next":"VM still incurs charges; run stop after active work finishes."}),
             );
         };
         let info = self.target(&c, true)?;
         if ["stopped", "exited"].contains(&s(&info["status"])?) {
+            let mut state = c.deployment.clone();
+            state["phase"] = json!("stopped");
+            self.state.write("deployment", &state)?;
             return Ok(
                 json!({"phase":"stopped","next":"Already stopped. Reconcile local state; storage may still be billed."}),
             );
         };
+        if ["stopping", "stop_intent"].contains(&phase) {
+            return Ok(
+                json!({"phase":phase,"cloudStatus":info["status"],"next":"Shutdown already requested; no duplicate request sent. If shutdown is stuck, use the Phala console or everycli delete with the exact app ID."}),
+            );
+        }
         let cloud = self.cloud(&c)?;
         let mut state = c.deployment.clone();
         state["phase"] = json!("stop_intent");
@@ -951,6 +1049,126 @@ impl Miner<'_> {
         self.state.write("deployment", &state)?;
         Ok(
             json!({"phase":"stopping","next":"Reconcile shutdown completion; storage may still be billed."}),
+        )
+    }
+    pub fn delete(&self, app_id: &str, confirm: &dyn Fn(&str) -> Result<()>) -> Result<Value> {
+        let _lock = self.state.lock()?;
+        let mut c = self.cloud_context()?;
+        self.recover_cloud_target(&mut c)?;
+        need(c.deployment["appId"] == app_id, "deployment_app_mismatch")?;
+        if c.deployment["phase"] == "deleted" {
+            return Ok(json!({"phase":"deleted","appId":app_id}));
+        }
+        let info = match self.target(&c, true) {
+            Err(e)
+                if e.0 == "phala_http_404"
+                    && ["delete_intent", "deleting"]
+                        .contains(&c.deployment["phase"].as_str().unwrap_or("")) =>
+            {
+                let mut state = c.deployment.clone();
+                state["phase"] = json!("deleted");
+                self.state.write("deployment", &state)?;
+                return Ok(json!({"phase":"deleted","appId":app_id}));
+            }
+            other => other?,
+        };
+        if ["delete_intent", "deleting"].contains(&c.deployment["phase"].as_str().unwrap_or("")) {
+            return Ok(
+                json!({"phase":c.deployment["phase"],"appId":app_id,"next":"Deletion not yet confirmed; no duplicate request sent. Check the Phala console, or rerun this command to check removal."}),
+            );
+        }
+        confirm(&format!(
+            "Permanently DELETE VM {app_id} ({}) and its storage? This is irreversible; active jobs and local VM data will be lost. Other cloud resources and provider subscriptions are not deleted.",
+            s(&info["name"])?
+        ))?;
+        let drained = self.api(&c, "drain", json!({})).is_ok();
+        let mut state = c.deployment.clone();
+        state["phase"] = json!("delete_intent");
+        state["operationAt"] = json!(now());
+        self.state.write("deployment", &state)?;
+        self.cloud(&c)?
+            .request(&Cloud::app_path(app_id)?, "DELETE", None, false, true)?;
+        state["phase"] = json!("deleting");
+        self.state.write("deployment", &state)?;
+        Ok(
+            json!({"phase":"deleting","appId":app_id,"coordinatorDrained":drained,"next":"VM deletion accepted, not yet confirmed. Rerun this command to verify removal and check final storage charges in Phala Billing. Other resources/subscriptions are unchanged; preserve this local management record."}),
+        )
+    }
+    pub fn label(&self, name: Option<&str>) -> Result<Value> {
+        if let Some(name) = name {
+            need(
+                !name.trim().is_empty()
+                    && name.chars().count() <= 64
+                    && !name.chars().any(char::is_control),
+                "invalid_worker_label",
+            )?;
+            let _lock = self.state.lock()?;
+            self.state.write("label", &json!({"name":name.trim()}))?;
+        }
+        Ok(
+            json!({"label":self.state.read("label",true)?["name"],"scope":"local-profile","signedVmNameChanged":false}),
+        )
+    }
+    pub fn logs(&self) -> Result<Value> {
+        let c = self.cloud_context()?;
+        self.target(&c, true)?;
+        let composition = self.cloud(&c)?.get(&format!(
+            "{}/composition",
+            Cloud::app_path(s(&c.deployment["appId"])?)?
+        ))?;
+        let containers = composition["containers"]
+            .as_array()
+            .ok_or(Error("worker_logs_unavailable"))?;
+        let mut events = vec![];
+        for container in containers.iter().take(8) {
+            let Some(endpoint) = container["log_endpoint"].as_str() else {
+                continue;
+            };
+            let mut url = crate::network::safe_url(
+                endpoint,
+                &["*.phala.network".into(), "*.phala.com".into()],
+            )?;
+            url.query_pairs_mut()
+                .append_pair("tail", "100")
+                .append_pair("text", "true")
+                .append_pair("bare", "true");
+            let mut request = Request::get(url.to_string(), &["*.phala.network", "*.phala.com"]);
+            request.limit = 512000;
+            // Never forward the Phala API token to a log host, or expose raw
+            // container lines: publish only structured worker diagnostic fields.
+            let bytes = self.http.bytes(request)?;
+            for line in String::from_utf8_lossy(&bytes).lines().take(200) {
+                let Ok(value) = serde_json::from_str::<Value>(line) else {
+                    continue;
+                };
+                if ![
+                    "worker_cycle",
+                    "worker_cycle_failed",
+                    "generation_failed",
+                    "submission_rejected",
+                    "submission_uncertain",
+                ]
+                .iter()
+                .any(|e| value["event"] == *e)
+                {
+                    continue;
+                }
+                let mut event = json!({"event":value["event"]});
+                for key in ["reason", "state", "jobId", "attemptId"] {
+                    let field = if value[key].is_null() {
+                        &value["result"][key]
+                    } else {
+                        &value[key]
+                    };
+                    if crate::matches("[a-zA-Z0-9_-]{1,160}", field) {
+                        event[key] = field.clone();
+                    }
+                }
+                events.push(event);
+            }
+        }
+        Ok(
+            json!({"appId":c.deployment["appId"],"label":self.state.read("label",true)?["name"],"events":events,"note":"Last 100 lines per container; only structured worker events are shown. No public-log setting was changed. For boot or private logs, use the authenticated Phala console."}),
         )
     }
     pub fn start(&self, limit: f64, confirm: &dyn Fn(&str) -> Result<()>) -> Result<Value> {

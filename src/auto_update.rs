@@ -38,6 +38,9 @@ pub fn native_path(target: &Path, user_home: &Path, cargo_home: Option<&Path>) -
         .contains(&target.to_path_buf())
 }
 fn eligible() -> bool {
+    if !crate::update::official_build() {
+        return false;
+    }
     let Ok(target) = std::env::current_exe() else {
         return false;
     };
@@ -74,7 +77,15 @@ pub fn due(last: Option<i64>, at: i64) -> bool {
 }
 
 // Advisory locks are released by the kernel even on a crash or hard kill.
-fn lock(s: &State) -> Result<File> {
+struct UpdateLock(File);
+impl Drop for UpdateLock {
+    fn drop(&mut self) {
+        unsafe {
+            libc::flock(self.0.as_raw_fd(), libc::LOCK_UN);
+        }
+    }
+}
+fn lock(s: &State) -> Result<UpdateLock> {
     s.prepare()?;
     let p = s.directory.join("auto-update.lock");
     crate::state::no_symlink(&p)?;
@@ -96,7 +107,7 @@ fn lock(s: &State) -> Result<File> {
         unsafe { libc::flock(f.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } == 0,
         "auto_update_locked",
     )?;
-    Ok(f)
+    Ok(UpdateLock(f))
 }
 
 pub fn settings(enable: bool, disable: bool) -> Result<Value> {
