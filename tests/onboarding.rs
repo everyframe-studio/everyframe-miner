@@ -17,6 +17,23 @@ use std::{
 const ADDRESS: &str = "5HQfvwpHm2njGiF716YwjdXgeeZoEiyFLZFvFAriZaiHNKc3";
 
 #[test]
+fn legacy_hotkey_discovery_matches_address_and_rejects_insecure_files() {
+    let dir = common::tempdir();
+    let keys = dir.path().join("miner/hotkeys");
+    fs::create_dir_all(&keys).unwrap();
+    let path = keys.join("default");
+    fs::write(&path, json!({"ss58Address":ADDRESS}).to_string()).unwrap();
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();
+    assert_eq!(
+        onboarding::find_matching_hotkey(dir.path(), ADDRESS),
+        Some(path.clone())
+    );
+    assert!(onboarding::find_matching_hotkey(dir.path(), "wrong-address").is_none());
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).unwrap();
+    assert!(onboarding::find_matching_hotkey(dir.path(), ADDRESS).is_none());
+}
+
+#[test]
 fn init_checks_registration_before_enrollment_and_preserves_lookup_errors() {
     let dir = common::tempdir();
     let key = dir.path().join("hotkey");

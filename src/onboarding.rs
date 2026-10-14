@@ -78,6 +78,25 @@ pub fn file_address(path: &Path) -> Result<String> {
     Ok(address.into())
 }
 
+/// Legacy profiles did not always persist their signer path. Reuse only a
+/// securely readable file whose public address exactly matches the profile.
+/// Never choose the first wallet or change identity as a fallback.
+pub fn find_matching_hotkey(root: &Path, address: &str) -> Option<PathBuf> {
+    let wallets = std::fs::read_dir(root).ok()?;
+    for wallet in wallets.take(100).flatten() {
+        let Ok(keys) = std::fs::read_dir(wallet.path().join("hotkeys")) else {
+            continue;
+        };
+        for key in keys.take(100).flatten() {
+            let path = key.path();
+            if file_address(&path).is_ok_and(|a| a == address) {
+                return Some(path);
+            }
+        }
+    }
+    None
+}
+
 fn prefix(name: &str) -> Vec<u8> {
     ["SubtensorModule", name]
         .iter()

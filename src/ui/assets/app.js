@@ -7,6 +7,7 @@ const S = {
   token: null, session: null, overview: null, wallets: null, help: null,
   health: null, healthAt: 0, offers: null, offersError: null, balances: null, earnings: null,
   cliUpdate: null, workerUpdate: null, hotkeySel: null, registration: null,
+  selectedOffers: new Set(), batchDiscount: "0", batchBusy: false, batchReport: null,
   openStep: null, renaming: false, keyStatus: {}, workloads: null, removal: null, offerFilter: "ready", timers: [], refreshing: false,
 };
 try { S.token = sessionStorage.getItem("everycli-token"); } catch { /* private mode */ }
@@ -74,7 +75,7 @@ const LABELS = {
 // Runs a CLI command. Questions come back to the browser; approving one re-runs
 // the command with that exact question allowed.
 async function run(action, params = {}, opts = {}) {
-  const approvals = [];
+  const approvals = [...(opts.approvals || [])];
   const act = opts.quiet ? null : Activity.add(opts.label || LABELS[action] || action);
   for (;;) {
     const r = await api("/api/run", { action, params, approvals });
@@ -84,6 +85,9 @@ async function run(action, params = {}, opts = {}) {
     }
     const job = await poll(r.data.job, act);
     if (job.state === "confirm") {
+      // Batch review gathers exact CLI questions without approving anything.
+      // If a quote changes after review, stop instead of silently authorizing it.
+      if (opts.prepareOnly || opts.exactApproval) return job;
       const yes = await confirmDialog(job.result.question, opts.label || LABELS[action] || action);
       if (!yes) { act?.cancel(); return { state: "cancelled" }; }
       approvals.push(job.result.hash);
@@ -564,13 +568,18 @@ function stepHotkey(o) {
   const sel = h("select", { "aria-label": "Hotkey" }, options.length
     ? options.map((x, i) => h("option", { value: String(i) }, x.wallet + " / " + x.hotkey + (x.address ? "  ·  " + x.address.slice(0, 8) + "…" : "  ·  " + walletProblem(x.error))))
     : h("option", { value: "" }, "No wallets found in ~/.bittensor/wallets"));
-  const file = h("input", { type: "text", placeholder: "/path/to/hotkey" });
-  const ss58 = h("input", { type: "text", placeholder: "5F… public address" });
-  let mode = options.length ? "wallet" : "file";
-  const panes = { wallet: field("Wallet and hotkey on this computer", sel), file: field("Hotkey file", file, "An unencrypted sr25519 hotkey file, as created by btcli."), address: field("Public hotkey address", ss58, "Checks registration only. Creating the profile later needs the hotkey file on this computer.") };
+  const attached = o?.profile?.hotkey || o?.registration?.hotkey;
+  const match = options.findIndex(x => x.address === attached);
+  if (match >= 0) sel.value = String(match);
+  const file = h("input", { type: "text", placeholder: "/path/to/hotkey", value: S.hotkeySel?.hotkeyFile || "" });
+  const ss58 = h("input", { type: "text", placeholder: "5F… public address", value: attached || "" });
+  let mode = attached ? "attached" : options.length ? "wallet" : "file";
+  const panes = { attached: notice("ok", o?.initialized ? "Initialized hotkey" : "Checked hotkey", h("div", null,
+    h("code", null, attached), h("p", { class: "small" }, o?.hotkeyAttached ? "Attached on this computer. Deployment refreshes authorization automatically when needed." : "Your profile is saved. Select its local hotkey file only if this computer has not attached it yet."))),
+    wallet: field("Wallet and hotkey on this computer", sel), file: field("Hotkey file", file, "An unencrypted sr25519 hotkey file, as created by btcli."), address: field("Public hotkey address", ss58, "Checks registration only. Creating the profile later needs the hotkey file on this computer.") };
   const holder = h("div", null, panes[mode]);
-  const seg = h("div", { class: "seg" }, ["wallet", "file", "address"].map((m) => {
-    const b = h("button", { class: m === mode ? "on" : "" }, { wallet: "My wallets", file: "Hotkey file", address: "Address only" }[m]);
+  const seg = h("div", { class: "seg" }, [...(attached ? ["attached"] : []), "wallet", "file", "address"].map((m) => {
+    const b = h("button", { class: m === mode ? "on" : "" }, { attached: "My hotkey", wallet: "My wallets", file: "Hotkey file", address: "Address only" }[m]);
     b.addEventListener("click", () => { mode = m; [...seg.children].forEach((c) => c.classList.toggle("on", c === b)); holder.replaceChildren(panes[m]); });
     return b;
   }));
@@ -578,16 +587,16 @@ function stepHotkey(o) {
   if (S.registration) result.append(registrationView(S.registration));
   return h("div", { class: "stack" },
     h("p", null, "Your hotkey must be registered on SN" + (S.session?.netuid ?? 117) + " before you can mine. This check only reads the chain. everycli never registers, signs a transaction or pays a fee."),
-    o?.registration ? notice("ok", "Registered hotkey", o.registration.hotkey) : null,
     seg, holder,
     h("div", { class: "row" }, button("Check registration", async () => {
       let params;
-      if (mode === "wallet") { const x = options[Number(sel.value)]; if (!x) return; params = { wallet: x.wallet, hotkey: x.hotkey }; }
+      if (mode === "attached") params = { hotkeySs58: attached };
+      else if (mode === "wallet") { const x = options[Number(sel.value)]; if (!x) return; params = { wallet: x.wallet, hotkey: x.hotkey }; }
       else if (mode === "file") params = { hotkeyFile: file.value };
       else params = { hotkeySs58: ss58.value };
       const job = await run("register-hotkey", params);
       S.registration = job;
-      if (value(job)?.registered === true && mode !== "address") S.hotkeySel = params;
+      if (value(job)?.registered === true && ["wallet", "file"].includes(mode)) S.hotkeySel = params;
       await loadOverview(); render();
     }, "primary")),
     result);
@@ -602,7 +611,7 @@ function registrationView(job) {
     v.registrationCommand ? copyBox(v.registrationCommand) : null));
 }
 function stepDeploy(o) {
-  const limit = h("input", { type: "number", min: "0.01", step: "0.01", value: "0.06", class: "narrow", "aria-label": "Maximum compute USD per hour" });
+  const limit = h("input", { type: "number", min: "0.01", step: "0.01", value: "10", class: "narrow", "aria-label": "Maximum compute USD per hour" });
   if (S.removal) return removalView();
   if (S.workloads?.length) return h("div", { class: "stack" }, workloadsNotice(limit),
     field("Maximum compute price for the new worker (USD per hour)", limit, "Used by \"Delete and deploy again\"."));
@@ -636,7 +645,7 @@ const shortId = (id) => id ? String(id).slice(0, 10) + "…" + String(id).slice(
 function workloadsNotice(limit) {
   const list = S.workloads || [];
   const ownLimit = !limit;
-  if (ownLimit) limit = h("input", { type: "number", min: "0.01", step: "0.01", value: "0.06", class: "narrow", "aria-label": "Maximum compute USD per hour for the new worker" });
+  if (ownLimit) limit = h("input", { type: "number", min: "0.01", step: "0.01", value: "10", class: "narrow", "aria-label": "Maximum compute USD per hour for the new worker" });
   return notice("warn", list.length === 1 ? "A worker for this miner already exists in your Phala account" : list.length + " workers for this miner already exist in your Phala account", h("div", { class: "stack" },
     h("p", null, "It was deployed from another computer or an earlier setup, so this computer can't manage it. Keep running it from where you set it up, or delete it here and deploy a new worker that this computer manages."),
     h("p", { class: "small" }, "Deleting is permanent: the VM and its storage are removed, its billing stops, and any job in progress is lost."),
@@ -780,14 +789,76 @@ function pageModels() {
   if (S.offersError) { root.append(card("Offers", [refresh], errorView(S.offersError))); return root; }
   let rows = S.offers.offers || [];
   const filters = [["ready", "Ready for my keys"], ["active", "My active offers"], ["all", "All models"]];
-  const seg = h("div", { class: "seg" }, filters.map(([f, label]) => h("button", { class: S.offerFilter === f ? "on" : "", onclick: () => { S.offerFilter = f; render(); } }, label)));
+  const seg = h("div", { class: "seg" }, filters.map(([f, label]) => h("button", { disabled: S.batchBusy, class: S.offerFilter === f ? "on" : "", onclick: () => { S.offerFilter = f; S.selectedOffers.clear(); render(); } }, label)));
   if (S.overview?.initialized && S.offerFilter === "active") rows = rows.filter((r) => r.offered);
   if (S.overview?.initialized && S.offerFilter === "ready") rows = rows.filter((r) => r.offered || (readiness(r)[0] === "Available" && r.localKeyConfigured !== false));
-  root.append(card("Offers", [seg, refresh], rows.length ? h("div", { class: "table-wrap" }, h("table", { class: "cards-sm" },
+  root.append(card("Offers", [seg, refresh], S.overview?.initialized ? batchToolbar(rows) : null,
+    S.batchReport ? batchReportView() : null,
+    rows.length ? h("div", { class: "table-wrap" }, h("table", { class: "cards-sm" },
     h("thead", null, h("tr", null, h("th", null, "Model"), h("th", null, "Provider"), h("th", null, "Readiness"), h("th", null, "Your offer"), h("th", null, "Base reward"), h("th", null, "Change"))),
     h("tbody", null, rows.map(offerRow)))) : h("p", { class: "empty" }, S.offerFilter === "ready" ? "No models are ready for your saved keys yet. Try \"All models\" to see what each one needs." : "Nothing to show."),
     h("p", { class: "small muted" }, "Base reward is the reference value per job (five-second clip for video; studio jobs are repriced per settings). Offers never guarantee traffic or profit.")));
+  if (S.batchBusy) root.querySelectorAll("button, input").forEach(el => { el.disabled = true; });
   return root;
+}
+function selectableOffer(r) { return r.offered || (r.offerable === true && r.localKeyConfigured !== false); }
+function batchToolbar(rows) {
+  const eligible = rows.filter(selectableOffer);
+  const visible = new Set(eligible.map(r => r.model));
+  for (const id of S.selectedOffers) if (!visible.has(id)) S.selectedOffers.delete(id);
+  const count = S.selectedOffers.size;
+  const select = h("input", { type: "checkbox", checked: count > 0 && count === eligible.length, disabled: S.batchBusy || !eligible.length,
+    "aria-label": "Select all editable models in this tab", onchange: e => { S.selectedOffers = new Set(e.target.checked ? eligible.map(r => r.model) : []); render(); } });
+  select.indeterminate = count > 0 && count < eligible.length;
+  const discount = h("input", { type: "number", min: "0", max: "99.9", step: "0.01", value: S.batchDiscount, class: "tiny", "aria-label": "Batch discount percent", oninput: e => { S.batchDiscount = e.target.value; } });
+  const apply = button("Apply discount", () => batchOffers(rows, false), "primary small");
+  const withdraw = button("Withdraw selected", () => batchOffers(rows, true), "small");
+  apply.disabled = withdraw.disabled = S.batchBusy || !count;
+  discount.disabled = S.batchBusy;
+  return h("div", { class: "batch-toolbar stack" }, h("div", { class: "row" },
+    h("label", { class: "row" }, select, "Select all in this tab"), h("b", null, count + " selected"),
+    discount, h("span", null, "% off"), apply, withdraw),
+    h("p", { class: "small muted" }, S.batchBusy ? "Updating offers… Keep this page open." : "Select any models below. Unavailable new offers are excluded. You review all changes once before applying."));
+}
+function batchReportView() {
+  const report = S.batchReport;
+  return notice(report.some(r => !r.ok) ? "warn" : "ok", "Batch results", h("ul", null,
+    report.map(r => h("li", null, r.model + ": " + r.message))));
+}
+async function batchOffers(rows, withdraw) {
+  if (S.batchBusy) return;
+  const selected = rows.filter(r => S.selectedOffers.has(r.model) && selectableOffer(r));
+  if (!selected.length) return;
+  const discount = S.batchDiscount.trim();
+  if (!withdraw && (!/^(?:0|[1-9]\d?)(?:\.\d{1,2})?$/.test(discount) || Number(discount) > 99.9)) {
+    S.batchReport = [{ model: "Discount", ok: false, message: "Enter 0–99.9%, with at most two decimal places." }]; render(); return;
+  }
+  S.batchBusy = true; S.batchReport = null; render();
+  const report = [], prepared = [];
+  try {
+    for (const row of selected) {
+      if (withdraw && !row.offered) { report.push({ model: row.model, ok: true, message: "Already withdrawn; unchanged." }); continue; }
+      const params = withdraw ? { model: row.model, withdraw: true } : { model: row.model, discountPct: discount };
+      const job = await run("offer", params, { quiet: true, prepareOnly: true });
+      if (job.state === "confirm") prepared.push({ model: row.model, params, question: job.result.question, hash: job.result.hash });
+      else report.push({ model: row.model, ok: false, message: errorOf(job)?.message || "Could not prepare this change. Not applied." });
+    }
+    const yes = prepared.length && await confirmDialog(h("div", null,
+      h("p", null, `${withdraw ? "Withdraw" : "Update"} ${prepared.length} offers. Changes are applied individually, not as one transaction. Provider costs do not decrease. No guaranteed traffic or profit.`),
+      report.length ? h("p", null, `${report.length} other selected models will not be changed; see Batch results.`) : null,
+      h("ul", null, prepared.map(p => h("li", null, h("b", null, p.model), h("p", null, p.question))))), "Batch model offers");
+    for (const p of prepared) {
+      if (!yes) { report.push({ model: p.model, ok: false, message: "Cancelled; unchanged." }); continue; }
+      const job = await run("offer", p.params, { quiet: true, approvals: [p.hash], exactApproval: true });
+      const ok = job.state === "done";
+      report.push({ model: p.model, ok, message: ok ? (withdraw ? "Withdrawn." : `Discount set to ${discount}%.`) : job.state === "confirm" ? "Quote changed; not applied. Review again." : errorOf(job)?.message || "Failed; refresh offers to check current state before retrying." });
+      if (ok) S.selectedOffers.delete(p.model);
+      // An unknown result is not retried. Other independent offers can finish.
+    }
+  } finally {
+    S.batchReport = report; S.batchBusy = false;
+    await loadOffers(); render();
+  }
 }
 function offerRow(r) {
   const [ready, tone] = readiness(r);
@@ -796,7 +867,7 @@ function offerRow(r) {
   const base = typeof baseMicrousd === "number" ? baseMicrousd / 1e6 : null;
   const yours = r.offered ? (r.pricingCurrent ? "Active · " + ((r.discountBp || 0) / 100).toFixed(2) + "% off" : "Stale pricing") : "Not offered";
   return h("tr", null,
-    h("td", { "data-label": "Model" }, h("b", null, r.name || r.model), h("span", { class: "id" }, r.model)),
+    h("td", { "data-label": "Model" }, h("label", { class: "row" }, S.overview?.initialized ? h("input", { type: "checkbox", checked: S.selectedOffers.has(r.model), disabled: S.batchBusy || !selectableOffer(r), "aria-label": "Select " + (r.name || r.model), onchange: e => { if (e.target.checked) S.selectedOffers.add(r.model); else S.selectedOffers.delete(r.model); render(); } }) : null, h("b", null, r.name || r.model)), h("span", { class: "id" }, r.model)),
     h("td", { "data-label": "Provider" }, providerName(r.provider || ""), r.localKeyConfigured === false ? h("div", { class: "small muted" }, "No key saved") : null),
     h("td", { "data-label": "Readiness" }, h("span", { class: "badge " + tone }, ready)),
     h("td", { "data-label": "Your offer" }, h("span", { class: "badge " + (r.offered ? (r.pricingCurrent ? "ok" : "warn") : "") }, yours)),
@@ -826,7 +897,7 @@ function pageWorker() {
   const ph = d.phase || "not_deployed", deployed = !!d.appId && !["stopped", "stopping"].includes(ph);
   const accepting = findCheck("Accepting new work");
   const when = (ok, el, why) => { if (!ok) { el.disabled = true; el.title = why; } return el; };
-  const startLimit = h("input", { type: "number", min: "0.01", step: "0.01", value: "0.06", class: "narrow", "aria-label": "Maximum compute USD per hour" });
+  const startLimit = h("input", { type: "number", min: "0.01", step: "0.01", value: "10", class: "narrow", "aria-label": "Maximum compute USD per hour" });
   const actions = [
     ["Reconnect profile", "Prove ownership with the same saved hotkey and refresh local authorization. Keeps keys and history; does not deploy or change the VM.", reconnectButton()],
     ["Re-sync state", "Confirm completed starts, shutdowns or interrupted operations on this same VM.",

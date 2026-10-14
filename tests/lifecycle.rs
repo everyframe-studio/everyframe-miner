@@ -214,6 +214,82 @@ fn reconnect_keeps_keys_label_deleted_journal_and_records_verified_uid_zero() {
 }
 
 #[test]
+fn deploy_refreshes_attached_authorization_once_before_paid_confirmation() {
+    let (r, _) = Rig::reconnect_fixture();
+    r.status.borrow_mut()["replacementSupported"] = json!(true);
+    let before = r.state().read("deployment", false).unwrap();
+    let prompts = RefCell::new(Vec::new());
+    let result = r.miner().deploy(10.0, &|q| {
+        prompts.borrow_mut().push(q.to_string());
+        Err(Error("declined"))
+    });
+    assert_eq!(result.unwrap_err().0, "declined");
+    assert_eq!(prompts.borrow().len(), 1);
+    assert!(prompts.borrow()[0].starts_with("Create "));
+    assert_eq!(
+        r.state().read("credentials", false).unwrap()["CONSOLE_AUTH"]["certificate"]["value"]["keyVersion"],
+        7
+    );
+    assert_eq!(r.state().read("deployment", false).unwrap(), before);
+    let calls = r.calls.borrow();
+    assert_eq!(
+        calls
+            .iter()
+            .filter(|(p, _)| p.ends_with("/onboarding/enroll"))
+            .count(),
+        1
+    );
+    assert!(
+        !calls
+            .iter()
+            .any(|(p, _)| p.starts_with("POST /api/v1/cvms"))
+    );
+    assert!(
+        calls
+            .iter()
+            .all(|(p, _)| p.starts_with("GET ") || p == "POST /" || p.contains("/onboarding/"))
+    );
+}
+
+#[test]
+fn deploy_failed_recovery_never_provisions_or_retries_forever() {
+    for mode in ["auth", "wrong-signer", "timeout"] {
+        let (r, path) = Rig::reconnect_fixture();
+        r.status.borrow_mut()["replacementSupported"] = json!(true);
+        if mode == "auth" {
+            *r.fail.borrow_mut() = "auth".into();
+        }
+        if mode == "timeout" {
+            *r.fail.borrow_mut() = "/status".into();
+        }
+        if mode == "wrong-signer" {
+            let other = "5HQfvwpHm2njGiF716YwjdXgeeZoEiyFLZFvFAriZaiHNKc3";
+            std::fs::write(path, json!({"ss58Address":other}).to_string()).unwrap();
+        }
+        let before = r.state().read("credentials", false).unwrap();
+        assert!(
+            r.miner()
+                .deploy(10.0, &|_| panic!("must not request payment"))
+                .is_err()
+        );
+        assert_eq!(r.state().read("credentials", false).unwrap(), before);
+        let calls = r.calls.borrow();
+        assert!(
+            calls
+                .iter()
+                .filter(|(p, _)| p.ends_with("/onboarding/enroll"))
+                .count()
+                <= 1
+        );
+        assert!(
+            calls
+                .iter()
+                .all(|(p, _)| p.starts_with("GET ") || p == "POST /" || p.contains("/onboarding/"))
+        );
+    }
+}
+
+#[test]
 fn reconnect_accepts_initial_public_envelope_only_with_exact_live_binding() {
     for mismatch in ["none", "app", "compose", "name", "upgrade"] {
         let (mut r, _) = Rig::reconnect_fixture();
@@ -1192,7 +1268,8 @@ impl Http for Rig {
         if self.fail.borrow().as_str() == "auth" && path.ends_with("/v1/miner/status") {
             return Err(Error("http_401"));
         }
-        if self.fail.borrow().as_str() == "gone" && path.contains("/cvms/") && r.method == "GET" {
+        if self.fail.borrow().as_str() == "gone" && path.contains("/cvms/app_") && r.method == "GET"
+        {
             return Err(Error("http_404"));
         }
         if !self.fail.borrow().is_empty() && path.ends_with(self.fail.borrow().as_str()) {
@@ -1208,6 +1285,9 @@ impl Http for Rig {
                     .unwrap()
                     .1;
                 let a: Value = serde_json::from_slice(&protocol::decode(h).unwrap()).unwrap();
+                if a["certificate"]["value"]["keyVersion"] != self.inv["keyVersion"] {
+                    return Err(Error("http_401"));
+                }
                 assert_eq!(a["certificate"]["value"]["scope"], "console");
                 let proof = protocol::verified(
                     &a["proof"],

@@ -20,6 +20,22 @@ and ten provider adapters. Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
 
+### Upcoming setup and batch-edit improvements (not yet released)
+
+- Setup remembers and shows the initialized hotkey after reopening the UI.
+- Deploy refreshes rejected authorization once with the attached, matching hotkey
+  before any paid cloud request. Older profiles can locate the same hotkey in
+  the standard wallet folder. Missing or mismatched keys still require attention;
+  no other identity is substituted. Hosting still requires live-price approval.
+- Attaching the same hotkey again with `init` refreshes an existing public profile
+  while preserving saved API keys and deployment history.
+- UI compute ceilings default to **$10/hour**, not a total spending cap. The
+  signed instance type is unchanged, and storage is billed separately.
+- Every Models tab supports selecting rows or all editable models in that tab,
+  applying one discount, or withdrawing offers. One review shows the exact quotes.
+  Changed quotes are not auto-approved; results are reported per model. A batch
+  is not atomic, and uncertain requests are never automatically retried.
+
 ### v0.5.2 dashboard and profile recovery
 
 Run `everycli update`, then close and reopen `everycli ui`. The dashboard shows

@@ -768,6 +768,14 @@ pub fn run_with(
                     "hotkey_does_not_match_deployment",
                 )?;
             }
+            // Attaching the same hotkey to an existing public profile refreshes
+            // it in place. Keep provider keys and the deployment journal intact.
+            if args.get("--invitation").is_none()
+                && args.get("--secrets-file").is_none()
+                && !miner.state.read("config", true)?.is_null()
+            {
+                return miner.reconnect(path.as_deref(), &|_| Ok(()));
+            }
             let mut fresh_receipt = None;
             let envelope = if let Some(file) = args.get("--invitation") {
                 read_json(Path::new(file), false)?

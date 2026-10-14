@@ -415,6 +415,7 @@ fn overview_reports_registration_uid_zero_timestamp_but_not_signer_or_recovery_s
     let out = ui::overview(&sh).unwrap();
     assert_eq!(out["registration"]["uid"], 0);
     assert_eq!(out["registration"]["checkedAt"], 123);
+    assert_eq!(out["hotkeyAttached"], true);
     assert_eq!(out["recoveryPending"], true);
     assert!(!out.to_string().contains("secret-signing-path"));
     assert!(!out.to_string().contains("never-show"));

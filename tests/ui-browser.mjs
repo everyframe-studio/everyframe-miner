@@ -148,7 +148,101 @@ try {
   assert.equal(deletion.name, 'every…ec7d96');
   assert.equal(deletion.missingCheck, 'warn');
 
+  // Reopened setup shows the initialized identity even without in-memory choice.
+  await page.evaluate(() => {
+    S.hotkeySel = null; S.wallets = { wallets: [] };
+    S.overview = { initialized: true, hotkeyAttached: true, network: 'mainnet', profile: { hotkey: '5FW5r4Hjpa7m2hsU5h3awcAwmErcfurCyFqB3Fi1fv8quSvT' }, deployment: { phase: 'deleted' }, keys: [], steps: [{ id: 'hotkey', done: true }, { id: 'deploy', done: false }] };
+    S.openStep = 'hotkey'; history.replaceState(null, '', '#/setup'); render();
+  });
+  assert.equal(await page.getByText('Initialized hotkey', { exact: true }).count(), 1);
+  assert.match(await page.locator('#main').innerText(), /Attached on this computer/);
+  await page.evaluate(() => { S.openStep = 'deploy'; S.workloads = []; render(); });
+  assert.equal(await page.getByLabel('Maximum compute USD per hour', { exact: true }).inputValue(), '10');
+
+  await page.evaluate(() => {
+    S.offers = { offers: [
+      { model: 'fixture/a', name: 'Alpha', offered: true, offerable: true, discountBp: 0, pricingCurrent: true, baseMinerRewardMicrousd: 1000000 },
+      { model: 'fixture/b', name: 'Beta', offered: false, offerable: true, localKeyConfigured: true, baseMinerRewardMicrousd: 2000000 },
+      { model: 'fixture/c', name: 'Blocked', offered: false, offerable: false, blockers: ['integration_required'] },
+    ] };
+    S.offersError = null; S.offerFilter = 'all'; S.selectedOffers.clear(); S.batchReport = null;
+    history.replaceState(null, '', '#/models'); render();
+  });
+  await page.getByLabel('Select all editable models in this tab').check();
+  assert.equal(await page.getByLabel('Select Alpha', { exact: true }).isChecked(), true);
+  assert.equal(await page.getByLabel('Select Beta', { exact: true }).isChecked(), true);
+  assert.equal(await page.getByLabel('Select Blocked', { exact: true }).isDisabled(), true);
+  await page.getByRole('button', { name: 'My active offers', exact: true }).click();
+  assert.equal(await page.getByLabel('Select Alpha', { exact: true }).isChecked(), false, 'changing tabs clears hidden selection');
+  assert.equal(await page.getByLabel('Select Beta', { exact: true }).count(), 0);
+  await page.getByRole('button', { name: 'Ready for my keys', exact: true }).click();
+  assert.equal(await page.getByLabel('Select Beta', { exact: true }).count(), 1);
+
+  const batch = await page.evaluate(async () => {
+    const originals = { run, confirmDialog, loadOffers };
+    const calls = [], questions = [];
+    try {
+      loadOffers = async () => {};
+      confirmDialog = async question => { questions.push(question.textContent); return true; };
+      run = async (action, params, opts) => {
+        calls.push({ action, params, opts });
+        if (opts.prepareOnly) return { state: 'confirm', result: { question: `Offer ${params.model} at 10% discount`, hash: `quote-${params.model}` } };
+        if (params.model === 'fixture/b') return { state: 'confirm', result: { question: 'Changed price', hash: 'changed' } };
+        return { state: 'done', result: { value: {} } };
+      };
+      S.selectedOffers = new Set(['fixture/a', 'fixture/b']); S.batchDiscount = '10';
+      await batchOffers(S.offers.offers, false);
+      const result = { calls: [...calls], questions: [...questions], report: [...S.batchReport], selected: [...S.selectedOffers] };
+      // Cancellation approves none of the prepared hashes.
+      calls.length = 0; confirmDialog = async () => false;
+      await batchOffers(S.offers.offers, false);
+      result.cancelCalls = [...calls];
+      // Withdraw active selections only; failures remain visible and selected.
+      calls.length = 0; confirmDialog = async () => true;
+      run = async (action, params, opts) => {
+        calls.push({ action, params, opts });
+        return opts.prepareOnly ? { state: 'confirm', result: { question: 'Withdraw this offer?', hash: 'withdraw-hash' } }
+          : { state: 'failed', result: { error: { message: 'Coordinator unavailable; check offers before retrying.' } } };
+      };
+      S.selectedOffers = new Set(['fixture/a', 'fixture/b']);
+      await batchOffers(S.offers.offers, true);
+      result.withdrawCalls = [...calls]; result.withdrawReport = [...S.batchReport];
+      return result;
+    } finally { ({ run, confirmDialog, loadOffers } = originals); }
+  });
+  assert.equal(batch.questions.length, 1, 'one review for the batch');
+  assert.match(batch.questions[0], /fixture\/a/);
+  assert.match(batch.questions[0], /fixture\/b/);
+  assert.equal(batch.calls.length, 4);
+  assert.deepEqual(batch.calls[2].opts.approvals, ['quote-fixture/a']);
+  assert.equal(batch.calls[2].opts.exactApproval, true);
+  assert.equal(batch.report[0].ok, true);
+  assert.match(batch.report[1].message, /Quote changed/);
+  assert.deepEqual(batch.selected, ['fixture/b']);
+  assert.equal(batch.cancelCalls.every(c => c.opts.prepareOnly), true, 'cancel never submits an offer');
+  assert.equal(batch.withdrawCalls.length, 2);
+  assert.equal(batch.withdrawCalls.every(c => c.params.model === 'fixture/a' && c.params.withdraw === true), true);
+  assert.equal(batch.withdrawReport.some(r => !r.ok && /Coordinator unavailable/.test(r.message)), true);
+
+  // run itself must not approve a changed quote or open another modal in a batch.
+  const approvalGuard = await page.evaluate(async () => {
+    const originals = { api, poll, confirmDialog };
+    let dialogs = 0, submitted;
+    try {
+      api = async (path, body) => { submitted = body; return { ok: true, data: { job: 'fixture' } }; };
+      poll = async () => ({ state: 'confirm', result: { hash: 'new-quote', question: 'new price' } });
+      confirmDialog = async () => { dialogs++; return true; };
+      const job = await run('offer', { model: 'fixture/b', discountPct: '10' }, { quiet: true, approvals: ['reviewed-quote'], exactApproval: true });
+      return { state: job.state, submitted, dialogs };
+    } finally { ({ api, poll, confirmDialog } = originals); }
+  });
+  assert.equal(approvalGuard.state, 'confirm');
+  assert.equal(approvalGuard.dialogs, 0);
+  assert.deepEqual(approvalGuard.submitted.approvals, ['reviewed-quote']);
+
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.evaluate(() => { S.offerFilter = 'all'; render(); });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'batch models fit mobile');
   await page.evaluate(() => { history.replaceState(null, '', '#/setup'); render(); });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'mobile viewport must not overflow');
   assert.deepEqual(errors, []);
