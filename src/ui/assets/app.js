@@ -455,7 +455,7 @@ function earningsCard() {
 
 // ---------- Setup guide ----------
 const STEP_INFO = {
-  hotkey: "Check your hotkey", phala: "Add your Phala hosting token", providers: "Add a provider API key",
+  hotkey: "Select your hotkey", phala: "Add your Phala hosting token", providers: "Add a provider API key",
   init: "Create your miner profile", deploy: "Deploy your worker", activate: "Activate your keys",
   offers: "Choose models to serve", resume: "Start accepting work",
 };
@@ -485,7 +485,7 @@ function pageSetup() {
       h("div", { class: "box" },
         h("div", { class: "title", role: "button", tabindex: "0", onclick: () => { S.openStep = isOpen ? "__none" : st.id; render(); },
           onkeydown: (e) => { if (e.key === "Enter") { S.openStep = isOpen ? "__none" : st.id; render(); } } },
-          h("h3", null, STEP_INFO[st.id] || st.id),
+          h("h3", null, st.id === "hotkey" && o?.hotkeyAttached ? "Your hotkey" : STEP_INFO[st.id] || st.id),
           h("span", { class: "badge " + (isDone ? "ok" : st.id === firstOpen ? "info" : "") }, isDone ? "DONE" : st.id === firstOpen ? "NEXT" : "")),
         body)));
   });
@@ -569,13 +569,17 @@ function stepHotkey(o) {
     ? options.map((x, i) => h("option", { value: String(i) }, x.wallet + " / " + x.hotkey + (x.address ? "  ·  " + x.address.slice(0, 8) + "…" : "  ·  " + walletProblem(x.error))))
     : h("option", { value: "" }, "No wallets found in ~/.bittensor/wallets"));
   const attached = o?.profile?.hotkey || o?.registration?.hotkey;
+  const registration = o?.registration;
+  const uid = registration?.registered === true && registration.hotkey === attached && registration.network === o?.network
+    && Number.isInteger(registration.uid) && registration.uid >= 0 && registration.uid <= 65535 ? registration.uid : null;
   const match = options.findIndex(x => x.address === attached);
   if (match >= 0) sel.value = String(match);
   const file = h("input", { type: "text", placeholder: "/path/to/hotkey", value: S.hotkeySel?.hotkeyFile || "" });
   const ss58 = h("input", { type: "text", placeholder: "5F… public address", value: attached || "" });
   let mode = attached ? "attached" : options.length ? "wallet" : "file";
-  const panes = { attached: notice("ok", o?.initialized ? "Initialized hotkey" : "Checked hotkey", h("div", null,
-    h("code", null, attached), h("p", { class: "small" }, o?.hotkeyAttached ? "Attached on this computer. Deployment refreshes authorization automatically when needed." : "Your profile is saved. Select its local hotkey file only if this computer has not attached it yet."))),
+  const panes = { attached: notice("ok", o?.hotkeyAttached ? "Attached hotkey" : "Selected hotkey", h("div", null,
+    h("code", null, attached), h("span", { class: "pill" }, uid == null ? "UID not checked" : "UID " + uid),
+    h("p", { class: "small" }, o?.hotkeyAttached ? "Attached on this computer. Deployment refreshes authorization automatically when needed." : "Select its local hotkey file if this computer has not attached it yet."))),
     wallet: field("Wallet and hotkey on this computer", sel), file: field("Hotkey file", file, "An unencrypted sr25519 hotkey file, as created by btcli."), address: field("Public hotkey address", ss58, "Checks registration only. Creating the profile later needs the hotkey file on this computer.") };
   const holder = h("div", null, panes[mode]);
   const seg = h("div", { class: "seg" }, [...(attached ? ["attached"] : []), "wallet", "file", "address"].map((m) => {

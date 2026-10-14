@@ -41,6 +41,8 @@ try {
   await page.goto(url);
   await page.getByRole('heading', { name: 'Setup guide', exact: true }).waitFor();
   await page.waitForFunction(() => window.reviewIntervals.some(x => x.ms === 30000));
+  assert.equal(await page.getByRole('heading', { name: 'Select your hotkey', exact: true }).count(), 1);
+  assert.equal(await page.getByRole('button', { name: 'Check registration', exact: true }).count(), 1);
   const input = page.getByPlaceholder('/path/to/hotkey');
   await input.fill('/fixture/miner/hotkeys/default');
   await page.evaluate(async () => { await window.reviewIntervals.find(x => x.ms === 30000).fn(); });
@@ -154,8 +156,16 @@ try {
     S.overview = { initialized: true, hotkeyAttached: true, network: 'mainnet', profile: { hotkey: '5FW5r4Hjpa7m2hsU5h3awcAwmErcfurCyFqB3Fi1fv8quSvT' }, deployment: { phase: 'deleted' }, keys: [], steps: [{ id: 'hotkey', done: true }, { id: 'deploy', done: false }] };
     S.openStep = 'hotkey'; history.replaceState(null, '', '#/setup'); render();
   });
-  assert.equal(await page.getByText('Initialized hotkey', { exact: true }).count(), 1);
+  assert.equal(await page.getByRole('heading', { name: 'Your hotkey', exact: true }).count(), 1);
+  assert.equal(await page.getByText('Attached hotkey', { exact: true }).count(), 1);
   assert.match(await page.locator('#main').innerText(), /Attached on this computer/);
+  await page.evaluate(() => {
+    S.overview.registration = { hotkey: S.overview.profile.hotkey, registered: true, network: 'mainnet', uid: 0 }; render();
+  });
+  assert.equal(await page.getByText('UID 0', { exact: true }).count(), 1);
+  await page.evaluate(() => { S.overview.registration.hotkey = 'different'; render(); });
+  assert.equal(await page.getByText('UID not checked', { exact: true }).count(), 1);
+  assert.equal(await page.getByRole('button', { name: 'Check registration', exact: true }).count(), 1);
   await page.evaluate(() => { S.openStep = 'deploy'; S.workloads = []; render(); });
   assert.equal(await page.getByLabel('Maximum compute USD per hour', { exact: true }).inputValue(), '10');
 
