@@ -180,6 +180,168 @@ struct Rig {
 }
 
 #[test]
+fn reconnect_keeps_keys_label_deleted_journal_and_records_verified_uid_zero() {
+    let (r, _) = Rig::reconnect_fixture();
+    let before = r.state().read("deployment", false).unwrap();
+    let out = r.miner().reconnect(None, &|_| Ok(())).unwrap();
+    assert_eq!(out["state"], "reconnected");
+    assert_eq!(out["uid"], 0);
+    assert_eq!(out["workerChanged"], false);
+    assert_eq!(r.state().read("deployment", false).unwrap(), before);
+    assert_eq!(r.state().read("label", false).unwrap()["name"], "keep-me");
+    let keys = r.state().read("credentials", false).unwrap();
+    assert_eq!(keys["FAL_KEY"], r.credentials["FAL_KEY"]);
+    assert_eq!(
+        keys["PHALA_CLOUD_API_KEY"],
+        r.credentials["PHALA_CLOUD_API_KEY"]
+    );
+    assert_eq!(
+        keys["CONSOLE_AUTH"]["certificate"]["value"]["keyVersion"],
+        7
+    );
+    assert_eq!(
+        keys["WORKER_AUTH"]["certificate"]["value"]["kind"],
+        "everyframe-hotkey-delegation-v2"
+    );
+    assert!(r.state().read("profile-recovery", true).unwrap().is_null());
+    assert!(
+        r.calls
+            .borrow()
+            .iter()
+            .all(|(p, _)| p.starts_with("GET ") || p == "POST /" || p.contains("/onboarding/"))
+    );
+    assert!(!out.to_string().contains("synthetic"));
+}
+
+#[test]
+fn reconnect_accepts_initial_public_envelope_only_with_exact_live_binding() {
+    for mismatch in ["none", "app", "compose", "name", "upgrade"] {
+        let (mut r, _) = Rig::reconnect_fixture();
+        r.inv["appId"] = Value::Null;
+        *r.fail.borrow_mut() = String::new();
+        let deployment = json!({"phase":"running","appId":"1".repeat(40)});
+        r.state().write("deployment", &deployment).unwrap();
+        match mismatch {
+            "app" => r.status.borrow_mut()["appId"] = json!("2".repeat(40)),
+            "compose" => r.info.borrow_mut()["compose_hash"] = json!("f".repeat(64)),
+            "name" => r.info.borrow_mut()["name"] = json!("other-worker"),
+            "upgrade" => r.inv["previousComposeHash"] = json!("b".repeat(64)),
+            _ => {}
+        }
+        let result = r.miner().reconnect(None, &|_| Ok(()));
+        assert_eq!(result.is_ok(), mismatch == "none", "{mismatch}");
+        assert_eq!(r.state().read("deployment", false).unwrap(), deployment);
+        assert!(
+            r.calls
+                .borrow()
+                .iter()
+                .all(|(p, _)| p.starts_with("GET ") || p == "POST /" || p.contains("/onboarding/"))
+        );
+    }
+}
+
+#[test]
+fn reconnect_decline_wrong_wallet_pending_operation_and_wrong_vm_preserve_profile() {
+    for mode in [
+        "decline",
+        "wallet",
+        "pending",
+        "update",
+        "app",
+        "exists",
+        "auth",
+        "cloud_failure",
+    ] {
+        let (r, _) = Rig::reconnect_fixture();
+        match mode {
+            "pending" => r
+                .state()
+                .write("deployment", &json!({"phase":"provision_intent"}))
+                .unwrap(),
+            "update" => r
+                .state()
+                .write("worker-update", &json!({"stage":"attesting"}))
+                .unwrap(),
+            "app" => r.status.borrow_mut()["appId"] = json!("2".repeat(40)),
+            "exists" => *r.fail.borrow_mut() = "".into(),
+            "auth" => *r.fail.borrow_mut() = "auth".into(),
+            "cloud_failure" => *r.fail.borrow_mut() = format!("app_{}", "1".repeat(40)),
+            _ => {}
+        }
+        let before = r.state().read("config", false).unwrap();
+        let credentials = r.state().read("credentials", false).unwrap();
+        let wrong = r.dir.path().join("missing-hotkey");
+        let out = r
+            .miner()
+            .reconnect(if mode == "wallet" { Some(&wrong) } else { None }, &|_| {
+                if mode == "decline" {
+                    Err(Error("confirmation_required"))
+                } else {
+                    Ok(())
+                }
+            });
+        assert!(out.is_err(), "{mode}");
+        if mode == "auth" {
+            assert_eq!(out.unwrap_err().0, "coordinator_auth_rejected");
+        }
+        assert_eq!(r.state().read("config", false).unwrap(), before, "{mode}");
+        assert_eq!(
+            r.state().read("credentials", false).unwrap(),
+            credentials,
+            "{mode}"
+        );
+        assert!(r.state().read("profile-recovery", true).unwrap().is_null());
+        if ["decline", "wallet", "pending", "update"].contains(&mode) {
+            assert!(r.calls.borrow().is_empty());
+        }
+    }
+}
+
+#[test]
+fn reconnect_recovers_partial_file_commit_without_repeating_remote_requests() {
+    for interruption in ["none", "credentials", "config", "registration", "changed"] {
+        let (r, _) = Rig::reconnect_fixture();
+        let mut before = json!({});
+        for name in ["config", "credentials", "registration"] {
+            before[name] = r.state().read(name, true).unwrap();
+        }
+        r.miner().reconnect(None, &|_| Ok(())).unwrap();
+        let mut after = json!({});
+        for name in ["config", "credentials", "registration"] {
+            after[name] = r.state().read(name, true).unwrap();
+        }
+        for name in ["config", "credentials", "registration"] {
+            r.state().write(name, &before[name]).unwrap();
+        }
+        r.state().write("profile-recovery", &json!({"version":1,"deployment":r.state().read("deployment", true).unwrap(),"before":before,"after":after})).unwrap();
+        if interruption != "none" && interruption != "changed" {
+            r.state().write(interruption, &after[interruption]).unwrap();
+        }
+        if interruption == "changed" {
+            let mut changed = before["credentials"].clone();
+            changed["FAL_KEY"] = json!("changed-by-user");
+            r.state().write("credentials", &changed).unwrap();
+        }
+        r.calls.borrow_mut().clear();
+        assert_eq!(
+            r.miner().load(false).err().unwrap().0,
+            "profile_recovery_pending"
+        );
+        let result = r.miner().reconnect(None, &|_| Ok(()));
+        if interruption == "changed" {
+            assert_eq!(result.unwrap_err().0, "reconnect_state_changed");
+        } else {
+            result.unwrap();
+            for name in ["config", "credentials", "registration"] {
+                assert_eq!(r.state().read(name, true).unwrap(), after[name]);
+            }
+            assert!(r.state().read("profile-recovery", true).unwrap().is_null());
+        }
+        assert!(r.calls.borrow().is_empty());
+    }
+}
+
+#[test]
 fn health_reads_one_signed_snapshot_and_cloud_without_changing_worker_or_profile() {
     let r = Rig::new();
     r.deploy().unwrap();
@@ -263,6 +425,58 @@ fn health_never_hides_an_optional_saved_provider_release_mismatch() {
     );
 }
 impl Rig {
+    fn reconnect_fixture() -> (Self, PathBuf) {
+        use everyframe_miner::hotkey;
+        use schnorrkel::{ExpansionMode, MiniSecretKey};
+        use std::os::unix::fs::PermissionsExt;
+        let mut r = Self::new();
+        r.dir = common::tempdir();
+        let seed = [7u8; 32];
+        let pair = MiniSecretKey::from_bytes(&seed)
+            .unwrap()
+            .expand_to_keypair(ExpansionMode::Ed25519);
+        let path = r.dir.path().join("hotkey");
+        let address = hotkey::address(&pair.public.to_bytes());
+        std::fs::write(
+            &path,
+            json!({"secretSeed":hex::encode(seed),"ss58Address":address}).to_string(),
+        )
+        .unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+        r.inv["kind"] = json!("everyframe-miner-deployment-v2");
+        r.inv["authMode"] = json!("hotkey-v1");
+        r.inv["publicOnboarding"] = json!(true);
+        r.inv["keyVersion"] = json!(1);
+        r.inv["hotkey"] = json!(address);
+        r.inv.as_object_mut().unwrap().remove("tokenHash");
+        r.inv["request"]["compose_file"]["allowed_envs"] =
+            json!(["MINER_ID", "MINER_AUTH", "FAL_KEY"]);
+        r.inv["composeHash"] =
+            json!(cloud::compose_hash(&r.inv["request"]["compose_file"]).unwrap());
+        r.inv["appId"] = json!("1".repeat(40));
+        r.credentials.as_object_mut().unwrap().remove("MINER_TOKEN");
+        r.credentials["CONSOLE_AUTH"] = hotkey::create(&path, &r.inv, "console").unwrap();
+        r.credentials["WORKER_AUTH"] = hotkey::create(&path, &r.inv, "worker").unwrap();
+        r.miner().init(&r.sign(&r.inv), &r.credentials).unwrap();
+        r.state()
+            .write(
+                "deployment",
+                &json!({"phase":"deleted","appId":"1".repeat(40),"deleteRequestedAt":123}),
+            )
+            .unwrap();
+        r.state().write("registration", &json!({"registered":true,"hotkey":address,"network":"mainnet","hotkeyFile":path.to_str().unwrap(),"uid":127})).unwrap();
+        r.state()
+            .write("label", &json!({"name":"keep-me"}))
+            .unwrap();
+        // Coordinator now serves a newer signed release and key version.
+        r.inv["keyVersion"] = json!(7);
+        r.inv["hotkeyDelegationVersion"] = json!(2);
+        r.inv["release"] = json!("test-recovery-release");
+        r.status.borrow_mut()["composeHash"] = r.inv["composeHash"].clone();
+        r.info.borrow_mut()["compose_hash"] = r.inv["composeHash"].clone();
+        *r.fail.borrow_mut() = "gone".into();
+        (r, path)
+    }
     fn staged_update(&self, accepting: bool, activated: bool) -> Value {
         self.deploy().unwrap();
         let mut d = self.state().read("deployment", false).unwrap();
@@ -936,6 +1150,48 @@ impl Http for Rig {
         self.calls
             .borrow_mut()
             .push((format!("{} {path}", r.method), self.phase()));
+        if u.host_str() == Some("entrypoint-finney.opentensor.ai") {
+            let result = match body["method"].as_str().unwrap() {
+                "chain_getBlockHash" => self.trust["genesis"].clone(),
+                "chain_getFinalizedHead" => json!(format!("0x{}", "a".repeat(64))),
+                "state_getStorage" => {
+                    let key = everyframe_miner::onboarding::uid_key(
+                        117,
+                        &everyframe_miner::hotkey::public_address(
+                            self.inv["hotkey"].as_str().unwrap(),
+                        )
+                        .unwrap(),
+                    );
+                    if body["params"][0] == key {
+                        json!("0x0000")
+                    } else {
+                        json!(format!(
+                            "0x{}",
+                            hex::encode(
+                                everyframe_miner::hotkey::public_address(
+                                    self.inv["hotkey"].as_str().unwrap()
+                                )
+                                .unwrap()
+                            )
+                        ))
+                    }
+                }
+                _ => panic!("unexpected chain request"),
+            };
+            return Ok(json!({"jsonrpc":"2.0","id":1,"result":result})
+                .to_string()
+                .into_bytes());
+        }
+        if path.ends_with("/onboarding/challenge") {
+            let issued = now();
+            return Ok(self.sign(&json!({"kind":"everyframe-public-enrollment-v1","chain":everyframe_miner::hotkey::chain(&self.trust).unwrap(),"audience":self.trust["coordinatorUrl"],"hotkey":body["hotkey"],"nonce":body["nonce"],"challenge":"a".repeat(48),"releaseHash":"b".repeat(64),"issuedAt":issued,"expiresAt":issued+120000})).to_string().into_bytes());
+        }
+        if path.ends_with("/onboarding/enroll") {
+            return Ok(self.sign(&self.inv).to_string().into_bytes());
+        }
+        if self.fail.borrow().as_str() == "auth" && path.ends_with("/v1/miner/status") {
+            return Err(Error("http_401"));
+        }
         if self.fail.borrow().as_str() == "gone" && path.contains("/cvms/") && r.method == "GET" {
             return Err(Error("http_404"));
         }

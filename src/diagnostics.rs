@@ -12,6 +12,26 @@ macro_rules! reasons {
 }
 reasons![
     (
+        "coordinator_auth_rejected",
+        "The coordinator rejected this profile's miner authorization. This is not a Phala API key error.",
+        "Check that your computer's clock is correct. Run everycli reconnect with the same hotkey to refresh the signed profile. No VM is created and saved API keys are kept."
+    ),
+    (
+        "profile_recovery_pending",
+        "An approved local profile reconnect was interrupted.",
+        "Run everycli reconnect in this same profile to finish safely. Do not delete profile files or deploy another VM."
+    ),
+    (
+        "reconnect_target_mismatch",
+        "The fresh signed profile does not safely match this profile's existing workload.",
+        "Nothing was deployed. Check everycli status and the original management profile; finish any pending worker update before reconnecting."
+    ),
+    (
+        "reconnect_state_changed",
+        "Local files changed during profile recovery; they were not overwritten.",
+        "Preserve the profile and its recovery journal. Do not delete files or retry deployment; resolve the concurrent local change first."
+    ),
+    (
         "coordinator_unavailable_use_stop_force",
         "The coordinator could not confirm draining; no cloud shutdown was sent.",
         "To stop compute anyway, run everycli stop --force. This can lose paid in-flight work. Storage remains billable."

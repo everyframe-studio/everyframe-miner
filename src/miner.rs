@@ -39,6 +39,11 @@ fn readiness_detail(code: &str) -> String {
 
 pub fn profile_diagnostic(error: &Error) -> Value {
     let (state, message, next) = match error.0 {
+        "profile_recovery_pending" => (
+            "reconnect_pending",
+            "An approved local profile reconnect was interrupted. No cloud mutation was requested by reconnect.",
+            "Run everycli reconnect in this same profile to finish the local commit. Keep the profile and recovery journal intact; do not redeploy.",
+        ),
         "profile_not_initialized" => (
             "not_initialized",
             "No local miner profile found for the selected network and OS user. Hotkey registration and linking have not been checked.",
@@ -185,6 +190,10 @@ impl Miner<'_> {
     }
     pub fn load(&self, current: bool) -> Result<Context> {
         self.state.prepare()?;
+        need(
+            self.state.read("profile-recovery", true)?.is_null(),
+            "profile_recovery_pending",
+        )?;
         let config = self.state.read("config", false).map_err(|e| {
             if e.0 == "file_not_found" {
                 Error("profile_not_initialized").at_file(&self.state.directory.join("config.json"))
@@ -248,7 +257,14 @@ impl Miner<'_> {
                 format!("Bearer {}", s(&c.credentials["MINER_TOKEN"])?),
             ));
         }
-        let out = verified(&self.http.json(r)?, s(&self.trust["publicKey"])?)?;
+        let response = self.http.json(r).map_err(|e| {
+            if e.0 == "http_401" {
+                Error("coordinator_auth_rejected")
+            } else {
+                e
+            }
+        })?;
+        let out = verified(&response, s(&self.trust["publicKey"])?)?;
         need(
             out["protocol"] == 1
                 && out["nonce"] == nonce
@@ -353,7 +369,11 @@ impl Miner<'_> {
         }
         match self.api(&c, "status", json!({})) {
             Ok(v) => out["coordinator"] = v,
-            Err(e) => out["coordinatorError"] = json!({"code":e.0,"message":e.0}),
+            Err(e) => {
+                let mut diagnostic = crate::diagnostics::value(e.0);
+                diagnostic["code"] = json!(e.0);
+                out["coordinatorError"] = diagnostic;
+            }
         };
         if !d["appId"].is_null() && !c.credentials["PHALA_CLOUD_API_KEY"].is_null() {
             match self.target(&c, true) {

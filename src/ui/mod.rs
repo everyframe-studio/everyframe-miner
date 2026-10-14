@@ -65,6 +65,7 @@ const ACTIONS: &[(&str, &[&str], &[&str], bool)] = &[
     ),
     ("cli-update-check", &["update"], &["--check"], false),
     ("init", &["init"], &[], true),
+    ("reconnect", &["reconnect"], &[], true),
     ("offer", &["offer"], &[], true),
     ("deploy", &["deploy"], &[], true),
     ("start", &["start"], &[], true),
@@ -371,7 +372,7 @@ pub fn overview(sh: &Shared) -> Result<Value> {
     Ok(json!({
         "network":sh.network,
         "registration": if registration.is_null() { Value::Null } else {
-            json!({"hotkey":registration["hotkey"],"registered":registration["registered"],"network":registration["network"],"wallet":registration["wallet"]})
+            json!({"hotkey":registration["hotkey"],"registered":registration["registered"],"network":registration["network"],"wallet":registration["wallet"],"uid":registration["uid"],"checkedAt":registration["checkedAt"]})
         },
         "initialized":!config.is_null(),"profile":profile,
         "deployment":{"phase":phase,"appId":if phase == "deleted" { Value::Null } else { deployment["appId"].clone() },
@@ -379,6 +380,7 @@ pub fn overview(sh: &Shared) -> Result<Value> {
             // Deletion is confirmed by re-running delete, not by reconcile.
             "needsReconcile":(phase.ends_with("_intent") && phase != "delete_intent") || ["provisioned","starting","stopping","updating"].contains(&phase)},
         "label":label["name"],
+        "recoveryPending":!state.read("profile-recovery", true)?.is_null(),
         "keys":keys,"steps":steps,"checkedAt":now()
     }))
 }
@@ -831,6 +833,8 @@ pub fn serve(args: &Args) -> Result<Value> {
     if !args.flag("--no-open") && !remote && std::io::IsTerminal::is_terminal(&std::io::stderr()) {
         open_browser(&link);
     }
+    // UI is long-running: the normal command-exit update hook is never reached.
+    crate::auto_update::maybe_launch(args);
     for stream in listener.incoming().flatten() {
         let sh = Arc::clone(&shared);
         std::thread::spawn(move || serve_connection(&sh, stream));

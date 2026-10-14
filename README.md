@@ -20,6 +20,33 @@ and ten provider adapters. Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
 
+### v0.5.2 dashboard and profile recovery
+
+Run `everycli update`, then close and reopen `everycli ui`. The dashboard shows
+your miner UID and a shortened hotkey with a copy button. UID is the last finalized
+chain lookup; **Refresh UID** checks it again without signing a transaction.
+Initialization and reconnect save this lookup automatically.
+
+If the coordinator rejects a saved miner authorization (HTTP 401), this is
+separate from a Phala API-token error. Check your computer's clock, then run:
+
+```bash
+everycli reconnect --wallet your-wallet --hotkey default
+everycli doctor
+```
+
+Or use **Worker → Reconnect profile** with your saved hotkey. Reconnect requires
+confirmation and a proof from the same local hotkey, verifies the current signed
+binding, and preserves API keys, labels and deployment history. It never creates,
+deletes, starts or updates a VM or resumes jobs. Interrupted local commits can be
+finished by rerunning reconnect; unresolved cloud operations must be reconciled
+first. A deleted worker remains deleted until you deliberately deploy again.
+
+CLI updates do not silently reconnect or redeploy. Eligible native installations
+also check for CLI updates when the UI starts (at most once per six hours); reopen
+the UI to run the installed version. Source builds remain opt-in. See the
+[v0.5.2 release notes](RELEASE-NOTES-v0.5.2.md).
+
 ### v0.5.1 setup and worker management
 
 Update with `everycli update`, then open `everycli ui`. The UI checks keys with

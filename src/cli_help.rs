@@ -6,6 +6,7 @@ pub const COMMANDS: &[&str] = &[
     "set-api-keys",
     "remove-api-key",
     "init",
+    "reconnect",
     "doctor",
     "health",
     "status",
@@ -50,6 +51,11 @@ pub fn render(command: &str) -> String {
             "Check finalized subnet membership. This does NOT register on-chain or pay a registration fee.",
             "  --wallet NAME --hotkey NAME | --hotkey-file FILE | --hotkey-ss58 ADDRESS",
             "register-hotkey --wallet my-wallet --hotkey default",
+        ),
+        "reconnect" => (
+            "Refresh a saved profile with proof from the same local hotkey. Keeps API keys, label and deployment records. Requires confirmation. Never creates, deletes, starts or updates a VM, changes bids or resumes work.",
+            "  --wallet NAME --hotkey NAME | --hotkey-file FILE\n  The saved registration can supply the signer. Rerun to finish an interrupted reconnect.",
+            "reconnect --wallet my-wallet --hotkey default",
         ),
         "init" => (
             "Verify registration and prove hotkey ownership locally to fetch the signed profile. No VM is created.",
@@ -167,7 +173,7 @@ pub fn render(command: &str) -> String {
             "ui",
         ),
         "auto-update" => (
-            "Show automatic CLI update settings and the last attempt. Native user installs check in the background after successful interactive commands, at most once every six hours. Downloads are checksum-verified and installed atomically for the next invocation. Never updates workers or changes offers. JSON/CI/help/version invocations do not launch the updater.",
+            "Show automatic CLI update settings and the last attempt. Native user installs check in the background after successful interactive commands and when the UI starts, at most once every six hours. Downloads are checksum-verified and installed atomically for the next invocation; reopen the UI after an update. Never updates workers or changes offers. JSON/CI/help/version invocations do not launch the updater.",
             "  --enable   Enable automatic CLI updates (default)\n  --disable  Disable automatic CLI updates; manual everycli update still works\n  EVERYCLI_DISABLE_AUTO_UPDATE=1 disables background updates for this environment.\n  No flags: show status. Settings apply across miner profiles.",
             "auto-update --disable",
         ),
@@ -189,6 +195,7 @@ pub fn render(command: &str) -> String {
     } else if name == "setup" {
         "  --network mainnet|testnet (default mainnet SN117; testnet SN566)\n  --state-dir DIR\n  --help\n  New setup is interactive only: no --yes/--json.\n  --continue is read-only and also supports --json without a terminal."
     } else if ![
+        "reconnect",
         "deploy",
         "start",
         "activate",

@@ -480,10 +480,16 @@ pub fn render(command: &str, value: &Value) -> String {
             out.push_str(value["next"].as_str().unwrap_or(""));
             out
         }
+        "reconnect" if value["state"] == "reconnected" => format!(
+            "Miner profile reconnected.\nMiner: {}\nUID: {}\nAPI keys, label and deployment history kept. No worker changed.\n{}",
+            text(&value["minerId"]),
+            text(&value["uid"]),
+            text(&value["next"])
+        ),
         "self-update" => {
             if value["updated"] == true {
                 format!(
-                    "Updated everycli from {} to {}.\nProfiles and deployed workers are unchanged.",
+                    "Updated everycli from {} to {}.\nProfiles and deployed workers are unchanged.\nReopen everycli ui to use the new dashboard. If the coordinator rejects your saved authorization, run everycli reconnect with the same hotkey.",
                     version(&value["previous"]),
                     version(&value["version"])
                 )
