@@ -57,7 +57,7 @@ fn http_reasons_preserve_status_and_phala_scope_without_remote_text() {
 #[test]
 fn balance_failures_have_safe_reasons_actions_and_nonzero_readiness() {
     for (key, provider, setting) in [
-        ("FAL_KEY", "fal", "fal-billing"),
+        ("FAL_KEY", "fal", "fal"),
         ("PHALA_CLOUD_API_KEY", "phala", "phala"),
         ("OPENROUTER_API_KEY", "openrouter", "openrouter-billing"),
     ] {

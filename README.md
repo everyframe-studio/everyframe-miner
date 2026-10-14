@@ -41,6 +41,25 @@ Recovery does not create or delete cloud resources, end storage billing, or
 resume jobs. Binary updates and automatic authorization repair do not silently
 retire VM bindings. See [v0.5.4 release notes](RELEASE-NOTES-v0.5.4.md).
 
+### v0.5.6 recovery and provider balances
+
+Update with `everycli update`, then close and reopen `everycli ui` if running.
+Fal balances now work with the normal generation key; BFL and Runway account
+credits are also supported. Fal's generation-key balance endpoint is undocumented:
+an unavailable or changed response is reported as unavailable, never zero.
+
+An interrupted initial `provision_intent` with no app ID can now be recovered
+with `everycli reconcile` (or **Re-sync operation** in the UI). The CLI requires
+an unbound, idle coordinator and a successful Phala workspace inventory with no
+matching workload. It archives only the uncommitted preparation, preserves keys
+and the hotkey profile, and never retries VM creation. Afterwards, save any API
+key changes and run `everycli reconnect` to refresh the signed deployment.
+Do not delete profile files or bypass a refused recovery.
+
+Worker telemetry uses the keys deployed to the worker. Updating everycli alone
+does not update a running worker; check `everycli worker-update --check` for a
+separately verified signed worker update. See [v0.5.6 release notes](RELEASE-NOTES-v0.5.6.md).
+
 ### v0.5.5 model dashboard and faster batches
 
 - Unintegrated catalog entries are hidden. Integrated models that still need
@@ -477,8 +496,10 @@ everycli offers            # Model / provider / offer / discount / readiness
 everycli balances --json   # Includes timestamps and stale flags
 ```
 
-Balance reads currently support Fal, Phala prepaid credits, and OpenRouter.
-Other configured providers display `unsupported`; failed checks display
+Balance reads support Fal, OpenRouter, Vivix (W credits), BFL, Runway and Phala
+prepaid credits. BFL and Runway credits are converted at their published one US
+cent per credit. MiniMax, Replicate, Google, Luma and ElevenLabs publish no
+balance endpoint this tool reads yet, so they display `unsupported`; failed checks display
 `unavailable`, never a fabricated zero. Balances are account-level and may be
 shared by multiple miners; do not add them across miners or treat them as profit.
 
@@ -497,8 +518,9 @@ response, credential or authentication header is printed or published.
 Phala includes paid and granted credits, not a post-paid spending limit; outstanding
 invoices are not deducted here. OpenRouter's result is account credit, not a per-key budget.
 
-Fal needs billing access and OpenRouter needs a management key for account credits.
-Store these optional keys privately on your management device:
+Your normal Fal key reads the account balance. OpenRouter needs a management key
+for account credits. Optional billing keys can be stored privately on your
+management device (a Fal admin key reads Fal's documented billing API instead):
 
 ```sh
 everycli set-api-keys --provider fal-billing
@@ -938,7 +960,7 @@ Update both components with `everycli update` and `everycli worker-update` from
 the original management profile. The updated worker checks deployed provider
 balances once per minute and sends signed, attested telemetry. The coordinator
 excludes a provider with a fresh confirmed non-positive balance (W credits for
-Vivix, USD for Fal/OpenRouter), including a recheck before issuing a start grant.
+Vivix, USD for Fal/OpenRouter/BFL/Runway), including a recheck before issuing a start grant.
 This is **zero-only gating**: any positive balance remains eligible; it does not
 compare the balance with the requested job's cost. A credits cannot fund W1.
 Stale, unavailable and unsupported results are not assumed to be zero. This

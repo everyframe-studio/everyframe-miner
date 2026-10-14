@@ -19,9 +19,13 @@ impl Http for Api {
         assert_eq!(r.limit, 64000);
         assert!(r.redirect_hosts.is_empty());
         assert!(r.body.is_none());
+        let user_balance = r.url == "https://rest.alpha.fal.ai/billing/user_balance";
         self.calls.borrow_mut().push(r);
         if self.fail.get() {
             return Err(Error("PRIVATE_UPSTREAM_FAILURE"));
+        }
+        if user_balance {
+            return Ok(b"42.5".to_vec());
         }
         Ok(json!({"credits":{"currency":"USD","current_balance":42.5},"data":{"total_credits":50,"total_usage":7.5}}).to_string().into_bytes())
     }

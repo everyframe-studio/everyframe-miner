@@ -1611,12 +1611,81 @@ impl Miner<'_> {
             json!({"phase":"updating","next":"Reconcile completed update, request new exact-policy admission, then activate."}),
         )
     }
+    fn reconcile_preparation(&self, c: &Context) -> Result<Value> {
+        // A durable commit_intent is written BEFORE POST /cvms. A preparation
+        // alone cannot contain a CLI-issued create. Never extend this recovery
+        // to commit_intent, replacements, or unrelated interrupted operations.
+        let update = self.state.read("worker-update", true)?;
+        need(
+            c.invitation["publicOnboarding"] == true
+                && c.deployment["replacesAppId"].is_null()
+                && (update.is_null() || update["stage"] == "complete"),
+            "preparation_recovery_conflict",
+        )?;
+        let status = self.api(c, "status", json!({}))?;
+        need(
+            status["appId"] == "0000000000000000000000000000000000000000"
+                && status["activeJobs"] == 0
+                && status["online"] == false
+                && status["attested"] == false
+                && status["composeHash"] == c.invitation["composeHash"],
+            "preparation_recovery_conflict",
+        )?;
+        let catalog = self.cloud(c)?.catalog("/cvms/paginated")?;
+        let items = catalog["items"]
+            .as_array()
+            .ok_or(Error("invalid_cloud_response"))?;
+        for item in items {
+            need(
+                item["name"].is_string() && item["app_id"].is_string(),
+                "invalid_cloud_response",
+            )?;
+            need(
+                item["name"] != c.invitation["request"]["name"]
+                    && (c.deployment["provisionResponse"]["app_id"].is_null()
+                        || item["app_id"] != c.deployment["provisionResponse"]["app_id"]),
+                "preparation_recovery_conflict",
+            )?;
+        }
+        let old = self.state.read("deployment-recovery", true)?;
+        let mut history = if old.is_null() {
+            vec![]
+        } else {
+            old.as_array()
+                .ok_or(Error("invalid_recovery_archive"))?
+                .clone()
+        };
+        // Idempotent if interrupted after the archive write but before clearing.
+        if !history
+            .iter()
+            .any(|v| v["deployment"] == c.deployment && v["minerId"] == c.invitation["minerId"])
+        {
+            history.push(
+                json!({"at":now(),"minerId":c.invitation["minerId"],"deployment":c.deployment}),
+            );
+        }
+        let archive = json!(history);
+        need(archive.to_string().len() < 180_000, "recovery_archive_full")?;
+        self.state.write("deployment-recovery", &archive)?;
+        self.state.write("deployment", &json!({}))?;
+        Ok(
+            json!({"phase":"not_deployed","resolved":true,"cloudChanged":false,"next":"Uncommitted preparation archived. No VM was created, retried or deleted. Saved keys and hotkey profile are unchanged. You can now save API keys, then run everycli reconnect to refresh the signed deployment before deploying."}),
+        )
+    }
     pub fn reconcile(&self) -> Result<Value> {
         let _lock = self.state.lock()?;
         self.reconcile_locked()
     }
     pub(crate) fn reconcile_locked(&self) -> Result<Value> {
         let c = self.load(false)?;
+        if c.deployment["phase"] == "provision_intent" && c.deployment["appId"].is_null() {
+            return self.reconcile_preparation(&c);
+        }
+        if c.deployment.as_object().is_some_and(|d| d.is_empty()) {
+            return Ok(
+                json!({"phase":"not_deployed","resolved":true,"next":"No pending deployment. Saved API keys and hotkey profile are unchanged."}),
+            );
+        }
         need(
             c.deployment["appId"].is_string(),
             "manual_reconciliation_required",

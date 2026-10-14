@@ -12,6 +12,21 @@ macro_rules! reasons {
 }
 reasons![
     (
+        "reconciliation_required",
+        "A previous deployment operation is unfinished; saved keys have not been changed.",
+        "Run everycli reconcile in this same profile, or choose Re-sync operation in the UI. Do not delete profile files or deploy another VM."
+    ),
+    (
+        "preparation_recovery_conflict",
+        "The unfinished preparation cannot be cleared safely because another workload or operation may exist.",
+        "Check everycli status and your Phala workspace. Keep the profile and journal; do not retry deployment or delete local files."
+    ),
+    (
+        "manual_reconciliation_required",
+        "The operation journal does not identify a workload that can be safely reconciled automatically.",
+        "Update everycli and run reconcile in the original profile. If unresolved, contact support with your public miner ID and sanitized status; do not delete the journal or repeat deployment."
+    ),
+    (
         "coordinator_auth_rejected",
         "The coordinator rejected this profile's miner authorization. This is not a Phala API key error.",
         "Check that your computer's clock is correct. Run everycli reconnect with the same hotkey to refresh the signed profile. No VM is created and saved API keys are kept."

@@ -33,8 +33,13 @@ fn probe(provider: &str, key: &str) -> Option<Probe> {
                 ("X-Phala-Version".into(), "2026-06-23".into()),
             ],
         ),
-        // Billing access may be unavailable to otherwise valid generation keys.
-        "fal" | "fal-billing" => (
+        // A generation key reads its own balance here; the billing API needs admin scope.
+        "fal" => (
+            "https://rest.alpha.fal.ai/billing/user_balance".into(),
+            "rest.alpha.fal.ai",
+            vec![("Authorization".into(), format!("Key {key}"))],
+        ),
+        "fal-billing" => (
             "https://api.fal.ai/v1/account/billing?expand=credits".into(),
             "api.fal.ai",
             vec![("Authorization".into(), format!("Key {key}"))],
@@ -136,7 +141,8 @@ pub fn check(http: &dyn Http, provider: &str, key: &str) -> (Verdict, &'static s
                 "openrouter" => v["data"]["label"].is_string(),
                 "openrouter-billing" => v["data"]["total_credits"].is_number(),
                 "elevenlabs" => v["user_id"].is_string(),
-                "fal" | "fal-billing" => v["credits"]["current_balance"].is_number(),
+                "fal" => v.is_number(),
+                "fal-billing" => v["credits"]["current_balance"].is_number(),
                 "phala" => v["credits"].is_object() || v["user"].is_object(),
                 "google" => v["models"].is_array(),
                 "replicate" => v["username"].is_string(),
