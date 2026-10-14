@@ -97,6 +97,29 @@ try {
   assert.equal(await page.evaluate(() => balanceAmount({ provider: 'vivix', nativeBalance: { unit: 'W_CREDITS', remainingMicrounits: 0 } })), '0 W credits');
   assert.equal(await page.evaluate(() => balanceAmount({ provider: 'vivix', status: 'unavailable' })), '—');
 
+  const summary = page.getByLabel('Miner overview summary', { exact: true });
+  assert.deepEqual(await summary.locator('.label').allTextContents(), ['Worker', 'Status', 'Active offers', 'Jobs']);
+  assert.equal(await summary.locator('.stat').count(), 4);
+  assert.equal(await summary.evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length), 4);
+  const statusCases = [
+    { health: null, expected: 'Checking…' },
+    { health: { state: 'failed', result: { error: { message: 'Offline' } } }, expected: 'Unknown' },
+    { health: { result: { value: { ok: true, checks: [] } } }, expected: 'Unknown' },
+    { health: { result: { value: { ok: false, checks: [{ name: 'Accepting new work', ok: false }] } } }, expected: 'Paused' },
+    { health: { result: { value: { ok: false, checks: [{ name: 'Accepting new work', ok: true }, { name: 'Workload attestation', ok: false }] } } }, expected: 'Needs attention' },
+    { health: { result: { value: { ok: true, checks: [{ name: 'Accepting new work', ok: true }], activity: { activeJobs: 0 } } } }, expected: 'Ready' },
+    { health: { result: { value: { ok: true, checks: [{ name: 'Accepting new work', ok: true }], activity: { activeJobs: 1 } } } }, expected: 'Working' },
+  ];
+  for (const test of statusCases) {
+    await page.evaluate(health => { S.health = health; render(); }, test.health);
+    assert.equal(await summary.locator('.stat').nth(1).locator('.value').textContent(), test.expected);
+  }
+  for (const [width, columns] of [[1000, 2], [390, 1], [1440, 4]]) {
+    await page.setViewportSize({ width, height: 1000 });
+    assert.equal(await summary.evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length), columns);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'overview must fit viewport');
+  }
+
   await page.evaluate(() => {
     S.overview.initialized = true;
     S.overview.network = 'mainnet';

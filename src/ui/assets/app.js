@@ -373,6 +373,22 @@ function minerIdentity() {
 function reconnectButton() {
   return button("Reconnect profile", async () => { await run("reconnect", S.hotkeySel || {}); await refreshAll(); });
 }
+function workStatusStat() {
+  if (!S.health) return stat("Status", "Checking…", "Fetching worker status");
+  const health = value(S.health), checks = health?.checks || [];
+  if (errorOf(S.health) || !health || !checks.some(c => c.name === "Accepting new work")) {
+    return stat("Status", "Unknown", "Could not verify availability", "warn");
+  }
+  const accepting = checks.find(c => c.name === "Accepting new work");
+  if (checks.some(c => c.name !== "Accepting new work" && checkState(c) === "FAIL")) {
+    return stat("Status", "Needs attention", "See health checks below", "warn");
+  }
+  if (!accepting.ok) return stat("Status", "Paused", "Not accepting new jobs", "warn");
+  if (health.ok !== true) return stat("Status", "Needs attention", "See health checks below", "warn");
+  return health.activity?.activeJobs > 0
+    ? stat("Status", "Working", "Processing jobs", "ok")
+    : stat("Status", "Ready", "Accepting new jobs", "ok");
+}
 function pageOverview() {
   const o = S.overview;
   const root = h("div", null, h("h1", null, "Overview"),
@@ -394,17 +410,12 @@ function pageOverview() {
     root.append(notice("warn", "Reconnect your saved profile", h("div", null,
       h("p", null, "Refresh miner authorization using the same local hotkey. Your API keys and deployment history are kept; no VM is deployed automatically."), reconnectButton())));
   }
-  const failing = checks.filter((c) => checkState(c) === "FAIL").length, warning = checks.filter((c) => checkState(c) === "WARN").length;
   const [phase, tone] = phaseLabel(o.deployment.phase);
-  const accepting = findCheck("Accepting new work"), attest = findCheck("Workload attestation");
   const activity = health?.activity || {};
   const activeOffers = checks.filter((c) => (c.name || "").startsWith("Model: ")).length;
-  root.append(h("div", { class: "grid" },
+  root.append(h("div", { class: "grid overview-stats", "aria-label": "Miner overview summary" },
     workerStat(phase, tone),
-    stat("Readiness", !S.health ? "Checking…" : (health?.ok ? "All checks pass" : (failing + warning) + " need attention"),
-      S.healthAt ? "Checked " + ago(S.healthAt) : "", !S.health ? "" : health?.ok ? "ok" : failing ? "bad" : "warn"),
-    stat("Accepting work", accepting ? (accepting.ok ? "Yes" : "No") : "—", accepting ? "" : "Unknown until checked", accepting ? (accepting.ok ? "ok" : "warn") : ""),
-    stat("Attestation", attest ? (attest.ok ? "Verified" : "Not yet") : "—", "", attest ? (attest.ok ? "ok" : "warn") : ""),
+    workStatusStat(),
     stat("Active offers", String(activeOffers), activeOffers ? "" : "Choose models to serve", activeOffers ? "ok" : "warn"),
     stat("Jobs", (activity.activeJobs ?? 0) + " active", (activity.acceptedJobs ?? 0) + " accepted so far")));
   if (S.workloads?.length) root.append(notice("warn", "A worker for this miner runs in your Phala account, but this computer doesn't manage it",

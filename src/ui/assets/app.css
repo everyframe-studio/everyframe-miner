@@ -54,6 +54,9 @@ h3 { font-size: 15px; margin: 0 0 6px; }
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
 .card-head h2 { margin: 0; }
 .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); margin-bottom: 16px; }
+.overview-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1099px) { .overview-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .overview-stats { grid-template-columns: minmax(0, 1fr); } }
 .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; box-shadow: var(--shadow); min-width: 0; }
 .stat .label { font-size: 12.5px; color: var(--muted); }
 .stat .value { font-size: 20px; font-weight: 650; letter-spacing: -.01em; margin-top: 2px; overflow-wrap: anywhere; }
