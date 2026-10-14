@@ -2,6 +2,52 @@ use everyframe_miner::{display, invitation, offer_catalog};
 use serde_json::json;
 
 #[test]
+fn unconfigured_miner_reads_a_signed_catalog_without_credentials_or_cloud() {
+    use everyframe_miner::{
+        Result,
+        miner::Miner,
+        network::{Http, Request},
+        protocol::{self, Keys},
+        state::State,
+    };
+    struct Catalog(Keys);
+    impl Http for Catalog {
+        fn bytes(&self, r: Request) -> Result<Vec<u8>> {
+            let url = url::Url::parse(&r.url).unwrap();
+            assert_eq!(url.path(), "/mainnet/v1/catalog");
+            assert_eq!(r.method, "GET");
+            assert!(r.headers.is_empty());
+            let nonce = url
+                .query_pairs()
+                .find(|(k, _)| k == "nonce")
+                .unwrap()
+                .1
+                .to_string();
+            let trust = invitation::trust("mainnet")?;
+            Ok(protocol::signed(&json!({"protocol":1,"action":"catalog","nonce":nonce,"at":everyframe_miner::now(),"chain":everyframe_miner::hotkey::chain(&trust)?,"models":[{"model":"fixture","provider":"fal","pricing":{"minerRewardMicrousd":200000}}],"note":"No guaranteed earnings."}),&self.0.signing)?.to_string().into_bytes())
+        }
+    }
+    let temp = tempfile::tempdir().unwrap();
+    let http = Catalog(Keys::default());
+    let mut trust = invitation::trust("mainnet").unwrap();
+    trust["publicKey"] = json!(http.0.signing_key());
+    let state = State {
+        directory: std::fs::canonicalize(temp.path())
+            .unwrap()
+            .join("no-profile"),
+    };
+    let miner = Miner {
+        state,
+        trust,
+        http: &http,
+    };
+    let out = miner.offers().unwrap();
+    assert_eq!(out["discovery"], true);
+    assert!(display::render("offers", &out).contains("$0.200000"));
+    assert!(!miner.state.directory.exists());
+}
+
+#[test]
 fn catalog_preserves_real_bids_and_explains_candidates_without_leaking_keys() {
     let id = "direct/vivix/vivix-w1";
     let status = json!({"minerId":"miner1","modelCatalogVersion":"test-v1",

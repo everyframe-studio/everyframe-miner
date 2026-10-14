@@ -139,7 +139,12 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                 "invalid_start_grant",
             )?;
             grant = start["grantNonce"].clone();
-            reference = match self.provider.submit(&work["spec"]) {
+            let submission = if self.runtime.now() >= deadline {
+                Err(Error("submission_deadline_elapsed"))
+            } else {
+                self.provider.submit_before(&work["spec"], deadline)
+            };
+            reference = match submission {
                 Ok(r) => json!(r),
                 Err(error) => {
                     let rejected = crate::submission::rejected(error.0);
@@ -194,14 +199,16 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
             };
             let status = match self.provider.poll(s(&reference)?, &work["spec"]) {
                 Ok(v) => v,
-                Err(_) => {
-                    self.runtime.sleep(1000);
-                    continue;
+                Err(e) => {
+                    if crate::submission::transient_poll(e.0) {
+                        self.runtime.sleep(3000);
+                        continue;
+                    }
+                    return self.fail_generation(&work, e.0, deadline);
                 }
             };
             if status == "FAILED" {
-                self.call("failed", json!({"attemptId":attempt}))?;
-                return Ok(json!({"state":"failed"}));
+                return self.fail_generation(&work, "provider_generation_failed", deadline);
             };
             if status != "COMPLETED" {
                 self.runtime.sleep(1000);
@@ -209,9 +216,12 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
             };
             let output = match self.provider.result(s(&reference)?, &work["spec"]) {
                 Ok(v) => v,
-                Err(_) => {
-                    self.runtime.sleep(1000);
-                    continue;
+                Err(e) => {
+                    if crate::submission::transient_poll(e.0) {
+                        self.runtime.sleep(3000);
+                        continue;
+                    }
+                    return self.fail_generation(&work, e.0, deadline);
                 }
             };
             let value = json!({"protocol":1,"sessionId":self.session["sessionId"],"minerId":self.miner_id,"jobId":work["jobId"],"attemptId":attempt,"inputHash":work["inputHash"],"grantNonce":grant,"providerRef":reference,"outputHash":protocol::sha(&output.media),"bytes":output.media.len(),"providerResponseHash":output.response_hash});
@@ -231,6 +241,23 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
             return Ok(json!({"state":"reconcile"}));
         }
         Ok(json!({"state":"deadline_exceeded"}))
+    }
+    fn fail_generation(&self, work: &Value, reason: &str, deadline: i64) -> Result<Value> {
+        eprintln!(
+            "{}",
+            json!({"event":"generation_failed","jobId":work["jobId"],"attemptId":work["attemptId"],"reason":reason})
+        );
+        // Never repeat the provider POST or keep fetching a terminal result.
+        while self.runtime.now() < deadline {
+            if self
+                .call("failed", json!({"attemptId":work["attemptId"]}))
+                .is_ok()
+            {
+                return Ok(json!({"state":"failed","reason":reason}));
+            }
+            self.runtime.sleep(3000);
+        }
+        Ok(json!({"state":"reconcile","reason":reason}))
     }
 }
 pub struct LiveRuntime {
@@ -272,6 +299,8 @@ impl Runtime for LiveRuntime {
         r.limit = 300000;
         r.timeout = if body["value"]["action"] == "balances" {
             5
+        } else if body["value"]["action"] == "complete" {
+            180
         } else {
             30
         };
@@ -465,10 +494,25 @@ pub fn run_live() -> Result<()> {
         },
         provider: crate::providers::Router::new(&http, credentials),
     };
+    let mut last_log = String::new();
+    let mut last_log_at = 0;
     while !stop.load(Ordering::Relaxed) {
         match w.step() {
-            Ok(v) => println!("{}", json!({"event":"worker_cycle","state":v["state"]})),
-            Err(_) => eprintln!("worker_cycle_failed"),
+            Ok(v) => {
+                let signature = v.to_string();
+                if signature != last_log || crate::now() - last_log_at >= 60000 {
+                    println!("{}", json!({"event":"worker_cycle","result":v}));
+                    last_log = signature;
+                    last_log_at = crate::now();
+                }
+            }
+            Err(e) => {
+                if last_log != e.0 || crate::now() - last_log_at >= 60000 {
+                    eprintln!("{}", json!({"event":"worker_cycle_failed","reason":e.0}));
+                    last_log = e.0.into();
+                    last_log_at = crate::now();
+                }
+            }
         };
         if !stop.load(Ordering::Relaxed) {
             std::thread::sleep(Duration::from_secs(2))

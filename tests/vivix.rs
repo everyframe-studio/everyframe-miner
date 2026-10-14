@@ -18,6 +18,23 @@ use std::{
 const MODEL: &str = "direct/vivix/vivix-w1";
 const KEY: &str = "synthetic-vivix-private-key";
 
+#[test]
+fn worker_preflight_rejects_zero_w_without_paid_submission() {
+    let api = Api::new(vec![
+        json!({"code":0,"data":{"balances":[{"scope":"A","available":1000},{"scope":"W","available":0}]}}),
+    ]);
+    let mut router = Router::new(&api, credentials());
+    assert_eq!(
+        router
+            .submit_before(&spec(5), everyframe_miner::now() + 60000)
+            .unwrap_err()
+            .0,
+        "vivix_billing_required"
+    );
+    assert_eq!(api.calls.borrow().len(), 1);
+    assert_eq!(api.calls.borrow()[0].method, "GET");
+}
+
 struct Api {
     replies: RefCell<VecDeque<Result<Value>>>,
     calls: RefCell<Vec<Request>>,

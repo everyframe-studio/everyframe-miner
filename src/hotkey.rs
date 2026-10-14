@@ -42,9 +42,8 @@ pub fn create(path: &Path, inv: &Value, scope: &str) -> Result<Value> {
     let pair = local_pair(path, s(&inv["hotkey"])?)?;
     let key = SigningKey::from_bytes(&protocol::random::<32>());
     let issued = now();
-    let expires = n(&inv["expiresAt"])?.min(issued + 30 * 86400000);
-    need(expires > issued, "deployment_expired")?;
-    let value = json!({"kind":"everyframe-hotkey-delegation-v1","chain":chain(inv)?,"audience":inv["coordinatorUrl"].as_str().unwrap_or("").trim_end_matches('/').to_string()+"/","minerId":inv["minerId"],"hotkey":inv["hotkey"],"delegateKey":protocol::export(key.verifying_key().as_bytes(),true),"scope":scope,"keyVersion":inv["keyVersion"],"issuedAt":issued,"expiresAt":expires});
+    need(n(&inv["expiresAt"])? > issued, "deployment_expired")?;
+    let value = json!({"kind":"everyframe-hotkey-delegation-v2","chain":chain(inv)?,"audience":inv["coordinatorUrl"].as_str().unwrap_or("").trim_end_matches('/').to_string()+"/","minerId":inv["minerId"],"hotkey":inv["hotkey"],"delegateKey":protocol::export(key.verifying_key().as_bytes(),true),"scope":scope,"keyVersion":inv["keyVersion"],"issuedAt":issued,"expiresAt":null});
     let signature = pair.sign_simple(b"substrate", protocol::canonical(&value)?.as_bytes());
     Ok(
         json!({"secret":hex::encode(key.to_bytes()),"certificate":{"value":value,"signature":hex::encode(signature.to_bytes())}}),
@@ -127,7 +126,8 @@ pub fn enrollment_proof(
 pub fn validate(auth: &Value, inv: &Value, scope: &str) -> Result<()> {
     let c = &auth["certificate"]["value"];
     need(
-        c["kind"] == "everyframe-hotkey-delegation-v1"
+        (c["kind"] == "everyframe-hotkey-delegation-v1"
+            || c["kind"] == "everyframe-hotkey-delegation-v2")
             && c["chain"] == chain(inv)?
             && c["minerId"] == inv["minerId"]
             && c["hotkey"] == inv["hotkey"]
@@ -136,15 +136,7 @@ pub fn validate(auth: &Value, inv: &Value, scope: &str) -> Result<()> {
             && c["audience"] == s(&inv["coordinatorUrl"])?.trim_end_matches('/').to_string() + "/",
         "invalid_hotkey_delegation",
     )?;
-    let issued = n(&c["issuedAt"])?;
-    let expires = n(&c["expiresAt"])?;
-    need(
-        issued <= now() + 30000
-            && expires > now()
-            && expires > issued
-            && expires - issued <= 30 * 86400000,
-        "hotkey_delegation_expired_reinitialize",
-    )?;
+    lifetime(c)?;
     let pubkey = PublicKey::from_bytes(&public_address(s(&c["hotkey"])?)?)
         .map_err(|_| Error("invalid_hotkey"))?;
     let sig = Signature::from_bytes(
@@ -189,10 +181,7 @@ pub fn authorize(r: &mut Request, auth: &Value, body: &Value) -> Result<()> {
         "{path}{}",
         url.query().map(|q| format!("?{q}")).unwrap_or_default()
     );
-    need(
-        n(&c["expiresAt"])? > now(),
-        "hotkey_delegation_expired_reinitialize",
-    )?;
+    lifetime(c)?;
     let proof = protocol::signed(
         &json!({"kind":"everyframe-hotkey-request-v1","certificateHash":protocol::digest(&auth["certificate"])?,"method":r.method,"path":path,"bodyHash":protocol::digest(body)?,"nonce":protocol::id(),"at":now()}),
         &signing_key(auth)?,
@@ -206,4 +195,23 @@ pub fn authorize(r: &mut Request, auth: &Value, body: &Value) -> Result<()> {
         ),
     ));
     Ok(())
+}
+
+fn lifetime(c: &Value) -> Result<()> {
+    let issued = n(&c["issuedAt"])?;
+    need(
+        issued > 0 && issued <= now() + 30000,
+        "invalid_hotkey_delegation",
+    )?;
+    if c["kind"] == "everyframe-hotkey-delegation-v2" && c.get("expiresAt") == Some(&Value::Null) {
+        return Ok(());
+    }
+    let expires = n(&c["expiresAt"])?;
+    need(
+        c["kind"] == "everyframe-hotkey-delegation-v1"
+            && expires > now()
+            && expires > issued
+            && expires - issued <= 30 * 86400000,
+        "hotkey_delegation_expired_reinitialize",
+    )
 }

@@ -18,7 +18,7 @@ Usage: everycli COMMAND [options]
 
 Setup: setup (guided), register-hotkey, set-api-keys, remove-api-key, init
 Manage: health, doctor, status, providers, balances, offers, offer, earnings, deploy, activate,
-        apply-api-keys, resume, worker-update, stop, start, reconcile
+        apply-api-keys, resume, worker-update, stop, start, reconcile, delete, logs, label
 Browser: ui (local setup guide and status dashboard on 127.0.0.1)
 CLI updates: update, auto-update (--enable / --disable)
 
@@ -39,6 +39,9 @@ Options:
   --model ID --discount-pct PCT | --withdraw (offer)
   --drain-only (stop)
   --port N --no-open (ui)
+  --force (stop; emergency cloud shutdown without coordinator)
+  --app-id ID (delete; exact VM ID confirmation, irreversible storage deletion)
+  --name NAME (label; local display name only)
   --yes --json --help --version
 
 set-api-keys prompts privately; Enter keeps saved keys or skips missing keys. Local only.
@@ -69,6 +72,8 @@ const VALUE_OPTIONS: &[&str] = &[
     "--model",
     "--discount-pct",
     "--port",
+    "--app-id",
+    "--name",
 ];
 
 // Recover only a recognized command for parse-error help. Never echo positional
@@ -138,6 +143,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
             "--enable",
             "--disable",
             "--no-open",
+            "--force",
         ]
         .contains(&a)
         {
@@ -220,6 +226,9 @@ pub fn parse(args: &[String]) -> Result<Args> {
             "reconcile",
             "auto-update",
             "ui",
+            "delete",
+            "logs",
+            "label",
         ]
         .contains(&command),
         "unknown_command",
@@ -253,8 +262,10 @@ pub fn parse(args: &[String]) -> Result<Args> {
         "balances" => vec!["--publish"],
         "offer" => vec!["--model", "--discount-pct", "--withdraw"],
         "update" => vec!["--release", "--check"],
-        "stop" => vec!["--drain-only"],
         "ui" => vec!["--port", "--no-open"],
+        "stop" => vec!["--drain-only", "--force"],
+        "delete" => vec!["--app-id"],
+        "label" => vec!["--name"],
         _ => vec![],
     };
     if out.command == "auto-update" {
@@ -658,6 +669,8 @@ pub fn run_with(
         "status",
         "doctor",
         "health",
+        "offers",
+        "label",
     ]
     .contains(&args.command.as_str())
     {
@@ -800,7 +813,10 @@ pub fn run_with(
         }
         "activate" => miner.activate(confirm),
         "resume" => miner.resume(confirm),
-        "stop" => miner.stop(args.flag("--drain-only"), confirm),
+        "stop" => miner.stop_mode(args.flag("--drain-only"), args.flag("--force"), confirm),
+        "delete" => miner.delete(args.required("--app-id")?, confirm),
+        "label" => miner.label(args.get("--name")),
+        "logs" => miner.logs(),
         "update" => {
             if let Some(file) = args.get("--release") {
                 miner.update(&read_json(Path::new(file), false)?, confirm)

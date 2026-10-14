@@ -146,7 +146,6 @@ fn no_profile_has_one_message_code_and_exit_status_across_commands() {
         "status",
         "doctor",
         "health",
-        "offers",
         "balances",
         "earnings",
         "activate",

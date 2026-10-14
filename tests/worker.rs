@@ -21,6 +21,8 @@ struct Options {
     submitted_failures: u32,
     complete_failures: u32,
     failed: bool,
+    poll_error: Option<&'static str>,
+    result_error: Option<&'static str>,
     pending: bool,
     bad_chain: bool,
 }
@@ -136,6 +138,9 @@ impl Provider for Handle {
         }
     }
     fn poll(&mut self, _: &str, _: &Value) -> Result<String> {
+        if let Some(code) = self.options.poll_error {
+            return Err(Error(code));
+        }
         Ok(if self.options.failed {
             "FAILED"
         } else if self.options.pending {
@@ -146,10 +151,44 @@ impl Provider for Handle {
         .into())
     }
     fn result(&mut self, _: &str, _: &Value) -> Result<Output> {
+        if let Some(code) = self.options.result_error {
+            return Err(Error(code));
+        }
         Ok(Output {
             media: b"synthetic media".to_vec(),
             response_hash: protocol::sha("response"),
         })
+    }
+}
+
+#[test]
+fn terminal_poll_and_result_failures_release_slot_without_waiting_for_deadline() {
+    for options in [
+        Options {
+            poll_error: Some("http_422"),
+            ..Default::default()
+        },
+        Options {
+            result_error: Some("provider_no_media"),
+            ..Default::default()
+        },
+        Options {
+            result_error: Some("http_422"),
+            ..Default::default()
+        },
+    ] {
+        let (mut w, f) = fixture(options, json!({}));
+        assert_eq!(w.step().unwrap()["state"], "failed");
+        assert_eq!(f.submits.get(), 1);
+        assert!(f.clock.get() < 2000);
+        assert_eq!(
+            f.calls
+                .borrow()
+                .iter()
+                .filter(|a| a.as_str() == "failed")
+                .count(),
+            1
+        );
     }
 }
 fn fixture(options: Options, patch: Value) -> (Worker<Handle, Handle>, Rc<Fixture>) {

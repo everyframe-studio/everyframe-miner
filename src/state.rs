@@ -119,6 +119,7 @@ impl State {
                 "worker-update",
                 "auto-update-settings",
                 "auto-update-result",
+                "label",
             ]
             .contains(&name),
             "invalid_state_file",
@@ -158,14 +159,44 @@ impl State {
     }
     pub fn lock(&self) -> Result<Lock> {
         self.prepare()?;
-        let path = self.directory.join("operation.lock");
+        // Kernel-owned lock is released on crash/SIGKILL. Never unlink this
+        // inode: unlinking a flock file lets concurrent processes lock two files.
+        let path = self.directory.join("operation.guard");
+        no_symlink(&path)?;
         let mut f = OpenOptions::new()
+            .read(true)
             .write(true)
-            .create_new(true)
+            .create(true)
+            .truncate(false)
+            .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
             .mode(0o600)
             .open(&path)
             .map_err(|_| Error("operation_locked"))?;
-        let inode = f.metadata().map_err(|_| Error("lock_failed"))?.ino();
+        let meta = f.metadata().map_err(|_| Error("lock_failed"))?;
+        need(
+            meta.is_file() && meta.uid() == uid() && meta.mode() & 0o077 == 0,
+            "insecure_file",
+        )?;
+        use std::os::fd::AsRawFd;
+        need(
+            unsafe { libc::flock(f.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } == 0,
+            "operation_locked",
+        )?;
+        // Respect a running older CLI. A dead legacy PID is safe to recover;
+        // preserve its journal and let reconciliation resolve cloud operations.
+        let legacy = self.directory.join("operation.lock");
+        if legacy.exists() {
+            let v = read_json(&legacy, true)?;
+            let pid = v["pid"]
+                .as_i64()
+                .filter(|p| *p > 0 && *p <= i32::MAX as i64)
+                .ok_or(Error("invalid_legacy_lock"))?;
+            let alive = unsafe { libc::kill(pid as i32, 0) } == 0
+                || std::io::Error::last_os_error().raw_os_error() != Some(libc::ESRCH);
+            need(!alive, "operation_locked")?;
+            fs::remove_file(&legacy).map_err(|_| Error("lock_failed"))?;
+        }
+        f.set_len(0).map_err(|_| Error("lock_failed"))?;
         f.write_all(
             json!({"pid":std::process::id(),"at":now()})
                 .to_string()
@@ -173,22 +204,19 @@ impl State {
         )
         .and_then(|_| f.sync_all())
         .map_err(|_| Error("lock_failed"))?;
-        Ok(Lock {
-            path,
-            inode,
-            _file: f,
-        })
+        Ok(Lock { _file: f })
     }
 }
 pub struct Lock {
-    path: PathBuf,
-    inode: u64,
     _file: File,
 }
 impl Drop for Lock {
     fn drop(&mut self) {
-        if fs::symlink_metadata(&self.path).is_ok_and(|m| m.ino() == self.inode) {
-            let _ = fs::remove_file(&self.path);
+        use std::os::fd::AsRawFd;
+        // Release explicitly as well as on close: a concurrent fork/exec can
+        // briefly inherit the open-file description before CLOEXEC runs.
+        unsafe {
+            libc::flock(self._file.as_raw_fd(), libc::LOCK_UN);
         }
     }
 }

@@ -16,6 +16,27 @@ fn asset(role: &str) -> Value {
     json!({"url":format!("https://api.everyframe.studio/v1/attachment/att_{role}?t={}","a".repeat(32)),"sha256":sha(b"fixture image bytes"),"bytes":19,"mime":"image/jpeg","role":role,"width":720,"height":1280,"durationMs":0})
 }
 #[test]
+fn slow_reference_download_cannot_submit_after_deadline() {
+    struct Slow;
+    impl Http for Slow {
+        fn bytes(&self, r: Request) -> Result<Vec<u8>> {
+            assert_eq!(r.method, "GET", "paid submission must never occur");
+            std::thread::sleep(std::time::Duration::from_millis(40));
+            Ok(b"fixture image bytes".to_vec())
+        }
+    }
+    let mut s = spec("fal", "minimax/h3-max/text-to-video");
+    s["input"]["references"] = json!([asset("image")]);
+    let mut router = Router::new(&Slow, json!({"FAL_KEY":"synthetic-fixture-key"}));
+    assert_eq!(
+        router
+            .submit_before(&s, everyframe_miner::now() + 10)
+            .unwrap_err()
+            .0,
+        "submission_deadline_elapsed"
+    );
+}
+#[test]
 fn studio_contracts_validate_every_resolution_aspect_and_duration() {
     for (id, p) in studio_video::POLICIES.as_object().unwrap() {
         assert!(models::info(id).is_ok());

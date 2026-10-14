@@ -1,5 +1,38 @@
 # Validation
 
+## Worker safety and CLI recovery — 14 October 2026 (unreleased)
+
+Implemented on `fix/worker-safety-and-cli-recovery`; this is local verification,
+not a published CLI, reviewed worker image, or live coordinator deployment.
+
+- Terminal polling/result errors stop generation polling and report failure.
+  Failure acknowledgements are idempotent; already-paid jobs are not resubmitted.
+- Paid requests are deadline-fenced after reference preparation and again after DNS.
+  Only Fal's explicit exhausted-balance rejection enables safe account failover.
+- Worker/coordinator uploads allow 180 seconds; acceptance still enforces job deadlines.
+- Vivix W=0 is rejected before generation. Any positive W amount is allowed;
+  unknown balances are not invented as zero. Coordinator serialization covers
+  miners using the same reported Vivix key, not unrelated external applications
+  or different keys belonging to the same provider workspace.
+- Emergency stop bypasses coordinator availability, not signed cloud identity.
+  Delete requires an exact app ID, confirmation, a durable intent, and a subsequent
+  cloud not-found check before reporting deletion confirmed.
+- New v2 hotkey delegates are non-expiring and key-version revocable. Legacy v1
+  expiry remains binding. Coordinator and worker support must be deployed before
+  re-signing legacy profiles with `init` and installing new worker credentials.
+- Kernel locks survive process death without manual file removal. Candidate CLI
+  binaries run a bounded version check before replacement and retain a rollback
+  binary. Source builds do not self-update. Idle logs are limited to once/minute.
+- Added scoped worker logs, local profile labels, a signed public pricing catalog,
+  and README uninstall/storage-billing instructions.
+
+Coordinator: **172 tests passed**. Miner regression suite, Rust formatting and
+strict all-target Clippy were checked locally, including crash recovery, slow
+reference deadlines, terminal failures, zero W, emergency stop, deletion fencing,
+signed unauthenticated discovery, labels and updater rollback. No paid jobs or
+cloud lifecycle mutations were used. macOS/Linux release CI and a real hardware
+worker rollout remain release gates; these results are not production evidence.
+
 ## v0.4.0 public worker and website verification — 13 October 2026
 
 The published v0.4.0 CLI and signed worker update were exercised through the

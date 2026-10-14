@@ -65,6 +65,16 @@ fn table(headers: &[&str], rows: Vec<Vec<String>>) -> String {
 // Add ANSI only after computing widths; --json never passes through this path.
 pub fn render_with_color(command: &str, value: &Value, color: bool) -> String {
     let mut out = render(command, value);
+    if ["health", "status", "doctor"].contains(&command) && value["label"].is_string() {
+        out = format!("Worker: {}\n\n{out}", text(&value["label"]));
+    }
+    if command == "status" && value["authorization"]["nonExpiring"] == false {
+        out.push_str(&format!(
+            "\nAuthorization expires in {} days. {}\n",
+            value["authorization"]["remainingDays"],
+            text(&value["authorization"]["migration"])
+        ));
+    }
     if color && ["health", "status"].contains(&command) {
         for (label, code) in [
             ("[PASS]", 32),
@@ -517,6 +527,27 @@ pub fn render(command: &str, value: &Value) -> String {
             )
         }
         "offers" => {
+            if value["discovery"] == true {
+                let data = rows("offers")
+                    .iter()
+                    .map(|r| {
+                        vec![
+                            text(&r["model"]),
+                            text(&r["provider"]),
+                            r["pricing"]["minerRewardMicrousd"]
+                                .as_f64()
+                                .map(|v| format!("${:.6}", v / 1_000_000.))
+                                .unwrap_or("Not priced".into()),
+                        ]
+                    })
+                    .collect();
+                return format!(
+                    "{}\n\n{}\n{}\n",
+                    table(&["MODEL", "PROVIDER", "BASE WORK VALUE"], data),
+                    text(&value["note"]),
+                    text(&value["next"])
+                );
+            }
             let catalog = value["catalogAvailable"] == true;
             let data = rows("offers")
                 .iter()

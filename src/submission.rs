@@ -2,7 +2,10 @@
 pub fn rejected(code: &str) -> Option<&'static str> {
     match code {
         "http_401" | "vivix_auth_rejected" => Some("provider_auth_rejected"),
-        "http_402" | "vivix_billing_required" => Some("provider_billing_required"),
+        "http_402" | "vivix_billing_required" | "fal_billing_required" => {
+            Some("provider_billing_required")
+        }
+        "submission_deadline_elapsed" => Some("provider_invalid_request"),
         "http_429" | "vivix_capacity_limited" => Some("provider_capacity_limited"),
         "provider_key_required" => Some("provider_key_required"),
         "vivix_content_rejected" => Some("provider_content_rejected"),
@@ -15,6 +18,38 @@ pub fn rejected(code: &str) -> Option<&'static str> {
         | "vivix_invalid_parameters" => Some("provider_invalid_request"),
         _ => None,
     }
+}
+/// Only the documented account-lock billing response is safe to fail over.
+/// Generic 403 (including moderation) and 5xx are deliberately not reclassified.
+pub fn fal_http_error(status: u16, bytes: &[u8]) -> crate::Error {
+    if status == 403
+        && bytes.len() <= 64000
+        && let Ok(v) = serde_json::from_slice::<serde_json::Value>(bytes)
+        && let Some(detail) = v["detail"].as_str()
+        && detail.starts_with("User is locked.")
+        && detail.contains("Exhausted balance")
+    {
+        return crate::Error("fal_billing_required");
+    }
+    crate::diagnostics::http_error(status)
+}
+pub fn transient_poll(code: &str) -> bool {
+    matches!(
+        code,
+        "request_timeout"
+            | "connection_failed"
+            | "dns_failed"
+            | "remote_request_failed"
+            | "response_read_failed"
+            | "http_408"
+            | "http_429"
+            | "http_500"
+            | "http_502"
+            | "http_503"
+            | "http_504"
+            | "vivix_unavailable"
+            | "provider_not_complete"
+    )
 }
 pub fn uncertain(code: &str) -> &'static str {
     match code {
@@ -56,6 +91,20 @@ pub fn vivix_http_error(status: u16, bytes: &[u8]) -> crate::Error {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn fal_billing_is_not_confused_with_moderation_or_ambiguous_5xx() {
+        let body=br#"{"detail":"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing"}"#;
+        assert_eq!(
+            rejected(fal_http_error(403, body).0),
+            Some("provider_billing_required")
+        );
+        assert_eq!(fal_http_error(500, body).0, "http_500");
+        assert_eq!(
+            fal_http_error(403, br#"{"detail":"Content blocked"}"#).0,
+            "http_403"
+        );
+        assert_eq!(fal_http_error(403, b"malformed").0, "http_403");
+    }
     #[test]
     fn vivix_non_success_envelopes_preserve_fixed_codes_not_messages() {
         assert_eq!(

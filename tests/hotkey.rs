@@ -29,6 +29,11 @@ fn fixture() -> (tempfile::TempDir, Value) {
 fn local_hotkey_delegates_scoped_auth_without_exporting_wallet() {
     let (d, inv) = fixture();
     let a = hotkey::create(&d.path().join("hotkey"), &inv, "worker").unwrap();
+    assert_eq!(
+        a["certificate"]["value"]["kind"],
+        "everyframe-hotkey-delegation-v2"
+    );
+    assert!(a["certificate"]["value"]["expiresAt"].is_null());
     hotkey::validate(&a, &inv, "worker").unwrap();
     assert!(hotkey::validate(&a, &inv, "console").is_err());
     assert!(!a.to_string().contains(&hex::encode([7u8; 32])));

@@ -528,13 +528,58 @@ reader supports an unencrypted sr25519 wallet JSON containing `secretSeed`;
 the file must be owner-only. Encrypted keyfiles are rejected rather than silently
 decrypted or uploaded. Never paste a seed into command arguments.
 
-The hotkey signs separate, expiring console and worker authorizations. Only the
+The hotkey signs separate, revocable console and worker authorizations. New v2
+authorizations do not expire. Only the
 worker's restricted delegate is sent through Phala's encrypted environment;
 the hotkey and console delegate stay on your computer. This does not sign a
-blockchain transaction or access your coldkey. Delegations last at most 30 days,
-bounded by the deployment configuration's expiry. Renew with `init` before
-expiry (it fetches a fresh signed configuration), then use `apply-api-keys` for an activated worker
-and wait for fresh admission before resuming work.
+blockchain transaction or access your coldkey. Short-lived request proofs,
+onboarding challenges and TEE sessions still expire. Revoking the hotkey's
+coordinator key version invalidates its delegates. Legacy v1 delegates retain
+their signed expiry: migrate with `everycli init` using your hotkey, then
+`everycli apply-api-keys` to install the new worker authorization. Check fresh
+attestation before resuming. Updating the CLI alone does not change a running VM.
+
+### Worker labels, discovery and troubleshooting
+
+```sh
+everycli offers                     # Live signed model/pricing catalog before setup
+everycli label --name "studio-worker-1"
+everycli status
+everycli health
+everycli logs                       # Bounded structured worker events
+```
+
+Labels belong to the selected local profile (`--state-dir`); they do not rename
+the signed Phala VM or change attestation. Use one management profile per worker.
+Catalog work values are not guaranteed earnings, provider prices, or alpha payouts.
+Logs never enable public logging and omit raw boot logs and secret-bearing URLs;
+use the authenticated Phala console for private/boot logs.
+
+### Stop billing and uninstall
+
+```sh
+everycli stop                       # Drain active work, then stop compute
+everycli stop --force               # Emergency stop; coordinator may be offline
+everycli delete --app-id EXACT_APP_ID # Irreversibly remove this VM and its storage
+```
+
+Emergency stop can lose already-paid in-flight work. Stop does not delete storage.
+Deletion requires the exact recorded app ID and confirmation, verifies the signed
+VM identity, and never deletes other resources. After deletion, confirm removal
+and final charges in Phala Billing. Provider subscriptions and other VMs are separate.
+An uncertain operation is journaled; do not deploy a duplicate or delete the profile.
+
+To uninstall, first stop/delete every managed VM as appropriate, then run
+`everycli auto-update --disable`. Locate the installed executable with
+`command -v everycli` and remove that exact file (normally `~/.cargo/bin/everycli`).
+Optionally remove its adjacent `everycli.rollback` backup and the installer-added
+shell PATH line if nothing else uses it. Keep your wallet and management profiles
+until all cloud billing is confirmed ended; uninstalling the CLI does not stop VMs.
+
+CLI updates validate the downloaded executable before swapping it in and keep
+the previous executable as `everycli.rollback` beside it. Source-built binaries
+are not self-replaced; rebuild from source or explicitly reinstall the official
+distribution. CLI updates and worker updates remain separate operations.
 
 Older token-based deployments remain compatible until explicitly migrated.
 Simply deleting a token from an old profile will not migrate it: the coordinator

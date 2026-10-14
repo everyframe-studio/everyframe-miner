@@ -39,6 +39,8 @@ jobs:
           test "$(cargo +1.97.1 metadata --locked --no-deps --format-version 1 | jq -r '.packages[0].version')" = "${RELEASE_TAG#v}"
           rustc +1.97.1 -vV | grep -Fx "host: $EXPECTED_TARGET"
       - name: Lint, test, and build
+        env:
+          EVERYCLI_RELEASE_BUILD: '1'
         run: |
           cargo +1.97.1 fmt --check
           cargo +1.97.1 clippy --release --all-targets --locked -- -D warnings

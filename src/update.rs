@@ -210,15 +210,21 @@ impl Drop for Staging {
     fn drop(&mut self) {
         // Only our fixed-name staged file and lock directory; never recursive.
         let _ = fs::remove_file(self.0.join("everycli"));
+        let _ = fs::remove_file(self.0.join("version.json"));
         let _ = fs::remove_dir(&self.0);
     }
 }
 
 pub fn replace_binary(target: &Path, bytes: &[u8]) -> Result<()> {
-    replace_binary_checked(target, bytes, None)
+    replace_binary_checked(target, bytes, None, None)
 }
 
-fn replace_binary_checked(target: &Path, bytes: &[u8], expected: Option<(u64, u64)>) -> Result<()> {
+fn replace_binary_checked(
+    target: &Path,
+    bytes: &[u8],
+    expected: Option<(u64, u64)>,
+    expected_version: Option<&str>,
+) -> Result<()> {
     let parent = target.parent().ok_or(Error("invalid_install_path"))?;
     let dir = fs::symlink_metadata(parent).map_err(|_| Error("install_directory_unavailable"))?;
     let old = fs::symlink_metadata(target).map_err(|_| Error("installed_binary_unavailable"))?;
@@ -237,8 +243,13 @@ fn replace_binary_checked(target: &Path, bytes: &[u8], expected: Option<(u64, u6
         "unsafe_install_permissions",
     )?;
     let lock = parent.join(".everycli-update.lock");
-    fs::create_dir(&lock).map_err(|_| Error("update_locked_or_directory_not_writable"))?;
-    let staging = Staging(lock);
+    let lock_state = crate::state::State {
+        directory: lock.clone(),
+    };
+    let _update_lock = lock_state.lock()?;
+    let staging_path = lock.join(format!("stage-{}", crate::protocol::id()));
+    fs::create_dir(&staging_path).map_err(|_| Error("update_locked_or_directory_not_writable"))?;
+    let staging = Staging(staging_path);
     fs::set_permissions(&staging.0, fs::Permissions::from_mode(0o700))
         .map_err(|_| Error("update_write_failed"))?;
     let staged = staging.0.join("everycli");
@@ -254,16 +265,84 @@ fn replace_binary_checked(target: &Path, bytes: &[u8], expected: Option<(u64, u6
         .map_err(|_| Error("update_write_failed"))?;
     file.set_permissions(fs::Permissions::from_mode(0o755))
         .map_err(|_| Error("update_write_failed"))?;
+    drop(file);
+    smoke_binary(&staged, &staging.0.join("version.json"), expected_version)?;
     let current = fs::symlink_metadata(target).map_err(|_| Error("installed_binary_changed"))?;
     need(
         current.dev() == old.dev() && current.ino() == old.ino() && current.is_file(),
         "installed_binary_changed",
     )?;
+    let backup = parent.join("everycli.rollback");
+    if let Ok(m) = fs::symlink_metadata(&backup) {
+        need(
+            m.is_file() && m.uid() == uid && m.mode() & 0o022 == 0,
+            "unsafe_rollback_file",
+        )?;
+        fs::remove_file(&backup).map_err(|_| Error("rollback_write_failed"))?;
+    }
+    fs::hard_link(target, &backup).map_err(|_| Error("rollback_write_failed"))?;
+    fs::File::open(parent)
+        .and_then(|f| f.sync_all())
+        .map_err(|_| Error("rollback_write_failed"))?;
     fs::rename(&staged, target).map_err(|_| Error("update_replace_failed"))?;
     fs::File::open(parent)
         .and_then(|f| f.sync_all())
         .map_err(|_| Error("update_directory_sync_failed"))?;
     Ok(())
+}
+
+fn smoke_binary(binary: &Path, output: &Path, expected: Option<&str>) -> Result<()> {
+    use std::process::{Command, Stdio};
+    let file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .open(output)
+        .map_err(|_| Error("update_write_failed"))?;
+    let mut child = Command::new(binary)
+        .args(["--version", "--json"])
+        .env_clear()
+        .env("EVERYCLI_DISABLE_AUTO_UPDATE", "1")
+        .stdin(Stdio::null())
+        .stdout(file)
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|_| Error("update_binary_unusable"))?;
+    let started = std::time::Instant::now();
+    loop {
+        if let Some(status) = child
+            .try_wait()
+            .map_err(|_| Error("update_binary_unusable"))?
+        {
+            need(status.success(), "update_binary_unusable")?;
+            break;
+        }
+        if started.elapsed() > Duration::from_secs(5) {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(Error("update_binary_unusable"));
+        }
+        std::thread::sleep(Duration::from_millis(25));
+    }
+    let info: Value = serde_json::from_slice(&crate::state::read(output, true, 4096)?)
+        .map_err(|_| Error("update_binary_unusable"))?;
+    need(
+        expected.is_none_or(|tag| {
+            info["version"].as_str() == Some(tag.trim_start_matches('v'))
+                && info["implementation"] == "rust"
+        }),
+        "update_binary_version_mismatch",
+    )?;
+    need(
+        info["version"]
+            .as_str()
+            .is_some_and(|s| version(&format!("v{s}")).is_ok()),
+        "update_binary_unusable",
+    )
+}
+
+pub fn official_build() -> bool {
+    option_env!("EVERYCLI_RELEASE_BUILD") == Some("1")
 }
 
 /// Human-facing release labels always include exactly one `v` prefix.
@@ -297,6 +376,10 @@ fn run_with_progress(
     let target = std::env::current_exe().map_err(|_| Error("installed_binary_unavailable"))?;
     let original =
         fs::symlink_metadata(&target).map_err(|_| Error("installed_binary_unavailable"))?;
+    need(
+        check_only || official_build(),
+        "source_build_update_disabled",
+    )?;
     progress(ProgressEvent::Stage("Checking for updates…".into()));
     let client = Client::builder()
         .no_proxy()
@@ -359,7 +442,12 @@ fn run_with_progress(
     )?;
     need(allowed(), "auto_update_disabled")?;
     progress(ProgressEvent::Stage("Installing update…".into()));
-    replace_binary_checked(&target, &bytes, Some((original.dev(), original.ino())))?;
+    replace_binary_checked(
+        &target,
+        &bytes,
+        Some((original.dev(), original.ino())),
+        Some(tag),
+    )?;
     Ok(
         json!({"previous":env!("CARGO_PKG_VERSION"),"version":tag,"updated":true,"message":"CLI updated. Miner profiles and deployed workers are unchanged."}),
     )
@@ -376,18 +464,20 @@ mod progress_tests {
         let target = tmp.path().join("everycli");
         fs::write(&target, b"original").unwrap();
         let old = fs::metadata(&target).unwrap();
-        replace_binary(&target, b"newer manual update").unwrap();
+        let replacement = b"#!/bin/sh\nprintf '%s\\n' '{\"version\":\"0.4.2\"}'\n";
+        replace_binary(&target, replacement).unwrap();
         assert_eq!(
             replace_binary_checked(
                 &target,
                 b"stale background update",
-                Some((old.dev(), old.ino()))
+                Some((old.dev(), old.ino())),
+                None
             )
             .unwrap_err()
             .0,
             "installed_binary_changed"
         );
-        assert_eq!(fs::read(&target).unwrap(), b"newer manual update");
+        assert_eq!(fs::read(&target).unwrap(), replacement);
     }
 
     #[test]
