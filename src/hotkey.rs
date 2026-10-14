@@ -90,23 +90,48 @@ pub fn enrollment_proof(
     address: &str,
     nonce: &str,
 ) -> Result<String> {
+    enrollment_or_recovery_proof(path, envelope, trust, address, nonce, None)
+}
+
+pub fn enrollment_or_recovery_proof(
+    path: &Path,
+    envelope: &Value,
+    trust: &Value,
+    address: &str,
+    nonce: &str,
+    recovery: Option<&Value>,
+) -> Result<String> {
     let c = protocol::verified(envelope, s(&trust["publicKey"])?)?;
-    protocol::exact(
-        &c,
-        &[
-            "kind",
-            "chain",
-            "audience",
-            "hotkey",
-            "nonce",
-            "challenge",
-            "releaseHash",
-            "issuedAt",
-            "expiresAt",
-        ],
-    )?;
+    let mut fields = vec![
+        "kind",
+        "chain",
+        "audience",
+        "hotkey",
+        "nonce",
+        "challenge",
+        "releaseHash",
+        "issuedAt",
+        "expiresAt",
+    ];
+    if let Some(target) = recovery {
+        fields.push("recovery");
+        protocol::exact(target, &["appId", "keyVersion"])?;
+        need(
+            crate::matches("[a-f0-9]{40}", &target["appId"])
+                && target["appId"] != "0".repeat(40)
+                && n(&target["keyVersion"])? > 0
+                && c["recovery"] == *target,
+            "invalid_recovery_target",
+        )?;
+    }
+    protocol::exact(&c, &fields)?;
     need(
-        c["kind"] == "everyframe-public-enrollment-v1"
+        c["kind"]
+            == if recovery.is_some() {
+                "everyframe-public-recovery-v1"
+            } else {
+                "everyframe-public-enrollment-v1"
+            }
             && c["chain"] == chain(trust)?
             && c["audience"]
                 == s(&trust["coordinatorUrl"])?
