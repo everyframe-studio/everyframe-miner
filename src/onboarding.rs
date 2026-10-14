@@ -14,6 +14,19 @@ use std::{
 use twox_hash::XxHash64;
 
 pub fn enroll(http: &dyn Http, trust: &Value, path: &Path) -> Result<Value> {
+    enroll_or_recover(http, trust, path, None)
+}
+
+pub fn recover(http: &dyn Http, trust: &Value, path: &Path, target: &Value) -> Result<Value> {
+    enroll_or_recover(http, trust, path, Some(target))
+}
+
+fn enroll_or_recover(
+    http: &dyn Http,
+    trust: &Value,
+    path: &Path,
+    recovery: Option<&Value>,
+) -> Result<Value> {
     let address = file_address(path)?;
     let base = s(&trust["coordinatorUrl"])?.trim_end_matches('/');
     let nonce = crate::protocol::id();
@@ -26,8 +39,13 @@ pub fn enroll(http: &dyn Http, trust: &Value, path: &Path) -> Result<Value> {
             .json("POST", body),
         )
     };
-    let challenge = post("challenge", &json!({"hotkey":address,"nonce":nonce}))?;
-    let signature = hotkey::enrollment_proof(path, &challenge, trust, &address, &nonce)?;
+    let mut request = json!({"hotkey":address,"nonce":nonce});
+    if let Some(target) = recovery {
+        request["recovery"] = target.clone();
+    }
+    let challenge = post("challenge", &request)?;
+    let signature =
+        hotkey::enrollment_or_recovery_proof(path, &challenge, trust, &address, &nonce, recovery)?;
     let envelope = post(
         "enroll",
         &json!({"challenge":challenge,"signature":signature}),
@@ -39,6 +57,15 @@ pub fn enroll(http: &dyn Http, trust: &Value, path: &Path) -> Result<Value> {
             && deployment["authMode"] == "hotkey-v1",
         "invalid_public_deployment",
     )?;
+    if let Some(target) = recovery {
+        need(
+            deployment["keyVersion"].as_i64()
+                == target["keyVersion"].as_i64().and_then(|v| v.checked_add(1))
+                && deployment["appId"].is_null()
+                && deployment["previousComposeHash"].is_null(),
+            "invalid_recovery_response",
+        )?;
+    }
     Ok(envelope)
 }
 

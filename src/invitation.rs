@@ -179,7 +179,10 @@ pub fn validate(envelope: &Value, t: &Value, now: i64, allow_expired: bool) -> R
         r["name"] == format!("everyframe-{}", s(&v["minerId"])?)
             && r["instance_type"] == "tdx.small"
             && r["disk_size"] == 20
-            && r["image"] == "dstack-0.5.9"
+            // The pinned coordinator approves the OS and its exact hash. Do
+            // not strand miners when a production image is retired. Dev/GPU
+            // variants remain disallowed, and deploy still checks the catalog.
+            && matches("dstack-[0-9]+\\.[0-9]+\\.[0-9]+", &r["image"])
             && r["kms"] == "PHALA"
             && r["listed"] == false,
         "unsupported_deployment",

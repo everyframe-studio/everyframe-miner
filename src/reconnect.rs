@@ -18,7 +18,13 @@ impl Miner<'_> {
         confirm: &dyn Fn(&str) -> Result<()>,
     ) -> Result<Value> {
         let _lock = self.state.lock()?;
-        self.reconnect_locked(path, confirm)
+        self.reconnect_inner(path, confirm, true)
+    }
+
+    // Setup/authorization repair must never silently retire a remote workload.
+    pub fn reconnect_authorization(&self, path: Option<&Path>) -> Result<Value> {
+        let _lock = self.state.lock()?;
+        self.reconnect_locked(path, &|_| Ok(()))
     }
 
     // Caller must hold the profile lock. Deployment uses this only during its
@@ -27,6 +33,15 @@ impl Miner<'_> {
         &self,
         path: Option<&Path>,
         confirm: &dyn Fn(&str) -> Result<()>,
+    ) -> Result<Value> {
+        self.reconnect_inner(path, confirm, false)
+    }
+
+    fn reconnect_inner(
+        &self,
+        path: Option<&Path>,
+        confirm: &dyn Fn(&str) -> Result<()>,
+        allow_retirement: bool,
     ) -> Result<Value> {
         let pending = self.state.read("profile-recovery", true)?;
         if !pending.is_null() {
@@ -84,8 +99,8 @@ impl Miner<'_> {
             s(&old["hotkey"])?,
         )?;
         need(receipt["registered"] == true, "hotkey_not_registered")?;
-        let envelope = onboarding::enroll(self.http, &self.trust, path)?;
-        let inv = self.validate(&envelope, false)?;
+        let mut envelope = onboarding::enroll(self.http, &self.trust, path)?;
+        let mut inv = self.validate(&envelope, false)?;
         need(
             [
                 "minerId",
@@ -108,18 +123,84 @@ impl Miner<'_> {
         credentials["WORKER_AUTH"] = hotkey::create(path, &inv, "worker")?;
         credentials.as_object_mut().unwrap().remove("MINER_TOKEN");
         Self::token(&credentials, &inv)?;
-        let next_config = json!({"version":1,"invitation":envelope,"initializedAt":config["initializedAt"],"reconnectedAt":now()});
-        let context = Context {
+        let mut next_config = json!({"version":1,"invitation":envelope,"initializedAt":config["initializedAt"],"reconnectedAt":now()});
+        let mut context = Context {
             config: next_config.clone(),
             invitation: inv.clone(),
             credentials: credentials.clone(),
             deployment: deployment.clone(),
         };
-        let status = self.api(&context, "status", json!({}))?;
+        let mut status = self.api(&context, "status", json!({}))?;
         need(
             status["composeHash"] == inv["composeHash"],
             "reconnect_target_mismatch",
         )?;
+        let mut binding_retired = false;
+        if deployment["appId"].is_null() && status["appId"] != "0".repeat(40) {
+            need(allow_retirement, "deleted_workload_reconnect_required")?;
+            let app = s(&status["appId"])?;
+            let cloud = Cloud::new(self.http, &credentials)?;
+            // A 404 alone is not proof of deletion: the key may belong to a
+            // different workspace. Require explicit owner intent and sign it.
+            match cloud.info(app) {
+                Err(e) if e.0 == "phala_http_404" => {}
+                Err(e) => return Err(e),
+                Ok(_) => return Err(Error("remote_workload_exists_use_original_profile")),
+            }
+            need(
+                status["activeJobs"] == 0 && status["online"] == false,
+                "recovery_worker_still_online",
+            )?;
+            need(
+                !cloud.catalog("/cvms/paginated")?["items"]
+                    .as_array()
+                    .ok_or(Error("invalid_cloud_catalog"))?
+                    .iter()
+                    .any(|v| v["name"] == inv["request"]["name"]),
+                "duplicate_vm_name",
+            )?;
+            confirm(&format!(
+                "Retire the old coordinator binding for app {app}? This Phala workspace cannot find it, but a wrong-workspace key can also return 404. Continue only if you deleted this VM. Its old authorization will be revoked. This does not delete any VM, stop storage billing, or create a new VM."
+            ))?;
+            envelope = onboarding::recover(
+                self.http,
+                &self.trust,
+                path,
+                &json!({"appId":app,"keyVersion":inv["keyVersion"]}),
+            )?;
+            let recovered = self.validate(&envelope, false)?;
+            need(
+                [
+                    "minerId",
+                    "hotkey",
+                    "network",
+                    "netuid",
+                    "coordinatorUrl",
+                    "authMode",
+                    "publicOnboarding",
+                ]
+                .iter()
+                .all(|k| recovered[k] == inv[k])
+                    && recovered["request"]["name"] == inv["request"]["name"],
+                "reconnect_target_mismatch",
+            )?;
+            inv = recovered;
+            credentials["CONSOLE_AUTH"] = hotkey::create(path, &inv, "console")?;
+            credentials["WORKER_AUTH"] = hotkey::create(path, &inv, "worker")?;
+            next_config = json!({"version":1,"invitation":envelope,"initializedAt":config["initializedAt"],"reconnectedAt":now()});
+            context.config = next_config.clone();
+            context.invitation = inv.clone();
+            context.credentials = credentials.clone();
+            status = self.api(&context, "status", json!({}))?;
+            need(
+                status["composeHash"] == inv["composeHash"]
+                    && status["appId"] == "0".repeat(40)
+                    && status["draining"] == true
+                    && status["activeJobs"] == 0,
+                "invalid_recovery_response",
+            )?;
+            binding_retired = true;
+        }
         if let Some(app) = deployment["appId"].as_str() {
             need(
                 (inv["appId"] == app
@@ -163,7 +244,7 @@ impl Miner<'_> {
                 .to_str()
                 .ok_or(Error("unsafe_path"))?
         );
-        let journal = json!({"version":1,"deployment":deployment,
+        let journal = json!({"version":1,"deployment":deployment,"bindingRetired":binding_retired,
             "before":{"config":config,"credentials":before_credentials,"registration":registration},
             "after":{"config":next_config,"credentials":credentials,"registration":next_registration}});
         // Durable intent before any profile replacement; secrets remain owner-only.
@@ -206,8 +287,8 @@ impl Miner<'_> {
         }
         self.state.write("profile-recovery", &Value::Null)?;
         Ok(
-            json!({"state":"reconnected","minerId":inv["minerId"],"hotkey":inv["hotkey"],"uid":journal["after"]["registration"]["uid"],"workerChanged":false,"generationSubmitted":false,
-            "next":if journal["deployment"]["phase"] == "deleted" {"Profile reconnected. Run everycli doctor, then review a new deployment with everycli deploy --max-hourly-usd <limit>. Nothing was deployed automatically."} else {"Profile reconnected. Run everycli doctor. A running worker was not changed; review everycli apply-api-keys separately if its authorization also needs refreshing."}}),
+            json!({"state":"reconnected","minerId":inv["minerId"],"hotkey":inv["hotkey"],"uid":journal["after"]["registration"]["uid"],"workerChanged":false,"bindingRetired":journal["bindingRetired"]==true,"generationSubmitted":false,
+            "next":if journal["deployment"]["phase"] == "deleted" || journal["bindingRetired"]==true {"Profile reconnected. Run everycli doctor, then review a new deployment with everycli deploy --max-hourly-usd <limit>. Nothing was deployed automatically."} else {"Profile reconnected. Run everycli doctor. A running worker was not changed; review everycli apply-api-keys separately if its authorization also needs refreshing."}}),
         )
     }
 }

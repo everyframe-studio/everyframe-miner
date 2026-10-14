@@ -177,6 +177,7 @@ struct Rig {
     calls: RefCell<Vec<(String, String)>>,
     envs: RefCell<Vec<Value>>,
     cvms: RefCell<Vec<Value>>,
+    recovered: RefCell<Option<Value>>,
 }
 
 #[test]
@@ -211,6 +212,90 @@ fn reconnect_keeps_keys_label_deleted_journal_and_records_verified_uid_zero() {
             .all(|(p, _)| p.starts_with("GET ") || p == "POST /" || p.contains("/onboarding/"))
     );
     assert!(!out.to_string().contains("synthetic"));
+}
+
+#[test]
+fn missing_local_journal_recovery_requires_explicit_owner_consent_and_never_mutates_cloud() {
+    for mode in [
+        "recover",
+        "decline",
+        "automatic",
+        "online",
+        "existing",
+        "duplicate",
+    ] {
+        let (r, _) = Rig::reconnect_fixture();
+        r.state().write("deployment", &Value::Null).unwrap();
+        r.status.borrow_mut()["online"] = json!(mode == "online");
+        if mode == "existing" {
+            *r.fail.borrow_mut() = String::new();
+        }
+        if mode == "duplicate" {
+            r.cvms.borrow_mut().push(r.info.borrow().clone());
+        }
+        let before = r.state().read("config", false).unwrap();
+        let prompts = RefCell::new(Vec::new());
+        let result = if mode == "automatic" {
+            r.miner().reconnect_authorization(None)
+        } else {
+            r.miner().reconnect(None, &|q| {
+                prompts.borrow_mut().push(q.to_string());
+                if mode == "decline" && q.starts_with("Retire ") {
+                    Err(Error("declined"))
+                } else {
+                    Ok(())
+                }
+            })
+        };
+        if mode == "recover" {
+            let out = result.unwrap();
+            assert_eq!(out["bindingRetired"], true);
+            assert_eq!(
+                r.state().read("config", false).unwrap()["invitation"]["value"]["keyVersion"],
+                8
+            );
+            assert_eq!(
+                r.state().read("credentials", false).unwrap()["FAL_KEY"],
+                r.credentials["FAL_KEY"]
+            );
+            assert_eq!(prompts.borrow().len(), 2);
+            assert!(prompts.borrow()[1].contains("wrong-workspace"));
+            assert!(r.state().read("deployment", true).unwrap().is_null());
+        } else {
+            assert!(result.is_err(), "{mode}");
+            assert_eq!(r.state().read("config", false).unwrap(), before, "{mode}");
+            assert!(r.recovered.borrow().is_none(), "{mode}");
+        }
+        assert!(
+            r.calls
+                .borrow()
+                .iter()
+                .all(|(p, _)| !p.contains("/cvms") || p.starts_with("GET "))
+        );
+    }
+}
+
+#[test]
+fn reviewed_production_os_versions_are_not_hardcoded_but_dev_gpu_and_tampering_are_rejected() {
+    let r = Rig::new();
+    for (image, valid) in [
+        ("dstack-0.5.12", true),
+        ("dstack-0.6.1", true),
+        ("dstack-dev-0.5.12", false),
+        ("dstack-nvidia-0.5.12", false),
+        ("https://evil.invalid/image", false),
+    ] {
+        let mut inv = r.inv.clone();
+        inv["request"]["image"] = json!(image);
+        assert_eq!(
+            invitation::validate(&r.sign(&inv), &r.trust, now(), false).is_ok(),
+            valid,
+            "{image}"
+        );
+        let mut unsigned = r.sign(&r.inv);
+        unsigned["value"]["request"]["image"] = json!(image);
+        assert!(invitation::validate(&unsigned, &r.trust, now(), false).is_err());
+    }
 }
 
 #[test]
@@ -624,6 +709,7 @@ impl Rig {
             calls: RefCell::default(),
             envs: RefCell::default(),
             cvms: RefCell::default(),
+            recovered: RefCell::default(),
         };
         r.miner().init(&r.sign(&r.inv), &r.credentials).unwrap();
         r
@@ -1260,9 +1346,29 @@ impl Http for Rig {
         }
         if path.ends_with("/onboarding/challenge") {
             let issued = now();
+            if body.get("recovery").is_some() {
+                return Ok(self.sign(&json!({"kind":"everyframe-public-recovery-v1","recovery":body["recovery"],"chain":everyframe_miner::hotkey::chain(&self.trust).unwrap(),"audience":self.trust["coordinatorUrl"],"hotkey":body["hotkey"],"nonce":body["nonce"],"challenge":"a".repeat(48),"releaseHash":"b".repeat(64),"issuedAt":issued,"expiresAt":issued+120000})).to_string().into_bytes());
+            }
             return Ok(self.sign(&json!({"kind":"everyframe-public-enrollment-v1","chain":everyframe_miner::hotkey::chain(&self.trust).unwrap(),"audience":self.trust["coordinatorUrl"],"hotkey":body["hotkey"],"nonce":body["nonce"],"challenge":"a".repeat(48),"releaseHash":"b".repeat(64),"issuedAt":issued,"expiresAt":issued+120000})).to_string().into_bytes());
         }
         if path.ends_with("/onboarding/enroll") {
+            if body["challenge"]["value"]["kind"] == "everyframe-public-recovery-v1" {
+                assert_eq!(
+                    body["challenge"]["value"]["recovery"]["appId"],
+                    self.status.borrow()["appId"]
+                );
+                let mut fresh = self.inv.clone();
+                fresh["keyVersion"] = json!(self.inv["keyVersion"].as_i64().unwrap() + 1);
+                fresh["appId"] = Value::Null;
+                fresh["previousComposeHash"] = Value::Null;
+                self.status.borrow_mut()["appId"] = json!("0".repeat(40));
+                self.status.borrow_mut()["draining"] = json!(true);
+                *self.recovered.borrow_mut() = Some(fresh.clone());
+                return Ok(self.sign(&fresh).to_string().into_bytes());
+            }
+            if let Some(fresh) = self.recovered.borrow().as_ref() {
+                return Ok(self.sign(fresh).to_string().into_bytes());
+            }
             return Ok(self.sign(&self.inv).to_string().into_bytes());
         }
         if self.fail.borrow().as_str() == "auth" && path.ends_with("/v1/miner/status") {
@@ -1285,7 +1391,9 @@ impl Http for Rig {
                     .unwrap()
                     .1;
                 let a: Value = serde_json::from_slice(&protocol::decode(h).unwrap()).unwrap();
-                if a["certificate"]["value"]["keyVersion"] != self.inv["keyVersion"] {
+                if a["certificate"]["value"]["keyVersion"]
+                    != self.recovered.borrow().as_ref().unwrap_or(&self.inv)["keyVersion"]
+                {
                     return Err(Error("http_401"));
                 }
                 assert_eq!(a["certificate"]["value"]["scope"], "console");

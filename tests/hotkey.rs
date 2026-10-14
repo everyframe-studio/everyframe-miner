@@ -142,4 +142,36 @@ fn public_enrollment_signs_only_fresh_pinned_offchain_challenges() {
     let mut bad = signed;
     bad["value"]["releaseHash"] = json!("cd".repeat(32));
     assert!(hotkey::enrollment_proof(&path, &bad, &trust, address, &nonce).is_err());
+    let target = json!({"appId":"12".repeat(20),"keyVersion":1});
+    let mut recovery = c.clone();
+    recovery["kind"] = json!("everyframe-public-recovery-v1");
+    recovery["recovery"] = target.clone();
+    let envelope = protocol::signed(&recovery, &key).unwrap();
+    assert!(
+        hotkey::enrollment_proof(&path, &envelope, &trust, address, &nonce).is_err(),
+        "ordinary enrollment must never sign retirement"
+    );
+    assert!(
+        hotkey::enrollment_or_recovery_proof(
+            &path,
+            &envelope,
+            &trust,
+            address,
+            &nonce,
+            Some(&target)
+        )
+        .is_ok()
+    );
+    let wrong = json!({"appId":"34".repeat(20),"keyVersion":1});
+    assert!(
+        hotkey::enrollment_or_recovery_proof(
+            &path,
+            &envelope,
+            &trust,
+            address,
+            &nonce,
+            Some(&wrong)
+        )
+        .is_err()
+    );
 }

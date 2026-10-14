@@ -808,7 +808,7 @@ impl Miner<'_> {
         )?;
         // Refresh an attached same-hotkey profile once, before any paid action.
         // Never retry deploy itself: a later error may follow a successful POST.
-        let status = if c.invitation["publicOnboarding"] == true {
+        let mut status = if c.invitation["publicOnboarding"] == true {
             Some(match self.api(&c, "status", json!({})) {
                 Err(e) if e.0 == "coordinator_auth_rejected" => {
                     self.reconnect_locked(None, &|_| Ok(()))?;
@@ -820,6 +820,23 @@ impl Miner<'_> {
         } else {
             None
         };
+        if !replacing && let Some(current) = &status {
+            // A fresh device must not pay to create a second VM while the
+            // coordinator is still bound to the first one.
+            need(
+                current["appId"] == "0".repeat(40),
+                "deleted_workload_reconnect_required",
+            )?;
+            if current["deploymentRefreshAvailable"] == true {
+                self.reconnect_locked(None, &|_| Ok(()))?;
+                c = self.load(true)?;
+                status = Some(self.api(&c, "status", json!({}))?);
+                need(
+                    status.as_ref().unwrap()["appId"] == "0".repeat(40),
+                    "deployment_binding_mismatch",
+                )?;
+            }
+        }
         let inv = &c.invitation;
         need(
             (inv["appId"].is_null() && inv["previousComposeHash"].is_null())

@@ -20,6 +20,27 @@ and ten provider adapters. Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
 
+### v0.5.4 deleted-workload recovery
+
+Update with `everycli update`, then reopen `everycli ui`.
+
+- If you deleted a VM directly in Phala and have no local deployment record,
+  run `everycli reconnect` (or **Worker → Reconnect profile**). It checks your
+  Phala workspace and asks before retiring the old binding with your hotkey.
+  A 404 can mean the wrong workspace, so only approve if you deleted that VM.
+- Recovery revokes the old authorization, preserves the miner identity and
+  earnings history, and requires fresh attestation after deliberate redeployment.
+  Active or uncertain jobs and a fresh worker heartbeat block retirement.
+- New deployments can refresh an outdated unbound configuration before any
+  paid request. Production OS versions come from the pinned coordinator's signed
+  release; exact catalog hashes, TEE policy and development/GPU exclusions remain.
+- A missing or unreachable OS catalog has a specific error. An unavailable OS
+  must be reviewed server-side; the CLI never substitutes an arbitrary image.
+
+Recovery does not create or delete cloud resources, end storage billing, or
+resume jobs. Binary updates and automatic authorization repair do not silently
+retire VM bindings. See [v0.5.4 release notes](RELEASE-NOTES-v0.5.4.md).
+
 ### v0.5.3 simpler setup and batch model editing
 
 After updating with `everycli update`, close and reopen `everycli ui`.

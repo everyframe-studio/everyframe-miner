@@ -774,7 +774,7 @@ pub fn run_with(
                 && args.get("--secrets-file").is_none()
                 && !miner.state.read("config", true)?.is_null()
             {
-                return miner.reconnect(path.as_deref(), &|_| Ok(()));
+                return miner.reconnect_authorization(path.as_deref());
             }
             let mut fresh_receipt = None;
             let envelope = if let Some(file) = args.get("--invitation") {

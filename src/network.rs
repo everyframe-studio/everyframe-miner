@@ -57,6 +57,11 @@ fn enrollment_error(bytes: &[u8]) -> Error {
             Some("miner_paused_contact_operator") => "miner_paused_contact_operator",
             Some("existing_miner_requires_migration") => "existing_miner_requires_migration",
             Some("authorization_revoked") => "authorization_revoked",
+            Some("deployment_os_unavailable") => "deployment_os_unavailable",
+            Some("deployment_catalog_unavailable") => "deployment_catalog_unavailable",
+            Some("recovery_target_changed") => "recovery_target_changed",
+            Some("recovery_active_jobs") => "recovery_active_jobs",
+            Some("recovery_worker_still_online") => "recovery_worker_still_online",
             _ => "enrollment_failed_no_vm_created",
         });
     }
