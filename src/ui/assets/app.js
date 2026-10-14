@@ -632,13 +632,9 @@ async function removeWorker(appId, recorded, redeployLimit) {
   let gone = false;
   for (let i = 0; i < 60 && !gone; i++) {
     await new Promise((ok) => setTimeout(ok, 5000));
-    if (recorded) {
-      const check = await run("delete", { appId }, { quiet: true });
-      gone = value(check)?.phase === "deleted";
-    } else {
-      await loadWorkloads();
-      gone = !(S.workloads || []).some((w) => w.appId === appId && w.status !== "deleted");
-    }
+    const check = await run("delete", { appId }, { quiet: true });
+    gone = value(check)?.phase === "deleted";
+    if (check.state === "failed" || check.state === "cancelled") break;
     if (S.removal) { S.removal.note = "Waiting for Phala to remove the VM… (" + Math.round((Date.now() - S.removal.started) / 1000) + " s)"; renderRemoval(); }
   }
   const redeploy = S.removal?.redeploy;
@@ -666,6 +662,7 @@ function renderRemoval() {
 // ---------- API keys ----------
 const CHECK_REASONS = {
   key_check_unreachable: "couldn't reach the provider right now",
+  key_check_permission: "this key does not permit the read-only account check; generation access is unverified",
   key_check_inconclusive: "the provider gave an unexpected answer",
   key_check_unsupported: "no free check is available for this provider",
 };
@@ -677,7 +674,8 @@ function keyStatusView(provider) {
 }
 function checkMessage(provider, check, saving) {
   const name = providerName(provider);
-  if (!check || check.result === "valid") return { kind: "ok", text: (saving ? "Saved. " : "") + name + " accepted this key." };
+  if (check?.result === "valid") return { kind: "ok", text: (saving ? "Saved. " : "") + name + " accepted this key." };
+  check ||= { result: "unverified", reason: "key_check_inconclusive" };
   if (check.result === "rejected") return { kind: "bad", text: name + " rejected the saved key. Replace it with a working key." };
   return { kind: "warn", text: (saving ? "Saved, but not verified: " : "Not verified: ") + (CHECK_REASONS[check.reason] || check.reason) + ". It will be used as entered." };
 }
@@ -796,8 +794,7 @@ function pageWorker() {
   root.append(h("div", { class: "grid" },
     stat("State", phase, d.appId ? "App " + String(d.appId).slice(0, 10) + "…" : "", tone),
     nameStat(),
-    stat("Compute price", d.computeHourlyUsd ? "$" + d.computeHourlyUsd + "/h" : "—", "Storage extra"),
-    stat("Configuration", p.configurationExpiresAt ? daysLeft(p.configurationExpiresAt) + " days left" : "—", "Renew with everycli init")));
+    stat("Compute price", d.computeHourlyUsd ? "$" + d.computeHourlyUsd + "/h" : "—", "Storage extra")));
   if (d.needsReconcile) root.append(notice("warn", "Confirm worker state", h("div", null,
     h("p", null, "A lifecycle operation is pending. Re-sync checks its result at Phala and the coordinator without repeating the cloud operation."),
     button("Re-sync operation", async () => { await run("reconcile"); await refreshAll(); }, "primary"))));
@@ -897,7 +894,7 @@ async function boot() {
   await loadOverview();
   const w = await api("/api/wallets"); if (w.ok) S.wallets = w.data;
   render();
-  if (!managedHere()) { await loadWorkloads(); render(); }
+  if (!managedHere()) { await loadWorkloads(); if (currentRoute() === "overview" && !S.renaming) render(); }
   if (S.overview?.initialized) {
     await Promise.all([loadHealth(), loadBalances(), loadEarnings()]);
     if (currentRoute() === "overview" && !S.renaming) render(); else { renderMeta(); renderNav(); }

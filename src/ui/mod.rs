@@ -433,6 +433,7 @@ fn save_key(sh: &Shared, mut body: Value) -> Response {
     let result = (|| {
         let name = onboarding::credential_key(&provider)?;
         need(!key.is_empty(), "empty_credential")?;
+        need(key.len() >= 10, "credential_too_short")?;
         need(
             key.len() <= 8000 && !key.contains(['\r', '\n', '\0']),
             "invalid_credential",

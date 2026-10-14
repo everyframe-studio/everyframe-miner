@@ -74,6 +74,8 @@ pub fn diagnostic(error: &Error, args: Option<&Args>) -> Value {
         format!("Run everycli help {command} for options and an example.")
     };
     let (message, next) = match error.0 {
+        "replacement_not_supported" => ("This coordinator does not support safe worker replacement yet. No VM was created.".into(), "Update everycli and retry after the coordinator upgrade. Preserve your deletion journal.".into()),
+        "active_jobs" => ("This miner still has active or unresolved jobs. No replacement VM was created.".into(), "Wait for those jobs to settle, then retry. Do not delete the local profile.".into()),
         "missing_option" | "missing_option_value" => {
             let option = match &error.1 { Some(ErrorContext::Option(o)) => o.as_str(), _ => "the required option" };
             (if error.0 == "missing_option" { format!("{command} needs {option}.") }

@@ -773,14 +773,21 @@ fn workers_deployed_elsewhere_are_listed_deletable_and_replaceable() {
         (Some("deleting"), Some(false))
     );
     assert_eq!(deletes(&r), 1);
-    // Nothing is recorded for a VM this profile never managed.
-    assert!(
-        r.state()
-            .read("deployment", true)
-            .unwrap()
-            .as_object()
-            .is_none_or(|o| o.is_empty())
+    assert_eq!(
+        r.state().read("deployment", false).unwrap()["phase"],
+        "deleting"
     );
+    r.miner()
+        .delete(&other, &|_| panic!("must not repeat deletion"))
+        .unwrap();
+    assert_eq!(deletes(&r), 1);
+    assert_eq!(r.deploy().unwrap_err().0, "deployment_already_recorded");
+    *r.fail.borrow_mut() = "gone".into();
+    assert_eq!(
+        r.miner().delete(&other, &|_| panic!()).unwrap()["phase"],
+        "deleted"
+    );
+    *r.fail.borrow_mut() = String::new();
     // Once Phala has removed it, this computer deploys its own worker.
     r.cvms.borrow_mut().clear();
     *r.info.borrow_mut() = own;
@@ -929,6 +936,9 @@ impl Http for Rig {
         self.calls
             .borrow_mut()
             .push((format!("{} {path}", r.method), self.phase()));
+        if self.fail.borrow().as_str() == "gone" && path.contains("/cvms/") && r.method == "GET" {
+            return Err(Error("http_404"));
+        }
         if !self.fail.borrow().is_empty() && path.ends_with(self.fail.borrow().as_str()) {
             return Err(Error("ambiguous_network_error"));
         }
@@ -969,6 +979,13 @@ impl Http for Rig {
                 body["nonce"].as_str().unwrap().into()
             };
             let mut status = self.status.borrow_mut();
+            if action == "bind-app" {
+                assert_eq!(body["previousAppId"], status["appId"]);
+                status["appId"] = body["appId"].clone();
+                let mut inv = self.inv.clone();
+                inv["appId"] = body["appId"].clone();
+                status["deployment"] = self.sign(&inv);
+            }
             if action == "balances" {
                 let raw = body.to_string();
                 assert!(!raw.contains("synthetic"));
@@ -1062,6 +1079,64 @@ fn original_phala_encryption_vector_decrypts() {
     );
     assert_eq!(clear["env"], f["encryption"]["environment"]);
 }
+#[test]
+fn public_replacement_preflights_support_and_saves_new_signed_binding() {
+    use everyframe_miner::hotkey;
+    use schnorrkel::{ExpansionMode, MiniSecretKey};
+    use std::os::unix::fs::PermissionsExt;
+    let mut r = Rig::new();
+    r.dir = common::tempdir();
+    let seed = [7u8; 32];
+    let pair = MiniSecretKey::from_bytes(&seed)
+        .unwrap()
+        .expand_to_keypair(ExpansionMode::Ed25519);
+    let address = hotkey::address(&pair.public.to_bytes());
+    let path = r.dir.path().join("hotkey");
+    std::fs::write(
+        &path,
+        json!({"secretSeed":hex::encode(seed),"ss58Address":address}).to_string(),
+    )
+    .unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+    r.inv["kind"] = json!("everyframe-miner-deployment-v2");
+    r.inv["authMode"] = json!("hotkey-v1");
+    r.inv["publicOnboarding"] = json!(true);
+    r.inv["keyVersion"] = json!(1);
+    r.inv["hotkey"] = json!(address);
+    r.inv.as_object_mut().unwrap().remove("tokenHash");
+    r.inv["request"]["compose_file"]["allowed_envs"] = json!(["MINER_ID", "MINER_AUTH", "FAL_KEY"]);
+    r.inv["composeHash"] = json!(cloud::compose_hash(&r.inv["request"]["compose_file"]).unwrap());
+    r.info.borrow_mut()["compose_hash"] = r.inv["composeHash"].clone();
+    r.status.borrow_mut()["composeHash"] = r.inv["composeHash"].clone();
+    r.credentials.as_object_mut().unwrap().remove("MINER_TOKEN");
+    r.credentials["CONSOLE_AUTH"] = hotkey::create(&path, &r.inv, "console").unwrap();
+    r.credentials["WORKER_AUTH"] = hotkey::create(&path, &r.inv, "worker").unwrap();
+    r.miner().init(&r.sign(&r.inv), &r.credentials).unwrap();
+    let old = "7".repeat(40);
+    r.state()
+        .write("deployment", &json!({"phase":"deleted","appId":old}))
+        .unwrap();
+    r.status.borrow_mut()["appId"] = json!(old);
+    assert_eq!(r.deploy().unwrap_err().0, "replacement_not_supported");
+    assert!(
+        r.calls
+            .borrow()
+            .iter()
+            .all(|(call, _)| call.starts_with("GET "))
+    );
+    r.status.borrow_mut()["replacementSupported"] = json!(true);
+    assert_eq!(r.deploy().unwrap()["phase"], "awaiting_attestation");
+    let config = r.state().read("config", false).unwrap();
+    assert_eq!(
+        config["invitation"]["value"]["appId"],
+        r.info.borrow()["app_id"]
+    );
+    assert_eq!(
+        r.state().read("deployment", false).unwrap()["replacesAppId"],
+        old
+    );
+}
+
 #[test]
 fn hotkey_bootstrap_encrypts_only_worker_delegate_never_token_or_hotkey() {
     use everyframe_miner::hotkey;

@@ -74,10 +74,13 @@ try {
   await page.evaluate(() => { S.overview.deployment.phase = 'awaiting_readmission'; render(); });
   assert.equal(await page.getByRole('button', { name: 'Resume', exact: true }).isEnabled(), true);
   // Worker drafts survive background updates, including after the input blurs.
-  await page.getByRole('textbox', { name: 'Local worker label' }).fill('unsaved-label');
+  await page.getByRole('button', { name: 'Rename', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Worker label' }).fill('unsaved-label');
   await page.getByRole('heading', { name: 'Worker', exact: true }).click();
   await page.evaluate(async () => { await window.reviewIntervals.find(x => x.ms === 30000).fn(); });
-  assert.equal(await page.getByRole('textbox', { name: 'Local worker label' }).inputValue(), 'unsaved-label');
+  assert.equal(await page.getByRole('textbox', { name: 'Worker label' }).inputValue(), 'unsaved-label');
+  assert.equal(await page.getByText('Renew with everycli init', { exact: true }).count(), 0);
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
 
   await page.evaluate(() => {
     S.overview.initialized = true;
@@ -99,6 +102,30 @@ try {
   await page.keyboard.press('Escape');
   assert.equal(await page.evaluate(() => window.confirmResult), false);
   assert.equal(await page.locator('#app').evaluate(e => e.inert), false);
+
+  // Failed deletion checks must never become a successful replacement.
+  const deletion = await page.evaluate(async () => {
+    const originals = { run, loadOverview, loadWorkloads, refreshAll, timeout: window.setTimeout };
+    const calls = [];
+    try {
+      run = async (command) => {
+        calls.push(command);
+        return calls.length === 1 ? { state: 'done', result: { value: { phase: 'deleting' } } }
+          : { state: 'failed', result: { error: { error: 'request_timeout' } } };
+      };
+      loadOverview = loadWorkloads = refreshAll = async () => {};
+      window.setTimeout = (fn) => originals.timeout.call(window, fn, 0);
+      await removeWorker('a'.repeat(40), false, '0.06');
+      return { calls, pending: S.removal, name: shortName('everyframe-worker-ec7d96'), missingCheck: checkMessage('fal', null, true).kind };
+    } finally {
+      ({ run, loadOverview, loadWorkloads, refreshAll } = originals);
+      window.setTimeout = originals.timeout;
+    }
+  });
+  assert.deepEqual(deletion.calls, ['delete', 'delete']);
+  assert.equal(deletion.pending, null);
+  assert.equal(deletion.name, 'every…ec7d96');
+  assert.equal(deletion.missingCheck, 'warn');
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.evaluate(() => { history.replaceState(null, '', '#/setup'); render(); });

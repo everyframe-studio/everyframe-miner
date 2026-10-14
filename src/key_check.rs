@@ -33,8 +33,7 @@ fn probe(provider: &str, key: &str) -> Option<Probe> {
                 ("X-Phala-Version".into(), "2026-06-23".into()),
             ],
         ),
-        // Generation keys answer 403 here (authenticated, not an admin key);
-        // unknown keys answer 401.
+        // Billing access may be unavailable to otherwise valid generation keys.
         "fal" | "fal-billing" => (
             "https://api.fal.ai/v1/account/billing?expand=credits".into(),
             "api.fal.ai",
@@ -90,7 +89,7 @@ fn probe(provider: &str, key: &str) -> Option<Probe> {
             bearer(),
         ),
         "elevenlabs" => (
-            "https://api.elevenlabs.io/v1/models".into(),
+            "https://api.elevenlabs.io/v1/user".into(),
             "api.elevenlabs.io",
             vec![("xi-api-key".into(), key.into())],
         ),
@@ -103,13 +102,12 @@ fn probe(provider: &str, key: &str) -> Option<Probe> {
 /// everything else (timeouts, 429, 5xx) leaves the key unverified.
 fn classify_error(provider: &str, code: &str) -> Verdict {
     match (provider, code) {
-        // An authenticated generation key without admin scope.
-        ("fal", "http_403") => Verdict::Valid,
+        // A forbidden billing query does not prove generation access.
+        ("fal", "http_403") => Verdict::Unverified,
         // Vivix answers a funded-or-not question; a billing code still proves the key.
         ("vivix", "vivix_billing_required") => Verdict::Valid,
-        (_, "http_401" | "http_403" | "vivix_auth_rejected") => Verdict::Rejected,
-        // Google reports API_KEY_INVALID as 400; BFL reports malformed keys as 422.
-        ("google", "http_400") | ("bfl", "http_422") => Verdict::Rejected,
+        ("fal-billing", "http_403") => Verdict::Rejected,
+        (_, "http_401" | "vivix_auth_rejected") => Verdict::Rejected,
         _ => Verdict::Unverified,
     }
 }
@@ -133,7 +131,21 @@ pub fn check(http: &dyn Http, provider: &str, key: &str) -> (Verdict, &'static s
                     _ => (Verdict::Unverified, "key_check_inconclusive"),
                 };
             }
-            if provider == "vivix" && v["code"].as_i64().is_some_and(|c| c != 0) {
+            let recognized = match provider {
+                "vivix" => v["code"] == 0 && v["data"]["balances"].is_array(),
+                "openrouter" => v["data"]["label"].is_string(),
+                "openrouter-billing" => v["data"]["total_credits"].is_number(),
+                "elevenlabs" => v["user_id"].is_string(),
+                "fal" | "fal-billing" => v["credits"]["current_balance"].is_number(),
+                "phala" => v["credits"].is_object() || v["user"].is_object(),
+                "google" => v["models"].is_array(),
+                "replicate" => v["username"].is_string(),
+                "bfl" => v["credits"].is_number(),
+                "runway" => v["creditBalance"].is_number(),
+                "luma" => v["generations"].is_array(),
+                _ => false,
+            };
+            if !recognized {
                 return (Verdict::Unverified, "key_check_inconclusive");
             }
             (Verdict::Valid, "key_accepted")
@@ -150,7 +162,14 @@ pub fn check(http: &dyn Http, provider: &str, key: &str) -> (Verdict, &'static s
                     "key_rejected"
                 },
             ),
-            Verdict::Unverified => (Verdict::Unverified, "key_check_unreachable"),
+            Verdict::Unverified => (
+                Verdict::Unverified,
+                if e.0 == "http_403" {
+                    "key_check_permission"
+                } else {
+                    "key_check_unreachable"
+                },
+            ),
         },
     }
 }
@@ -178,20 +197,23 @@ mod tests {
     }
     #[test]
     fn classifies_provider_answers() {
-        let ok = Fixed(Ok("{}"));
+        let ok = Fixed(Ok(r#"{"data":{"label":"test"}}"#));
         assert_eq!(check(&ok, "openrouter", "k").0, Verdict::Valid);
         assert_eq!(
             check(&Fixed(Err("http_401")), "openrouter", "k").0,
             Verdict::Rejected
         );
-        assert_eq!(check(&Fixed(Err("http_403")), "fal", "k").0, Verdict::Valid);
+        assert_eq!(
+            check(&Fixed(Err("http_403")), "fal", "k").0,
+            Verdict::Unverified
+        );
         assert_eq!(
             check(&Fixed(Err("http_403")), "fal-billing", "k"),
             (Verdict::Rejected, "key_not_admin")
         );
         assert_eq!(
             check(&Fixed(Err("http_400")), "google", "k").0,
-            Verdict::Rejected
+            Verdict::Unverified
         );
         assert_eq!(
             check(&Fixed(Err("http_400")), "replicate", "k").0,
@@ -228,5 +250,26 @@ mod tests {
             Verdict::Rejected
         );
         assert_eq!(check(&ok, "unknown", "k").0, Verdict::Unverified);
+        for provider in [
+            "fal",
+            "phala",
+            "vivix",
+            "openrouter",
+            "elevenlabs",
+            "bfl",
+            "google",
+            "runway",
+            "luma",
+            "replicate",
+        ] {
+            assert_eq!(
+                check(&Fixed(Ok("{}")), provider, "k").0,
+                Verdict::Unverified
+            );
+            assert_eq!(
+                check(&Fixed(Ok(r#"{"error":"denied"}"#)), provider, "k").0,
+                Verdict::Unverified
+            );
+        }
     }
 }
