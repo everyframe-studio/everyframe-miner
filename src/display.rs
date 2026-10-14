@@ -576,10 +576,17 @@ pub fn render(command: &str, value: &Value) -> String {
                         .unwrap_or("—".into());
                     vec![
                         text(&r["provider"]),
-                        r["remainingUsd"]
-                            .as_f64()
-                            .map(|n| format!("${n:.2}"))
-                            .unwrap_or("—".into()),
+                        if r["nativeBalance"]["unit"] == "W_CREDITS" {
+                            r["nativeBalance"]["remainingMicrounits"]
+                                .as_i64()
+                                .map(|n| format!("{:.3} W", n as f64 / 1_000_000.0))
+                                .unwrap_or("—".into())
+                        } else {
+                            r["remainingUsd"]
+                                .as_f64()
+                                .map(|n| format!("${n:.2}"))
+                                .unwrap_or("—".into())
+                        },
                         if r["stale"] == true {
                             format!("Stale / {}", text(&r["status"]))
                         } else {
@@ -591,10 +598,10 @@ pub fn render(command: &str, value: &Value) -> String {
                 })
                 .collect();
             let mut out = table(
-                &["PROVIDER", "REMAINING USD", "STATUS", "SOURCE", "CHECKED"],
+                &["PROVIDER", "REMAINING", "STATUS", "SOURCE", "CHECKED"],
                 data,
             );
-            out.push_str("\n\nAccount-level balances may be shared across miners; do not add them together.\nPhala shows credited funds, excluding post-paid limits and outstanding invoices.\nUnavailable: check billing permissions or provider connectivity. Unsupported: no supported USD balance query.\n");
+            out.push_str("\n\nAccount-level balances may be shared across miners; do not add them together.\nVivix shows W credits, not A credits or USD. Phala shows credited funds, excluding post-paid limits and outstanding invoices.\nUnavailable: check billing permissions or provider connectivity. Unsupported: balance lookup is not available in this snapshot.\n");
             for r in rows("balances") {
                 if r["status"] == "unavailable" || r["status"] == "unsupported" {
                     let code = r["diagnostic"]["code"].as_str().unwrap_or(

@@ -30,11 +30,46 @@ pub fn row(provider: &str, status: &str, remaining: Option<f64>, at: i64) -> Val
 pub fn reports(rows: &[Value]) -> Vec<Value> {
     rows.iter()
         .map(|r| {
-            json!({"provider":r["provider"],"currency":"USD",
+            let mut report = json!({"provider":r["provider"],"currency":"USD",
         "remainingMicrousd":r["remainingUsd"].as_f64().map(|n| (n * 1_000_000.0).round() as i64),
-        "status":r["status"],"checkedAt":r["checkedAt"]})
+        "status":r["status"],"checkedAt":r["checkedAt"]});
+            if let Some(native) = r.get("nativeBalance") {
+                report["nativeBalance"] = native.clone();
+            }
+            report
         })
         .collect()
+}
+
+/// Undocumented read-only endpoint: fail closed on any schema change. Never
+/// substitute A credits, a missing W row, or an upstream message for W funds.
+pub fn vivix_w_balance(http: &dyn Http, key: &str) -> Result<Value> {
+    let mut req = Request::get("https://api.vivix.ai/v1/balance", &["api.vivix.ai"]);
+    req.headers
+        .push(("Authorization".into(), format!("Bearer {key}")));
+    req.timeout = 5;
+    req.limit = 64000;
+    let response = http.json(req)?;
+    if response["code"].as_i64() != Some(0) {
+        return Err(Error("invalid_balance"));
+    }
+    let entries = response["data"]["balances"]
+        .as_array()
+        .ok_or(Error("invalid_balance"))?;
+    let w = entries
+        .iter()
+        .filter(|r| r["scope"] == "W")
+        .collect::<Vec<_>>();
+    if w.len() != 1 {
+        return Err(Error("invalid_balance"));
+    }
+    let amount = number(&w[0]["available"])?;
+    // Round down, never invent spendable fractions.
+    let micro = (amount * 1_000_000.0).floor() as i64;
+    if amount > 0.0 && micro == 0 {
+        return Err(Error("invalid_balance"));
+    }
+    Ok(json!({"unit":"W_CREDITS","remainingMicrounits":micro}))
 }
 
 /// Worker telemetry uses deployed generation credentials only. Billing/admin
@@ -136,6 +171,20 @@ pub fn collect(http: &dyn Http, credentials: &Value) -> Vec<Value> {
         if !configured(&credentials[key]) {
             continue;
         }
+        if provider == "vivix" {
+            let mut r = row(provider, "unavailable", None, crate::now());
+            match vivix_w_balance(http, credentials[key].as_str().unwrap()) {
+                Ok(native) => {
+                    r["status"] = json!("ok");
+                    r["nativeBalance"] = native;
+                }
+                Err(e) => {
+                    r["diagnostic"] = diagnostic(provider, e.0);
+                }
+            }
+            rows.push(r);
+            continue;
+        }
         let result = fetch(http, provider, credentials[key].as_str().unwrap());
         let (status, amount, error) = match result {
             Ok(n) => ("ok", Some(n), None),
@@ -156,9 +205,9 @@ pub fn collect(http: &dyn Http, credentials: &Value) -> Vec<Value> {
 pub fn diagnostic(provider: &str, code: &str) -> Value {
     let mut d = crate::diagnostics::value(code);
     if provider == "vivix" && code == "unsupported_balance" {
-        d["message"] = json!("Vivix W-credit balance lookup in USD is not supported.");
+        d["message"] = json!("This snapshot does not include a Vivix W-credit balance.");
         d["next"] = json!(
-            "Check W credits in the Vivix platform billing dashboard. Credit-pack prices vary; no USD balance is inferred from the generation key."
+            "Update the worker with everycli worker-update, or check W credits in the Vivix billing dashboard. W credits are not converted to USD."
         );
     }
     if matches!(code, "http_401" | "http_403") {
@@ -209,9 +258,21 @@ pub fn merge(remote: &Value, local: Vec<Value>, now: i64) -> Vec<Value> {
         } else {
             None
         };
+        let native = if provider == "vivix" && status == "ok" {
+            r.get("nativeBalance")
+                .filter(|b| {
+                    b["unit"] == "W_CREDITS"
+                        && b["remainingMicrounits"]
+                            .as_i64()
+                            .is_some_and(|n| n.unsigned_abs() <= 1_000_000_000_000_000)
+                })
+                .map(|b| json!({"unit":"W_CREDITS","remainingMicrounits":b["remainingMicrounits"]}))
+        } else {
+            None
+        };
         let mut clean = row(
             provider,
-            if status == "ok" && amount.is_none() {
+            if status == "ok" && amount.is_none() && native.is_none() {
                 "unavailable"
             } else {
                 status
@@ -219,6 +280,9 @@ pub fn merge(remote: &Value, local: Vec<Value>, now: i64) -> Vec<Value> {
             amount,
             checked.unwrap_or(0),
         );
+        if let Some(native) = native {
+            clean["nativeBalance"] = native;
+        }
         clean["source"] = json!(if local_row.is_some() {
             "local"
         } else if r["source"] == "attested-worker" {
