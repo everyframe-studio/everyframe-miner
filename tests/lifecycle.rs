@@ -1482,6 +1482,9 @@ impl Http for Rig {
         } else if path.ends_with("/account/billing") {
             assert_eq!(r.method, "GET");
             json!({"credits":{"currency":"USD","current_balance":12.345678}})
+        } else if path.ends_with("/billing/user_balance") {
+            assert_eq!(r.method, "GET");
+            json!(12.345678)
         } else if path.ends_with("/auth/me") {
             assert_eq!(r.method, "GET");
             json!({"credits":{"balance":"2","granted_balance":"3.25","is_post_paid":false}})

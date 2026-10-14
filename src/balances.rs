@@ -96,8 +96,41 @@ pub fn worker_reports(http: &dyn Http, credentials: &Value) -> Vec<Value> {
         .collect()
 }
 
+/// fal's account balance as a generation key sees it. The documented billing API
+/// refuses keys without admin scope, which is every key a worker runs with, so the
+/// balance comes from the account endpoint the fal dashboard reads. It answers a
+/// bare USD number; fail closed on anything else.
+fn fal_user_balance(http: &dyn Http, key: &str) -> Result<f64> {
+    let mut req = Request::get(
+        "https://rest.alpha.fal.ai/billing/user_balance",
+        &["rest.alpha.fal.ai"],
+    );
+    req.headers
+        .push(("Authorization".into(), format!("Key {key}")));
+    req.timeout = 5;
+    req.limit = 64000;
+    let v = http.json(req)?;
+    if !v.is_number() {
+        return Err(Error("invalid_balance"));
+    }
+    number(&v)
+}
+
 fn fetch(http: &dyn Http, provider: &str, key: &str) -> Result<f64> {
     let (url, host, header, value) = match provider {
+        "fal-user" => return fal_user_balance(http, key),
+        "bfl" => (
+            "https://api.bfl.ai/v1/credits",
+            "api.bfl.ai",
+            "x-key",
+            key.into(),
+        ),
+        "runway" => (
+            "https://api.dev.runwayml.com/v1/organization",
+            "api.dev.runwayml.com",
+            "Authorization",
+            format!("Bearer {key}"),
+        ),
         "fal" => (
             "https://api.fal.ai/v1/account/billing?expand=credits",
             "api.fal.ai",
@@ -126,6 +159,10 @@ fn fetch(http: &dyn Http, provider: &str, key: &str) -> Result<f64> {
         req.headers
             .push(("X-Phala-Version".into(), "2026-06-23".into()));
     }
+    if provider == "runway" {
+        req.headers
+            .push(("X-Runway-Version".into(), "2024-11-06".into()));
+    }
     let v = http.json(req)?;
     let n = match provider {
         "fal" => {
@@ -143,6 +180,9 @@ fn fetch(http: &dyn Http, provider: &str, key: &str) -> Result<f64> {
             number(&v["credits"]["balance"])? + number(&v["credits"]["granted_balance"])?
         }
         "openrouter" => number(&v["data"]["total_credits"])? - number(&v["data"]["total_usage"])?,
+        // BFL and Runway sell API credits at a published one US cent each.
+        "bfl" => number(&v["credits"])? / 100.0,
+        "runway" => number(&v["creditBalance"])? / 100.0,
         _ => unreachable!(),
     };
     if !n.is_finite() || n.abs() > 1e9 {
@@ -185,7 +225,13 @@ pub fn collect(http: &dyn Http, credentials: &Value) -> Vec<Value> {
             rows.push(r);
             continue;
         }
-        let result = fetch(http, provider, credentials[key].as_str().unwrap());
+        // A generation key cannot read fal's billing API; its own balance endpoint can.
+        let source = if provider == "fal" && key == generation_key {
+            "fal-user"
+        } else {
+            provider
+        };
+        let result = fetch(http, source, credentials[key].as_str().unwrap());
         let (status, amount, error) = match result {
             Ok(n) => ("ok", Some(n), None),
             Err(e) if e.0 == "unsupported_balance" => {
@@ -213,7 +259,7 @@ pub fn diagnostic(provider: &str, code: &str) -> Value {
     if matches!(code, "http_401" | "http_403") {
         d["next"] = json!(match provider {
             "fal" =>
-                "Verify a Fal key with billing access: everycli set-api-keys --provider fal-billing. Generation access alone may not permit balance reads.",
+                "Verify the Fal API key: everycli set-api-keys --provider fal. An admin key (--provider fal-billing) is optional.",
             "phala" =>
                 "Verify the Phala Cloud API key and its account permissions: everycli set-api-keys --provider phala.",
             "openrouter" =>

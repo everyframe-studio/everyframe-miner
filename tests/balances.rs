@@ -39,10 +39,20 @@ fn api(v: Value) -> Api {
 #[test]
 fn balance_adapters_read_usd_never_infer_missing_as_zero() {
     let cases = [
+        // A generation key reads fal's own balance endpoint: a bare USD number.
+        ("FAL_KEY", json!(12.345678), 12.345678),
+        // An admin key reads the documented billing API.
         (
-            "FAL_KEY",
+            "FAL_ADMIN_KEY",
             json!({"credits":{"currency":"USD","current_balance":12.345678}}),
             12.345678,
+        ),
+        // BFL and Runway credits are one US cent each.
+        ("BFL_API_KEY", json!({"credits":1234.5}), 12.345),
+        (
+            "RUNWAYML_API_SECRET",
+            json!({"creditBalance":5000,"tier":{"maxMonthlyCreditSpend":100000},"usage":{"models":{}}}),
+            50.0,
         ),
         (
             "OPENROUTER_API_KEY",
@@ -79,10 +89,35 @@ fn balance_adapters_read_usd_never_infer_missing_as_zero() {
     for amount in [0.0, -2.5] {
         let rows = balances::collect(
             &api(json!({"credits":{"currency":"USD","current_balance":amount}})),
-            &json!({"FAL_KEY":"test-secret-key"}),
+            &json!({"FAL_ADMIN_KEY":"test-secret-key"}),
         );
         assert_eq!(rows[0]["status"], "ok");
         assert_eq!(rows[0]["remainingUsd"], amount);
+        // A locked fal account reports a negative balance; it must arrive as such, not as missing.
+        let rows = balances::collect(&api(json!(amount)), &json!({"FAL_KEY":"test-secret-key"}));
+        assert_eq!(rows[0]["status"], "ok");
+        assert_eq!(rows[0]["remainingUsd"], amount);
+    }
+    // fal's balance endpoint answers a bare number; a string, an object or an absurd value is not one.
+    for bad in [
+        json!("12.5"),
+        json!({"balance":12.5}),
+        json!(null),
+        json!(1e12),
+    ] {
+        let rows = balances::collect(&api(bad), &json!({"FAL_KEY":"test-secret-key"}));
+        assert!(rows[0]["remainingUsd"].is_null());
+        assert_eq!(rows[0]["status"], "unavailable");
+    }
+    for (key, bad) in [
+        ("BFL_API_KEY", json!({})),
+        ("BFL_API_KEY", json!({"credits":"lots"})),
+        ("RUNWAYML_API_SECRET", json!({"tier":{}})),
+        ("RUNWAYML_API_SECRET", json!({"creditBalance":true})),
+    ] {
+        let rows = balances::collect(&api(bad), &json!({key:"test-secret-key"}));
+        assert!(rows[0]["remainingUsd"].is_null());
+        assert_eq!(rows[0]["status"], "unavailable");
     }
 }
 #[test]
@@ -215,5 +250,49 @@ fn vivix_native_w_credits_are_not_a_credits_or_usd() {
         let rows = balances::collect(&api(response), &json!({"VIVIX_API_KEY":"test-secret-key"}));
         assert_eq!(rows[0]["status"], "unavailable");
         assert!(rows[0].get("nativeBalance").is_none());
+    }
+}
+#[test]
+fn every_readable_provider_is_asked_at_its_own_read_only_endpoint() {
+    for (key, response, url, header) in [
+        (
+            "FAL_KEY",
+            json!(1),
+            "https://rest.alpha.fal.ai/billing/user_balance",
+            ("Authorization", "Key test-secret-key"),
+        ),
+        (
+            "BFL_API_KEY",
+            json!({"credits":1}),
+            "https://api.bfl.ai/v1/credits",
+            ("x-key", "test-secret-key"),
+        ),
+        (
+            "RUNWAYML_API_SECRET",
+            json!({"creditBalance":1}),
+            "https://api.dev.runwayml.com/v1/organization",
+            ("Authorization", "Bearer test-secret-key"),
+        ),
+    ] {
+        let http = api(response);
+        let rows = balances::collect(&http, &json!({key:"test-secret-key"}));
+        assert_eq!(rows[0]["status"], "ok");
+        let calls = http.calls.borrow();
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].url, url);
+        assert!(
+            calls[0]
+                .headers
+                .iter()
+                .any(|(k, v)| k == header.0 && v == header.1)
+        );
+        if key == "RUNWAYML_API_SECRET" {
+            assert!(
+                calls[0]
+                    .headers
+                    .iter()
+                    .any(|(k, v)| k == "X-Runway-Version" && v == "2024-11-06")
+            );
+        }
     }
 }
