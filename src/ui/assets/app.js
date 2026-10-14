@@ -594,8 +594,8 @@ function pageModels() {
   let rows = S.offers.offers || [];
   const filters = [["ready", "Ready for my keys"], ["active", "My active offers"], ["all", "All models"]];
   const seg = h("div", { class: "seg" }, filters.map(([f, label]) => h("button", { class: S.offerFilter === f ? "on" : "", onclick: () => { S.offerFilter = f; render(); } }, label)));
-  if (S.offerFilter === "active") rows = rows.filter((r) => r.offered);
-  if (S.offerFilter === "ready") rows = rows.filter((r) => r.offered || (readiness(r)[0] === "Available" && r.localKeyConfigured !== false));
+  if (S.overview?.initialized && S.offerFilter === "active") rows = rows.filter((r) => r.offered);
+  if (S.overview?.initialized && S.offerFilter === "ready") rows = rows.filter((r) => r.offered || (readiness(r)[0] === "Available" && r.localKeyConfigured !== false));
   root.append(card("Offers", [seg, refresh], rows.length ? h("div", { class: "table-wrap" }, h("table", { class: "cards-sm" },
     h("thead", null, h("tr", null, h("th", null, "Model"), h("th", null, "Provider"), h("th", null, "Readiness"), h("th", null, "Your offer"), h("th", null, "Base reward"), h("th", null, "Change"))),
     h("tbody", null, rows.map(offerRow)))) : h("p", { class: "empty" }, S.offerFilter === "ready" ? "No models are ready for your saved keys yet. Try \"All models\" to see what each one needs." : "Nothing to show."),
@@ -605,7 +605,8 @@ function pageModels() {
 function offerRow(r) {
   const [ready, tone] = readiness(r);
   const disc = h("input", { type: "number", min: "0", max: "99.9", step: "0.5", value: r.offered && r.discountBp != null ? String(r.discountBp / 100) : "0", class: "tiny", "aria-label": "Discount percent for " + (r.name || r.model) });
-  const base = typeof r.baseMinerRewardMicrousd === "number" ? r.baseMinerRewardMicrousd / 1e6 : null;
+  const baseMicrousd = r.baseMinerRewardMicrousd ?? r.pricing?.minerRewardMicrousd;
+  const base = typeof baseMicrousd === "number" ? baseMicrousd / 1e6 : null;
   const yours = r.offered ? (r.pricingCurrent ? "Active · " + ((r.discountBp || 0) / 100).toFixed(2) + "% off" : "Stale pricing") : "Not offered";
   return h("tr", null,
     h("td", { "data-label": "Model" }, h("b", null, r.name || r.model), h("span", { class: "id" }, r.model)),

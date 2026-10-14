@@ -459,7 +459,8 @@ mod progress_tests {
 
     #[test]
     fn background_download_cannot_overwrite_a_concurrently_updated_binary() {
-        let tmp = tempfile::tempdir().unwrap();
+        let root = fs::canonicalize(std::env::temp_dir()).unwrap();
+        let tmp = tempfile::tempdir_in(root).unwrap();
         fs::set_permissions(tmp.path(), fs::Permissions::from_mode(0o700)).unwrap();
         let target = tmp.path().join("everycli");
         fs::write(&target, b"original").unwrap();
