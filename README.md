@@ -20,6 +20,16 @@ and ten provider adapters. Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
 
+### v0.5.0 setup and reliability
+
+The browser UI and miner reliability fixes ship together: safer provider failure
+handling and balance checks, deadline-fenced submissions, longer media transfers,
+non-expiring revocable authorization, crash-safe locks, update rollback copies,
+local worker labels, logs, emergency stop and VM deletion. See the
+[release notes](RELEASE-NOTES-v0.5.0.md) for upgrade and authorization-migration steps.
+Update both the CLI and your existing worker; third-party VMs are not automatically
+restarted. No redeployment is needed.
+
 ### v0.4.0 media coverage
 
 The new worker supports H3 Max image/video/audio references, including measured
@@ -82,8 +92,10 @@ unknown submissions and already-submitted paid jobs are not blindly regenerated.
 
 Fresh, current-policy attested zero-balance reports exclude unfunded provider
 offers. Unsupported, stale and unavailable balances are not treated as zero.
-Vivix's unsupported balance query does **not** mean it has no W credits. Check
-the workspace associated with the worker's actual API key and its W-credit balance.
+Vivix W credits are checked separately from A credits. A known zero W balance
+blocks W1 jobs; a positive balance is allowed, without assuming it can fund every
+possible job. An unavailable query is not treated as zero. The workspace must be
+the one associated with the worker's actual API key.
 
 ## Install everycli as a miner
 

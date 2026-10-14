@@ -13,11 +13,33 @@
   public installer/self-update checks must pass before claiming distribution.
 - Safety changes below are integrated into the source release. v2 delegate
   creation is gated by the signed deployment's `hotkeyDelegationVersion: 2`, so
-  older coordinators/workers keep compatible v1 authorization. No production
-  coordinator or worker rollout is performed by this CLI release.
-- The live mainnet pre-setup catalog endpoint returned 404 during preparation.
-  The CLI reports this clearly; initialized miners still use signed status offers.
-  No fabricated catalog or price fallback is used.
+  older coordinators/workers keep compatible v1 authorization. The matching
+  coordinator deployment and public worker release are recorded below; upgrading
+  the CLI itself does not mutate cloud workloads.
+- The pre-setup catalog initially returned 404. After the matching coordinator
+  deployment, real CLI discovery passed with a verified signed response. No
+  fabricated catalog or price fallback is used.
+
+## v0.5.0 matching production rollout — 14 October 2026
+
+- All **198 Rust tests passed**, with one live hotkey probe intentionally ignored;
+  strict Clippy and browser regressions passed. All **175 coordinator tests passed**.
+- Matching coordinator support is deployed, with backups and exact-source guards.
+  Public catalog discovery works; private control endpoints remain authenticated.
+  Existing offers, routing configuration and TEE requirements were preserved.
+- Published and anonymously verified worker image:
+  `ghcr.io/everyframebuilder/everyframe-subnet-worker@sha256:c818b383323127a978db39508687324ae59cf459bb0dc605e83a02036d6ec102`.
+- Public release `mainnet117-public-v050-20261014` enables v2 authorization and
+  signed same-VM upgrades. Existing operators must choose to update their workers.
+  Deployment compatibility was checked for all enabled, bound public miners.
+- An owner miner completed the same-VM update, provider-key reactivation and fresh
+  hardware attestation, preserving its paused state. Re-enrollment and key apply
+  then migrated both delegates to v2 with no expiry; post-restart attestation and
+  online heartbeat passed. The miner remains paused with no active jobs.
+- This canary exposed and fixed a cached null VM binding in post-upgrade renewal;
+  the coordinator now returns the exact bound VM without weakening CLI validation.
+- Paid generation, provider invoices and alpha payouts are not verified by this
+  release. No paid test jobs were submitted for v0.5.0.
 
 ## Worker safety and CLI recovery — 14 October 2026 (source changes)
 
