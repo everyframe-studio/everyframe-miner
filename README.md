@@ -41,7 +41,7 @@ Recovery does not create or delete cloud resources, end storage billing, or
 resume jobs. Binary updates and automatic authorization repair do not silently
 retire VM bindings. See [v0.5.4 release notes](RELEASE-NOTES-v0.5.4.md).
 
-### Unreleased: model dashboard and faster batches
+### v0.5.5 model dashboard and faster batches
 
 - Unintegrated catalog entries are hidden. Integrated models that still need
   pricing, a worker update or a provider key keep their actionable readiness label.
@@ -64,8 +64,9 @@ everycli offer-batch --models minimax/h3-max-turbo/text-to-video,minimax/h3-max/
 everycli jobs
 ```
 
-These changes require the updated coordinator and a CLI release containing them;
-they are not included in the published v0.5.4 installer.
+Update with `everycli update`, then close and reopen `everycli ui`. These features
+require the updated coordinator, already deployed on SN117. No worker redeployment
+is needed. See [v0.5.5 release notes](RELEASE-NOTES-v0.5.5.md).
 
 ### v0.5.3 simpler setup and batch model editing
 
@@ -83,8 +84,9 @@ After updating with `everycli update`, close and reopen `everycli ui`.
   signed instance type is unchanged, and storage is billed separately.
 - Every Models tab supports selecting rows or all editable models in that tab,
   applying one discount, or withdrawing offers. One review shows the exact quotes.
-  Changed quotes are not auto-approved; results are reported per model. A batch
-  is not atomic, and uncertain requests are never automatically retried.
+  Changed quotes are not auto-approved. The original v0.5.3 batches were per-model;
+  v0.5.5 replaces them with atomic batches. Uncertain requests are never retried
+  automatically.
 - Overview has four cards: **Worker**, **Status**, **Active offers**, and **Jobs**.
   Status distinguishes Ready, Working, Paused, Needs attention, and Unknown.
   Detailed readiness and attestation checks remain under Health checks.
