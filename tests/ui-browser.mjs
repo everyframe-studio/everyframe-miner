@@ -299,13 +299,19 @@ try {
     const original=window.setTimeout;let callback,delay;
     try {
       window.setTimeout=(fn,ms)=>{callback=fn;delay=ms;return 12345;};
-      showBatchReport([{model:'fixture/a',ok:true,message:'Saved'}]);const visible=!!S.batchReport,successDelay=delay;callback();
+      S.offerFilter='all';
+      showBatchReport([{model:'fixture/a',ok:true,message:'Saved'}]);render();
+      const draft=document.querySelector('input[aria-label="Discount percent for fixture/a"]');draft.value='23';
+      const visible=!!S.batchReport,successDelay=delay;callback();
       const cleared=S.batchReport===null;
+      const draftPreserved=document.querySelector('input[aria-label="Discount percent for fixture/a"]')===draft && draft.value==='23';
+      const reportRemoved=document.querySelector('[data-batch-report]')===null;
       showBatchReport([{model:'fixture/a',ok:false,message:'Failed'}]);const failureDelay=delay;
-      return {visible,cleared,successDelay,failureDelay};
+      return {visible,cleared,successDelay,failureDelay,draftPreserved,reportRemoved};
     } finally {window.setTimeout=original;clearBatchReport();}
   });
   assert.equal(expiry.visible,true);assert.equal(expiry.cleared,true);assert.equal(expiry.successDelay,12000);assert.equal(expiry.failureDelay,30000);
+  assert.equal(expiry.draftPreserved,true);assert.equal(expiry.reportRemoved,true);
   const navigated = await page.evaluate(async () => {
     const originals={run,loadOffers,confirmDialog};let calls=0;
     try {

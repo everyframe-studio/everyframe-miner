@@ -874,17 +874,22 @@ function batchToolbar(rows) {
     discount, h("span", null, "% off"), apply, withdraw),
     h("p", { class: "small muted" }, S.batchBusy ? "Preparing or applying your batch…" : "Select models, review once, and apply together. If pricing changes, nothing is applied."));
 }
-function clearBatchReport() { clearTimeout(S.batchReportTimer); S.batchReportTimer = null; S.batchReport = null; }
+function clearBatchReport() {
+  clearTimeout(S.batchReportTimer); S.batchReportTimer = null; S.batchReport = null;
+  document.querySelectorAll("[data-batch-report]").forEach(el => el.remove());
+}
 function showBatchReport(report, epoch = S.navigationEpoch) {
   if (epoch !== S.navigationEpoch || currentRoute() !== "models") return;
   clearBatchReport(); S.batchReport = report;
-  S.batchReportTimer = setTimeout(() => { clearBatchReport(); if (currentRoute() === "models") render(); }, report.some(r => !r.ok) ? 30000 : 12000);
+  // Remove only the transient report. Do not rebuild model forms and lose drafts.
+  S.batchReportTimer = setTimeout(clearBatchReport, report.some(r => !r.ok) ? 30000 : 12000);
 }
 function batchReportView() {
   const report = S.batchReport;
-  return notice(report.some(r => !r.ok) ? "warn" : "ok", "Batch results", h("div", null,
-    button("Dismiss", () => { clearBatchReport(); render(); }, "small"),
+  const view = notice(report.some(r => !r.ok) ? "warn" : "ok", "Batch results", h("div", null,
+    button("Dismiss", clearBatchReport, "small"),
     h("ul", null, report.map(r => h("li", null, r.model + ": " + r.message)))));
+  view.setAttribute("data-batch-report", ""); return view;
 }
 async function batchOffers(rows, withdraw) {
   if (S.batchBusy) return;
