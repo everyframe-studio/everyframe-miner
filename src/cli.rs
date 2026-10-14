@@ -25,7 +25,7 @@ CLI updates: update, auto-update (--enable / --disable)
 Options:
   --network mainnet|testnet (default mainnet SN117; testnet SN566)
   --state-dir DIR
-  --wallet NAME --hotkey NAME (register-hotkey/init; default hotkey: default)
+  --wallet NAME --hotkey NAME (register-hotkey/init/reconnect; default hotkey: default)
   --hotkey-file FILE (alternative to wallet/name)
   --hotkey-ss58 ADDRESS (register-hotkey; public address only)
   --provider NAME (set-api-keys/remove-api-key; includes vivix, phala, fal-billing,

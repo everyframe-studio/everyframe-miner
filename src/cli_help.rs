@@ -173,7 +173,7 @@ pub fn render(command: &str) -> String {
             "ui",
         ),
         "auto-update" => (
-            "Show automatic CLI update settings and the last attempt. Native user installs check in the background after successful interactive commands, at most once every six hours. Downloads are checksum-verified and installed atomically for the next invocation. Never updates workers or changes offers. JSON/CI/help/version invocations do not launch the updater.",
+            "Show automatic CLI update settings and the last attempt. Native user installs check in the background after successful interactive commands and when the UI starts, at most once every six hours. Downloads are checksum-verified and installed atomically for the next invocation; reopen the UI after an update. Never updates workers or changes offers. JSON/CI/help/version invocations do not launch the updater.",
             "  --enable   Enable automatic CLI updates (default)\n  --disable  Disable automatic CLI updates; manual everycli update still works\n  EVERYCLI_DISABLE_AUTO_UPDATE=1 disables background updates for this environment.\n  No flags: show status. Settings apply across miner profiles.",
             "auto-update --disable",
         ),

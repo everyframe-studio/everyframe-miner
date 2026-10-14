@@ -103,7 +103,12 @@ impl Miner<'_> {
         )?;
         if let Some(app) = deployment["appId"].as_str() {
             need(
-                inv["appId"] == app && status["appId"] == app,
+                (inv["appId"] == app
+                    // Initial public envelopes remain unbound after their first
+                    // deployment. The fresh signed status and exact cloud target
+                    // below provide the binding; upgrade envelopes cannot float.
+                    || (inv["appId"].is_null() && inv["previousComposeHash"].is_null()))
+                    && status["appId"] == app,
                 "reconnect_target_mismatch",
             )?;
             let cloud = Cloud::new(self.http, &credentials)?;

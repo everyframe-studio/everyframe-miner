@@ -214,6 +214,33 @@ fn reconnect_keeps_keys_label_deleted_journal_and_records_verified_uid_zero() {
 }
 
 #[test]
+fn reconnect_accepts_initial_public_envelope_only_with_exact_live_binding() {
+    for mismatch in ["none", "app", "compose", "name", "upgrade"] {
+        let (mut r, _) = Rig::reconnect_fixture();
+        r.inv["appId"] = Value::Null;
+        *r.fail.borrow_mut() = String::new();
+        let deployment = json!({"phase":"running","appId":"1".repeat(40)});
+        r.state().write("deployment", &deployment).unwrap();
+        match mismatch {
+            "app" => r.status.borrow_mut()["appId"] = json!("2".repeat(40)),
+            "compose" => r.info.borrow_mut()["compose_hash"] = json!("f".repeat(64)),
+            "name" => r.info.borrow_mut()["name"] = json!("other-worker"),
+            "upgrade" => r.inv["previousComposeHash"] = json!("b".repeat(64)),
+            _ => {}
+        }
+        let result = r.miner().reconnect(None, &|_| Ok(()));
+        assert_eq!(result.is_ok(), mismatch == "none", "{mismatch}");
+        assert_eq!(r.state().read("deployment", false).unwrap(), deployment);
+        assert!(
+            r.calls
+                .borrow()
+                .iter()
+                .all(|(p, _)| p.starts_with("GET ") || p == "POST /" || p.contains("/onboarding/"))
+        );
+    }
+}
+
+#[test]
 fn reconnect_decline_wrong_wallet_pending_operation_and_wrong_vm_preserve_profile() {
     for mode in [
         "decline",
