@@ -7,7 +7,7 @@ const S = {
   token: null, session: null, overview: null, wallets: null, help: null,
   health: null, healthAt: 0, offers: null, offersError: null, balances: null, earnings: null,
   cliUpdate: null, workerUpdate: null, hotkeySel: null, registration: null,
-  openStep: null, offerFilter: "ready", timers: [], refreshing: false,
+  openStep: null, renaming: false, keyStatus: {}, workloads: null, removal: null, offerFilter: "ready", timers: [], refreshing: false,
 };
 try { S.token = sessionStorage.getItem("everycli-token"); } catch { /* private mode */ }
 
@@ -220,6 +220,7 @@ const PHASES = {
   activate_intent: ["Activating (unconfirmed)", "warn"], awaiting_readmission: ["Keys active · waiting for re-attestation", "warn"],
   running: ["Running", "ok"], drained: ["Paused", "warn"], draining: ["Pausing", "warn"], stop_intent: ["Stopping (unconfirmed)", "warn"],
   stopping: ["Shutting down", "warn"], stopped: ["Stopped", "bad"], start_intent: ["Starting (unconfirmed)", "warn"], starting: ["Starting", "warn"],
+  delete_intent: ["Deleting (unconfirmed)", "warn"], deleting: ["Deleting", "warn"], deleted: ["Deleted", ""],
   update_provision_intent: ["Updating (unconfirmed)", "warn"], update_commit_intent: ["Updating (unconfirmed)", "warn"], updating: ["Updating", "warn"],
 };
 const phaseLabel = (p) => (PHASES[p] || [p || "Unknown", "warn"]);
@@ -299,6 +300,54 @@ function renderUnpaired() {
     h("p", { class: "small muted" }, "On a remote server, forward the port first: ssh -N -L 47117:127.0.0.1:47117 <user>@<server>")));
 }
 
+// ---------- worker name and label ----------
+// The signed worker name is long (everyframe-hk-<40 hex>); show "every…ec7d96" and
+// keep the full value in the tooltip and on the Worker page.
+function shortName(name) {
+  if (!name) return "";
+  return name.length > 16 ? name.slice(0, 5) + "…" + name.slice(-6) : name;
+}
+function displayName() {
+  const o = S.overview;
+  return o?.label || shortName(o?.profile?.workerName) || "";
+}
+function renameButton() {
+  return h("button", { class: "linkish", title: "Give this worker a name shown in everycli and here. The signed worker identity stays the same.",
+    onclick: () => { S.renaming = true; render(); } }, S.overview?.label ? "Rename" : "Name this worker");
+}
+function renameForm() {
+  const input = h("input", { type: "text", value: S.overview?.label || "", maxlength: "64", placeholder: "e.g. studio-worker-1", "aria-label": "Worker label" });
+  const status = h("div", { class: "small" });
+  const save = async () => {
+    const name = input.value.trim();
+    if (!name) { status.textContent = "Type a name first."; return; }
+    const job = await run("label", { name }, { quiet: true });
+    if (job.state === "failed") { status.replaceChildren(errorView(errorOf(job))); return; }
+    S.renaming = false; await loadOverview(); render();
+  };
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") save(); if (e.key === "Escape") { S.renaming = false; render(); } });
+  setTimeout(() => input.focus(), 0);
+  return h("div", { class: "rename" }, input,
+    h("div", { class: "row" }, button("Save", save, "small primary"), h("button", { class: "btn small", onclick: () => { S.renaming = false; render(); } }, "Cancel")),
+    status);
+}
+function workerStat(phase, tone) {
+  const full = S.overview?.profile?.workerName || "";
+  return h("div", { class: "stat " + (tone || "") },
+    h("div", { class: "label" }, "Worker"),
+    h("div", { class: "value" }, phase),
+    S.renaming ? renameForm() : [h("div", { class: "sub ellipsis", title: full }, displayName() || "—"),
+      h("div", { class: "sub" }, renameButton())]);
+}
+function nameStat() {
+  const p = S.overview?.profile || {};
+  return h("div", { class: "stat" },
+    h("div", { class: "label" }, "Worker name"),
+    S.renaming ? renameForm() : h("div", { class: "value ellipsis" + (S.overview?.label ? "" : " muted"), title: S.overview?.label || "" }, S.overview?.label || "Not named yet"),
+    S.renaming ? null : h("div", { class: "sub ellipsis mono", title: p.workerName || "" }, shortName(p.workerName) || "—"),
+    S.renaming ? null : h("div", { class: "sub" }, renameButton()));
+}
+
 // ---------- Overview ----------
 function pageOverview() {
   const o = S.overview;
@@ -320,21 +369,18 @@ function pageOverview() {
   const [phase, tone] = phaseLabel(o.deployment.phase);
   const accepting = findCheck("Accepting new work"), attest = findCheck("Workload attestation");
   const activity = health?.activity || {};
-  const delegation = daysLeft(o.delegationExpiresAt);
   const activeOffers = checks.filter((c) => (c.name || "").startsWith("Model: ")).length;
   root.append(h("div", { class: "grid" },
-    stat("Worker", phase, o.label || o.profile?.workerName || "", tone),
+    workerStat(phase, tone),
     stat("Readiness", !S.health ? "Checking…" : (health?.ok ? "All checks pass" : (failing + warning) + " need attention"),
       S.healthAt ? "Checked " + ago(S.healthAt) : "", !S.health ? "" : health?.ok ? "ok" : failing ? "bad" : "warn"),
     stat("Accepting work", accepting ? (accepting.ok ? "Yes" : "No") : "—", accepting ? "" : "Unknown until checked", accepting ? (accepting.ok ? "ok" : "warn") : ""),
     stat("Attestation", attest ? (attest.ok ? "Verified" : "Not yet") : "—", "", attest ? (attest.ok ? "ok" : "warn") : ""),
     stat("Active offers", String(activeOffers), activeOffers ? "" : "Choose models to serve", activeOffers ? "ok" : "warn"),
-    stat("Jobs", (activity.activeJobs ?? 0) + " active", (activity.acceptedJobs ?? 0) + " accepted so far"),
-    stat("Hotkey authorization", o.delegationNonExpiring ? "No expiry" : delegation == null ? "—" : delegation + " days left",
-      o.delegationNonExpiring ? "Revocable by key version" : delegation != null && delegation < 7 ? "Renew soon: everycli init" : "Renews with everycli init",
-      delegation == null ? "" : delegation < 3 ? "bad" : delegation < 7 ? "warn" : "ok")));
+    stat("Jobs", (activity.activeJobs ?? 0) + " active", (activity.acceptedJobs ?? 0) + " accepted so far")));
+  if (S.workloads?.length) root.append(notice("warn", "A worker for this miner runs in your Phala account, but this computer doesn't manage it",
+    h("div", null, "It was probably deployed from another computer. Keep managing it there, or delete or replace it from the ", h("a", { href: "#/worker" }, "Worker page"), ".")));
   if (o.deployment.needsReconcile) root.append(notice("warn", "An operation was interrupted", "Your last change didn't finish cleanly. Re-sync it from the Worker page before anything else; never deploy a second worker."));
-  if (delegation != null && delegation < 7) root.append(notice(delegation < 3 ? "bad" : "warn", "Your hotkey authorization expires in " + delegation + " days", "When it expires the worker stops being authorized while hosting keeps billing. Renew by running everycli init in your terminal, then apply keys from the Worker page."));
   root.append(card("Health checks", [button("Refresh", async () => { await loadHealth(false); render(); })],
     S.health ? (errorOf(S.health) ? errorView(errorOf(S.health)) : healthList(checks)) : h("p", { class: "muted" }, "Checking…"),
     h("p", { class: "small muted" }, "All green means the current readiness checks passed. It does not guarantee traffic, provider funds or earnings.")));
@@ -420,6 +466,7 @@ function pageSetup() {
 }
 async function refreshAll() {
   await loadOverview();
+  if (!managedHere() && !S.removal) await loadWorkloads();
   if (S.overview?.initialized) await loadHealth();
   render();
 }
@@ -433,11 +480,14 @@ function stepBody(id) {
         h("li", null, "Sign in at ", h("a", { href: "https://cloud.phala.network", target: "_blank", rel: "noopener noreferrer" }, "cloud.phala.network"), "."),
         h("li", null, "Open Settings → API Tokens (not \"Private AI\") and create a token."),
         h("li", null, "Paste it below. It is saved only on this computer, in an owner-only file.")),
-      keyForm("phala", refreshAll));
+      keyForm("phala", refreshAll, "phala"),
+      continueButton("phala"));
     case "providers": return h("div", null,
       h("p", null, "The worker generates with your own provider account, so each job is billed there. Add at least one key. You can add more later on the API keys page."),
-      ["fal", "vivix", "openrouter"].map((p) => keyRow(p)),
-      h("details", null, h("summary", null, "Other providers"), ["minimax", "bfl", "replicate", "google", "runway", "luma", "elevenlabs"].map((p) => keyRow(p))));
+      ["fal", "vivix", "openrouter"].map((p) => keyRow(p, "providers")),
+      h("details", { open: ["minimax", "bfl", "replicate", "google", "runway", "luma", "elevenlabs"].some((p) => S.keyStatus[p]) },
+        h("summary", null, "Other providers"), ["minimax", "bfl", "replicate", "google", "runway", "luma", "elevenlabs"].map((p) => keyRow(p, "providers"))),
+      continueButton("providers"));
     case "init": return h("div", null,
       h("p", null, "everycli proves you own the hotkey by signing a challenge on this computer, then downloads your signed worker configuration. No machine is created and nothing is paid."),
       S.hotkeySel ? h("p", { class: "small muted" }, "Using " + describeHotkey(S.hotkeySel) + ".") : o?.registration ? h("p", { class: "small muted" }, "Using the hotkey checked in step 1.") : null,
@@ -464,6 +514,13 @@ function stepBody(id) {
       button("Start accepting work", async () => { await run("resume"); await refreshAll(); }, "primary"));
   }
   return null;
+}
+function continueButton(id) {
+  const st = (S.overview?.steps || []).find((x) => x.id === id);
+  if (!st || !stepDone(st)) return null;
+  return h("div", { class: "row end" }, h("button", { class: "btn primary", onclick: () => {
+    S.openStep = null; render();
+  } }, "Continue to next step"));
 }
 function describeHotkey(sel) {
   if (sel.wallet) return "wallet " + sel.wallet + " / hotkey " + (sel.hotkey || "default");
@@ -521,6 +578,9 @@ function registrationView(job) {
 }
 function stepDeploy(o) {
   const limit = h("input", { type: "number", min: "0.01", step: "0.01", value: "0.06", class: "narrow", "aria-label": "Maximum compute USD per hour" });
+  if (S.removal) return removalView();
+  if (S.workloads?.length) return h("div", { class: "stack" }, workloadsNotice(limit),
+    field("Maximum compute price for the new worker (USD per hour)", limit, "Used by \"Delete and deploy again\"."));
   if (o?.deployment?.needsReconcile) {
     return h("div", null, notice("warn", "An earlier deploy didn't finish cleanly", "Re-sync it first. Never deploy a second worker; it would bill twice."),
       button("Re-sync operation", async () => { await run("reconcile"); await refreshAll(); }, "primary"));
@@ -529,30 +589,134 @@ function stepDeploy(o) {
     h("p", null, "This creates your worker on Phala Cloud. Before anything is created you'll see the live hourly price and confirm it. Storage costs a little extra, and there is no automatic total spending cap: stop the worker from the Worker page when you're done."),
     field("Maximum compute price you accept (USD per hour)", limit, "Deploy refuses if Phala's current price is above this."),
     h("div", { class: "row" }, button("Review price and deploy", async () => {
-      await run("deploy", { maxHourlyUsd: limit.value });
+      const job = await run("deploy", { maxHourlyUsd: limit.value });
+      if (errorOf(job)?.error === "existing_cloud_workload") await loadWorkloads();
       await refreshAll();
     }, "primary")));
 }
 
+// ---------- workers this computer doesn't manage, delete and redeploy ----------
+function managedHere() {
+  const d = S.overview?.deployment || {};
+  return !!d.appId && d.phase !== "deleted";
+}
+async function loadWorkloads() {
+  if (!S.overview?.initialized || managedHere()) { S.workloads = null; return; }
+  if (!(S.overview?.keys || []).some((k) => k.provider === "phala" && k.saved)) { S.workloads = null; return; }
+  const job = await run("status", {}, { quiet: true });
+  const v = value(job);
+  S.workloads = Array.isArray(v?.cloudWorkloads) ? v.cloudWorkloads : null;
+}
+const shortId = (id) => id ? String(id).slice(0, 10) + "…" + String(id).slice(-4) : "—";
+function workloadsNotice(limit) {
+  const list = S.workloads || [];
+  const ownLimit = !limit;
+  if (ownLimit) limit = h("input", { type: "number", min: "0.01", step: "0.01", value: "0.06", class: "narrow", "aria-label": "Maximum compute USD per hour for the new worker" });
+  return notice("warn", list.length === 1 ? "A worker for this miner already exists in your Phala account" : list.length + " workers for this miner already exist in your Phala account", h("div", { class: "stack" },
+    h("p", null, "It was deployed from another computer or an earlier setup, so this computer can't manage it. Keep running it from where you set it up, or delete it here and deploy a new worker that this computer manages."),
+    h("p", { class: "small" }, "Deleting is permanent: the VM and its storage are removed, its billing stops, and any job in progress is lost."),
+    h("ul", { class: "checks" }, list.map((w) => h("li", { class: "action-row" }, h("span"),
+      h("div", { class: "row" },
+        h("div", { class: "grow" }, h("div", { class: "name mono", title: w.appId }, "VM " + shortId(w.appId)),
+          h("div", { class: "detail" }, "Phala status: " + (w.status || "unknown") + (w.sameRelease ? "" : " · older or different release"))),
+        button("Delete", async () => { await removeWorker(w.appId, false, null); }, "danger"),
+        button("Delete and deploy again", async () => { await removeWorker(w.appId, false, limit.value); }, "primary"))))),
+    ownLimit ? h("div", { class: "row" }, h("span", { class: "small" }, "New worker's maximum compute price"), limit, h("span", { class: "small muted" }, "USD/h, storage extra")) : null));
+}
+// Deletes a worker, waits until Phala has removed it, then optionally deploys a new one.
+async function removeWorker(appId, recorded, redeployLimit) {
+  const job = await run("delete", { appId }, { label: redeployLimit ? "Delete and deploy again" : "Delete worker" });
+  if (job.state === "cancelled" || job.state === "failed") return;
+  S.removal = { appId, redeploy: redeployLimit, started: Date.now(), note: "Waiting for Phala to remove the VM…" };
+  render();
+  let gone = false;
+  for (let i = 0; i < 60 && !gone; i++) {
+    await new Promise((ok) => setTimeout(ok, 5000));
+    if (recorded) {
+      const check = await run("delete", { appId }, { quiet: true });
+      gone = value(check)?.phase === "deleted";
+    } else {
+      await loadWorkloads();
+      gone = !(S.workloads || []).some((w) => w.appId === appId && w.status !== "deleted");
+    }
+    if (S.removal) { S.removal.note = "Waiting for Phala to remove the VM… (" + Math.round((Date.now() - S.removal.started) / 1000) + " s)"; renderRemoval(); }
+  }
+  const redeploy = S.removal?.redeploy;
+  S.removal = null;
+  await loadOverview();
+  if (!gone) {
+    Activity.add("Delete worker").finish({ state: "attention", result: { value: { message: "Phala accepted the deletion but still lists the VM. Check again in a few minutes from the Worker page." } } });
+  } else if (redeploy) {
+    const dep = await run("deploy", { maxHourlyUsd: redeploy });
+    if (errorOf(dep)?.error === "existing_cloud_workload") await loadWorkloads();
+  }
+  await loadWorkloads();
+  await refreshAll();
+}
+function removalView() {
+  const r = S.removal;
+  return h("div", { class: "removal" }, notice("warn", r.redeploy ? "Deleting the old worker, then deploying a new one" : "Deleting the worker",
+    h("div", null, h("p", { class: "removal-note" }, r.note), h("p", { class: "small muted" }, "VM " + shortId(r.appId) + ". Keep this page open; closing it doesn't undo the deletion."))));
+}
+function renderRemoval() {
+  const el = $(".removal-note");
+  if (el && S.removal) el.textContent = S.removal.note;
+}
+
 // ---------- API keys ----------
-function keyForm(provider, after) {
+const CHECK_REASONS = {
+  key_check_unreachable: "couldn't reach the provider right now",
+  key_check_inconclusive: "the provider gave an unexpected answer",
+  key_check_unsupported: "no free check is available for this provider",
+};
+function keyStatusView(provider) {
+  const st = S.keyStatus[provider];
+  if (!st) return null;
+  if (st.kind === "error") return h("div", { class: "key-status bad" }, errorView(st.error));
+  return h("div", { class: "key-status " + st.kind }, st.text);
+}
+function checkMessage(provider, check, saving) {
+  const name = providerName(provider);
+  if (!check || check.result === "valid") return { kind: "ok", text: (saving ? "Saved. " : "") + name + " accepted this key." };
+  if (check.result === "rejected") return { kind: "bad", text: name + " rejected the saved key. Replace it with a working key." };
+  return { kind: "warn", text: (saving ? "Saved, but not verified: " : "Not verified: ") + (CHECK_REASONS[check.reason] || check.reason) + ". It will be used as entered." };
+}
+function keyForm(provider, after, stayOn) {
   const saved = (S.overview?.keys || []).find((k) => k.provider === provider)?.saved;
   const input = h("input", { type: "password", autocomplete: "off", spellcheck: "false", placeholder: saved ? "Saved · paste a new key to replace" : "Paste key", "aria-label": providerName(provider) + " key" });
-  const status = h("span", { class: "small muted" });
+  const finish = async () => {
+    if (stayOn) S.openStep = stayOn;
+    await loadOverview();
+    if (after) await after(); else render();
+  };
   const save = button(saved ? "Replace" : "Save", async () => {
     const key = input.value;
-    if (!key.trim()) { status.textContent = "Paste a key first."; return; }
+    if (!key.trim()) { S.keyStatus[provider] = { kind: "warn", text: "Paste a key first." }; return finish(); }
     input.value = "";
+    S.keyStatus[provider] = { kind: "muted", text: "Checking the key with " + providerName(provider) + "…" };
+    status.replaceChildren(keyStatusView(provider));
     const r = await api("/api/keys", { provider, key });
-    if (r.ok) { status.textContent = "Saved on this computer."; await loadOverview(); if (after) await after(); else render(); }
-    else { status.replaceChildren(errorView(r.data.error)); }
+    const err = r.data.error;
+    if (err?.error === "credential_rejected" && provider !== "fal-billing") err.message = providerName(provider) + " rejected this key, so it was not saved.";
+    S.keyStatus[provider] = r.ok ? checkMessage(provider, r.data.check, true) : { kind: "error", error: err };
+    await finish();
   }, "primary");
+  const test = saved ? button("Test", async () => {
+    S.keyStatus[provider] = { kind: "muted", text: "Checking the saved key…" };
+    status.replaceChildren(keyStatusView(provider));
+    const r = await api("/api/keys/check", { provider });
+    S.keyStatus[provider] = r.ok ? checkMessage(provider, r.data.check, false) : { kind: "error", error: r.data.error };
+    status.replaceChildren(keyStatusView(provider));
+  }, "small") : null;
   input.addEventListener("keydown", (e) => { if (e.key === "Enter") save.click(); });
-  return h("div", { class: "row" }, h("span", { class: "badge " + (saved ? "ok" : "") }, saved ? "SAVED" : "NOT SAVED"), input, save, status);
+  const status = h("div", { class: "key-status-wrap" }, keyStatusView(provider));
+  return h("div", { class: "keyform" },
+    h("div", { class: "row" }, h("span", { class: "badge " + (saved ? "ok" : "") }, saved ? "SAVED" : "NOT SAVED"), input, save, test),
+    status);
 }
-function keyRow(provider) {
+function keyRow(provider, stayOn) {
   const [name, hint] = PROVIDERS[provider] || [provider, ""];
-  return h("div", { class: "card flat" }, h("h3", null, name), h("p", { class: "small muted" }, hint), keyForm(provider));
+  return h("div", { class: "card flat" }, h("h3", null, name), h("p", { class: "small muted" }, hint), keyForm(provider, null, stayOn));
 }
 function pageKeys() {
   const o = S.overview, keys = o?.keys || [];
@@ -626,9 +790,12 @@ function pageWorker() {
   const root = h("div", null, h("h1", null, "Worker"),
     h("p", { class: "lede" }, "Manage the machine that does the work. Every action shows what it will do and asks before anything changes or costs money. Closing this page never stops your worker."));
   if (!o?.initialized) { root.append(notice("warn", "No miner profile yet", "Finish the setup guide first.")); return root; }
+  if (S.removal) root.append(removalView());
+  else if (S.workloads?.length) root.append(workloadsNotice(null));
+  else if (!managedHere()) root.append(notice("", "No worker deployed from this computer", h("div", null, "Deploy one from step 5 of the ", h("a", { href: "#/setup" }, "setup guide"), ".")));
   root.append(h("div", { class: "grid" },
     stat("State", phase, d.appId ? "App " + String(d.appId).slice(0, 10) + "…" : "", tone),
-    stat("Worker name", o.label || p.workerName || "—", p.release ? "Release " + p.release : ""),
+    nameStat(),
     stat("Compute price", d.computeHourlyUsd ? "$" + d.computeHourlyUsd + "/h" : "—", "Storage extra"),
     stat("Configuration", p.configurationExpiresAt ? daysLeft(p.configurationExpiresAt) + " days left" : "—", "Renew with everycli init")));
   if (d.needsReconcile) root.append(notice("warn", "Confirm worker state", h("div", null,
@@ -647,22 +814,23 @@ function pageWorker() {
     ["Pause new work", "Finishes current jobs, then stops taking new ones. The machine keeps running and billing.",
       when(ph === "running", button("Pause", async () => { await run("stop", { drainOnly: true }); await refreshAll(); }), "Only a running worker can be paused.")],
     ["Update worker", "Checks for a newer signed worker release. Updating pauses work, updates the same machine, waits for attestation and restores the previous state.",
-      h("div", { class: "row" }, button("Check", async () => { S.workerUpdate = await run("worker-update-check"); render(); }),
-        button("Update", async () => { await run("worker-update"); await refreshAll(); }, "primary"))],
+      h("div", { class: "row" }, when(managedHere(), button("Check", async () => { S.workerUpdate = await run("worker-update-check"); render(); }), "No worker deployed from this computer."),
+        when(managedHere(), button("Update", async () => { await run("worker-update"); await refreshAll(); }, "primary"), "No worker deployed from this computer."))],
     ["Apply saved keys", "Pushes keys you changed on the API keys page to this worker (pauses, restarts, re-attests).",
       when(deployed, button("Apply keys", async () => { await run("apply-api-keys"); await refreshAll(); }), "No running worker.")],
     ["Shut down", "Drains work, then shuts the machine down. Storage may still be billed; nothing is deleted.",
       when(deployed, button("Shut down", async () => { await run("stop"); await refreshAll(); }, "danger"), "No running worker.")],
     ["Emergency shutdown", "Use if the coordinator is unavailable. Can interrupt paid jobs; storage remains billable. The CLI still verifies the exact VM.",
       when(!!d.appId && ph !== "deleted", button("Emergency shutdown", async () => { await run("stop", { force: true }); await refreshAll(); }, "danger"), "No deployment recorded.")],
+    ["Delete worker", "Permanently deletes this VM and its storage. Billing for it stops; jobs in progress are lost. You can deploy a new worker afterwards.",
+      when(!!d.appId && !["deleted"].includes(ph), button(["deleting", "delete_intent"].includes(ph) ? "Check deletion" : "Delete", async () => { await removeWorker(d.appId, true, null); }, "danger"), "No worker recorded on this computer.")],
+    ["Redeploy", "Deletes this worker, waits until Phala removes it, then deploys a fresh one at up to the price below.",
+      when(!!d.appId && !["deleted", "deleting", "delete_intent"].includes(ph), button("Delete and deploy again", async () => { await removeWorker(d.appId, true, startLimit.value); }, "danger"), "No worker recorded on this computer.")],
     ["Start a stopped worker", "Starts the same machine again at up to this compute price.", h("div", { class: "row" }, startLimit, h("span", { class: "small muted" }, "USD/h max"),
       when(ph === "stopped", button("Start", async () => { await run("start", { maxHourlyUsd: startLimit.value }); await refreshAll(); }), "Only a stopped worker can be started."))],
   ];
   root.append(card("Actions", null, h("ul", { class: "checks" }, actions.map(([t, desc, ctl]) => h("li", { class: "action-row" },
     h("span"), h("div", { class: "row" }, h("div", { class: "grow" }, h("div", { class: "name" }, t), h("div", { class: "detail" }, desc)), ctl))))));
-  const labelInput = h("input", { type: "text", value: o.label || "", maxlength: "64", "aria-label": "Local worker label", placeholder: "studio-worker-1" });
-  root.append(card("Local label", null, h("p", { class: "small muted" }, "A friendly name on this computer. The signed VM identity stays unchanged."),
-    h("div", { class: "row" }, labelInput, button("Save label", async () => { await run("label", { name: labelInput.value }); await refreshAll(); }))));
   root.append(card("Worker logs", [button("Read logs", async () => { await run("logs"); })],
     h("p", { class: "small muted" }, "Read bounded, sanitized worker events. Private logs may require the Phala console.")));
   if (S.workerUpdate) root.append(card("Worker update check", null, value(S.workerUpdate) ? h("pre", { class: "out" }, S.workerUpdate.result.text) : errorView(errorOf(S.workerUpdate))));
@@ -670,8 +838,8 @@ function pageWorker() {
     h("dt", null, "Miner"), h("dd", { class: "mono" }, p.minerId || "—"),
     h("dt", null, "Hotkey"), h("dd", { class: "mono" }, p.hotkey || "—"),
     h("dt", null, "Network"), h("dd", null, (S.session?.network || "") + " · SN" + (S.session?.netuid || "")),
-    h("dt", null, "Profile folder"), h("dd", { class: "mono" }, S.session?.stateDir || "—"),
-    h("dt", null, "Hotkey authorization"), h("dd", null, o.delegationNonExpiring ? "No expiry · revocable" : o.delegationExpiresAt ? fmtTime(o.delegationExpiresAt) + " (" + daysLeft(o.delegationExpiresAt) + " days)" : "—"))));
+    h("dt", null, "Signed worker name"), h("dd", { class: "mono wrap" }, p.workerName || "—"),
+    h("dt", null, "Profile folder"), h("dd", { class: "mono wrap" }, S.session?.stateDir || "—"))));
   root.append(card("everycli", [button("Check for update", async () => { S.cliUpdate = await run("cli-update-check"); render(); })],
     h("p", null, "Installed: everycli " + (S.session?.version || "")),
     S.cliUpdate ? (value(S.cliUpdate) ? h("pre", { class: "out" }, S.cliUpdate.result.text) : errorView(errorOf(S.cliUpdate))) : null,
@@ -729,9 +897,10 @@ async function boot() {
   await loadOverview();
   const w = await api("/api/wallets"); if (w.ok) S.wallets = w.data;
   render();
+  if (!managedHere()) { await loadWorkloads(); render(); }
   if (S.overview?.initialized) {
     await Promise.all([loadHealth(), loadBalances(), loadEarnings()]);
-    if (currentRoute() === "overview") render(); else { renderMeta(); renderNav(); }
+    if (currentRoute() === "overview" && !S.renaming) render(); else { renderMeta(); renderNav(); }
   }
   run("cli-update-check", {}, { quiet: true }).then((j) => { S.cliUpdate = j; renderMeta(); });
   let tick = 0;
@@ -748,12 +917,12 @@ async function boot() {
     // Only redraw pages without typing in progress.
     // Forms keep their DOM and drafts during background polling, even if a
     // field lost focus. Explicit actions/navigation are the only form redraws.
-    if (currentRoute() === "overview") render(); else { renderMeta(); renderNav(); }
+    if (currentRoute() === "overview" && !S.renaming) render(); else { renderMeta(); renderNav(); }
     } finally { S.refreshing = false; }
   }, 30000);
 }
 window.addEventListener("hashchange", () => {
   if (location.hash.includes("pair=")) return;
-  S.openStep = null; render(); window.scrollTo(0, 0); $("#main").focus({ preventScroll: true });
+  S.openStep = null; S.renaming = false; render(); window.scrollTo(0, 0); $("#main").focus({ preventScroll: true });
 });
 boot();

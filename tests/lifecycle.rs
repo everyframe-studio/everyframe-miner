@@ -176,6 +176,7 @@ struct Rig {
     fail: RefCell<String>,
     calls: RefCell<Vec<(String, String)>>,
     envs: RefCell<Vec<Value>>,
+    cvms: RefCell<Vec<Value>>,
 }
 
 #[test]
@@ -332,6 +333,7 @@ impl Rig {
             fail: RefCell::new(String::new()),
             calls: RefCell::default(),
             envs: RefCell::default(),
+            cvms: RefCell::default(),
         };
         r.miner().init(&r.sign(&r.inv), &r.credentials).unwrap();
         r
@@ -727,6 +729,72 @@ fn deletion_requires_exact_app_confirmation_and_does_not_repeat_uncertain_reques
 }
 
 #[test]
+fn workers_deployed_elsewhere_are_listed_deletable_and_replaceable() {
+    let r = Rig::new();
+    let other = "3".repeat(40);
+    let own = r.info.borrow().clone();
+    let vm = json!({"app_id":other,"name":r.inv["request"]["name"],"status":"running","compose_hash":"ff".repeat(32)});
+    r.cvms.borrow_mut().push(vm.clone());
+    *r.info.borrow_mut() = vm.clone();
+    let status = r.miner().status().unwrap();
+    assert_eq!(status["cloudWorkloads"][0]["appId"], other.as_str());
+    assert_eq!(status["cloudWorkloads"][0]["sameRelease"], false);
+    assert_eq!(r.deploy().unwrap_err().0, "existing_cloud_workload");
+    r.calls.borrow_mut().clear();
+    let deletes = |r: &Rig| {
+        r.calls
+            .borrow()
+            .iter()
+            .filter(|(p, _)| p.starts_with("DELETE"))
+            .count()
+    };
+    assert_eq!(
+        r.miner()
+            .delete(&"4".repeat(40), &|_| panic!("unknown VM must fail first"))
+            .unwrap_err()
+            .0,
+        "cloud_workload_not_found"
+    );
+    assert!(
+        r.miner()
+            .delete(&other, &|_| Err(Error("cancelled")))
+            .is_err()
+    );
+    assert_eq!(deletes(&r), 0);
+    let out = r
+        .miner()
+        .delete(&other, &|q| {
+            assert!(q.contains("did not deploy"));
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(
+        (out["phase"].as_str(), out["recordedHere"].as_bool()),
+        (Some("deleting"), Some(false))
+    );
+    assert_eq!(deletes(&r), 1);
+    // Nothing is recorded for a VM this profile never managed.
+    assert!(
+        r.state()
+            .read("deployment", true)
+            .unwrap()
+            .as_object()
+            .is_none_or(|o| o.is_empty())
+    );
+    // Once Phala has removed it, this computer deploys its own worker.
+    r.cvms.borrow_mut().clear();
+    *r.info.borrow_mut() = own;
+    r.deploy().unwrap();
+    assert!(r.miner().status().unwrap()["cloudWorkloads"].is_null());
+    // A confirmed deletion frees deploy again.
+    let mut d = r.state().read("deployment", false).unwrap();
+    d["phase"] = json!("deleted");
+    r.state().write("deployment", &d).unwrap();
+    r.deploy().unwrap();
+    assert_eq!(r.phase(), "awaiting_attestation");
+}
+
+#[test]
 fn logs_show_only_worker_events_without_forwarding_cloud_keys() {
     let r = Rig::new();
     r.deploy().unwrap();
@@ -933,7 +1001,7 @@ impl Http for Rig {
         } else if path.ends_with("/os-images") {
             json!({"items":[{"name":"dstack-0.5.9","is_dev":false,"requires_gpu":false,"os_image_hash":self.inv["osImageHash"]}]})
         } else if path.ends_with("/cvms/paginated") {
-            json!({"items":[]})
+            json!({"items":self.cvms.borrow().clone()})
         } else if path.ends_with("/cvms/provision") {
             assert_eq!(self.phase(), "provision_intent");
             json!({"app_id":self.info.borrow()["app_id"],"compose_hash":self.inv["composeHash"],"os_image_hash":self.inv["osImageHash"],"app_env_encrypt_pubkey":hex::encode(PublicKey::from(&StaticSecret::from([0x11;32])).as_bytes()),"kms_info":{"slug":"test-kms"}})

@@ -18,8 +18,10 @@
 use crate::{
     Error, Result,
     cli::{self, Args},
-    invitation, need,
-    network::PublicHttp,
+    invitation,
+    key_check::{self, Verdict},
+    need,
+    network::{Http, PublicHttp},
     now, onboarding, protocol,
     state::State,
 };
@@ -71,6 +73,7 @@ const ACTIONS: &[(&str, &[&str], &[&str], bool)] = &[
     ("resume", &["resume"], &[], true),
     ("stop", &["stop"], &[], true),
     ("label", &["label"], &[], true),
+    ("delete", &["delete"], &[], true),
     ("logs", &["logs"], &[], false),
     ("worker-update", &["worker-update"], &[], true),
     ("reconcile", &["reconcile"], &[], true),
@@ -89,6 +92,7 @@ const PARAMS: &[(&str, &str)] = &[
     ("maxHourlyUsd", "--max-hourly-usd"),
     ("provider", "--provider"),
     ("name", "--name"),
+    ("appId", "--app-id"),
 ];
 const FLAG_PARAMS: &[(&str, &str)] = &[
     ("withdraw", "--withdraw"),
@@ -111,6 +115,7 @@ pub struct Shared {
     port: u16,
     jobs: Mutex<HashMap<String, Job>>,
     busy: Mutex<Option<String>>,
+    http: Box<dyn Http + Send + Sync>,
 }
 
 pub struct Request {
@@ -165,7 +170,13 @@ impl Shared {
             port,
             jobs: Mutex::new(HashMap::new()),
             busy: Mutex::new(None),
+            http: Box::new(PublicHttp),
         }
+    }
+    /// Replaces the client used for API key checks (tests use a fixed answer).
+    pub fn with_http(mut self, http: Box<dyn Http + Send + Sync>) -> Self {
+        self.http = http;
+        self
     }
     pub fn pairing_link(&self) -> String {
         format!(
@@ -261,6 +272,7 @@ pub fn handle(sh: &Arc<Shared>, r: &Request) -> Response {
         ("GET", "/api/wallets") => reply(200, wallets()),
         ("GET", "/api/help") => reply(200, json!({"codes":crate::diagnostics::catalog()})),
         ("POST", "/api/keys") => save_key(sh, body()),
+        ("POST", "/api/keys/check") => check_saved_key(sh, &body()),
         ("POST", "/api/run") => run(sh, &body()),
         ("GET", path) if path.starts_with("/api/jobs/") => job(sh, &path["/api/jobs/".len()..]),
         _ => error(404, "not_found", "Not found."),
@@ -332,16 +344,9 @@ pub fn overview(sh: &Shared) -> Result<Value> {
             Err(e) => json!({"error":e.0}),
         }
     };
-    let delegation_expires = ["CONSOLE_AUTH", "WORKER_AUTH"]
-        .iter()
-        .filter_map(|k| credentials[*k]["certificate"]["value"]["expiresAt"].as_i64())
-        .min();
-    let delegation_non_expiring = ["CONSOLE_AUTH", "WORKER_AUTH"].iter().all(|k| {
-        credentials[*k]["certificate"]["value"]["kind"] == "everyframe-hotkey-delegation-v2"
-            && credentials[*k]["certificate"]["value"]["expiresAt"].is_null()
-    });
     let phase = deployment["phase"].as_str().unwrap_or("not_deployed");
-    let deployed = deployment["appId"].is_string();
+    // A deleted worker no longer counts; deploy can create a new one.
+    let deployed = deployment["appId"].is_string() && phase != "deleted";
     let activated = [
         "awaiting_readmission",
         "running",
@@ -369,10 +374,11 @@ pub fn overview(sh: &Shared) -> Result<Value> {
             json!({"hotkey":registration["hotkey"],"registered":registration["registered"],"network":registration["network"],"wallet":registration["wallet"]})
         },
         "initialized":!config.is_null(),"profile":profile,
-        "deployment":{"phase":phase,"appId":deployment["appId"],"computeHourlyUsd":deployment["computeHourlyUsd"],
-            "needsReconcile":phase.ends_with("_intent") || ["provisioned","starting","stopping","updating","deleting"].contains(&phase)},
+        "deployment":{"phase":phase,"appId":if phase == "deleted" { Value::Null } else { deployment["appId"].clone() },
+            "computeHourlyUsd":deployment["computeHourlyUsd"],
+            // Deletion is confirmed by re-running delete, not by reconcile.
+            "needsReconcile":(phase.ends_with("_intent") && phase != "delete_intent") || ["provisioned","starting","stopping","updating"].contains(&phase)},
         "label":label["name"],
-        "delegationExpiresAt":delegation_expires,"delegationNonExpiring":delegation_non_expiring,
         "keys":keys,"steps":steps,"checkedAt":now()
     }))
 }
@@ -431,6 +437,23 @@ fn save_key(sh: &Shared, mut body: Value) -> Response {
             key.len() <= 8000 && !key.contains(['\r', '\n', '\0']),
             "invalid_credential",
         )?;
+        Ok(name)
+    })();
+    let name = match result {
+        Ok(name) => name,
+        Err(e) => {
+            return reply(
+                400,
+                json!({"error":crate::cli_errors::diagnostic(&e, None)}),
+            );
+        }
+    };
+    // Ask the provider first; a key it refuses is never saved.
+    let (verdict, reason) = key_check::check(sh.http.as_ref(), &provider, &key);
+    if verdict == Verdict::Rejected {
+        return reply(400, json!({"error":rejected(&provider, reason)}));
+    }
+    let result = (|| {
         let state = sh.state()?;
         state.prepare()?;
         let mut update = serde_json::Map::new();
@@ -438,7 +461,60 @@ fn save_key(sh: &Shared, mut body: Value) -> Response {
         onboarding::save_keys(&state, &Value::Object(update), None)
     })();
     match result {
-        Ok(v) => reply(200, json!({"result":v})),
+        Ok(v) => reply(
+            200,
+            json!({"result":v,"check":key_check::verdict_json(verdict, reason)}),
+        ),
+        Err(e) => reply(
+            400,
+            json!({"error":crate::cli_errors::diagnostic(&e, None)}),
+        ),
+    }
+}
+
+fn rejected(provider: &str, reason: &str) -> Value {
+    let (message, next) = if reason == "key_not_admin" {
+        (
+            "fal accepted this key, but it is not an admin key, so it can't read your balance.",
+            "Create an ADMIN key in the fal dashboard for balance checks. Your generation key stays as it is.",
+        )
+    } else {
+        (
+            "The provider rejected this key, so it was not saved.",
+            "Copy the whole key again from the provider's dashboard. A revoked key, a key from a different product, or a key missing permissions is refused.",
+        )
+    };
+    json!({"ok":false,"error":"credential_rejected","provider":provider,"message":message,"next":next})
+}
+
+/// Re-checks a saved key without returning it.
+fn check_saved_key(sh: &Shared, body: &Value) -> Response {
+    let provider = body["provider"].as_str().unwrap_or("");
+    let found = (|| {
+        let name = onboarding::credential_key(provider)?;
+        let credentials = sh.state()?.read("credentials", true)?;
+        let key = credentials[name]
+            .as_str()
+            .filter(|k| invitation::configured(&json!(k)))
+            .ok_or(Error("credential_not_saved"))?;
+        Ok::<_, Error>(zeroize::Zeroizing::new(key.to_string()))
+    })();
+    match found {
+        Ok(key) => {
+            let (verdict, reason) = key_check::check(sh.http.as_ref(), provider, &key);
+            if verdict == Verdict::Rejected {
+                let mut e = rejected(provider, reason);
+                e["message"] = json!("The provider rejected the saved key.");
+                return reply(
+                    200,
+                    json!({"check":key_check::verdict_json(verdict, reason),"error":e}),
+                );
+            }
+            reply(
+                200,
+                json!({"check":key_check::verdict_json(verdict, reason)}),
+            )
+        }
         Err(e) => reply(
             400,
             json!({"error":crate::cli_errors::diagnostic(&e, None)}),

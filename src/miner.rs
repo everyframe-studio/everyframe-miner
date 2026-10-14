@@ -365,10 +365,36 @@ impl Miner<'_> {
                 }
             }
         }
+        let managed_here = d["appId"].is_string() && d["phase"] != "deleted";
+        if !managed_here && configured(&c.credentials["PHALA_CLOUD_API_KEY"]) {
+            match self.cloud_workloads(&c) {
+                Ok(list) => out["cloudWorkloads"] = json!(list),
+                Err(e) => out["cloudWorkloadsError"] = json!({"code":e.0}),
+            }
+        }
         out["next"] = json!(
             "Use everycli doctor for readiness. Reconcile uncertain operations; never blindly repeat a cloud mutation."
         );
         Ok(out)
+    }
+    /// Phala workloads carrying this miner's signed VM name. A workload listed here
+    /// while this profile records none was deployed from another computer or an
+    /// earlier setup; it can be deleted with `everycli delete --app-id ID`.
+    fn cloud_workloads(&self, c: &Context) -> Result<Vec<Value>> {
+        let catalog = self.cloud(c)?.catalog("/cvms/paginated")?;
+        Ok(catalog["items"]
+            .as_array()
+            .ok_or(Error("invalid_cloud_response"))?
+            .iter()
+            .filter(|v| v["name"] == c.invitation["request"]["name"])
+            .filter(|v| matches("[0-9a-f]{40}", &v["app_id"]))
+            .take(20)
+            .map(|v| {
+                json!({"appId":v["app_id"],"name":v["name"],
+                    "status":v["status"].as_str().filter(|s| s.len() <= 40 && s.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')),
+                    "sameRelease":v["compose_hash"] == c.invitation["composeHash"]})
+            })
+            .collect())
     }
     pub fn doctor(&self) -> Result<Value> {
         self.diagnose(false)
@@ -756,7 +782,8 @@ impl Miner<'_> {
         let c = self.load(true)?;
         let inv = &c.invitation;
         need(
-            c.deployment.as_object().is_some_and(|o| o.is_empty()),
+            c.deployment.as_object().is_some_and(|o| o.is_empty())
+                || c.deployment["phase"] == "deleted",
             "deployment_already_recorded",
         )?;
         need(
@@ -781,7 +808,7 @@ impl Miner<'_> {
                 .as_array()
                 .unwrap()
                 .iter()
-                .any(|v| v["name"] == inv["request"]["name"]),
+                .any(|v| v["name"] == inv["request"]["name"] && v["status"] != "deleted"),
             "existing_cloud_workload",
         )?;
         need(
@@ -961,7 +988,12 @@ impl Miner<'_> {
             config,
             invitation,
             credentials: self.state.read("credentials", false)?,
-            deployment: self.state.read("deployment", false)?,
+            // A profile that never deployed has no record; commands that need
+            // one fail with deployment_not_recorded below.
+            deployment: match self.state.read("deployment", true)? {
+                Value::Null => json!({}),
+                d => d,
+            },
         })
     }
     fn recover_cloud_target(&self, c: &mut Context) -> Result<()> {
@@ -1054,6 +1086,10 @@ impl Miner<'_> {
     pub fn delete(&self, app_id: &str, confirm: &dyn Fn(&str) -> Result<()>) -> Result<Value> {
         let _lock = self.state.lock()?;
         let mut c = self.cloud_context()?;
+        let recorded = c.deployment["appId"].is_string() && c.deployment["phase"] != "deleted";
+        if !recorded && c.deployment["phase"] != "provision_intent" {
+            return self.delete_unrecorded(&c, app_id, confirm);
+        }
         self.recover_cloud_target(&mut c)?;
         need(c.deployment["appId"] == app_id, "deployment_app_mismatch")?;
         if c.deployment["phase"] == "deleted" {
@@ -1092,6 +1128,45 @@ impl Miner<'_> {
         self.state.write("deployment", &state)?;
         Ok(
             json!({"phase":"deleting","appId":app_id,"coordinatorDrained":drained,"next":"VM deletion accepted, not yet confirmed. Rerun this command to verify removal and check final storage charges in Phala Billing. Other resources/subscriptions are unchanged; preserve this local management record."}),
+        )
+    }
+    /// Deletes a workload with this miner's signed name that this profile did not
+    /// deploy (another computer, or an earlier setup). Nothing is recorded locally,
+    /// so `deploy` can run again once Phala has removed it.
+    fn delete_unrecorded(
+        &self,
+        c: &Context,
+        app_id: &str,
+        confirm: &dyn Fn(&str) -> Result<()>,
+    ) -> Result<Value> {
+        Cloud::app_path(app_id)?;
+        let found = self
+            .cloud_workloads(c)?
+            .into_iter()
+            .find(|w| w["appId"] == app_id);
+        let Some(workload) = found else {
+            // Already gone, or not one of this miner's workloads.
+            return Err(Error("cloud_workload_not_found"));
+        };
+        let info = self.cloud(c)?.info(app_id)?;
+        need(
+            info["app_id"] == app_id && info["name"] == c.invitation["request"]["name"],
+            "target_mismatch",
+        )?;
+        if ["deleting", "deleted"].contains(&workload["status"].as_str().unwrap_or("")) {
+            return Ok(
+                json!({"phase":"deleting","appId":app_id,"recordedHere":false,"next":"Deletion already requested; no duplicate request sent. Check again with everycli status."}),
+            );
+        }
+        confirm(&format!(
+            "Permanently DELETE VM {app_id} ({}), which this computer did not deploy? This is irreversible; active jobs and its VM data will be lost. Other cloud resources and provider subscriptions are not deleted.",
+            s(&info["name"])?
+        ))?;
+        let drained = self.api(c, "drain", json!({})).is_ok();
+        self.cloud(c)?
+            .request(&Cloud::app_path(app_id)?, "DELETE", None, false, true)?;
+        Ok(
+            json!({"phase":"deleting","appId":app_id,"recordedHere":false,"coordinatorDrained":drained,"next":"VM deletion accepted. When everycli status no longer lists it (usually within a few minutes), run everycli deploy to create a worker managed from this computer."}),
         )
     }
     pub fn label(&self, name: Option<&str>) -> Result<Value> {

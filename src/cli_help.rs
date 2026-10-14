@@ -147,7 +147,7 @@ pub fn render(command: &str) -> String {
             "reconcile",
         ),
         "delete" => (
-            "Permanently delete the verified VM and its storage after exact-ID confirmation. Stops compute/storage billing for that VM, not unrelated resources. Irreversible; in-flight work may be lost.",
+            "Permanently delete the verified VM and its storage after exact-ID confirmation. Also deletes a worker with this miner's name that another computer deployed (listed by status). Stops compute/storage billing for that VM, not unrelated resources. After deletion, deploy can create a new worker. Irreversible; in-flight work may be lost.",
             "  --app-id ID  Required exact VM ID from status\n  --yes        Explicit consent without an interactive terminal",
             "delete --app-id EXACT_APP_ID",
         ),
