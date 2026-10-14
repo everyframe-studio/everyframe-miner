@@ -95,6 +95,27 @@ try {
   assert.equal(await page.evaluate(() => balanceAmount({ provider: 'vivix', nativeBalance: { unit: 'W_CREDITS', remainingMicrounits: 0 } })), '0 W credits');
   assert.equal(await page.evaluate(() => balanceAmount({ provider: 'vivix', status: 'unavailable' })), '—');
 
+  await page.evaluate(() => {
+    S.overview.initialized = true;
+    S.overview.network = 'mainnet';
+    S.overview.profile = { hotkey: '5FW5r4Hjpa7m2hsU5h3awcAwmErcfurCyFqB3Fi1fv8quSvT' };
+    S.overview.registration = { registered: true, network: 'mainnet', hotkey: S.overview.profile.hotkey, uid: 0, checkedAt: Date.now() };
+    render();
+  });
+  const identity = page.getByLabel('Miner identity', { exact: true });
+  assert.match(await identity.innerText(), /UID 0/);
+  assert.match(await identity.innerText(), /5FW5r4…8quSvT/);
+  assert.equal(await identity.locator('code').getAttribute('title'), '5FW5r4Hjpa7m2hsU5h3awcAwmErcfurCyFqB3Fi1fv8quSvT');
+  await page.evaluate(() => { S.overview.registration.hotkey = 'wrong'; render(); });
+  assert.match(await identity.innerText(), /UID not checked/);
+  await page.evaluate(() => { S.overview.registration.hotkey = S.overview.profile.hotkey; S.overview.registration.uid = 127; S.overview.recoveryPending = true; render(); });
+  assert.match(await identity.innerText(), /UID 127/);
+  assert.equal(await page.getByRole('button', { name: 'Reconnect profile', exact: true }).count(), 1);
+  await page.setViewportSize({ width: 390, height: 844 });
+  assert.equal(await identity.evaluate(el => el.scrollWidth <= el.clientWidth), true);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.evaluate(() => { S.overview.recoveryPending = false; render(); });
+
   await page.evaluate(() => { window.confirmResult = null; confirmDialog('Test question only', 'Test').then(v => window.confirmResult = v); });
   assert.equal(await page.locator('#app').evaluate(e => e.inert), true);
   for (let i = 0; i < 6; i++) await page.keyboard.press('Tab');

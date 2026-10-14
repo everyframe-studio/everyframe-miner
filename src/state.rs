@@ -120,6 +120,7 @@ impl State {
                 "auto-update-settings",
                 "auto-update-result",
                 "label",
+                "profile-recovery",
             ]
             .contains(&name),
             "invalid_state_file",
@@ -132,7 +133,12 @@ impl State {
         if optional && !p.exists() {
             return Ok(Value::Null);
         }
-        read_json(&p, true)
+        if name == "profile-recovery" {
+            serde_json::from_slice(&read(&p, true, 2_000_000)?)
+                .map_err(|_| Error("invalid_json_file").at_file(&p))
+        } else {
+            read_json(&p, true)
+        }
     }
     pub fn write(&self, name: &str, v: &Value) -> Result<()> {
         self.prepare()?;

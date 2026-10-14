@@ -401,6 +401,28 @@ fn overview_exposes_lifecycle_reconciliation_and_local_label() {
     );
 }
 
+#[test]
+fn overview_reports_registration_uid_zero_timestamp_but_not_signer_or_recovery_secrets() {
+    let dir = common::tempdir();
+    let sh = shared(dir.path());
+    let state = everyframe_miner::state::State {
+        directory: dir.path().join("profile"),
+    };
+    state.write("registration", &json!({"registered":true,"network":"testnet","hotkey":"public-fixture","uid":0,"checkedAt":123,"hotkeyFile":"secret-signing-path"})).unwrap();
+    state
+        .write("profile-recovery", &json!({"secret":"never-show"}))
+        .unwrap();
+    let out = ui::overview(&sh).unwrap();
+    assert_eq!(out["registration"]["uid"], 0);
+    assert_eq!(out["registration"]["checkedAt"], 123);
+    assert_eq!(out["recoveryPending"], true);
+    assert!(!out.to_string().contains("secret-signing-path"));
+    assert!(!out.to_string().contains("never-show"));
+    let (args, mutating) = ui::action_args(&sh, "reconnect", &json!({})).unwrap();
+    assert_eq!(args.command, "reconnect");
+    assert!(mutating);
+}
+
 fn saved_keys(sh: &Arc<Shared>, token: &str) -> Vec<String> {
     json_of(&call(sh, "GET", "/api/overview", token, Value::Null))["keys"]
         .as_array()

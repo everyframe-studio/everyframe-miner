@@ -45,9 +45,13 @@ pub fn enroll(http: &dyn Http, trust: &Value, path: &Path) -> Result<Value> {
 /// Check finalized chain state before enrollment. A transport or chain failure
 /// stays a failure; it must never be misreported as an unregistered hotkey.
 pub fn enroll_registered(http: &dyn Http, trust: &Value, path: &Path) -> Result<Value> {
+    Ok(enroll_with_receipt(http, trust, path)?.0)
+}
+
+pub fn enroll_with_receipt(http: &dyn Http, trust: &Value, path: &Path) -> Result<(Value, Value)> {
     let receipt = check_registration(http, s(&trust["network"])?, &file_address(path)?)?;
     need(receipt["registered"] == true, "hotkey_not_registered")?;
-    enroll(http, trust, path)
+    Ok((enroll(http, trust, path)?, receipt))
 }
 
 pub fn wallet_path(wallet: &str, key: &str) -> Result<PathBuf> {
@@ -185,6 +189,14 @@ pub fn save_registration(state: &State, receipt: &Value, path: Option<&Path>) ->
                 .to_str()
                 .ok_or(Error("unsafe_path"))?
         );
+    } else {
+        let previous = state.read("registration", true)?;
+        if previous["hotkey"] == receipt["hotkey"]
+            && previous["network"] == receipt["network"]
+            && previous["hotkeyFile"].is_string()
+        {
+            record["hotkeyFile"] = previous["hotkeyFile"].clone();
+        }
     }
     state.write("registration", &record)
 }

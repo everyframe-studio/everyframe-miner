@@ -16,7 +16,7 @@ pub const HELP: &str = "everycli · EveryFrame miner tools
 
 Usage: everycli COMMAND [options]
 
-Setup: setup (guided), register-hotkey, set-api-keys, remove-api-key, init
+Setup: setup (guided), register-hotkey, set-api-keys, remove-api-key, init, reconnect
 Manage: health, doctor, status, providers, balances, offers, offer, earnings, deploy, activate,
         apply-api-keys, resume, worker-update, stop, start, reconcile, delete, logs, label
 Browser: ui (local setup guide and status dashboard on 127.0.0.1)
@@ -204,6 +204,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
     need(
         [
             "init",
+            "reconnect",
             "setup",
             "register-hotkey",
             "set-api-keys",
@@ -248,6 +249,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
             "--provider",
             "--max-hourly-usd",
         ],
+        "reconnect" => vec!["--hotkey-file", "--wallet", "--hotkey"],
         "init" => vec![
             "--invitation",
             "--secrets-file",
@@ -446,7 +448,7 @@ pub fn validate_args(args: &Args) -> Result<()> {
     if let Some(provider) = args.get("--provider") {
         onboarding::credential_key(provider)?;
     }
-    if ["init", "register-hotkey", "setup"].contains(&args.command.as_str()) {
+    if ["init", "reconnect", "register-hotkey", "setup"].contains(&args.command.as_str()) {
         local_hotkey(args)?;
     }
     Ok(())
@@ -658,6 +660,22 @@ pub fn run_with(
     if args.command == "setup" {
         return setup(args, &miner);
     }
+    if ![
+        "reconnect",
+        "status",
+        "doctor",
+        "health",
+        "stop",
+        "delete",
+        "logs",
+    ]
+    .contains(&args.command.as_str())
+    {
+        need(
+            miner.state.read("profile-recovery", true)?.is_null(),
+            "profile_recovery_pending",
+        )?;
+    }
     // Fail locally before any transport or paid-operation preparation. Providers
     // and key management intentionally remain usable before initialization.
     if ![
@@ -689,6 +707,7 @@ pub fn run_with(
         }
     }
     match args.command.as_str() {
+        "reconnect" => miner.reconnect(local_hotkey(args)?.as_deref(), confirm),
         "register-hotkey" => {
             let path = local_hotkey(args)?;
             need(
@@ -749,15 +768,18 @@ pub fn run_with(
                     "hotkey_does_not_match_deployment",
                 )?;
             }
+            let mut fresh_receipt = None;
             let envelope = if let Some(file) = args.get("--invitation") {
                 read_json(Path::new(file), false)?
             } else {
-                onboarding::enroll_registered(
+                let (envelope, receipt) = onboarding::enroll_with_receipt(
                     miner.http,
                     &miner.trust,
                     path.as_deref()
                         .ok_or(Error("local_hotkey_required_use_wallet_or_hotkey_file"))?,
-                )?
+                )?;
+                fresh_receipt = Some(receipt);
+                envelope
             };
             let deployment = miner.validate(&envelope, false)?;
             let mut credentials = if let Some(file) = args.get("--secrets-file") {
@@ -773,10 +795,12 @@ pub fn run_with(
                 )?;
             }
             if deployment["authMode"] == "hotkey-v1" {
-                let path = path.ok_or(Error("local_hotkey_required_use_wallet_or_hotkey_file"))?;
+                let path = path
+                    .as_ref()
+                    .ok_or(Error("local_hotkey_required_use_wallet_or_hotkey_file"))?;
                 credentials.as_object_mut().unwrap().remove("MINER_TOKEN");
-                credentials["CONSOLE_AUTH"] = crate::hotkey::create(&path, &deployment, "console")?;
-                credentials["WORKER_AUTH"] = crate::hotkey::create(&path, &deployment, "worker")?;
+                credentials["CONSOLE_AUTH"] = crate::hotkey::create(path, &deployment, "console")?;
+                credentials["WORKER_AUTH"] = crate::hotkey::create(path, &deployment, "worker")?;
             } else {
                 need(
                     args.get("--hotkey-file").is_none()
@@ -785,7 +809,11 @@ pub fn run_with(
                     "hotkey_deployment_required",
                 )?;
             }
-            miner.init(&envelope, &credentials)
+            let out = miner.init(&envelope, &credentials)?;
+            if let Some(receipt) = fresh_receipt {
+                onboarding::save_registration(&miner.state, &receipt, path.as_deref())?;
+            }
+            Ok(out)
         }
         "doctor" => miner.doctor(),
         "health" => miner.health(),

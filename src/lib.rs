@@ -17,6 +17,7 @@ pub mod offer_catalog;
 pub mod onboarding;
 pub mod protocol;
 pub mod providers;
+pub mod reconnect;
 pub mod state;
 pub mod studio_media;
 pub mod studio_video;

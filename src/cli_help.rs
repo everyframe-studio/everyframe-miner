@@ -6,6 +6,7 @@ pub const COMMANDS: &[&str] = &[
     "set-api-keys",
     "remove-api-key",
     "init",
+    "reconnect",
     "doctor",
     "health",
     "status",
@@ -50,6 +51,11 @@ pub fn render(command: &str) -> String {
             "Check finalized subnet membership. This does NOT register on-chain or pay a registration fee.",
             "  --wallet NAME --hotkey NAME | --hotkey-file FILE | --hotkey-ss58 ADDRESS",
             "register-hotkey --wallet my-wallet --hotkey default",
+        ),
+        "reconnect" => (
+            "Refresh a saved profile with proof from the same local hotkey. Keeps API keys, label and deployment records. Requires confirmation. Never creates, deletes, starts or updates a VM, changes bids or resumes work.",
+            "  --wallet NAME --hotkey NAME | --hotkey-file FILE\n  The saved registration can supply the signer. Rerun to finish an interrupted reconnect.",
+            "reconnect --wallet my-wallet --hotkey default",
         ),
         "init" => (
             "Verify registration and prove hotkey ownership locally to fetch the signed profile. No VM is created.",
@@ -189,6 +195,7 @@ pub fn render(command: &str) -> String {
     } else if name == "setup" {
         "  --network mainnet|testnet (default mainnet SN117; testnet SN566)\n  --state-dir DIR\n  --help\n  New setup is interactive only: no --yes/--json.\n  --continue is read-only and also supports --json without a terminal."
     } else if ![
+        "reconnect",
         "deploy",
         "start",
         "activate",

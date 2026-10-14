@@ -68,6 +68,7 @@ const LABELS = {
   "worker-update": "Update worker", "reconcile": "Re-sync operation", "remove-api-key": "Remove key",
   "balances-publish": "Publish balances",
   "label": "Save worker label", "logs": "Worker logs",
+  "reconnect": "Reconnect miner profile",
 };
 
 // Runs a CLI command. Questions come back to the browser; approving one re-runs
@@ -144,6 +145,7 @@ function errorView(err) {
   return h("div", null,
     h("div", { class: "err-msg" }, err.message || err.code || "Something went wrong."),
     err.next ? h("div", { class: "small muted" }, err.next) : null,
+    (err.error || err.code) === "coordinator_auth_rejected" ? h("a", { class: "btn", href: "#/worker" }, "Reconnect from Worker page") : null,
     err.registrationCommand ? copyBox(err.registrationCommand) : null,
     err.error || err.code ? h("div", { class: "small muted mono" }, "Code: " + (err.error || err.code)) : null);
 }
@@ -349,11 +351,30 @@ function nameStat() {
 }
 
 // ---------- Overview ----------
+function minerIdentity() {
+  const o = S.overview, key = o?.profile?.hotkey || o?.registration?.hotkey;
+  if (!key) return null;
+  const r = o.registration;
+  const matched = r?.registered === true && r.hotkey === key && r.network === o.network;
+  const uid = matched && Number.isInteger(r.uid) && r.uid >= 0 && r.uid <= 65535 ? r.uid : null;
+  const copy = button("Copy hotkey", async (b) => {
+    try { await navigator.clipboard.writeText(key); b.textContent = "Copied"; }
+    catch { b.after(copyBox(key)); b.textContent = "Select and copy"; }
+  }, "small");
+  return h("div", { class: "row miner-identity", "aria-label": "Miner identity" },
+    h("span", { class: "pill", title: uid == null ? "Refresh registration to look up the current UID" : "Registration last checked " + fmtTime(r.checkedAt) }, uid == null ? "UID not checked" : "UID " + uid),
+    h("code", { title: key, "aria-label": "Public hotkey " + key }, key.slice(0, 6) + "…" + key.slice(-6)), copy,
+    button("Refresh UID", async () => { await run("register-hotkey", { hotkeySs58: key }); await loadOverview(); render(); }, "small"));
+}
+function reconnectButton() {
+  return button("Reconnect profile", async () => { await run("reconnect", S.hotkeySel || {}); await refreshAll(); });
+}
 function pageOverview() {
   const o = S.overview;
   const root = h("div", null, h("h1", null, "Overview"),
     h("p", { class: "lede" }, "Live status of your miner. Refreshes every 30 seconds while this tab is open."));
   if (!o) return root;
+  root.append(...[minerIdentity()].filter(Boolean));
   if (!o.initialized) {
     const steps = o.steps || [], done = steps.filter(stepDone).length;
     root.append(h("div", { class: "hero" },
@@ -365,6 +386,10 @@ function pageOverview() {
     return root;
   }
   const health = value(S.health), checks = health?.checks || [];
+  if (o.recoveryPending || checks.some(c => c.detail === "coordinator_auth_rejected" || c.code === "coordinator_auth_rejected")) {
+    root.append(notice("warn", "Reconnect your saved profile", h("div", null,
+      h("p", null, "Refresh miner authorization using the same local hotkey. Your API keys and deployment history are kept; no VM is deployed automatically."), reconnectButton())));
+  }
   const failing = checks.filter((c) => checkState(c) === "FAIL").length, warning = checks.filter((c) => checkState(c) === "WARN").length;
   const [phase, tone] = phaseLabel(o.deployment.phase);
   const accepting = findCheck("Accepting new work"), attest = findCheck("Workload attestation");
@@ -803,6 +828,7 @@ function pageWorker() {
   const when = (ok, el, why) => { if (!ok) { el.disabled = true; el.title = why; } return el; };
   const startLimit = h("input", { type: "number", min: "0.01", step: "0.01", value: "0.06", class: "narrow", "aria-label": "Maximum compute USD per hour" });
   const actions = [
+    ["Reconnect profile", "Prove ownership with the same saved hotkey and refresh local authorization. Keeps keys and history; does not deploy or change the VM.", reconnectButton()],
     ["Re-sync state", "Confirm completed starts, shutdowns or interrupted operations on this same VM.",
       when(!!d.appId, button("Re-sync state", async () => { await run("reconcile"); await refreshAll(); }), "No deployment recorded.")],
     ["Start accepting work", "Lets the network route paid jobs to this worker again.",

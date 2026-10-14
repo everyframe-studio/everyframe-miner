@@ -204,3 +204,8 @@ input.tiny { width: 72px; }
 .notice .stack { gap: 8px; }
 .notice .stack p { margin: 0; }
 .stat .value.muted { color: var(--muted); font-weight: 550; }
+/* Compact public miner identity; full hotkey is available on hover or copy. */
+.miner-identity { margin: 0 0 20px; gap: 10px; flex-wrap: wrap; }
+.miner-identity code { font-size: 13px; }
+.notice { overflow-wrap: anywhere; }
+.copy code { min-width: 0; }
