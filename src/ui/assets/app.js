@@ -2,12 +2,14 @@
 // everycli ui — local setup guide and status dashboard.
 // Everything shown comes from the same commands the terminal runs. Data is always
 // inserted as text (never as HTML), and no request leaves 127.0.0.1.
+// Only non-secret model notification acknowledgments are kept in localStorage.
 
 const S = {
   token: null, session: null, overview: null, wallets: null, help: null,
   health: null, healthAt: 0, offers: null, offersError: null, balances: null, earnings: null,
   cliUpdate: null, workerUpdate: null, hotkeySel: null, registration: null,
   selectedOffers: new Set(), batchDiscount: "0", batchBusy: false, batchReport: null,
+  batchReportTimer: null, navigationEpoch: 0, newModels: new Set(), modelSeen: new Map(),
   openStep: null, renaming: false, keyStatus: {}, workloads: null, removal: null, offerFilter: "ready", timers: [], refreshing: false,
 };
 try { S.token = sessionStorage.getItem("everycli-token"); } catch { /* private mode */ }
@@ -65,6 +67,7 @@ const LABELS = {
   "offers": "Model offers", "earnings": "Earnings", "register-hotkey": "Check hotkey registration",
   "worker-update-check": "Check for worker update", "cli-update-check": "Check for CLI update", "init": "Create miner profile",
   "offer": "Update model offer", "deploy": "Deploy worker", "start": "Start worker", "activate": "Activate keys",
+  "offer-batch": "Update model offers", "jobs": "Jobs by model",
   "apply-api-keys": "Apply keys to worker", "resume": "Start accepting work", "stop": "Stop worker",
   "worker-update": "Update worker", "reconcile": "Re-sync operation", "remove-api-key": "Remove key",
   "balances-publish": "Publish balances",
@@ -265,6 +268,29 @@ async function loadEarnings() { if (S.overview?.initialized) S.earnings = await 
 async function loadOffers(quiet = true) {
   const job = await run("offers", {}, { quiet });
   S.offers = value(job); S.offersError = errorOf(job);
+  if (Array.isArray(S.offers?.offers)) trackModels(S.offers.offers);
+}
+const integratedModel = r => r.contractAvailable !== false && !(r.blockers || []).includes("integration_required");
+function modelSeenKey() { return "everycli-models-seen:v1:" + (S.session?.network || "mainnet") + ":" + (S.overview?.profile?.minerId || "public"); }
+function saveSeenModels(key, ids) {
+  S.modelSeen.set(key, new Set(ids));
+  try { localStorage.setItem(key, JSON.stringify([...ids])); } catch { /* memory fallback */ }
+}
+function trackModels(rows) {
+  const key = modelSeenKey(), ids = rows.filter(integratedModel).map(r => r.model).filter(id => typeof id === "string");
+  let seen = S.modelSeen.get(key);
+  if (!seen) {
+    try { const stored = JSON.parse(localStorage.getItem(key)); if (Array.isArray(stored) && stored.length <= 1024 && stored.every(id => typeof id === "string")) seen = new Set(stored); } catch { /* private mode or invalid cache */ }
+  }
+  // Establish a baseline, not a misleading "all models are new" notification.
+  if (!seen) { saveSeenModels(key, ids); S.newModels.clear(); return; }
+  S.modelSeen.set(key, seen);
+  S.newModels = new Set(ids.filter(id => !seen.has(id)));
+}
+function acknowledgeModels() {
+  if (!Array.isArray(S.offers?.offers)) return;
+  saveSeenModels(modelSeenKey(), S.offers.offers.filter(integratedModel).map(r => r.model));
+  S.newModels.clear();
 }
 
 // ---------- shell ----------
@@ -288,7 +314,8 @@ function renderNav() {
   const steps = S.overview?.steps || [];
   const done = steps.filter((x) => stepDone(x)).length;
   $("#nav").replaceChildren(...ROUTES.map(([r, label]) => h("a", { href: "#/" + r, class: r === current ? "active" : "" },
-    label, r === "setup" && steps.length ? h("span", { class: "count" }, done + "/" + steps.length) : null)));
+    label, r === "models" && S.newModels.size ? h("span", { class: "count", "aria-label": S.newModels.size + " new models" }, S.newModels.size) : null,
+    r === "setup" && steps.length ? h("span", { class: "count" }, done + "/" + steps.length) : null)));
 }
 function render() {
   if (!S.token) return renderUnpaired();
@@ -424,12 +451,17 @@ function pageOverview() {
   root.append(card("Health checks", [button("Refresh", async () => { await loadHealth(false); render(); })],
     S.health ? (errorOf(S.health) ? errorView(errorOf(S.health)) : healthList(checks)) : h("p", { class: "muted" }, "Checking…"),
     h("p", { class: "small muted" }, "All green means the current readiness checks passed. It does not guarantee traffic, provider funds or earnings.")));
-  const jobs = Array.isArray(activity.jobs) ? activity.jobs : [];
-  root.append(card("Job activity", null, jobs.length
-    ? h("div", { class: "table-wrap" }, h("table", null, h("thead", null, h("tr", null, h("th", null, "State"), h("th", null, "Jobs"))),
-      h("tbody", null, jobs.map((j) => h("tr", null, h("td", null, j.state || "—"), h("td", null, String(j.count ?? "—")))))))
-    : h("p", { class: "empty" }, "No jobs yet. Zero active jobs is normal while idle."),
-    activity.note ? h("p", { class: "small muted" }, activity.note) : null));
+  const jobs = activity.jobsByModel;
+  root.append(card("Jobs by model", [h("span", { class: "small muted" }, "All time")],
+    errorOf(S.health) ? errorView(errorOf(S.health)) : !Array.isArray(jobs)
+      ? h("p", { class: "empty" }, "Per-model job counts have not been reported yet.")
+      : jobs.length ? h("div", { class: "table-wrap" }, h("table", { class: "cards-sm" },
+        h("thead", null, h("tr", null, ["Model", "Completed", "Active", "Failed attempts", "Cancelled / expired"].map(label => h("th", null, label)))),
+        h("tbody", null, jobs.map(j => h("tr", null,
+          h("td", { "data-label": "Model" }, h("b", null, S.offers?.offers?.find(r => r.model === j.model)?.name || j.model)),
+          ...[["Completed", j.completed], ["Active", j.active], ["Failed attempts", j.failed], ["Cancelled / expired", j.cancelled]].map(([label, n]) => h("td", { "data-label": label }, Number.isSafeInteger(n) ? n.toLocaleString() : "—")))))))
+        : h("p", { class: "empty" }, "No jobs yet. Your completed jobs will appear here."),
+    h("p", { class: "small muted" }, "Completed means accepted, verified output—not a payment or an alpha reward. Failed and cancelled counts describe attempts.")));
   root.append(balancesCard(), earningsCard());
   return root;
 }
@@ -455,13 +487,20 @@ function balancesCard() {
 }
 function earningsCard() {
   const v = value(S.earnings);
-  const rows = v ? Object.entries(v).filter(([k]) => !["minerId", "asOf"].includes(k)) : [];
-  return card("Earnings", null,
-    !S.earnings ? h("p", { class: "muted" }, "Loading…") : errorOf(S.earnings) ? errorView(errorOf(S.earnings)) : rows.length
-      ? h("dl", { class: "kv" }, rows.map(([k, val]) => [h("dt", null, k.replace(/([A-Z])/g, " $1").toLowerCase()),
-        h("dd", null, typeof val === "object" ? JSON.stringify(val) : String(val))]))
-      : h("p", { class: "empty" }, "No earnings reported yet."),
-    v?.asOf ? h("p", { class: "small muted" }, "As of " + fmtTime(v.asOf) + ". Rewards are alpha emissions for accepted, verified work; nothing is guaranteed.") : null);
+  const rows = Array.isArray(v?.fees) ? v.fees : [];
+  const money = n => Number.isSafeInteger(n) && v?.currency === "USD" && v?.unit === "microusd" ? fmtUsd(n / 1e6, 4) : "Not reported";
+  const labels = { pending: "Pending review", approved: "Approved", rejected: "Rejected", paid: "Paid", accrued: "Accrued", void: "Voided" };
+  return card("Serving fees", null,
+    !S.earnings ? h("p", { class: "muted" }, "Loading…") : errorOf(S.earnings) ? errorView(errorOf(S.earnings)) : [
+      rows.length ? h("div", { class: "table-wrap" }, h("table", null,
+        h("thead", null, h("tr", null, ["Status", "Jobs", "Recorded value"].map(label => h("th", null, label)))),
+        h("tbody", null, rows.map(r => h("tr", null, h("td", null, labels[r.state] || String(r.state || "Not reported").replaceAll("_", " ")),
+          h("td", null, Number.isSafeInteger(r.jobs) ? r.jobs.toLocaleString() : "—"), h("td", null, money(r.amountMicrousd)))))))
+        : h("p", { class: "empty" }, "No serving fees recorded yet."),
+      h("dl", { class: "kv" }, h("dt", null, "Wallet payments"), h("dd", null, v?.payoutsImplemented === false ? "Not implemented" : money(v?.paidMicrousd)),
+        h("dt", null, "On-chain alpha"), h("dd", null, "Not measured here"), h("dt", null, "Provider costs"), h("dd", null, "Not measured here")),
+      h("p", { class: "small muted" }, "Recorded serving fees are not wallet payments, alpha received, or net profit."),
+      v?.asOf ? h("p", { class: "small muted" }, "Updated " + ago(v.asOf)) : null]);
 }
 
 // ---------- Setup guide ----------
@@ -787,7 +826,6 @@ function pageKeys() {
 // ---------- Models ----------
 function readiness(r) {
   const b = r.blockers || [];
-  if (b.includes("integration_required")) return ["Integration pending", "warn"];
   if (b.includes("pricing_required")) return ["Pricing required", "warn"];
   if (b.includes("worker_release_required")) return ["Worker update required", "warn"];
   if (b.includes("worker_offline")) return ["Worker offline", "bad"];
@@ -802,9 +840,10 @@ function pageModels() {
   const refresh = button("Refresh", async () => { await loadOffers(false); render(); });
   if (!S.offers && !S.offersError) { root.append(card("Offers", [refresh], h("p", { class: "muted" }, "Loading…"))); loadOffers().then(render); return root; }
   if (S.offersError) { root.append(card("Offers", [refresh], errorView(S.offersError))); return root; }
-  let rows = S.offers.offers || [];
+  let rows = (S.offers.offers || []).filter(integratedModel);
   const filters = [["ready", "Ready for my keys"], ["active", "My active offers"], ["all", "All models"]];
-  const seg = h("div", { class: "seg" }, filters.map(([f, label]) => h("button", { disabled: S.batchBusy, class: S.offerFilter === f ? "on" : "", onclick: () => { S.offerFilter = f; S.selectedOffers.clear(); render(); } }, label)));
+  const seg = h("div", { class: "seg" }, filters.map(([f, label]) => h("button", { disabled: S.batchBusy, class: S.offerFilter === f ? "on" : "", onclick: () => { S.offerFilter = f; S.selectedOffers.clear(); clearBatchReport(); if (f === "all") acknowledgeModels(); render(); } }, label,
+    f === "all" && S.newModels.size ? h("span", { class: "badge info", "aria-label": S.newModels.size + " new models" }, S.newModels.size + " new") : null)));
   if (S.overview?.initialized && S.offerFilter === "active") rows = rows.filter((r) => r.offered);
   if (S.overview?.initialized && S.offerFilter === "ready") rows = rows.filter((r) => r.offered || (readiness(r)[0] === "Available" && r.localKeyConfigured !== false));
   root.append(card("Offers", [seg, refresh], S.overview?.initialized ? batchToolbar(rows) : null,
@@ -816,7 +855,7 @@ function pageModels() {
   if (S.batchBusy) root.querySelectorAll("button, input").forEach(el => { el.disabled = true; });
   return root;
 }
-function selectableOffer(r) { return r.offered || (r.offerable === true && r.localKeyConfigured !== false); }
+function selectableOffer(r) { return integratedModel(r) && (r.offered || (r.offerable === true && r.localKeyConfigured !== false)); }
 function batchToolbar(rows) {
   const eligible = rows.filter(selectableOffer);
   const visible = new Set(eligible.map(r => r.model));
@@ -833,12 +872,19 @@ function batchToolbar(rows) {
   return h("div", { class: "batch-toolbar stack" }, h("div", { class: "row" },
     h("label", { class: "row" }, select, "Select all in this tab"), h("b", null, count + " selected"),
     discount, h("span", null, "% off"), apply, withdraw),
-    h("p", { class: "small muted" }, S.batchBusy ? "Updating offers… Keep this page open." : "Select any models below. Unavailable new offers are excluded. You review all changes once before applying."));
+    h("p", { class: "small muted" }, S.batchBusy ? "Preparing or applying your batch…" : "Select models, review once, and apply together. If pricing changes, nothing is applied."));
+}
+function clearBatchReport() { clearTimeout(S.batchReportTimer); S.batchReportTimer = null; S.batchReport = null; }
+function showBatchReport(report, epoch = S.navigationEpoch) {
+  if (epoch !== S.navigationEpoch || currentRoute() !== "models") return;
+  clearBatchReport(); S.batchReport = report;
+  S.batchReportTimer = setTimeout(() => { clearBatchReport(); if (currentRoute() === "models") render(); }, report.some(r => !r.ok) ? 30000 : 12000);
 }
 function batchReportView() {
   const report = S.batchReport;
-  return notice(report.some(r => !r.ok) ? "warn" : "ok", "Batch results", h("ul", null,
-    report.map(r => h("li", null, r.model + ": " + r.message))));
+  return notice(report.some(r => !r.ok) ? "warn" : "ok", "Batch results", h("div", null,
+    button("Dismiss", () => { clearBatchReport(); render(); }, "small"),
+    h("ul", null, report.map(r => h("li", null, r.model + ": " + r.message)))));
 }
 async function batchOffers(rows, withdraw) {
   if (S.batchBusy) return;
@@ -846,33 +892,35 @@ async function batchOffers(rows, withdraw) {
   if (!selected.length) return;
   const discount = S.batchDiscount.trim();
   if (!withdraw && (!/^(?:0|[1-9]\d?)(?:\.\d{1,2})?$/.test(discount) || Number(discount) > 99.9)) {
-    S.batchReport = [{ model: "Discount", ok: false, message: "Enter 0–99.9%, with at most two decimal places." }]; render(); return;
+    showBatchReport([{ model: "Discount", ok: false, message: "Enter 0–99.9%, with at most two decimal places." }]); render(); return;
   }
-  S.batchBusy = true; S.batchReport = null; render();
-  const report = [], prepared = [];
+  const epoch = S.navigationEpoch;
+  S.batchBusy = true; clearBatchReport(); render();
+  const report = [], changes = selected.filter(r => !withdraw || r.offered);
+  for (const row of selected) if (withdraw && !row.offered) report.push({ model: row.model, ok: true, message: "Already withdrawn; unchanged." });
   try {
-    for (const row of selected) {
-      if (withdraw && !row.offered) { report.push({ model: row.model, ok: true, message: "Already withdrawn; unchanged." }); continue; }
-      const params = withdraw ? { model: row.model, withdraw: true } : { model: row.model, discountPct: discount };
-      const job = await run("offer", params, { quiet: true, prepareOnly: true });
-      if (job.state === "confirm") prepared.push({ model: row.model, params, question: job.result.question, hash: job.result.hash });
-      else report.push({ model: row.model, ok: false, message: errorOf(job)?.message || "Could not prepare this change. Not applied." });
-    }
-    const yes = prepared.length && await confirmDialog(h("div", null,
-      h("p", null, `${withdraw ? "Withdraw" : "Update"} ${prepared.length} offers. Changes are applied individually, not as one transaction. Provider costs do not decrease. No guaranteed traffic or profit.`),
-      report.length ? h("p", null, `${report.length} other selected models will not be changed; see Batch results.`) : null,
-      h("ul", null, prepared.map(p => h("li", null, h("b", null, p.model), h("p", null, p.question))))), "Batch model offers");
-    for (const p of prepared) {
-      if (!yes) { report.push({ model: p.model, ok: false, message: "Cancelled; unchanged." }); continue; }
-      const job = await run("offer", p.params, { quiet: true, approvals: [p.hash], exactApproval: true });
+    if (changes.length) {
+      const params = { models: changes.map(r => r.model).join(","), ...(withdraw ? { withdraw: true } : { discountPct: discount }) };
+      const prepared = await run("offer-batch", params, { quiet: true, prepareOnly: true });
+      let job = prepared;
+      if (prepared.state === "confirm") {
+        const yes = epoch === S.navigationEpoch && await confirmDialog(prepared.result.question, "Batch model offers");
+        job = yes && epoch === S.navigationEpoch
+          ? await run("offer-batch", params, { quiet: true, approvals: [prepared.result.hash], exactApproval: true })
+          : { state: "cancelled" };
+      }
       const ok = job.state === "done";
-      report.push({ model: p.model, ok, message: ok ? (withdraw ? "Withdrawn." : `Discount set to ${discount}%.`) : job.state === "confirm" ? "Quote changed; not applied. Review again." : errorOf(job)?.message || "Failed; refresh offers to check current state before retrying." });
-      if (ok) S.selectedOffers.delete(p.model);
-      // An unknown result is not retried. Other independent offers can finish.
+      const message = ok ? (withdraw ? "Withdrawn." : `Discount set to ${discount}%.`)
+        : job.state === "confirm" ? "Quote changed; nothing applied. Review again."
+        : job.state === "cancelled" ? "Cancelled; unchanged."
+        : errorOf(job)?.message || "Result not confirmed. Refresh offers before retrying.";
+      for (const r of changes) { report.push({ model: r.model, ok, message }); if (ok) S.selectedOffers.delete(r.model); }
     }
+  } catch { report.push({ model: "Batch", ok: false, message: "Result not confirmed. Refresh offers before retrying." });
   } finally {
-    S.batchReport = report; S.batchBusy = false;
-    await loadOffers(); render();
+    showBatchReport(report, epoch); S.batchBusy = false;
+    await loadOffers();
+    if (epoch === S.navigationEpoch && currentRoute() === "models") render(); else renderNav();
   }
 }
 function offerRow(r) {
@@ -1008,7 +1056,7 @@ async function boot() {
   render();
   if (!managedHere()) { await loadWorkloads(); if (currentRoute() === "overview" && !S.renaming) render(); }
   if (S.overview?.initialized) {
-    await Promise.all([loadHealth(), loadBalances(), loadEarnings()]);
+    await Promise.all([loadHealth(), loadBalances(), loadEarnings(), loadOffers()]);
     if (currentRoute() === "overview" && !S.renaming) render(); else { renderMeta(); renderNav(); }
   }
   run("cli-update-check", {}, { quiet: true }).then((j) => { S.cliUpdate = j; renderMeta(); });
@@ -1022,6 +1070,7 @@ async function boot() {
     if (S.overview?.initialized) {
       await loadHealth();
       if (tick % 4 === 0) await Promise.all([loadBalances(), loadEarnings()]);
+      if (tick % 2 === 0 && !S.batchBusy) await loadOffers();
     }
     // Only redraw pages without typing in progress.
     // Forms keep their DOM and drafts during background polling, even if a
@@ -1032,6 +1081,7 @@ async function boot() {
 }
 window.addEventListener("hashchange", () => {
   if (location.hash.includes("pair=")) return;
+  S.navigationEpoch++; clearBatchReport();
   S.openStep = null; S.renaming = false; render(); window.scrollTo(0, 0); $("#main").focus({ preventScroll: true });
 });
 boot();

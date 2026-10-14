@@ -14,6 +14,8 @@ pub const COMMANDS: &[&str] = &[
     "balances",
     "offers",
     "offer",
+    "offer-batch",
+    "jobs",
     "earnings",
     "deploy",
     "activate",
@@ -112,6 +114,16 @@ pub fn render(command: &str) -> String {
             "  No command-specific options.",
             "earnings",
         ),
+        "jobs" => (
+            "Show all-time completed jobs per model. Completed means accepted, verified output; not a payment or alpha reward.",
+            "  No command-specific options.",
+            "jobs",
+        ),
+        "offer-batch" => (
+            "Review and apply multiple offers atomically. Changed pricing or revisions reject the whole batch. No automatic retry.",
+            "  --models ID,ID      Required comma-separated model IDs (up to 128)\n  --discount-pct PCT  Required unless --withdraw; 0–99.90, up to 2 decimals\n  --withdraw          Withdraw active selected offers",
+            "offer-batch --models minimax/h3-max-turbo/text-to-video,minimax/h3-max/text-to-video --discount-pct 10",
+        ),
         "deploy" => (
             "Review the live hosting quote, then create a worker after confirmation. Storage costs extra; the hourly ceiling is NOT a total budget. Existing deployments are never recreated.",
             "  --max-hourly-usd N  Required positive finite compute ceiling",
@@ -204,6 +216,7 @@ pub fn render(command: &str) -> String {
         "worker-update",
         "stop",
         "offer",
+        "offer-batch",
         "remove-api-key",
     ]
     .contains(&name)

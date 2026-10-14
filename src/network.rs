@@ -47,6 +47,20 @@ pub trait Http {
     }
 }
 pub struct PublicHttp;
+fn batch_offer_error(status: u16, bytes: &[u8]) -> Error {
+    if bytes.len() <= 4096
+        && let Ok(v) = serde_json::from_slice::<Value>(bytes)
+    {
+        match (status, v["error"].as_str()) {
+            (409, Some("offer_revision_conflict")) => return Error("offer_revision_conflict"),
+            (409, Some("offer_pricing_changed")) => return Error("offer_pricing_changed"),
+            (400, Some("invalid_offer_batch")) => return Error("invalid_offer_batch"),
+            (403, Some("model_not_allowed")) => return Error("model_not_allowed"),
+            _ => {}
+        }
+    }
+    crate::diagnostics::http_error(status)
+}
 fn enrollment_error(bytes: &[u8]) -> Error {
     if bytes.len() <= 4096
         && let Ok(v) = serde_json::from_slice::<Value>(bytes)
@@ -189,6 +203,19 @@ impl Http for PublicHttp {
                 return Err(enrollment_error(&bytes));
             }
             if !response.status().is_success() {
+                if u.host_str() == Some("subnet.everyframe.studio")
+                    && r.method == "POST"
+                    && ["/v1/miner/offer-batch", "/mainnet/v1/miner/offer-batch"]
+                        .contains(&u.path())
+                {
+                    let status = response.status().as_u16();
+                    let mut bytes = Vec::new();
+                    response
+                        .take(4097)
+                        .read_to_end(&mut bytes)
+                        .map_err(|_| Error("response_read_failed"))?;
+                    return Err(batch_offer_error(status, &bytes));
+                }
                 if matches!(u.host_str(), Some("api.vivix.ai" | "queue.fal.run")) {
                     let status = response.status().as_u16();
                     let mut bytes = Vec::new();
@@ -225,6 +252,32 @@ impl Http for PublicHttp {
 #[cfg(test)]
 mod tests {
     use super::enrollment_error;
+    #[test]
+    fn batch_errors_are_fixed_bounded_and_status_checked() {
+        assert_eq!(
+            super::batch_offer_error(
+                409,
+                br#"{"error":"offer_revision_conflict","secret":"never echoed"}"#
+            )
+            .0,
+            "offer_revision_conflict"
+        );
+        assert_eq!(
+            super::batch_offer_error(409, br#"{"error":"offer_pricing_changed"}"#).0,
+            "offer_pricing_changed"
+        );
+        for body in [b"secret".as_slice(), br#"{"error":"private-provider-key"}"#] {
+            assert_eq!(super::batch_offer_error(409, body).0, "http_409");
+        }
+        assert_eq!(
+            super::batch_offer_error(500, br#"{"error":"offer_revision_conflict"}"#).0,
+            "http_500"
+        );
+        assert_eq!(
+            super::batch_offer_error(409, &vec![b' '; 4097]).0,
+            "http_409"
+        );
+    }
     #[test]
     fn enrollment_errors_never_echo_remote_text_or_secrets() {
         assert_eq!(

@@ -3,8 +3,21 @@ use crate::invitation::{PROVIDERS, configured, invited_keys};
 use serde_json::{Value, json};
 use std::collections::HashSet;
 
+pub fn integrated(row: &Value) -> bool {
+    row["contractAvailable"] != false
+        && !row["blockers"]
+            .as_array()
+            .is_some_and(|b| b.iter().any(|v| v == "integration_required"))
+}
+
 pub fn offers(status: &Value, invitation: &Value, credentials: &Value) -> Value {
-    let existing = status["offers"].as_array().cloned().unwrap_or_default();
+    let existing: Vec<_> = status["offers"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|row| integrated(row))
+        .cloned()
+        .collect();
     let Some(catalog) = status["modelCatalog"].as_array().filter(|c| c.len() <= 256) else {
         return json!({"minerId":status["minerId"],"routingPolicy":status["routingPolicy"],
             "offers":existing,"catalogAvailable":false});
@@ -20,6 +33,9 @@ pub fn offers(status: &Value, invitation: &Value, credentials: &Value) -> Value 
             continue;
         };
         if !seen.insert(id.to_string()) {
+            continue;
+        }
+        if !integrated(model) {
             continue;
         }
         let mut row = existing
@@ -63,14 +79,15 @@ pub fn offers(status: &Value, invitation: &Value, credentials: &Value) -> Value 
 }
 
 pub fn readiness(row: &Value) -> &'static str {
+    if !integrated(row) {
+        return "Unavailable";
+    }
     let blocked = |code: &str| {
         row["blockers"]
             .as_array()
             .is_some_and(|b| b.iter().any(|v| v == code))
     };
-    if blocked("integration_required") {
-        "Integration pending"
-    } else if blocked("pricing_required") {
+    if blocked("pricing_required") {
         "Pricing required"
     } else if blocked("worker_release_required") {
         "Worker release required"

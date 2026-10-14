@@ -56,6 +56,7 @@ const ACTIONS: &[(&str, &[&str], &[&str], bool)] = &[
     ("balances", &["balances"], &[], false),
     ("offers", &["offers"], &[], false),
     ("earnings", &["earnings"], &[], false),
+    ("jobs", &["jobs"], &[], false),
     ("register-hotkey", &["register-hotkey"], &[], true),
     (
         "worker-update-check",
@@ -67,6 +68,7 @@ const ACTIONS: &[(&str, &[&str], &[&str], bool)] = &[
     ("init", &["init"], &[], true),
     ("reconnect", &["reconnect"], &[], true),
     ("offer", &["offer"], &[], true),
+    ("offer-batch", &["offer-batch"], &[], true),
     ("deploy", &["deploy"], &[], true),
     ("start", &["start"], &[], true),
     ("activate", &["activate"], &[], true),
@@ -89,6 +91,7 @@ const PARAMS: &[(&str, &str)] = &[
     ("hotkeyFile", "--hotkey-file"),
     ("hotkeySs58", "--hotkey-ss58"),
     ("model", "--model"),
+    ("models", "--models"),
     ("discountPct", "--discount-pct"),
     ("maxHourlyUsd", "--max-hourly-usd"),
     ("provider", "--provider"),
