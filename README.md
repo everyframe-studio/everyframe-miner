@@ -61,6 +61,27 @@ Paid website tests passed for H3 Max Turbo portrait video and Grok Imagine image
 through an updated owner miner. They do not certify all contracts or other miners.
 See [validation and limits](VALIDATION.md#v040-public-worker-and-website-verification--13-october-2026).
 
+## Worker failure diagnostics and safe failover
+
+The safe-failover worker patch reports fixed submission error codes rather than
+hiding all failures behind the job deadline. It requires the matching coordinator
+deployment and a signed `everycli worker-update`; installing a CLI alone does not
+update your VM. Use `everycli status --json` and inspect
+`coordinator.recentFailures` after updating. Old failures cannot be reconstructed
+when the previous worker discarded their cause.
+
+Confirmed pre-generation authentication, billing or capacity rejections can move
+the same job to another eligible miner, up to three distinct miners. A replacement
+must have a current offer within the existing price/budget; customer inputs and
+the original deadline are preserved. There must be an available alternative miner.
+Moderation and invalid requests fail without cross-miner retries. Lost responses,
+unknown submissions and already-submitted paid jobs are not blindly regenerated.
+
+Fresh, current-policy attested zero-balance reports exclude unfunded provider
+offers. Unsupported, stale and unavailable balances are not treated as zero.
+Vivix's unsupported balance query does **not** mean it has no W credits. Check
+the workspace associated with the worker's actual API key and its W-credit balance.
+
 ## Install everycli as a miner
 
 Use a **prebuilt `everycli` binary**. You do not need a compiler, a language runtime,

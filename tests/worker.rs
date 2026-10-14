@@ -13,6 +13,8 @@ use std::{
 #[derive(Default)]
 struct Options {
     submit_error: bool,
+    submit_code: Option<&'static str>,
+    report_failures: u32,
     denied: bool,
     bad_grant: bool,
     replay: bool,
@@ -32,6 +34,7 @@ struct Fixture {
     receipts: RefCell<Vec<Value>>,
     submits: Cell<u32>,
     submitted: Cell<u32>,
+    reports: Cell<u32>,
     complete: Cell<u32>,
     options: Options,
 }
@@ -100,6 +103,14 @@ impl Runtime for Handle {
                         }
                         json!({"jobId":receipt["jobId"],"outputHash":receipt["outputHash"]})
                     }
+                    "submission_rejected" | "submission_uncertain" => {
+                        self.reports.set(self.reports.get() + 1);
+                        if self.reports.get() <= self.options.report_failures {
+                            return Err(Error("lost_ack"));
+                        }
+                        assert!(request["payload"]["reason"].is_string());
+                        json!({"ok":true})
+                    }
                     "unknown" | "failed" | "heartbeat" => json!({}),
                     _ => panic!("unexpected action {action}"),
                 };
@@ -116,7 +127,9 @@ impl Provider for Handle {
     }
     fn submit(&mut self, _: &Value) -> Result<String> {
         self.submits.set(self.submits.get() + 1);
-        if self.options.submit_error {
+        if let Some(code) = self.options.submit_code {
+            Err(Error(code))
+        } else if self.options.submit_error {
             Err(Error("ambiguous"))
         } else {
             Ok("provider-ref".into())
@@ -155,6 +168,7 @@ fn fixture(options: Options, patch: Value) -> (Worker<Handle, Handle>, Rc<Fixtur
         receipts: RefCell::default(),
         submits: Cell::new(0),
         submitted: Cell::new(0),
+        reports: Cell::new(0),
         complete: Cell::new(0),
         options,
     });
@@ -200,7 +214,51 @@ fn ambiguous_submit_is_not_retried() {
     );
     assert_eq!(w.step().unwrap()["state"], "unknown");
     assert_eq!(f.submits.get(), 1);
-    assert!(f.calls.borrow().iter().any(|s| s == "unknown"));
+    assert!(f.calls.borrow().iter().any(|s| s == "submission_uncertain"));
+}
+#[test]
+fn definitive_rejection_reports_immediately_without_resubmitting() {
+    for code in [
+        "http_401",
+        "http_402",
+        "http_429",
+        "vivix_billing_required",
+        "vivix_content_rejected",
+        "vivix_invalid_parameters",
+    ] {
+        let (mut w, f) = fixture(
+            Options {
+                submit_code: Some(code),
+                report_failures: 2,
+                ..Default::default()
+            },
+            json!({}),
+        );
+        assert_eq!(w.step().unwrap()["state"], "rejected");
+        assert_eq!(f.submits.get(), 1);
+        assert_eq!(f.reports.get(), 3);
+        assert_eq!(f.clock.get(), 3000);
+    }
+}
+#[test]
+fn ambiguous_provider_responses_preserve_uncertainty() {
+    for code in [
+        "http_408",
+        "http_409",
+        "http_500",
+        "request_timeout",
+        "invalid_provider_ref",
+    ] {
+        let (mut w, f) = fixture(
+            Options {
+                submit_code: Some(code),
+                ..Default::default()
+            },
+            json!({}),
+        );
+        assert_eq!(w.step().unwrap()["state"], "unknown");
+        assert_eq!(f.submits.get(), 1);
+    }
 }
 #[test]
 fn longer_work_preserves_length_in_signed_receipt_without_duplicate_submission() {
