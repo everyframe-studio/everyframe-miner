@@ -179,8 +179,37 @@ fn activity_table(value: &Value) -> String {
             ));
         }
     }
+    if value["jobsByModel"].is_array() {
+        out.push_str(&format!("\n\n{}", jobs_table(value)));
+    }
     out.push_str("\n\nZero active jobs is normal when idle. Historical acceptance is not a live test of every model.\nNo paid generation or API balance check was performed.");
     out
+}
+
+fn jobs_table(value: &Value) -> String {
+    let Some(rows) = value["jobsByModel"].as_array() else {
+        return "Per-model job counts have not been reported by the coordinator yet.".into();
+    };
+    table(
+        &[
+            "MODEL",
+            "COMPLETED",
+            "ACTIVE",
+            "FAILED ATTEMPTS",
+            "CANCELLED/EXPIRED",
+        ],
+        rows.iter()
+            .map(|r| {
+                vec![
+                    text(&r["model"]),
+                    count(&r["completed"]),
+                    count(&r["active"]),
+                    count(&r["failed"]),
+                    count(&r["cancelled"]),
+                ]
+            })
+            .collect(),
+    )
 }
 
 fn health_table(value: &Value) -> String {
@@ -343,6 +372,59 @@ pub fn render(command: &str, value: &Value) -> String {
     }
     let rows = |key: &str| value[key].as_array().cloned().unwrap_or_default();
     match command {
+        "jobs" => format!(
+            "Jobs by model · all time\n\n{}\n\nCompleted means accepted, verified output. Failed/cancelled counts describe attempts, not payments or alpha rewards.\n",
+            jobs_table(value)
+        ),
+        "earnings" => {
+            let data = rows("fees")
+                .iter()
+                .map(|r| {
+                    vec![
+                        text(&r["state"]),
+                        count(&r["jobs"]),
+                        if value["currency"] == "USD" && value["unit"] == "microusd" {
+                            r["amountMicrousd"]
+                                .as_i64()
+                                .map(|n| format!("${:.6}", n as f64 / 1e6))
+                                .unwrap_or_else(|| "Not reported".into())
+                        } else {
+                            "Not reported".into()
+                        },
+                    ]
+                })
+                .collect();
+            format!(
+                "Recorded serving fees\n\n{}\n\nServing fees are not wallet payments, alpha received, or net profit.\nOn-chain rewards and provider costs are not measured here.\n{}",
+                table(&["STATE", "JOBS", "RECORDED USD"], data),
+                if value["payoutsImplemented"] == false {
+                    "Wallet payments are not implemented.\n"
+                } else {
+                    ""
+                }
+            )
+        }
+        "offer-batch" => format!(
+            "{}\n",
+            table(
+                &["MODEL", "OFFER", "DISCOUNT"],
+                rows("offers")
+                    .iter()
+                    .map(|r| vec![
+                        text(&r["model"]),
+                        if r["offered"] == true {
+                            "Active".into()
+                        } else {
+                            "Withdrawn".into()
+                        },
+                        r["discountBp"]
+                            .as_u64()
+                            .map(|n| format!("{:.2}%", n as f64 / 100.))
+                            .unwrap_or_else(|| "—".into())
+                    ])
+                    .collect()
+            )
+        ),
         "auto-update" => {
             let enabled = if value["enabled"] == true {
                 "On"
@@ -603,7 +685,7 @@ pub fn render(command: &str, value: &Value) -> String {
                     data
                 ),
                 if catalog {
-                    "Catalog entries are not automatically enabled. A saved API key does not update your deployed worker. Integration/pricing/release requirements are coordinator-side; use --json for all blockers and contract limits. EveryFrame Local is not an API model.\n"
+                    "Catalog entries are not automatically enabled. A saved API key does not update your deployed worker. Pricing/release requirements are coordinator-side; use --json for blockers and contract limits. EveryFrame Local is not an API model.\n"
                 } else {
                     "This coordinator returned only its allowlisted models, not the full Studio catalog.\n"
                 }

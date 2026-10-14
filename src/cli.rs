@@ -17,7 +17,7 @@ pub const HELP: &str = "everycli · EveryFrame miner tools
 Usage: everycli COMMAND [options]
 
 Setup: setup (guided), register-hotkey, set-api-keys, remove-api-key, init, reconnect
-Manage: health, doctor, status, providers, balances, offers, offer, earnings, deploy, activate,
+Manage: health, doctor, status, providers, balances, offers, offer, offer-batch, jobs, earnings, deploy, activate,
         apply-api-keys, resume, worker-update, stop, start, reconcile, delete, logs, label
 Browser: ui (local setup guide and status dashboard on 127.0.0.1)
 CLI updates: update, auto-update (--enable / --disable)
@@ -37,6 +37,7 @@ Options:
   --release FILE (worker-update)
   --max-hourly-usd N (deploy/start; storage extra)
   --model ID --discount-pct PCT | --withdraw (offer)
+  --models ID,ID --discount-pct PCT | --withdraw (offer-batch)
   --drain-only (stop)
   --port N --no-open (ui)
   --force (stop; emergency cloud shutdown without coordinator)
@@ -70,6 +71,7 @@ const VALUE_OPTIONS: &[&str] = &[
     "--release",
     "--max-hourly-usd",
     "--model",
+    "--models",
     "--discount-pct",
     "--port",
     "--app-id",
@@ -217,6 +219,8 @@ pub fn parse(args: &[String]) -> Result<Args> {
             "balances",
             "offers",
             "offer",
+            "offer-batch",
+            "jobs",
             "earnings",
             "deploy",
             "activate",
@@ -263,6 +267,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
         "remove-api-key" => vec!["--provider"],
         "balances" => vec!["--publish"],
         "offer" => vec!["--model", "--discount-pct", "--withdraw"],
+        "offer-batch" => vec!["--models", "--discount-pct", "--withdraw"],
         "update" => vec!["--release", "--check"],
         "ui" => vec!["--port", "--no-open"],
         "stop" => vec!["--drain-only", "--force"],
@@ -830,6 +835,13 @@ pub fn run_with(
         "balances" => miner.balances(args.flag("--publish")),
         "offers" => miner.offers(),
         "earnings" => miner.earnings(),
+        "jobs" => miner.jobs(),
+        "offer-batch" => miner.offer_batch(
+            args.required("--models")?,
+            args.get("--discount-pct"),
+            args.flag("--withdraw"),
+            confirm,
+        ),
         "offer" => miner.offer(
             args.required("--model")?,
             args.get("--discount-pct"),

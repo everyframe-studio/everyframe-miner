@@ -11,6 +11,30 @@ fn snapshot() -> Value {
 }
 
 #[test]
+fn model_jobs_and_fees_have_readable_tables_without_losing_json() {
+    let mut status = snapshot();
+    status["jobsByModel"] =
+        json!([{"model":"fixture/video","completed":32,"active":1,"failed":2,"cancelled":0}]);
+    let v = health::activity(&status);
+    assert_eq!(v["jobsByModel"], status["jobsByModel"]);
+    let out = display::render("jobs", &v);
+    for text in ["COMPLETED", "32", "fixture/video", "FAILED ATTEMPTS"] {
+        assert!(out.contains(text));
+    }
+    assert!(!out.contains("\"completed\""));
+    assert!(display::render("jobs", &json!({})).contains("not been reported"));
+    assert!(display::render("jobs", &json!({"jobsByModel":[]})).contains("No entries yet"));
+    let fees = json!({"currency":"USD","unit":"microusd","fees":[{"state":"approved","jobs":3,"amountMicrousd":1234567}],"payoutsImplemented":false});
+    let out = display::render("earnings", &fees);
+    assert!(
+        out.contains("$1.234567")
+            && out.contains("approved")
+            && out.contains("not wallet payments")
+    );
+    assert!(!out.contains("amountMicrousd"));
+}
+
+#[test]
 fn health_parsing_help_and_no_profile_preserve_json_and_exit_codes() {
     let args = cli::parse(&["health".into(), "--json".into()]).unwrap();
     assert_eq!(args.command, "health");

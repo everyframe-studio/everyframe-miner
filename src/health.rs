@@ -83,6 +83,6 @@ pub fn activity(status: &Value) -> Value {
             .fold(0u64, u64::saturating_add)
     });
     json!({"activeJobs":status["activeJobs"].as_u64(),"acceptedJobs":accepted,
-        "jobs":status["jobs"],
+        "jobs":status["jobs"],"jobsByModel":status["jobsByModel"],
         "note":"Historical accepted jobs are not a live test of every model. Zero active jobs is normal when idle. No paid generation or API balance check was performed."})
 }

@@ -5,6 +5,32 @@ use everyframe_miner::ui::{self, Request, Shared};
 use serde_json::{Value, json};
 use std::{collections::HashMap, sync::Arc};
 
+#[test]
+fn batch_and_jobs_ui_actions_use_the_same_scoped_cli_commands() {
+    let dir = common::tempdir();
+    let sh = shared(dir.path());
+    let (args, changes) = ui::action_args(
+        &sh,
+        "offer-batch",
+        &json!({"models":"fixture/a,fixture/b","discountPct":"10"}),
+    )
+    .unwrap();
+    assert!(changes);
+    assert_eq!(args.command, "offer-batch");
+    assert_eq!(args.get("--models"), Some("fixture/a,fixture/b"));
+    assert!(
+        ui::action_args(
+            &sh,
+            "offer-batch",
+            &json!({"models":"fixture/a","discountPct":"10","withdraw":true})
+        )
+        .is_err()
+    );
+    let (args, changes) = ui::action_args(&sh, "jobs", &json!({})).unwrap();
+    assert!(!changes);
+    assert_eq!(args.command, "jobs");
+}
+
 /// Answers every provider key check with a fixed result; never touches the network.
 struct Answer(Result<&'static str, &'static str>);
 impl everyframe_miner::network::Http for Answer {

@@ -90,7 +90,10 @@ pub fn diagnostic(error: &Error, args: Option<&Args>) -> Value {
             (message, next)
         }
         "invalid_discount" => ("--discount-pct must be between 0 and 99.90, with at most two decimal places.".into(), "Example: everycli offer --model MODEL --discount-pct 10".into()),
-        "conflicting_offer_options" => ("offer cannot combine --discount-pct with --withdraw.".into(), "Choose a discount to set an offer, or --withdraw to remove it. Run everycli help offer for examples.".into()),
+        "conflicting_offer_options" => ("Offers cannot combine --discount-pct with --withdraw.".into(), "Choose a discount to set an offer, or --withdraw to remove it. Run everycli help offer for examples.".into()),
+        "invalid_offer_batch" => ("Choose 1–128 distinct model IDs for this batch.".into(), "Use everycli offers, then everycli offer-batch --models ID,ID --discount-pct 10.".into()),
+        "batch_offers_not_supported" => ("This coordinator does not support batch offers yet.".into(), "No offers were changed. Update the coordinator or use individual offers.".into()),
+        "offer_revision_conflict" | "offer_pricing_changed" => ("An offer or its pricing changed during review. Nothing in this batch was applied.".into(), "Refresh offers and review the batch again.".into()),
         "invalid_network" | "unknown_network" => ("Invalid --network. Use mainnet or testnet.".into(), "Example: everycli doctor --network mainnet".into()),
         "unknown_provider" => ("Unknown provider.".into(), format!("Use --provider NAME. Valid providers: {}.", crate::onboarding::credential_providers().join(", "))),
         "hidden_input_required_or_use_stdin_with_provider" => ("Key entry needs an interactive terminal.".into(), "Run everycli set-api-keys in a terminal, or use --provider NAME --stdin to read one key from a pipe. Never put the key in command arguments.".into()),

@@ -41,6 +41,32 @@ Recovery does not create or delete cloud resources, end storage billing, or
 resume jobs. Binary updates and automatic authorization repair do not silently
 retire VM bindings. See [v0.5.4 release notes](RELEASE-NOTES-v0.5.4.md).
 
+### Unreleased: model dashboard and faster batches
+
+- Unintegrated catalog entries are hidden. Integrated models that still need
+  pricing, a worker update or a provider key keep their actionable readiness label.
+- Overview shows all-time completed jobs by model and readable serving-fee tables.
+  `everycli jobs` shows the same counts in the terminal; `--json` remains available.
+  Completed means an accepted, verified output, not a payment or alpha reward.
+- Models and **All models** show a badge when integrated models are added after
+  your first catalog visit. Viewing All models acknowledges them on this browser
+  and profile. Notification acknowledgments contain no keys.
+- Batch discounts use one reviewed, atomic submission instead of a submission
+  per model. Any changed pricing or revision rejects the whole batch. Unknown
+  results are never automatically retried; refresh offers before trying again.
+- Batch results can be dismissed, disappear after 12 seconds (30 seconds for
+  errors), and clear when navigating away or changing model tabs.
+
+Terminal batch example:
+
+```bash
+everycli offer-batch --models minimax/h3-max-turbo/text-to-video,minimax/h3-max/text-to-video --discount-pct 10
+everycli jobs
+```
+
+These changes require the updated coordinator and a CLI release containing them;
+they are not included in the published v0.5.4 installer.
+
 ### v0.5.3 simpler setup and batch model editing
 
 After updating with `everycli update`, close and reopen `everycli ui`.
@@ -412,7 +438,7 @@ set `NO_COLOR=1` to disable colors. State labels remain visible without color.
 
 `everycli offers` displays each model, provider, offer status, discount and
 readiness. With an updated coordinator, the table includes Studio's API-backed
-catalog, including models not yet enabled for your worker. `Integration pending`,
+catalog, including integrated models not yet enabled for your worker.
 `Pricing required` and `Worker release required` are **not** runnable offers.
 Discovery does not enable models or place bids. Local-only rendering is excluded.
 Older coordinators still return only their admitted model list.
@@ -768,6 +794,8 @@ resources and ongoing charges. To restart the saved workload, use
 | `providers` | Show credential presence and signed-release permissions, never key values |
 | `balances` | Show USD balances and native Vivix W credits; `--publish` syncs private snapshots |
 | `offers`, `offer` | Inspect, set, or withdraw a revision-checked model bid |
+| `offer-batch` | Review and apply multiple model bids atomically; no automatic retry |
+| `jobs` | All-time completed jobs by model; `--json` for structured counts |
 | `earnings` | Read coordinator accounting; does not initiate payouts |
 | `deploy` | Create a pinned workload with provider credentials disabled |
 | `activate` | Release encrypted provider keys only after fresh admission |

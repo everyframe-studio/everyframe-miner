@@ -2,6 +2,18 @@ use everyframe_miner::{display, invitation, offer_catalog};
 use serde_json::json;
 
 #[test]
+fn unintegrated_models_are_hidden_in_structured_and_terminal_catalogs() {
+    let status = json!({"offers":[{"model":"pending","offered":false}],"modelCatalog":[
+        {"model":"ready","contractAvailable":true,"offerable":true,"blockers":[]},
+        {"model":"pending","contractAvailable":false,"blockers":["integration_required"]}
+    ]});
+    let out = offer_catalog::offers(&status, &json!({}), &json!({}));
+    assert_eq!(out["offers"].as_array().unwrap().len(), 1);
+    assert!(!out.to_string().contains("pending"));
+    assert!(!display::render("offers", &out).contains("pending"));
+}
+
+#[test]
 fn unconfigured_miner_reads_a_signed_catalog_without_credentials_or_cloud() {
     use everyframe_miner::{
         Result,
@@ -94,7 +106,7 @@ fn old_coordinator_and_legacy_offers_remain_supported() {
 #[test]
 fn readiness_is_not_inferred_from_local_credentials() {
     for (code, reason) in [
-        ("integration_required", "Integration pending"),
+        ("integration_required", "Unavailable"),
         ("pricing_required", "Pricing required"),
         ("worker_release_required", "Worker release required"),
         ("worker_offline", "Worker offline"),

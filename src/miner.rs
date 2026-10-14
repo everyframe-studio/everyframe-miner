@@ -226,6 +226,7 @@ impl Miner<'_> {
                 "drain",
                 "resume",
                 "offer",
+                "offer-batch",
                 "bind-app",
                 "balances",
                 "worker-update",
@@ -239,7 +240,9 @@ impl Miner<'_> {
             format!("{}/v1/miner/{action}", base.trim_end_matches('/')),
             &["subnet.everyframe.studio"],
         );
-        r.limit = 100000;
+        // Catalog rate schedules plus all-time per-model counts can exceed 100 KB.
+        // Keep a hard bound shared with public discovery, never unbounded reads.
+        r.limit = 1000000;
         let mut auth_body = Value::Null;
         if ["status", "worker-update"].contains(&action) {
             r.url += &format!("?nonce={nonce}")
@@ -693,6 +696,121 @@ impl Miner<'_> {
         need(out.is_object(), "invalid_coordinator_response")?;
         out["minerId"] = v["minerId"].clone();
         out["asOf"] = v["at"].clone();
+        Ok(out)
+    }
+    pub fn jobs(&self) -> Result<Value> {
+        let c = self.load(false)?;
+        let v = self.api(&c, "status", json!({}))?;
+        Ok(
+            json!({"minerId":v["minerId"],"asOf":v["at"],"jobsByModel":v["jobsByModel"],
+            "note":"All-time completed jobs are accepted, verified outputs. Failed and cancelled counts describe attempts, not payments or alpha rewards."}),
+        )
+    }
+    pub fn offer_batch(
+        &self,
+        models: &str,
+        discount: Option<&str>,
+        withdraw: bool,
+        confirm: &dyn Fn(&str) -> Result<()>,
+    ) -> Result<Value> {
+        let models: Vec<_> = models.split(',').collect();
+        let unique: std::collections::HashSet<_> = models.iter().copied().collect();
+        need(
+            !models.is_empty()
+                && models.len() <= 128
+                && unique.len() == models.len()
+                && models.iter().all(|m| {
+                    !m.is_empty()
+                        && m.len() <= 150
+                        && m.bytes()
+                            .all(|b| b.is_ascii_alphanumeric() || b"/-_.".contains(&b))
+                }),
+            "invalid_offer_batch",
+        )?;
+        let discount_bp = if withdraw {
+            0
+        } else {
+            invitation::discount(discount.ok_or(Error("missing_option").option("--discount-pct"))?)?
+        };
+        let _lock = self.state.lock()?;
+        let c = self.load(false)?;
+        let status = self.api(&c, "status", json!({}))?;
+        need(
+            status["batchOffersSupported"] == true,
+            "batch_offers_not_supported",
+        )?;
+        let entries = status["offers"]
+            .as_array()
+            .ok_or(Error("offers_not_supported"))?;
+        let mut changes = Vec::new();
+        let mut lines = Vec::new();
+        for model in models {
+            let entry = entries
+                .iter()
+                .find(|e| e["model"] == model)
+                .ok_or(Error("model_not_allowed"))?;
+            if withdraw && entry["offered"] != true {
+                continue;
+            }
+            let bp = if withdraw {
+                entry["discountBp"].as_i64().unwrap_or(0)
+            } else {
+                discount_bp
+            };
+            if withdraw {
+                lines.push(format!("Withdraw {model}"));
+            } else {
+                let base = n(&entry["baseMinerRewardMicrousd"])?;
+                need(
+                    base > 0 && entry["pricingHash"].is_string(),
+                    "offer_pricing_unavailable",
+                )?;
+                let reward = base
+                    .checked_mul(10000 - bp)
+                    .and_then(|v| v.checked_add(9999))
+                    .ok_or(Error("invalid_price"))?
+                    / 10000;
+                lines.push(format!(
+                    "{model}: {:.2}% discount · ${:.6} reference work value",
+                    bp as f64 / 100.,
+                    reward as f64 / 1e6
+                ));
+            }
+            changes.push(json!({"model":model,"discountBp":bp,"active":!withdraw,
+                "expectedRevision":entry["revision"],"pricingHash":entry["pricingHash"]}));
+        }
+        if changes.is_empty() {
+            return Ok(json!({"minerId":status["minerId"],"offers":[],"unchanged":true}));
+        }
+        // Include the entire reviewed payload in the question fingerprint. Even
+        // equal reference prices with changed rate schedules need fresh approval.
+        let review =
+            crate::protocol::digest(&json!({"minerId":status["minerId"],"offers":changes}))?;
+        confirm(&format!(
+            "Apply {} offers together? If any price or revision changed, none are applied.\n{}\nActual job value varies by settings; provider bills do not decrease. No guaranteed traffic or profit. Existing jobs keep their locked price.\nReview ID: {review}",
+            changes.len(),
+            lines.join("\n")
+        ))?;
+        // One POST, never retried on an uncertain transport result.
+        let out = self.api(&c, "offer-batch", json!({"offers":changes}))?;
+        let saved = out["offers"]
+            .as_array()
+            .ok_or(Error("invalid_coordinator_response"))?;
+        need(saved.len() == changes.len(), "invalid_coordinator_response")?;
+        for change in &changes {
+            let matching: Vec<_> = saved
+                .iter()
+                .filter(|e| e["model"] == change["model"])
+                .collect();
+            need(matching.len() == 1, "invalid_coordinator_response")?;
+            let entry = matching[0];
+            need(
+                n(&entry["revision"])? == n(&change["expectedRevision"])? + 1
+                    && entry["offered"] == change["active"]
+                    && entry["discountBp"] == change["discountBp"],
+                "invalid_coordinator_response",
+            )?;
+        }
         Ok(out)
     }
     pub fn offer(

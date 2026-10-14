@@ -1445,11 +1445,39 @@ impl Http for Rig {
                 status["offers"][0]["discountBp"] = body["discountBp"].clone();
                 status["offers"][0]["offered"] = body["active"].clone();
             }
+            if action == "offer-batch" {
+                for change in body["offers"].as_array().unwrap() {
+                    let entry = status["offers"]
+                        .as_array_mut()
+                        .unwrap()
+                        .iter_mut()
+                        .find(|o| o["model"] == change["model"])
+                        .unwrap();
+                    if change["expectedRevision"] != entry["revision"] {
+                        return Err(Error("offer_revision_conflict"));
+                    }
+                    if change["pricingHash"] != entry["pricingHash"] {
+                        return Err(Error("offer_pricing_changed"));
+                    }
+                    entry["revision"] = json!(entry["revision"].as_i64().unwrap() + 1);
+                    entry["discountBp"] = change["discountBp"].clone();
+                    entry["offered"] = change["active"].clone();
+                }
+            }
             let mut out = status.clone();
             out["protocol"] = json!(1);
             out["nonce"] = json!(nonce);
             out["action"] = json!(action);
             out["at"] = json!(now());
+            if action == "offer-batch" {
+                out["offers"].as_array_mut().unwrap().retain(|o| {
+                    body["offers"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .any(|c| c["model"] == o["model"])
+                });
+            }
             self.sign(&out)
         } else if path.ends_with("/account/billing") {
             assert_eq!(r.method, "GET");
@@ -1985,6 +2013,122 @@ fn offers_use_revision_and_earnings_are_read_only() {
     );
     assert_eq!(r.miner().earnings().unwrap()["payoutsImplemented"], false);
     assert!(r.envs.borrow().is_empty());
+}
+#[test]
+fn batches_review_once_and_use_one_status_plus_one_post_for_many_models() {
+    let r = Rig::new();
+    let template = r.status.borrow()["offers"][0].clone();
+    let rows: Vec<_> = (0..64)
+        .map(|i| {
+            let mut v = template.clone();
+            v["model"] = json!(format!("fixture/{i}"));
+            v
+        })
+        .collect();
+    let models = rows
+        .iter()
+        .map(|v| v["model"].as_str().unwrap())
+        .collect::<Vec<_>>()
+        .join(",");
+    r.status.borrow_mut()["offers"] = json!(rows);
+    r.status.borrow_mut()["batchOffersSupported"] = json!(true);
+    r.calls.borrow_mut().clear();
+    let reviews = RefCell::new(Vec::new());
+    let out = r
+        .miner()
+        .offer_batch(&models, Some("12.5"), false, &|q| {
+            reviews.borrow_mut().push(q.to_string());
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(reviews.borrow().len(), 1);
+    assert!(reviews.borrow()[0].contains("Review ID:"));
+    assert_eq!(out["offers"].as_array().unwrap().len(), 64);
+    assert!(
+        out["offers"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|o| o["revision"] == 1 && o["discountBp"] == 1250)
+    );
+    assert_eq!(r.calls.borrow().len(), 2);
+    assert!(r.calls.borrow()[1].0.ends_with("/offer-batch"));
+    assert!(r.envs.borrow().is_empty());
+}
+#[test]
+fn batch_decline_changed_quotes_and_uncertain_posts_are_not_retried() {
+    let r = Rig::new();
+    r.status.borrow_mut()["batchOffersSupported"] = json!(true);
+    let questions = RefCell::new(Vec::new());
+    let capture = |q: &str| {
+        questions.borrow_mut().push(q.to_string());
+        Err(Error("cancelled"))
+    };
+    assert!(
+        r.miner()
+            .offer_batch("fixture/video", Some("10"), false, &capture)
+            .is_err()
+    );
+    r.status.borrow_mut()["offers"][0]["pricingHash"] = json!("e".repeat(64));
+    assert!(
+        r.miner()
+            .offer_batch("fixture/video", Some("10"), false, &capture)
+            .is_err()
+    );
+    assert_ne!(
+        questions.borrow()[0],
+        questions.borrow()[1],
+        "same reference price with a changed schedule needs review"
+    );
+    assert!(r.calls.borrow().iter().all(|c| c.0.starts_with("GET ")));
+    *r.fail.borrow_mut() = "offer-batch".into();
+    r.calls.borrow_mut().clear();
+    assert_eq!(
+        r.miner()
+            .offer_batch("fixture/video", Some("10"), false, &|_| Ok(()))
+            .unwrap_err()
+            .0,
+        "ambiguous_network_error"
+    );
+    assert_eq!(
+        r.calls
+            .borrow()
+            .iter()
+            .filter(|c| c.0.ends_with("/offer-batch"))
+            .count(),
+        1
+    );
+    assert_eq!(r.status.borrow()["offers"][0]["revision"], 0);
+}
+#[test]
+fn batch_input_and_legacy_coordinator_fail_without_mutations_and_jobs_are_read_only() {
+    let r = Rig::new();
+    for ids in [
+        "",
+        "fixture/video,fixture/video",
+        "fixture/video,",
+        "bad\nmodel",
+    ] {
+        assert_eq!(
+            r.miner()
+                .offer_batch(ids, Some("10"), false, &|_| Ok(()))
+                .unwrap_err()
+                .0,
+            "invalid_offer_batch"
+        );
+    }
+    assert!(r.calls.borrow().is_empty());
+    assert_eq!(
+        r.miner()
+            .offer_batch("fixture/video", Some("10"), false, &|_| Ok(()))
+            .unwrap_err()
+            .0,
+        "batch_offers_not_supported"
+    );
+    r.status.borrow_mut()["jobsByModel"] =
+        json!([{"model":"fixture/video","completed":42,"active":0,"failed":1,"cancelled":0}]);
+    assert_eq!(r.miner().jobs().unwrap()["jobsByModel"][0]["completed"], 42);
+    assert!(r.calls.borrow().iter().all(|c| c.0.starts_with("GET ")));
 }
 #[test]
 fn altered_expired_or_wrong_network_invitations_fail() {

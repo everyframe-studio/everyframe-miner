@@ -204,7 +204,8 @@ try {
   await page.getByLabel('Select all editable models in this tab').check();
   assert.equal(await page.getByLabel('Select Alpha', { exact: true }).isChecked(), true);
   assert.equal(await page.getByLabel('Select Beta', { exact: true }).isChecked(), true);
-  assert.equal(await page.getByLabel('Select Blocked', { exact: true }).isDisabled(), true);
+  assert.equal(await page.getByLabel('Select Blocked', { exact: true }).count(), 0, 'unintegrated models are hidden');
+  assert.equal(await page.getByText('Integration pending', { exact: true }).count(), 0);
   await page.getByRole('button', { name: 'My active offers', exact: true }).click();
   assert.equal(await page.getByLabel('Select Alpha', { exact: true }).isChecked(), false, 'changing tabs clears hidden selection');
   assert.equal(await page.getByLabel('Select Beta', { exact: true }).count(), 0);
@@ -216,20 +217,25 @@ try {
     const calls = [], questions = [];
     try {
       loadOffers = async () => {};
-      confirmDialog = async question => { questions.push(question.textContent); return true; };
+      confirmDialog = async question => { questions.push(question); return true; };
       run = async (action, params, opts) => {
         calls.push({ action, params, opts });
-        if (opts.prepareOnly) return { state: 'confirm', result: { question: `Offer ${params.model} at 10% discount`, hash: `quote-${params.model}` } };
-        if (params.model === 'fixture/b') return { state: 'confirm', result: { question: 'Changed price', hash: 'changed' } };
+        if (opts.prepareOnly) return { state: 'confirm', result: { question: `Offer ${params.models} at 10% discount`, hash: 'reviewed-batch' } };
         return { state: 'done', result: { value: {} } };
       };
       S.selectedOffers = new Set(['fixture/a', 'fixture/b']); S.batchDiscount = '10';
       await batchOffers(S.offers.offers, false);
       const result = { calls: [...calls], questions: [...questions], report: [...S.batchReport], selected: [...S.selectedOffers] };
       // Cancellation approves none of the prepared hashes.
-      calls.length = 0; confirmDialog = async () => false;
+      calls.length = 0; confirmDialog = async () => false; S.selectedOffers = new Set(['fixture/a','fixture/b']);
       await batchOffers(S.offers.offers, false);
       result.cancelCalls = [...calls];
+      calls.length = 0; confirmDialog = async () => true;
+      run = async (action, params, opts) => {
+        calls.push({action,params,opts});
+        return { state: 'confirm', result: { question: 'Changed quote', hash: opts.prepareOnly ? 'before' : 'after' } };
+      };
+      await batchOffers(S.offers.offers,false); result.changedReport=[...S.batchReport]; result.changedCalls=[...calls];
       // Withdraw active selections only; failures remain visible and selected.
       calls.length = 0; confirmDialog = async () => true;
       run = async (action, params, opts) => {
@@ -246,15 +252,18 @@ try {
   assert.equal(batch.questions.length, 1, 'one review for the batch');
   assert.match(batch.questions[0], /fixture\/a/);
   assert.match(batch.questions[0], /fixture\/b/);
-  assert.equal(batch.calls.length, 4);
-  assert.deepEqual(batch.calls[2].opts.approvals, ['quote-fixture/a']);
-  assert.equal(batch.calls[2].opts.exactApproval, true);
+  assert.equal(batch.calls.length, 2, 'one preparation and one commit, independent of model count');
+  assert.equal(batch.calls.every(c=>c.action==='offer-batch'),true);
+  assert.deepEqual(batch.calls[1].opts.approvals, ['reviewed-batch']);
+  assert.equal(batch.calls[1].opts.exactApproval, true);
   assert.equal(batch.report[0].ok, true);
-  assert.match(batch.report[1].message, /Quote changed/);
-  assert.deepEqual(batch.selected, ['fixture/b']);
+  assert.equal(batch.report[1].ok, true);
+  assert.deepEqual(batch.selected, []);
+  assert.equal(batch.changedReport.every(r=>!r.ok && /Quote changed/.test(r.message)),true);
+  assert.equal(batch.changedCalls.length,2,'changed quotes are not replayed');
   assert.equal(batch.cancelCalls.every(c => c.opts.prepareOnly), true, 'cancel never submits an offer');
   assert.equal(batch.withdrawCalls.length, 2);
-  assert.equal(batch.withdrawCalls.every(c => c.params.model === 'fixture/a' && c.params.withdraw === true), true);
+  assert.equal(batch.withdrawCalls.every(c => c.params.models === 'fixture/a' && c.params.withdraw === true), true);
   assert.equal(batch.withdrawReport.some(r => !r.ok && /Coordinator unavailable/.test(r.message)), true);
 
   // run itself must not approve a changed quote or open another modal in a batch.
@@ -273,8 +282,61 @@ try {
   assert.equal(approvalGuard.dialogs, 0);
   assert.deepEqual(approvalGuard.submitted.approvals, ['reviewed-quote']);
 
+  const badges = await page.evaluate(() => {
+    S.overview.profile.minerId='badge-fixture';const key=modelSeenKey();localStorage.removeItem(key);S.modelSeen.delete(key);
+    trackModels([{model:'fixture/a',contractAvailable:true}]);const baseline=S.newModels.size;
+    const rows=[{model:'fixture/a',contractAvailable:true},{model:'fixture/new',contractAvailable:true},{model:'pending',contractAvailable:false,blockers:['integration_required']}];
+    trackModels(rows);const added=[...S.newModels];S.offers={offers:rows};render();
+    const badge=document.querySelector('#main .seg').textContent;
+    S.modelSeen.clear();trackModels(rows);const persisted=[...S.newModels];
+    acknowledgeModels();trackModels(rows);const acknowledged=S.newModels.size;
+    return {baseline,added,badge,persisted,acknowledged};
+  });
+  assert.equal(badges.baseline,0);assert.deepEqual(badges.added,['fixture/new']);
+  assert.match(badges.badge,/1 new/);assert.deepEqual(badges.persisted,['fixture/new']);assert.equal(badges.acknowledged,0);
+
+  const expiry = await page.evaluate(() => {
+    const original=window.setTimeout;let callback,delay;
+    try {
+      window.setTimeout=(fn,ms)=>{callback=fn;delay=ms;return 12345;};
+      S.offerFilter='all';
+      showBatchReport([{model:'fixture/a',ok:true,message:'Saved'}]);render();
+      const draft=document.querySelector('input[aria-label="Discount percent for fixture/a"]');draft.value='23';
+      const visible=!!S.batchReport,successDelay=delay;callback();
+      const cleared=S.batchReport===null;
+      const draftPreserved=document.querySelector('input[aria-label="Discount percent for fixture/a"]')===draft && draft.value==='23';
+      const reportRemoved=document.querySelector('[data-batch-report]')===null;
+      showBatchReport([{model:'fixture/a',ok:false,message:'Failed'}]);const failureDelay=delay;
+      return {visible,cleared,successDelay,failureDelay,draftPreserved,reportRemoved};
+    } finally {window.setTimeout=original;clearBatchReport();}
+  });
+  assert.equal(expiry.visible,true);assert.equal(expiry.cleared,true);assert.equal(expiry.successDelay,12000);assert.equal(expiry.failureDelay,30000);
+  assert.equal(expiry.draftPreserved,true);assert.equal(expiry.reportRemoved,true);
+  const navigated = await page.evaluate(async () => {
+    const originals={run,loadOffers,confirmDialog};let calls=0;
+    try {
+      S.offers={offers:[{model:'fixture/a',offerable:true}]};S.selectedOffers=new Set(['fixture/a']);
+      loadOffers=async()=>{};confirmDialog=async()=>true;
+      run=async()=>{calls++;S.navigationEpoch++;history.replaceState(null,'','#/worker');return {state:'confirm',result:{question:'review',hash:'hash'}};};
+      await batchOffers(S.offers.offers,false);
+      return {calls,report:S.batchReport};
+    } finally {({run,loadOffers,confirmDialog}=originals);history.replaceState(null,'','#/models');}
+  });
+  assert.equal(navigated.calls,1,'leaving during preparation never submits');assert.equal(navigated.report,null,'late result does not reappear after navigation');
+  await page.evaluate(()=>{showBatchReport([{model:'fixture/a',ok:true,message:'Saved'}]);go('overview');});
+  await page.waitForFunction(()=>currentRoute()==='overview'&&S.batchReport===null);
+  await page.evaluate(()=>{
+    S.health={state:'done',result:{value:{ok:true,checks:[],activity:{jobsByModel:[{model:'fixture/video',completed:32,active:1,failed:2,cancelled:0}]}}}};
+    S.earnings={state:'done',result:{value:{currency:'USD',unit:'microusd',fees:[{state:'approved',jobs:32,amountMicrousd:1234567}],payoutsImplemented:false,paidMicrousd:null}}};render();
+  });
+  assert.equal(await page.getByRole('heading',{name:'Jobs by model',exact:true}).count(),1);
+  assert.match(await page.locator('tr').filter({hasText:'fixture/video'}).innerText(),/32/);
+  assert.match(await page.locator('#main').innerText(),/\$1\.2346/);
+  assert.doesNotMatch(await page.locator('#main').innerText(),/amountMicrousd|payoutsImplemented|\[\{/);
+
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.evaluate(() => { S.offerFilter = 'all'; render(); });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'job and earnings tables fit mobile');
+  await page.evaluate(() => { history.replaceState(null,'','#/models');S.offerFilter = 'all'; render(); });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'batch models fit mobile');
   await page.evaluate(() => { history.replaceState(null, '', '#/setup'); render(); });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'mobile viewport must not overflow');
