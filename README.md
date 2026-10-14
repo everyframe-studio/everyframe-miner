@@ -20,6 +20,20 @@ and ten provider adapters. Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
 
+### v0.5.1 setup and worker management
+
+Update with `everycli update`, then open `everycli ui`. The UI checks keys with
+free read-only requests before saving, preserves your setup step, and displays
+compact worker names with local renaming. Rejected key replacements leave saved
+keys unchanged; inconclusive checks display an explicit warning.
+
+Both the CLI and UI can deliberately delete and replace a worker created on
+another computer, with exact signed identity checks, a durable deletion journal
+and fresh attestation before accepting work. See [replacement instructions](#move-management-to-another-computer)
+and the [v0.5.1 release notes](RELEASE-NOTES-v0.5.1.md). Deletion is irreversible.
+The worker runtime is unchanged from v0.5.0; do not replace a healthy VM just to
+upgrade the CLI.
+
 ### v0.5.0 setup and reliability
 
 The browser UI and miner reliability fixes ship together: safer provider failure
@@ -148,8 +162,8 @@ everycli ui
 It opens a local page with:
 
 - a step-by-step **setup guide** (hotkey check, Phala token, provider keys, profile, deploy, activate, models, resume)
-- a live **status dashboard** (health checks, jobs, balances, earnings, authorization expiry)
-- **model offers**, **API keys** and **worker actions** (pause, resume, update, apply keys, shut down)
+- a live **status dashboard** (health checks, jobs, balances and earnings)
+- **model offers**, checked **API keys** and **worker actions** (pause, resume, update, apply keys, shut down, delete and replace)
 
 Every action runs the same everycli command and asks the same questions. Anything
 that costs money shows the live price and needs you to type `yes`, as in the
@@ -543,8 +557,8 @@ decrypted or uploaded. Never paste a seed into command arguments.
 The hotkey signs separate, revocable console and worker authorizations. New v2
 authorizations do not expire **when the signed worker deployment explicitly
 enables `hotkeyDelegationVersion: 2`** after coordinator and worker upgrades.
-Until then, the CLI preserves compatible v1 authorizations and shows their expiry
-in the UI. A CLI upgrade alone cannot remove an existing signature's expiry. Only the
+Until then, the CLI preserves compatible v1 authorizations and enforces their expiry.
+The UI omits expiry cards; a CLI upgrade alone cannot remove an existing signature's expiry. Only the
 worker's restricted delegate is sent through Phala's encrypted environment;
 the hotkey and console delegate stay on your computer. This does not sign a
 blockchain transaction or access your coldkey. Short-lived request proofs,
@@ -685,7 +699,10 @@ resources and ongoing charges. To restart the saved workload, use
 | `deploy` | Create a pinned workload with provider credentials disabled |
 | `activate` | Release encrypted provider keys only after fresh admission |
 | `resume` | Permit new work after post-restart admission |
-| `stop` | Drain; request shutdown only when idle. `--drain-only` keeps hosting running |
+| `stop` | Drain; request shutdown only when idle. `--drain-only` keeps hosting running; `--force` permits emergency shutdown that may interrupt paid work |
+| `delete` | Permanently remove the verified VM and storage; requires `--app-id ID` and confirmation; repeat to check completion |
+| `logs` | Read bounded, sanitized structured worker events |
+| `label` | View the local display name or change it with `--name NAME`; never changes the signed VM identity |
 | `start` | Restart the saved stopped workload, with a reviewed hourly ceiling |
 | `update` | Upgrade the CLI executable only; `--check` checks without installing |
 | `worker-update` | Discover and install a signed update on the existing VM, then restore its accepting/paused state; `--check` is read-only |
@@ -797,8 +814,9 @@ also recovers v0.3.7's `update_provision_intent`: it verifies the exact old VM i
 still running the original signed configuration before retrying preparation.
 Preparation only caches a candidate; committing/restarting is a separate operation.
 Run `everycli reconcile` to perform that read-only cloud verification explicitly.
-A genuinely different VM/configuration still fails closed. Keep the profile and journal. After a hard process
-kill, a stale `operation.lock` may also require inspection before continuing.
+A genuinely different VM/configuration still fails closed. Keep the profile and journal.
+The OS releases the operation lock after a process exits or crashes; a leftover
+lock file alone does not block the CLI. Never delete it to bypass a live operation.
 
 If no compatible package is published, the command says so and changes nothing;
 that is not a claim that all providers are already supported. The advanced
