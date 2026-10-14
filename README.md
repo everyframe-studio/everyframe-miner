@@ -11,6 +11,9 @@ the older namespace remain compatible. `everycli update` upgrades the CLI;
 `everycli worker-update` updates the existing worker using its latest compatible
 signed release (one-command flow in v0.3.7 and later).
 
+New to mining? Run `everycli ui` for a guided setup page and status dashboard
+in your browser (see [Set up in your browser](#set-up-in-your-browser-everycli-ui)).
+
 This repository includes the worker, the CLI with built-in updates, 46 legacy
 contracts, 11 flexible Studio video contracts, 12 Studio media contracts,
 and ten provider adapters. Available jobs depend on the coordinator's
@@ -121,6 +124,38 @@ on Windows. `curl` and either `sha256sum` or `shasum` are needed for installatio
 To avoid modifying shell profiles, pipe into `EVERYCLI_NO_MODIFY_PATH=1 sh`
 instead; add the bin directory to
 PATH yourself. Fish users should use this option and configure their Fish PATH.
+
+### Set up in your browser (everycli ui)
+
+Prefer a guided page to terminal commands? After installing, run:
+
+```sh
+everycli ui
+```
+
+It opens a local page with:
+
+- a step-by-step **setup guide** (hotkey check, Phala token, provider keys, profile, deploy, activate, models, resume)
+- a live **status dashboard** (health checks, jobs, balances, earnings, authorization expiry)
+- **model offers**, **API keys** and **worker actions** (pause, resume, update, apply keys, shut down)
+
+Every action runs the same everycli command and asks the same questions. Anything
+that costs money shows the live price and needs you to type `yes`, as in the
+terminal. The page and the terminal share one profile, so you can switch between them.
+
+The page listens only on `127.0.0.1`, and the link printed in your terminal works
+once (opening it prints a fresh link for another tab). Keys you enter go straight
+into your owner-only profile and are never shown again. Closing the page or
+stopping `everycli ui` (Ctrl-C) never stops your worker.
+
+On a remote server, forward the port from your own computer, then open the printed link:
+
+```sh
+ssh -N -L 47117:127.0.0.1:47117 <user>@<server>
+```
+
+Options: `--port N` (default 47117, or the next free port), `--no-open` (print
+the link without opening a browser), plus the usual `--network` and `--state-dir`.
 
 ### Upgrade everycli
 
@@ -554,6 +589,7 @@ resources and ongoing charges. To restart the saved workload, use
 
 | Command | Purpose |
 | --- | --- |
+| `ui` | Local browser page: setup guide, status dashboard, offers, keys and worker actions (127.0.0.1 only) |
 | `setup` | Guided initial deployment with explicit confirmation; `--continue` reprints a read-only post-deployment checklist |
 | `register-hotkey` | Check finalized subnet membership and record the public identity; no chain transaction |
 | `set-api-keys` | Privately prompt for all keys or one provider; save locally |

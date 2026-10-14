@@ -24,6 +24,7 @@ pub const COMMANDS: &[&str] = &[
     "reconcile",
     "update",
     "auto-update",
+    "ui",
 ];
 
 pub fn public_name(command: &str) -> &str {
@@ -141,6 +142,11 @@ pub fn render(command: &str) -> String {
             "Inspect a recorded uncertain operation and reconcile its state. Never blindly repeat a cloud mutation.",
             "  No command-specific options.",
             "reconcile",
+        ),
+        "ui" => (
+            "Open a local browser page with a step-by-step setup guide, a live status dashboard, model offers, API keys and worker actions. It runs the same checks and asks the same questions as the terminal commands. Listens on 127.0.0.1 only; the printed link works once. On a remote server, forward the port with ssh -L. Closing the UI never stops your worker.",
+            "  --port N    Local port (default 47117, or the next free one)\n  --no-open   Print the link without opening a browser\n  --network / --state-dir select the profile, as for other commands",
+            "ui",
         ),
         "auto-update" => (
             "Show automatic CLI update settings and the last attempt. Native user installs check in the background after successful interactive commands, at most once every six hours. Downloads are checksum-verified and installed atomically for the next invocation. Never updates workers or changes offers. JSON/CI/help/version invocations do not launch the updater.",

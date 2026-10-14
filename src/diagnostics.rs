@@ -295,6 +295,15 @@ pub fn message(code: &str) -> Option<String> {
     })
 }
 
+/// Every fixed diagnostic, for the UI's troubleshooting page.
+pub fn catalog() -> Vec<Value> {
+    REASONS
+        .iter()
+        .filter(|(plain, ..)| *plain != "request_failed")
+        .map(|(plain, _, message, next)| json!({"code":plain,"message":message,"next":next}))
+        .collect()
+}
+
 pub fn safe_code(code: &str) -> &'static str {
     for (plain, scoped, _, _) in REASONS {
         if code == *plain {

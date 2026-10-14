@@ -19,6 +19,7 @@ pub mod providers;
 pub mod state;
 pub mod studio_media;
 pub mod studio_video;
+pub mod ui;
 pub mod update;
 pub mod worker;
 pub mod worker_balances;

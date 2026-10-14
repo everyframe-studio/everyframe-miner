@@ -19,6 +19,7 @@ Usage: everycli COMMAND [options]
 Setup: setup (guided), register-hotkey, set-api-keys, remove-api-key, init
 Manage: health, doctor, status, providers, balances, offers, offer, earnings, deploy, activate,
         apply-api-keys, resume, worker-update, stop, start, reconcile
+Browser: ui (local setup guide and status dashboard on 127.0.0.1)
 CLI updates: update, auto-update (--enable / --disable)
 
 Options:
@@ -37,6 +38,7 @@ Options:
   --max-hourly-usd N (deploy/start; storage extra)
   --model ID --discount-pct PCT | --withdraw (offer)
   --drain-only (stop)
+  --port N --no-open (ui)
   --yes --json --help --version
 
 set-api-keys prompts privately; Enter keeps saved keys or skips missing keys. Local only.
@@ -66,6 +68,7 @@ const VALUE_OPTIONS: &[&str] = &[
     "--max-hourly-usd",
     "--model",
     "--discount-pct",
+    "--port",
 ];
 
 // Recover only a recognized command for parse-error help. Never echo positional
@@ -134,6 +137,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
             "--continue",
             "--enable",
             "--disable",
+            "--no-open",
         ]
         .contains(&a)
         {
@@ -215,6 +219,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
             "start",
             "reconcile",
             "auto-update",
+            "ui",
         ]
         .contains(&command),
         "unknown_command",
@@ -249,6 +254,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
         "offer" => vec!["--model", "--discount-pct", "--withdraw"],
         "update" => vec!["--release", "--check"],
         "stop" => vec!["--drain-only"],
+        "ui" => vec!["--port", "--no-open"],
         _ => vec![],
     };
     if out.command == "auto-update" {
@@ -375,6 +381,10 @@ pub fn validate_args(args: &Args) -> Result<()> {
     }
     if let Some(network) = args.get("--network") {
         need(["mainnet", "testnet"].contains(&network), "invalid_network")?;
+    }
+    if let Some(port) = args.get("--port") {
+        need(port.parse::<u16>().is_ok_and(|p| p >= 1024), "invalid_port")
+            .map_err(|e| e.option("--port"))?;
     }
     if let Some(discount) = args.get("--discount-pct") {
         invitation::discount(discount)?;
@@ -575,6 +585,43 @@ pub fn setup_checklist(mut out: Value) -> Value {
 }
 
 pub fn run(args: &Args) -> Result<Value> {
+    let confirm = |text: &str| {
+        need(
+            args.flag("--yes") || (io::stdin().is_terminal() && !args.flag("--json")),
+            "confirmation_required",
+        )?;
+        // Keep hosting quotes and lifecycle notices visible. Only local key
+        // removal suppresses its already-approved question with --yes.
+        if !(args.flag("--yes") && args.command == "remove-api-key") {
+            eprintln!("\n{text}");
+        }
+        if args.flag("--yes") {
+            Ok(())
+        } else {
+            need(
+                question("Continue? Type yes: ", args.flag("--json"))? == "yes",
+                "cancelled",
+            )
+        }
+    };
+    let progress = |message: &str| {
+        if !args.flag("--json") {
+            eprintln!("{message}");
+        }
+    };
+    run_with(args, &PublicHttp, &confirm, &progress)
+}
+
+/// The command dispatcher with its confirmation and progress channels injected.
+/// The terminal prompts for "yes"; `everycli ui` asks in the browser instead and
+/// re-runs the command once that exact question was approved. Paid steps always
+/// ask before they spend, so the read-only work before a question is safe to repeat.
+pub fn run_with(
+    args: &Args,
+    http: &dyn crate::network::Http,
+    confirm: &dyn Fn(&str) -> Result<()>,
+    progress: &dyn Fn(&str),
+) -> Result<Value> {
     validate_args(args)?;
     if args.command == "self-update" {
         return crate::update::run(args.flag("--check"), args.flag("--json"));
@@ -588,11 +635,14 @@ pub fn run(args: &Args) -> Result<Value> {
             "unsafe_environment",
         )?
     }
+    if args.command == "ui" {
+        return crate::ui::serve(args);
+    }
     let network = args.get("--network").unwrap_or("mainnet");
     let miner = Miner {
         state: State::new(network, args.get("--state-dir"))?,
         trust: invitation::trust(network)?,
-        http: &PublicHttp,
+        http,
     };
     if args.command == "setup" {
         return setup(args, &miner);
@@ -625,25 +675,6 @@ pub fn run(args: &Args) -> Result<Value> {
             ));
         }
     }
-    let confirm = |text: &str| {
-        need(
-            args.flag("--yes") || (io::stdin().is_terminal() && !args.flag("--json")),
-            "confirmation_required",
-        )?;
-        // Keep hosting quotes and lifecycle notices visible. Only local key
-        // removal suppresses its already-approved question with --yes.
-        if !(args.flag("--yes") && args.command == "remove-api-key") {
-            eprintln!("\n{text}");
-        }
-        if args.flag("--yes") {
-            Ok(())
-        } else {
-            need(
-                question("Continue? Type yes: ", args.flag("--json"))? == "yes",
-                "cancelled",
-            )
-        }
-    };
     match args.command.as_str() {
         "register-hotkey" => {
             let path = local_hotkey(args)?;
@@ -687,7 +718,7 @@ pub fn run(args: &Args) -> Result<Value> {
             ))?;
             onboarding::save_keys(&miner.state, &json!({}), Some(provider))
         }
-        "apply-api-keys" => miner.apply_api_keys(&confirm),
+        "apply-api-keys" => miner.apply_api_keys(confirm),
         "init" => {
             miner.state.prepare()?;
             let registration = miner.state.read("registration", true)?;
@@ -754,7 +785,7 @@ pub fn run(args: &Args) -> Result<Value> {
             args.required("--model")?,
             args.get("--discount-pct"),
             args.flag("--withdraw"),
-            &confirm,
+            confirm,
         ),
         "deploy" | "start" => {
             let limit = args
@@ -762,23 +793,19 @@ pub fn run(args: &Args) -> Result<Value> {
                 .parse::<f64>()
                 .map_err(|_| Error("compute_limit_required"))?;
             if args.command == "deploy" {
-                miner.deploy(limit, &confirm)
+                miner.deploy(limit, confirm)
             } else {
-                miner.start(limit, &confirm)
+                miner.start(limit, confirm)
             }
         }
-        "activate" => miner.activate(&confirm),
-        "resume" => miner.resume(&confirm),
-        "stop" => miner.stop(args.flag("--drain-only"), &confirm),
+        "activate" => miner.activate(confirm),
+        "resume" => miner.resume(confirm),
+        "stop" => miner.stop(args.flag("--drain-only"), confirm),
         "update" => {
             if let Some(file) = args.get("--release") {
-                miner.update(&read_json(Path::new(file), false)?, &confirm)
+                miner.update(&read_json(Path::new(file), false)?, confirm)
             } else {
-                miner.worker_update(args.flag("--check"), &confirm, &|message| {
-                    if !args.flag("--json") {
-                        eprintln!("{message}");
-                    }
-                })
+                miner.worker_update(args.flag("--check"), confirm, progress)
             }
         }
         "reconcile" => miner.reconcile(),
@@ -836,22 +863,11 @@ pub fn main_entry() -> i32 {
                 )
             }
         );
-        Ok(
-            if out["ok"] == false
-                || (a.command == "register-hotkey" && out["registered"] != true)
-                || (["doctor", "health"].contains(&a.command.as_str()) && out["ok"] != true)
-                || (a.command == "status"
-                    && (out["ok"] == false
-                        || !out["coordinatorError"].is_null()
-                        || !out["cloudError"].is_null()))
-                || (a.command == "reconcile" && out["resolved"] == false)
-                || (a.command == "balances" && balance_check_failed(&out))
-            {
-                2
-            } else {
-                0
-            },
-        )
+        Ok(if result_failed(&a.command, &out) {
+            2
+        } else {
+            0
+        })
     });
     let exit_code = match result {
         Ok(n) => n,
@@ -873,6 +889,19 @@ pub fn main_entry() -> i32 {
         }
     }
     exit_code
+}
+
+/// A completed command whose result still needs attention (exit code 2).
+pub fn result_failed(command: &str, out: &Value) -> bool {
+    out["ok"] == false
+        || (command == "register-hotkey" && out["registered"] != true)
+        || (["doctor", "health"].contains(&command) && out["ok"] != true)
+        || (command == "status"
+            && (out["ok"] == false
+                || !out["coordinatorError"].is_null()
+                || !out["cloudError"].is_null()))
+        || (command == "reconcile" && out["resolved"] == false)
+        || (command == "balances" && balance_check_failed(out))
 }
 
 pub fn balance_check_failed(out: &Value) -> bool {
