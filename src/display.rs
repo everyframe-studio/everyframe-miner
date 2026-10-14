@@ -247,6 +247,13 @@ fn status_table(value: &Value) -> String {
         "detail":if let Some(state) = cloud_state {format!("Cloud state: {state}")} else if !value["cloudError"].is_null() {
             format!("Cloud check failed: {}. Run everycli doctor.", text(&value["cloudError"]["code"]))
         } else {"Not checked from this profile. Use the original management profile; do not redeploy.".into()}}));
+    if let Some(list) = value["cloudWorkloads"].as_array().filter(|l| !l.is_empty()) {
+        for w in list {
+            checks.push(serde_json::json!({"name":"Workload not managed here","state":"WARN",
+                "detail":format!("{} ({}) carries this miner's name but was deployed from another computer or an earlier setup. Manage it there, or delete it with everycli delete --app-id {} before deploying from here.",
+                    text(&w["appId"]), text(&w["status"]), text(&w["appId"]))}));
+        }
+    }
     checks.extend([
         bool_check(
             "Miner enabled",

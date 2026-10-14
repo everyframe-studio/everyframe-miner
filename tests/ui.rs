@@ -5,14 +5,25 @@ use everyframe_miner::ui::{self, Request, Shared};
 use serde_json::{Value, json};
 use std::{collections::HashMap, sync::Arc};
 
-fn shared(dir: &std::path::Path) -> Arc<Shared> {
+/// Answers every provider key check with a fixed result; never touches the network.
+struct Answer(Result<&'static str, &'static str>);
+impl everyframe_miner::network::Http for Answer {
+    fn bytes(&self, _: everyframe_miner::network::Request) -> everyframe_miner::Result<Vec<u8>> {
+        self.0
+            .map(|b| b.as_bytes().to_vec())
+            .map_err(everyframe_miner::Error)
+    }
+}
+fn shared_with(dir: &std::path::Path, answer: Result<&'static str, &'static str>) -> Arc<Shared> {
     // A fresh child directory, created owner-only by the CLI itself.
     let profile = dir.join("profile");
-    Arc::new(Shared::new(
-        "testnet",
-        Some(profile.to_str().unwrap()),
-        47117,
-    ))
+    Arc::new(
+        Shared::new("testnet", Some(profile.to_str().unwrap()), 47117)
+            .with_http(Box::new(Answer(answer))),
+    )
+}
+fn shared(dir: &std::path::Path) -> Arc<Shared> {
+    shared_with(dir, Ok("{}"))
 }
 fn request(method: &str, path: &str, headers: &[(&str, &str)], body: Value) -> Request {
     let mut h: HashMap<String, String> = headers
@@ -338,7 +349,6 @@ fn overview_exposes_lifecycle_reconciliation_and_local_label() {
         "stopping",
         "provisioned",
         "updating",
-        "deleting",
         "stop_intent",
     ] {
         state
@@ -351,6 +361,26 @@ fn overview_exposes_lifecycle_reconciliation_and_local_label() {
         assert_eq!(o["deployment"]["needsReconcile"], true, "{phase}");
         assert_eq!(o["label"], "studio-worker-1");
     }
+    // Deletion is confirmed by re-running delete; a deleted worker frees the deploy step.
+    state
+        .write(
+            "deployment",
+            &json!({"phase":"deleting","appId":"11".repeat(20)}),
+        )
+        .unwrap();
+    assert_eq!(
+        ui::overview(&sh).unwrap()["deployment"]["needsReconcile"],
+        false
+    );
+    state
+        .write(
+            "deployment",
+            &json!({"phase":"deleted","appId":"11".repeat(20)}),
+        )
+        .unwrap();
+    let o = ui::overview(&sh).unwrap();
+    assert!(o["deployment"]["appId"].is_null());
+    assert_eq!(o["steps"][4]["done"], false);
     state
         .write(
             "deployment",
@@ -369,4 +399,82 @@ fn overview_exposes_lifecycle_reconciliation_and_local_label() {
             .unwrap()
             .1
     );
+}
+
+fn saved_keys(sh: &Arc<Shared>, token: &str) -> Vec<String> {
+    json_of(&call(sh, "GET", "/api/overview", token, Value::Null))["keys"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|k| k["saved"] == true)
+        .map(|k| k["provider"].as_str().unwrap().to_string())
+        .collect()
+}
+
+#[test]
+fn rejected_keys_are_never_saved() {
+    let dir = common::tempdir();
+    let sh = shared_with(dir.path(), Err("http_401"));
+    let token = pair(&sh);
+    let r = call(
+        &sh,
+        "POST",
+        "/api/keys",
+        &token,
+        json!({"provider":"openrouter","key":"sk-or-test-0123456789abcdef"}),
+    );
+    assert_eq!(r.status, 400);
+    assert_eq!(json_of(&r)["error"]["error"], "credential_rejected");
+    assert!(!String::from_utf8_lossy(&r.body).contains("sk-or-test"));
+    assert!(saved_keys(&sh, &token).is_empty());
+}
+
+#[test]
+fn unreachable_checks_still_save_and_say_so() {
+    let dir = common::tempdir();
+    let sh = shared_with(dir.path(), Err("request_timeout"));
+    let token = pair(&sh);
+    let r = call(
+        &sh,
+        "POST",
+        "/api/keys",
+        &token,
+        json!({"provider":"fal","key":"fal-test-key-0123456789abcdef"}),
+    );
+    assert_eq!(r.status, 200);
+    assert_eq!(json_of(&r)["check"]["result"], "unverified");
+    assert_eq!(saved_keys(&sh, &token), vec!["fal"]);
+    // A saved key can be re-tested without being returned.
+    let again = call(
+        &sh,
+        "POST",
+        "/api/keys/check",
+        &token,
+        json!({"provider":"fal"}),
+    );
+    assert_eq!(json_of(&again)["check"]["result"], "unverified");
+    assert!(!String::from_utf8_lossy(&again.body).contains("fal-test-key"));
+    let missing = call(
+        &sh,
+        "POST",
+        "/api/keys/check",
+        &token,
+        json!({"provider":"luma"}),
+    );
+    assert_eq!(json_of(&missing)["error"]["error"], "credential_not_saved");
+}
+
+#[test]
+fn overview_has_no_authorization_expiry_and_reports_the_label() {
+    let dir = common::tempdir();
+    let sh = shared(dir.path());
+    let token = pair(&sh);
+    let (args, _) = ui::action_args(&sh, "label", &json!({"name":"studio-worker-1"})).unwrap();
+    let (state, _) = ui::execute(&sh, "l1", &args, &[]);
+    assert_eq!(state, "done");
+    let o = json_of(&call(&sh, "GET", "/api/overview", &token, Value::Null));
+    assert_eq!(o["label"], "studio-worker-1");
+    assert!(o.get("delegationExpiresAt").is_none());
+    let (args, _) = ui::action_args(&sh, "label", &json!({"name":"x".repeat(65)})).unwrap();
+    assert_eq!(ui::execute(&sh, "l2", &args, &[]).0, "failed");
 }

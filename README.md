@@ -579,10 +579,29 @@ everycli delete --app-id EXACT_APP_ID # Irreversibly remove this VM and its stor
 ```
 
 Emergency stop can lose already-paid in-flight work. Stop does not delete storage.
-Deletion requires the exact recorded app ID and confirmation, verifies the signed
+Deletion requires the exact app ID and confirmation, verifies the signed
 VM identity, and never deletes other resources. After deletion, confirm removal
 and final charges in Phala Billing. Provider subscriptions and other VMs are separate.
 An uncertain operation is journaled; do not deploy a duplicate or delete the profile.
+
+### Move management to another computer
+
+Initialize the same hotkey and configure a Phala **workspace API token** for the
+account hosting your worker. `everycli status` lists matching cloud workloads.
+To permanently replace one, use `everycli delete --app-id EXACT_APP_ID`, then
+repeat that command until it reports `deleted`. Deletion progress is saved locally;
+a timeout is not proof of removal. Then use `everycli deploy --max-hourly-usd LIMIT`.
+The new VM must pass fresh attestation and activation before accepting work.
+Existing model offers remain unchanged. This replaces the VM; it does not import
+the old computer's management profile. Never delete a worker you intend to keep.
+
+The same flow is available in `everycli ui` as **Delete and deploy again**.
+Both permanent deletion and new hosting charges require confirmation.
+The UI checks API keys with free read-only requests before saving: rejected keys
+are not saved; inconclusive checks save with an explicit warning. Restricted
+generation keys may not permit account queries, so this is not a generation test.
+Worker names can be shortened in the display or renamed locally without changing
+the signed VM identity.
 
 To uninstall, first stop/delete every managed VM as appropriate, then run
 `everycli auto-update --disable`. Locate the installed executable with

@@ -365,10 +365,36 @@ impl Miner<'_> {
                 }
             }
         }
+        let managed_here = d["appId"].is_string() && d["phase"] != "deleted";
+        if !managed_here && configured(&c.credentials["PHALA_CLOUD_API_KEY"]) {
+            match self.cloud_workloads(&c) {
+                Ok(list) => out["cloudWorkloads"] = json!(list),
+                Err(e) => out["cloudWorkloadsError"] = json!({"code":e.0}),
+            }
+        }
         out["next"] = json!(
             "Use everycli doctor for readiness. Reconcile uncertain operations; never blindly repeat a cloud mutation."
         );
         Ok(out)
+    }
+    /// Phala workloads carrying this miner's signed VM name. A workload listed here
+    /// while this profile records none was deployed from another computer or an
+    /// earlier setup; it can be deleted with `everycli delete --app-id ID`.
+    fn cloud_workloads(&self, c: &Context) -> Result<Vec<Value>> {
+        let catalog = self.cloud(c)?.catalog("/cvms/paginated")?;
+        Ok(catalog["items"]
+            .as_array()
+            .ok_or(Error("invalid_cloud_response"))?
+            .iter()
+            .filter(|v| v["name"] == c.invitation["request"]["name"])
+            .filter(|v| matches("[0-9a-f]{40}", &v["app_id"]))
+            .take(20)
+            .map(|v| {
+                json!({"appId":v["app_id"],"name":v["name"],
+                    "status":v["status"].as_str().filter(|s| s.len() <= 40 && s.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')),
+                    "sameRelease":v["compose_hash"] == c.invitation["composeHash"]})
+            })
+            .collect())
     }
     pub fn doctor(&self) -> Result<Value> {
         self.diagnose(false)
@@ -755,14 +781,30 @@ impl Miner<'_> {
         let _lock = self.state.lock()?;
         let c = self.load(true)?;
         let inv = &c.invitation;
+        let replacing = c.deployment["phase"] == "deleted";
         need(
-            c.deployment.as_object().is_some_and(|o| o.is_empty()),
+            c.deployment.as_object().is_some_and(|o| o.is_empty())
+                || c.deployment["phase"] == "deleted",
             "deployment_already_recorded",
         )?;
         need(
-            inv["appId"].is_null() && inv["previousComposeHash"].is_null(),
+            (inv["appId"].is_null() && inv["previousComposeHash"].is_null())
+                || (replacing && inv["publicOnboarding"] == true),
             "initial_invitation_required",
         )?;
+        if replacing && inv["publicOnboarding"] == true {
+            let status = self.api(&c, "status", json!({}))?;
+            need(
+                status["replacementSupported"] == true,
+                "replacement_not_supported",
+            )?;
+            need(
+                status["appId"] == c.deployment["appId"]
+                    && status["composeHash"] == inv["composeHash"],
+                "deployment_binding_mismatch",
+            )?;
+            need(status["activeJobs"] == 0, "active_jobs")?;
+        }
         let cloud = self.cloud(&c)?;
         let offer = self.hosting(&c, limit)?;
         let images = cloud.catalog("/os-images")?;
@@ -781,7 +823,7 @@ impl Miner<'_> {
                 .as_array()
                 .unwrap()
                 .iter()
-                .any(|v| v["name"] == inv["request"]["name"]),
+                .any(|v| v["name"] == inv["request"]["name"] && v["status"] != "deleted"),
             "existing_cloud_workload",
         )?;
         need(
@@ -794,7 +836,17 @@ impl Miner<'_> {
             s(&inv["request"]["name"])?,
             offer["hourly_rate"]
         ))?;
+        if replacing && inv["publicOnboarding"] == true {
+            let status = self.api(&c, "drain", json!({}))?;
+            need(
+                status["draining"] == true && status["activeJobs"] == 0,
+                "active_jobs",
+            )?;
+        }
         let mut state = json!({"phase":"provision_intent","startedAt":now(),"computeHourlyUsd":offer["hourly_rate"].as_str().map(str::to_string).unwrap_or(offer["hourly_rate"].to_string()),"appId":null});
+        if replacing && inv["publicOnboarding"] == true {
+            state["replacesAppId"] = c.deployment["appId"].clone();
+        }
         self.state.write("deployment", &state)?;
         let p = cloud.mutate("/cvms/provision", "POST", &inv["request"], false)?;
         let mut diagnostic = json!({});
@@ -842,16 +894,34 @@ impl Miner<'_> {
         if c.invitation["publicOnboarding"] != true {
             return Ok(());
         }
-        let out = self.api(
-            c,
-            "bind-app",
-            json!({"appId":deployment["appId"],"composeHash":c.invitation["composeHash"]}),
-        )?;
+        let mut body =
+            json!({"appId":deployment["appId"],"composeHash":c.invitation["composeHash"]});
+        if deployment["replacesAppId"].is_string() {
+            body["previousAppId"] = deployment["replacesAppId"].clone();
+        }
+        let out = self.api(c, "bind-app", body)?;
         need(
             out["appId"] == deployment["appId"]
                 && out["composeHash"] == c.invitation["composeHash"],
             "deployment_binding_mismatch",
-        )
+        )?;
+        if deployment["replacesAppId"].is_string() {
+            let mut updated = self.validate(&out["deployment"], false)?;
+            need(
+                updated["appId"] == deployment["appId"],
+                "deployment_binding_mismatch",
+            )?;
+            let mut expected = c.invitation.clone();
+            for k in ["appId", "issuedAt", "expiresAt"] {
+                updated.as_object_mut().unwrap().remove(k);
+                expected.as_object_mut().unwrap().remove(k);
+            }
+            need(updated == expected, "deployment_binding_mismatch")?;
+            let mut config = c.config.clone();
+            config["invitation"] = out["deployment"].clone();
+            self.state.write("config", &config)?;
+        }
+        Ok(())
     }
     pub fn apply_api_keys(&self, confirm: &dyn Fn(&str) -> Result<()>) -> Result<Value> {
         self.activate_keys(confirm, true)
@@ -961,7 +1031,12 @@ impl Miner<'_> {
             config,
             invitation,
             credentials: self.state.read("credentials", false)?,
-            deployment: self.state.read("deployment", false)?,
+            // A profile that never deployed has no record; commands that need
+            // one fail with deployment_not_recorded below.
+            deployment: match self.state.read("deployment", true)? {
+                Value::Null => json!({}),
+                d => d,
+            },
         })
     }
     fn recover_cloud_target(&self, c: &mut Context) -> Result<()> {
@@ -1054,12 +1129,16 @@ impl Miner<'_> {
     pub fn delete(&self, app_id: &str, confirm: &dyn Fn(&str) -> Result<()>) -> Result<Value> {
         let _lock = self.state.lock()?;
         let mut c = self.cloud_context()?;
+        let recorded = c.deployment["appId"].is_string();
+        if !recorded && c.deployment["phase"] != "provision_intent" {
+            return self.delete_unrecorded(&c, app_id, confirm);
+        }
         self.recover_cloud_target(&mut c)?;
         need(c.deployment["appId"] == app_id, "deployment_app_mismatch")?;
         if c.deployment["phase"] == "deleted" {
             return Ok(json!({"phase":"deleted","appId":app_id}));
         }
-        let info = match self.target(&c, true) {
+        let info = match self.deletion_target(&c) {
             Err(e)
                 if e.0 == "phala_http_404"
                     && ["delete_intent", "deleting"]
@@ -1093,6 +1172,65 @@ impl Miner<'_> {
         Ok(
             json!({"phase":"deleting","appId":app_id,"coordinatorDrained":drained,"next":"VM deletion accepted, not yet confirmed. Rerun this command to verify removal and check final storage charges in Phala Billing. Other resources/subscriptions are unchanged; preserve this local management record."}),
         )
+    }
+    /// Deletes a workload with this miner's signed name that this profile did not
+    /// deploy (another computer, or an earlier setup). Journal the exact target
+    /// before deletion so a lost response cannot cause another destructive call.
+    fn delete_unrecorded(
+        &self,
+        c: &Context,
+        app_id: &str,
+        confirm: &dyn Fn(&str) -> Result<()>,
+    ) -> Result<Value> {
+        Cloud::app_path(app_id)?;
+        let found = self
+            .cloud_workloads(c)?
+            .into_iter()
+            .find(|w| w["appId"] == app_id);
+        let Some(workload) = found else {
+            // Already gone, or not one of this miner's workloads.
+            return Err(Error("cloud_workload_not_found"));
+        };
+        let info = self.cloud(c)?.info(app_id)?;
+        need(
+            info["app_id"] == app_id
+                && info["name"] == c.invitation["request"]["name"]
+                && matches("[0-9a-f]{64}", &info["compose_hash"]),
+            "target_mismatch",
+        )?;
+        if ["deleting", "deleted"].contains(&workload["status"].as_str().unwrap_or("")) {
+            self.state.write("deployment", &json!({"phase":"deleting","appId":app_id,"deletionComposeHash":info["compose_hash"],"operationAt":now()}))?;
+            return Ok(
+                json!({"phase":"deleting","appId":app_id,"recordedHere":false,"next":"Deletion already requested; no duplicate request sent. Check again with everycli status."}),
+            );
+        }
+        confirm(&format!(
+            "Permanently DELETE VM {app_id} ({}), which this computer did not deploy? This is irreversible; active jobs and its VM data will be lost. Other cloud resources and provider subscriptions are not deleted.",
+            s(&info["name"])?
+        ))?;
+        let drained = self.api(c, "drain", json!({})).is_ok();
+        let mut state = json!({"phase":"delete_intent","appId":app_id,"deletionComposeHash":info["compose_hash"],"operationAt":now()});
+        self.state.write("deployment", &state)?;
+        self.cloud(c)?
+            .request(&Cloud::app_path(app_id)?, "DELETE", None, false, true)?;
+        state["phase"] = json!("deleting");
+        self.state.write("deployment", &state)?;
+        Ok(
+            json!({"phase":"deleting","appId":app_id,"recordedHere":false,"coordinatorDrained":drained,"next":"Deletion journal saved. Rerun everycli delete with this app ID to confirm removal before deploying again."}),
+        )
+    }
+    fn deletion_target(&self, c: &Context) -> Result<Value> {
+        if c.deployment["deletionComposeHash"].is_null() {
+            return self.target(c, true);
+        }
+        let info = self.cloud(c)?.info(s(&c.deployment["appId"])?)?;
+        need(
+            info["app_id"] == c.deployment["appId"]
+                && info["name"] == c.invitation["request"]["name"]
+                && info["compose_hash"] == c.deployment["deletionComposeHash"],
+            "target_mismatch",
+        )?;
+        Ok(info)
     }
     pub fn label(&self, name: Option<&str>) -> Result<Value> {
         if let Some(name) = name {
