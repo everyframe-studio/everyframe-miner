@@ -18,6 +18,16 @@ impl Miner<'_> {
         confirm: &dyn Fn(&str) -> Result<()>,
     ) -> Result<Value> {
         let _lock = self.state.lock()?;
+        self.reconnect_locked(path, confirm)
+    }
+
+    // Caller must hold the profile lock. Deployment uses this only during its
+    // read-only preflight, never after a cloud operation has been submitted.
+    pub(crate) fn reconnect_locked(
+        &self,
+        path: Option<&Path>,
+        confirm: &dyn Fn(&str) -> Result<()>,
+    ) -> Result<Value> {
         let pending = self.state.read("profile-recovery", true)?;
         if !pending.is_null() {
             confirm(QUESTION)?;
@@ -50,7 +60,16 @@ impl Miner<'_> {
             "reconciliation_required",
         )?;
         let registration = self.state.read("registration", true)?;
-        let saved_path = registration["hotkeyFile"].as_str().map(PathBuf::from);
+        let saved_path = registration["hotkeyFile"]
+            .as_str()
+            .map(PathBuf::from)
+            .or_else(|| {
+                if path.is_some() {
+                    return None;
+                }
+                let root = PathBuf::from(std::env::var("HOME").ok()?).join(".bittensor/wallets");
+                onboarding::find_matching_hotkey(&root, old["hotkey"].as_str()?)
+            });
         let path = path
             .or(saved_path.as_deref())
             .ok_or(Error("local_hotkey_required_use_wallet_or_hotkey_file"))?;

@@ -799,21 +799,37 @@ impl Miner<'_> {
     }
     pub fn deploy(&self, limit: f64, confirm: &dyn Fn(&str) -> Result<()>) -> Result<Value> {
         let _lock = self.state.lock()?;
-        let c = self.load(true)?;
-        let inv = &c.invitation;
+        let mut c = self.load(true)?;
         let replacing = c.deployment["phase"] == "deleted";
         need(
             c.deployment.as_object().is_some_and(|o| o.is_empty())
                 || c.deployment["phase"] == "deleted",
             "deployment_already_recorded",
         )?;
+        // Refresh an attached same-hotkey profile once, before any paid action.
+        // Never retry deploy itself: a later error may follow a successful POST.
+        let status = if c.invitation["publicOnboarding"] == true {
+            Some(match self.api(&c, "status", json!({})) {
+                Err(e) if e.0 == "coordinator_auth_rejected" => {
+                    self.reconnect_locked(None, &|_| Ok(()))?;
+                    c = self.load(true)?;
+                    self.api(&c, "status", json!({}))?
+                }
+                other => other?,
+            })
+        } else {
+            None
+        };
+        let inv = &c.invitation;
         need(
             (inv["appId"].is_null() && inv["previousComposeHash"].is_null())
                 || (replacing && inv["publicOnboarding"] == true),
             "initial_invitation_required",
         )?;
         if replacing && inv["publicOnboarding"] == true {
-            let status = self.api(&c, "status", json!({}))?;
+            let status = status
+                .as_ref()
+                .ok_or(Error("invalid_coordinator_response"))?;
             need(
                 status["replacementSupported"] == true,
                 "replacement_not_supported",

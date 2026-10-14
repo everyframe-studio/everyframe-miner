@@ -374,6 +374,9 @@ pub fn overview(sh: &Shared) -> Result<Value> {
         "registration": if registration.is_null() { Value::Null } else {
             json!({"hotkey":registration["hotkey"],"registered":registration["registered"],"network":registration["network"],"wallet":registration["wallet"],"uid":registration["uid"],"checkedAt":registration["checkedAt"]})
         },
+        // Expose only whether a saved signer exists, never its private path.
+        "hotkeyAttached": registration["hotkeyFile"].is_string()
+            && (profile.is_null() || registration["hotkey"] == profile["hotkey"]),
         "initialized":!config.is_null(),"profile":profile,
         "deployment":{"phase":phase,"appId":if phase == "deleted" { Value::Null } else { deployment["appId"].clone() },
             "computeHourlyUsd":deployment["computeHourlyUsd"],
