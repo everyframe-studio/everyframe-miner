@@ -180,6 +180,105 @@ struct Rig {
     recovered: RefCell<Option<Value>>,
 }
 
+fn abandoned_preparation() -> Rig {
+    let (mut r, _) = Rig::reconnect_fixture();
+    r.inv["keyVersion"] = json!(1);
+    r.fail.borrow_mut().clear();
+    let mut status = r.status.borrow_mut();
+    status["appId"] = json!("0".repeat(40));
+    status["online"] = json!(false);
+    status["attested"] = json!(false);
+    drop(status);
+    r.state()
+        .write(
+            "deployment",
+            &json!({"phase":"provision_intent","appId":null,"startedAt":123}),
+        )
+        .unwrap();
+    r.calls.borrow_mut().clear();
+    r
+}
+
+#[test]
+fn abandoned_preparation_is_archived_without_cloud_mutation_or_losing_keys() {
+    let r = abandoned_preparation();
+    let before = r.state().read("deployment", false).unwrap();
+    let keys = r.state().read("credentials", false).unwrap();
+    let config = r.state().read("config", false).unwrap();
+    let registration = r.state().read("registration", false).unwrap();
+    let out = r.miner().reconcile().unwrap();
+    assert_eq!(out["resolved"], true);
+    assert_eq!(out["phase"], "not_deployed");
+    assert_eq!(out["cloudChanged"], false);
+    assert_eq!(
+        r.state().read("deployment-recovery", false).unwrap()[0]["deployment"],
+        before
+    );
+    assert_eq!(r.state().read("deployment", false).unwrap(), json!({}));
+    assert_eq!(r.state().read("credentials", false).unwrap(), keys);
+    assert_eq!(r.state().read("config", false).unwrap(), config);
+    assert_eq!(r.state().read("registration", false).unwrap(), registration);
+    assert_eq!(r.miner().reconcile().unwrap()["resolved"], true);
+    assert!(
+        r.calls
+            .borrow()
+            .iter()
+            .all(|(method, _)| method.starts_with("GET "))
+    );
+    // Simulate interruption between archive and clearing: one archive, not two.
+    r.state().write("deployment", &before).unwrap();
+    r.miner().reconcile().unwrap();
+    assert_eq!(
+        r.state()
+            .read("deployment-recovery", false)
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+}
+
+#[test]
+fn preparation_recovery_refuses_ambiguity_and_outages_without_changing_journal() {
+    for case in 0..10 {
+        let r = abandoned_preparation();
+        match case {
+            0 => r.status.borrow_mut()["appId"] = json!("1".repeat(40)),
+            1 => r.status.borrow_mut()["activeJobs"] = json!(1),
+            2 => r.status.borrow_mut()["online"] = json!(true),
+            3 => r.status.borrow_mut()["attested"] = json!(true),
+            4 => r.cvms.borrow_mut().push(r.info.borrow().clone()),
+            5 => *r.fail.borrow_mut() = "/status".into(),
+            6 => *r.fail.borrow_mut() = "/cvms/paginated".into(),
+            7 => r.cvms.borrow_mut().push(json!({"unexpected":"schema"})),
+            8 => r
+                .state()
+                .write("worker-update", &json!({"stage":"applying"}))
+                .unwrap(),
+            _ => r
+                .state()
+                .write("deployment", &json!({"phase":"commit_intent","appId":null}))
+                .unwrap(),
+        }
+        let before = r.state().read("deployment", false).unwrap();
+        assert!(r.miner().reconcile().is_err(), "case {case}");
+        assert_eq!(r.state().read("deployment", false).unwrap(), before);
+        assert!(
+            r.state()
+                .read("deployment-recovery", true)
+                .unwrap()
+                .is_null()
+        );
+        assert!(
+            r.calls
+                .borrow()
+                .iter()
+                .all(|(method, _)| method.starts_with("GET "))
+        );
+    }
+}
+
 #[test]
 fn reconnect_keeps_keys_label_deleted_journal_and_records_verified_uid_zero() {
     let (r, _) = Rig::reconnect_fixture();

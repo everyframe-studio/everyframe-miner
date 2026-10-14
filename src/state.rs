@@ -121,6 +121,7 @@ impl State {
                 "auto-update-result",
                 "label",
                 "profile-recovery",
+                "deployment-recovery",
             ]
             .contains(&name),
             "invalid_state_file",

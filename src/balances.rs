@@ -98,7 +98,7 @@ pub fn worker_reports(http: &dyn Http, credentials: &Value) -> Vec<Value> {
 
 /// fal's account balance as a generation key sees it. The documented billing API
 /// refuses keys without admin scope, which is every key a worker runs with, so the
-/// balance comes from the account endpoint the fal dashboard reads. It answers a
+/// balance comes from an undocumented account endpoint the fal dashboard reads. It answers a
 /// bare USD number; fail closed on anything else.
 fn fal_user_balance(http: &dyn Http, key: &str) -> Result<f64> {
     let mut req = Request::get(

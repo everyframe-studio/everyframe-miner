@@ -41,6 +41,25 @@ Recovery does not create or delete cloud resources, end storage billing, or
 resume jobs. Binary updates and automatic authorization repair do not silently
 retire VM bindings. See [v0.5.4 release notes](RELEASE-NOTES-v0.5.4.md).
 
+### v0.5.6 recovery and provider balances
+
+Update with `everycli update`, then close and reopen `everycli ui` if running.
+Fal balances now work with the normal generation key; BFL and Runway account
+credits are also supported. Fal's generation-key balance endpoint is undocumented:
+an unavailable or changed response is reported as unavailable, never zero.
+
+An interrupted initial `provision_intent` with no app ID can now be recovered
+with `everycli reconcile` (or **Re-sync operation** in the UI). The CLI requires
+an unbound, idle coordinator and a successful Phala workspace inventory with no
+matching workload. It archives only the uncommitted preparation, preserves keys
+and the hotkey profile, and never retries VM creation. Afterwards, save any API
+key changes and run `everycli reconnect` to refresh the signed deployment.
+Do not delete profile files or bypass a refused recovery.
+
+Worker telemetry uses the keys deployed to the worker. Updating everycli alone
+does not update a running worker; check `everycli worker-update --check` for a
+separately verified signed worker update. See [v0.5.6 release notes](RELEASE-NOTES-v0.5.6.md).
+
 ### v0.5.5 model dashboard and faster batches
 
 - Unintegrated catalog entries are hidden. Integrated models that still need
