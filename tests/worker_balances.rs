@@ -85,13 +85,13 @@ fn deployed_keys_only_and_matching_credential_identity_without_leaking_keys() {
     let creds = json!({"FAL_KEY":"generation-secret-key","FAL_ADMIN_KEY":"DO-NOT-DEPLOY-ADMIN","OPENROUTER_MANAGEMENT_KEY":"DO-NOT-DEPLOY-MANAGEMENT","PHALA_CLOUD_API_KEY":"DO-NOT-DEPLOY-HOSTING","VIVIX_API_KEY":"vivix-secret-key"});
     let reports = balances::worker_reports(&api, &creds);
     assert_eq!(reports.len(), 2);
-    assert_eq!(api.calls.borrow().len(), 1);
+    assert_eq!(api.calls.borrow().len(), 2);
     assert_eq!(
         api.calls.borrow()[0].headers[0].1,
         "Key generation-secret-key"
     );
     assert_eq!(reports[0]["remainingMicrousd"], 42_500_000);
-    assert_eq!(reports[1]["status"], "unsupported");
+    assert_eq!(reports[1]["status"], "unavailable");
     assert_eq!(
         reports[0]["credentialRef"],
         protocol::sha("everyframe-worker-balance-credential-v1\0fal\0generation-secret-key")
@@ -215,7 +215,11 @@ fn renewal_rebinds_cached_report_and_replayed_ack_is_not_accepted() {
             .tick(&api, &transport, &creds, Some(&session), &key)
             .unwrap()
     );
-    assert_eq!(api.calls.borrow().len(), 1);
+    assert_eq!(
+        api.calls.borrow().len(),
+        2,
+        "The one-minute refresh also occurs while retrying a rejected acknowledgment"
+    );
     assert_eq!(
         transport.calls.borrow().last().unwrap()["sessionId"],
         "new-attested-session"

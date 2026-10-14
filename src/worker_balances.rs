@@ -9,7 +9,7 @@ use std::sync::{
 };
 use std::time::Duration;
 
-pub const CHECK_INTERVAL_MS: i64 = 300_000;
+pub const CHECK_INTERVAL_MS: i64 = 60_000;
 pub const RETRY_INTERVAL_MS: i64 = 30_000;
 #[derive(Clone)]
 pub struct BalanceSession {

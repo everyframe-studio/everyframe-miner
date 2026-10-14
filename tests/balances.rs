@@ -175,3 +175,45 @@ fn balance_cli_flags_are_narrowly_scoped() {
     assert!(cli::parse(&args("miner offers --publish")).is_err());
     assert!(cli::parse(&args("miner balances --provider fal")).is_err());
 }
+
+#[test]
+fn vivix_native_w_credits_are_not_a_credits_or_usd() {
+    for available in [0.0, 0.125, 130.0, -1.0] {
+        let http = api(
+            json!({"code":0,"message":"private upstream message","data":{"workspace_id":"private-workspace","balances":[{"scope":"A","available":6750},{"scope":"W","available":available}]}}),
+        );
+        let rows = balances::collect(&http, &json!({"VIVIX_API_KEY":"test-secret-key"}));
+        assert_eq!(
+            http.calls.borrow()[0].url,
+            "https://api.vivix.ai/v1/balance"
+        );
+        assert_eq!(rows[0]["status"], "ok");
+        assert!(rows[0]["remainingUsd"].is_null());
+        assert_eq!(
+            rows[0]["nativeBalance"]["remainingMicrounits"],
+            (available * 1_000_000.0) as i64
+        );
+        let report = balances::reports(&rows);
+        protocol::canonical(&json!(report)).unwrap();
+        assert!(!json!(report).to_string().contains("private"));
+        assert!(!json!(report).to_string().contains("secret"));
+        let merged = balances::merge(&json!(report), vec![], everyframe_miner::now());
+        assert_eq!(merged[0]["nativeBalance"], rows[0]["nativeBalance"]);
+        assert_eq!(merged[0]["status"], "ok");
+        let shown = display::render("balances", &json!({"balances":merged}));
+        assert!(shown.contains(&format!("{available:.3} W")));
+        assert!(!shown.contains("$130"));
+    }
+    for response in [
+        json!({}),
+        json!({"code":10005,"data":{"balances":[{"scope":"W","available":0}]}}),
+        json!({"code":0,"data":{"balances":[{"scope":"A","available":6750}]}}),
+        json!({"code":0,"data":{"balances":[{"scope":"W","available":0},{"scope":"W","available":130}]}}),
+        json!({"code":0,"data":{"balances":[{"scope":"W","available":"NaN"}]}}),
+        json!({"code":0,"data":{"balances":[{"scope":"W","available":true}]}}),
+    ] {
+        let rows = balances::collect(&api(response), &json!({"VIVIX_API_KEY":"test-secret-key"}));
+        assert_eq!(rows[0]["status"], "unavailable");
+        assert!(rows[0].get("nativeBalance").is_none());
+    }
+}

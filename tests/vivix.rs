@@ -46,7 +46,9 @@ impl Http for Api {
         assert_eq!(r.hosts, ["api.vivix.ai"]);
         assert!(
             r.headers
-                .contains(&("authorization".into(), format!("Bearer {KEY}")))
+                .iter()
+                .any(|(name, value)| name.eq_ignore_ascii_case("authorization")
+                    && value == &format!("Bearer {KEY}"))
         );
         self.calls.borrow_mut().push(r);
         Ok(self
@@ -354,20 +356,20 @@ fn vivix_requires_its_own_key_and_respects_signed_environment() {
 }
 
 #[test]
-fn vivix_balance_is_explicitly_unsupported_not_zero_or_network_failure() {
-    let api = Api::new(vec![]);
+fn vivix_balance_is_native_w_credits_not_usd_or_a_credits() {
+    let api = Api::new(vec![envelope(
+        json!({"balances":[{"scope":"A","available":6750},{"scope":"W","available":130}]}),
+    )]);
     let rows = balances::collect(&api, &credentials());
-    assert!(api.calls.borrow().is_empty());
+    assert_eq!(api.calls.borrow().len(), 1);
+    assert_eq!(api.calls.borrow()[0].method, "GET");
     assert_eq!(rows.len(), 1);
     assert_eq!(rows[0]["provider"], "vivix");
-    assert_eq!(rows[0]["status"], "unsupported");
+    assert_eq!(rows[0]["status"], "ok");
     assert!(rows[0]["remainingUsd"].is_null());
-    assert_eq!(rows[0]["diagnostic"]["code"], "unsupported_balance");
-    assert!(
-        rows[0]["diagnostic"]["message"]
-            .as_str()
-            .unwrap()
-            .contains("W-credit")
+    assert_eq!(
+        rows[0]["nativeBalance"],
+        json!({"unit":"W_CREDITS","remainingMicrounits":130000000})
     );
     assert!(!json!(rows).to_string().contains(KEY));
 }

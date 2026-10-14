@@ -564,7 +564,7 @@ resources and ongoing charges. To restart the saved workload, use
 | `status` | Deployment, routing, offers and job activity tables; `--json` for full fields |
 | `doctor` | Detailed diagnostics for readiness, admission, routing, and cloud state |
 | `providers` | Show credential presence and signed-release permissions, never key values |
-| `balances` | Show remaining account credits in USD; `--publish` syncs private snapshots |
+| `balances` | Show USD balances and native Vivix W credits; `--publish` syncs private snapshots |
 | `offers`, `offer` | Inspect, set, or withdraw a revision-checked model bid |
 | `earnings` | Read coordinator accounting; does not initiate payouts |
 | `deploy` | Create a pinned workload with provider credentials disabled |
@@ -692,9 +692,21 @@ manual reconcile/activation steps. Do not redeploy a second VM or edit signed
 configurations to enable a key. Provider submissions are never automatically
 retried after an ambiguous response, preventing duplicate billable jobs.
 
-`everycli balances` shows Vivix as `unsupported`, with a reason: W credits are not
-USD, and no documented USD-balance endpoint is integrated. Check the Vivix billing
-dashboard; the CLI never fabricates a balance or assumes a pack's conversion rate.
+From v0.4.1, `everycli balances` reads Vivix's read-only `/v1/balance` endpoint
+and displays **W credits**, not A credits or an inferred USD amount. The endpoint
+is undocumented: a missing/duplicate W entry, changed response shape or request
+failure is `unavailable`, never an invented zero. Workspace IDs and raw responses
+are not published.
+
+Update both components with `everycli update` and `everycli worker-update` from
+the original management profile. The updated worker checks deployed provider
+balances once per minute and sends signed, attested telemetry. The coordinator
+excludes a provider with a fresh confirmed non-positive balance (W credits for
+Vivix, USD for Fal/OpenRouter), including a recheck before issuing a start grant.
+This is **zero-only gating**: any positive balance remains eligible; it does not
+compare the balance with the requested job's cost. A credits cannot fund W1.
+Stale, unavailable and unsupported results are not assumed to be zero. This
+is not a guarantee against concurrent spending on the same provider account.
 
 ## Tests
 
