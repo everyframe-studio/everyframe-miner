@@ -121,7 +121,13 @@ pub fn check(v: &Value) -> Result<()> {
     }
     need(digest(v)? == digest(&spec(&input)?)?, "unsupported_spec")
 }
+/// Longest coordinator deadline (12 min for long Studio clips since Oct 2026).
+/// Sessions are renewed before a claim unless they outlive this plus a margin.
+pub const COORDINATOR_MAX_JOB_MS: i64 = 720000;
 pub fn max_job_ms() -> i64 {
+    COORDINATOR_MAX_JOB_MS.max(model_max_job_ms())
+}
+fn model_max_job_ms() -> i64 {
     MODELS
         .as_object()
         .unwrap()

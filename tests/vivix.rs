@@ -97,8 +97,9 @@ fn status(state: &str) -> Value {
 
 #[test]
 fn vivix_contract_durations_and_seed_validate_before_network() {
-    // A new candidate must not lengthen every existing worker's session-renewal horizon.
-    assert_eq!(models::max_job_ms(), 480000);
+    // A new candidate must not lengthen the session-renewal horizon past the
+    // coordinator's longest deadline (12 min for long Studio clips).
+    assert_eq!(models::max_job_ms(), models::COORDINATOR_MAX_JOB_MS);
     assert_eq!(
         models::info(MODEL).unwrap()["dimensions"],
         json!([[1264, 720], [1280, 720]])
@@ -152,7 +153,6 @@ fn vivix_state_mapping_and_resume_use_saved_id_without_resubmission() {
         ("queued", "IN_QUEUE"),
         ("processing", "IN_PROGRESS"),
         ("succeeded", "COMPLETED"),
-        ("failed", "FAILED"),
     ] {
         let api = Api::new(vec![status(state)]);
         assert_eq!(
@@ -167,6 +167,15 @@ fn vivix_state_mapping_and_resume_use_saved_id_without_resubmission() {
             "https://api.vivix.ai/v1/videos/jobs/job_test"
         );
     }
+    // A failed job reports a fixed category instead of a bare FAILED state.
+    let api = Api::new(vec![status("failed")]);
+    assert_eq!(
+        Router::new(&api, credentials())
+            .poll("vivix_job_test", &spec(5))
+            .unwrap_err()
+            .0,
+        "provider_generation_failed"
+    );
     let api = Api::new(vec![status("new-unknown-state")]);
     assert_eq!(
         Router::new(&api, credentials())

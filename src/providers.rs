@@ -671,7 +671,14 @@ impl Provider for Router<'_> {
             return Ok("COMPLETED".into());
         }
         let r = self.native(r, &p)?;
-        Ok(Self::state(&p, &self.read(r, spec, m, &p)?)?.into())
+        let data = self.read(r, spec, m, &p)?;
+        let state = Self::state(&p, &data)?;
+        if state == "FAILED" {
+            // Report a fixed category so the coordinator can tell a content block
+            // from a billing or provider fault. Provider text never leaves the TEE.
+            return Err(Error(failure_category(&p, &data)));
+        }
+        Ok(state.into())
     }
     fn result(&mut self, r: &str, spec: &Value) -> Result<Output> {
         let (m, p) = self.context(spec)?;
@@ -695,7 +702,7 @@ impl Provider for Router<'_> {
             let data = self.api(&p, &format!("/{}/requests/{r}", s(&m["app"])?), None)?;
             need(
                 data["error"].is_null() && data["detail"].is_null(),
-                "provider_generation_failed",
+                failure_category(&p, &data),
             )?;
             let url = match m["kind"].as_str() {
                 Some("image") => {
@@ -839,5 +846,74 @@ impl Provider for Router<'_> {
             media,
             response_hash: sha(metadata.to_string()),
         })
+    }
+}
+
+/// Classifies a provider's failure payload into one of the categories the
+/// coordinator accepts. Only the category is reported, never provider text.
+pub fn failure_category(provider: &str, data: &Value) -> &'static str {
+    let status = data["status"].as_str().unwrap_or_default();
+    if provider == "bfl" && (status == "Request Moderated" || status == "Content Moderated") {
+        return "provider_content_rejected";
+    }
+    if provider == "vivix" {
+        match data["code"]
+            .as_i64()
+            .or_else(|| data["error"]["code"].as_i64())
+        {
+            Some(30001) => return "provider_content_rejected",
+            Some(10004 | 10005) => return "provider_billing_required",
+            Some(20004 | 20008) => return "provider_invalid_request",
+            _ => {}
+        }
+    }
+    let text = [
+        &data["error"],
+        &data["detail"],
+        &data["message"],
+        &data["failure"],
+        &data["failureCode"],
+        &data["error_message"],
+    ]
+    .iter()
+    .filter(|v| !v.is_null())
+    .map(|v| v.to_string().to_lowercase())
+    .collect::<Vec<_>>()
+    .join(" ");
+    let has = |words: &[&str]| words.iter().any(|w| text.contains(w));
+    if has(&[
+        "content_policy",
+        "content policy",
+        "moderat",
+        "nsfw",
+        "safety",
+        "sensitive",
+        "prohibited",
+    ]) {
+        "provider_content_rejected"
+    } else if has(&[
+        "insufficient",
+        "balance",
+        "credit",
+        "billing",
+        "payment",
+        "quota",
+    ]) {
+        "provider_billing_required"
+    } else if has(&[
+        "value_error",
+        "validation",
+        "invalid",
+        "literal_error",
+        "missing",
+        "unprocessable",
+        "not supported",
+        "unsupported",
+    ]) {
+        "provider_invalid_request"
+    } else if has(&["timeout", "timed out"]) {
+        "provider_timeout"
+    } else {
+        "provider_generation_failed"
     }
 }

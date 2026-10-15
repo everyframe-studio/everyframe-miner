@@ -247,11 +247,20 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
             "{}",
             json!({"event":"generation_failed","jobId":work["jobId"],"attemptId":work["attemptId"],"reason":reason})
         );
+        // Coordinators from Oct 2026 accept a fixed failure category; older ones
+        // refuse the extra field, so the plain report is the fallback.
+        let category = report_category(reason);
         // Never repeat the provider POST or keep fetching a terminal result.
         while self.runtime.now() < deadline {
             if self
-                .call("failed", json!({"attemptId":work["attemptId"]}))
+                .call(
+                    "failed",
+                    json!({"attemptId":work["attemptId"],"reason":category}),
+                )
                 .is_ok()
+                || self
+                    .call("failed", json!({"attemptId":work["attemptId"]}))
+                    .is_ok()
             {
                 return Ok(json!({"state":"failed","reason":reason}));
             }
@@ -519,4 +528,22 @@ pub fn run_live() -> Result<()> {
         }
     }
     Ok(())
+}
+
+/// Maps an internal failure code to a category the coordinator accepts.
+pub fn report_category(reason: &str) -> &'static str {
+    match reason {
+        "provider_content_rejected" => "provider_content_rejected",
+        "provider_invalid_request" => "provider_invalid_request",
+        "provider_billing_required" | "vivix_billing_required" => "provider_billing_required",
+        "provider_timeout" => "provider_timeout",
+        "provider_unavailable" => "provider_unavailable",
+        r if r.starts_with("provider_no_media")
+            || r.starts_with("output_")
+            || r == "invalid_media" =>
+        {
+            "output_invalid"
+        }
+        _ => "provider_generation_failed",
+    }
 }
