@@ -867,19 +867,18 @@ pub fn failure_category(provider: &str, data: &Value) -> &'static str {
             _ => {}
         }
     }
-    let text = [
-        &data["error"],
-        &data["detail"],
-        &data["message"],
-        &data["failure"],
-        &data["failureCode"],
-        &data["error_message"],
-    ]
-    .iter()
-    .filter(|v| !v.is_null())
-    .map(|v| v.to_string().to_lowercase())
-    .collect::<Vec<_>>()
-    .join(" ");
+    let mut codes = Vec::new();
+    let mut messages = Vec::new();
+    failure_fields(data, 0, &mut codes, &mut messages);
+    // Structured types/codes take precedence over prose, which can quote user
+    // input. Unknown fields (especially input, request, ctx and loc) are ignored.
+    if let Some(category) = codes
+        .iter()
+        .find_map(|code| structured_failure_category(code))
+    {
+        return category;
+    }
+    let text = messages.join(" ");
     let has = |words: &[&str]| words.iter().any(|w| text.contains(w));
     if has(&[
         "content_policy",
@@ -892,12 +891,16 @@ pub fn failure_category(provider: &str, data: &Value) -> &'static str {
     ]) {
         "provider_content_rejected"
     } else if has(&[
-        "insufficient",
-        "balance",
-        "credit",
-        "billing",
-        "payment",
-        "quota",
+        "insufficient credits",
+        "insufficient credit",
+        "insufficient balance",
+        "insufficient funds",
+        "not enough credits",
+        "out of credits",
+        "exhausted balance",
+        "balance exhausted",
+        "payment required",
+        "billing required",
     ]) {
         "provider_billing_required"
     } else if has(&[
@@ -915,5 +918,76 @@ pub fn failure_category(provider: &str, data: &Value) -> &'static str {
         "provider_timeout"
     } else {
         "provider_generation_failed"
+    }
+}
+
+fn structured_failure_category(code: &str) -> Option<&'static str> {
+    match code {
+        "provider_content_rejected"
+        | "content_policy_violation"
+        | "content_policy"
+        | "content_blocked"
+        | "moderation_blocked"
+        | "safety_violation"
+        | "nsfw" => Some("provider_content_rejected"),
+        "provider_billing_required"
+        | "insufficient_credits"
+        | "insufficient_balance"
+        | "insufficient_funds"
+        | "payment_required"
+        | "billing_required" => Some("provider_billing_required"),
+        "provider_invalid_request"
+        | "invalid_request"
+        | "invalid_request_error"
+        | "validation_error"
+        | "value_error"
+        | "literal_error"
+        | "missing"
+        | "string_type"
+        | "int_type"
+        | "int_parsing"
+        | "float_parsing" => Some("provider_invalid_request"),
+        "provider_timeout" | "timeout" | "timed_out" => Some("provider_timeout"),
+        "provider_unavailable" | "service_unavailable" => Some("provider_unavailable"),
+        _ => None,
+    }
+}
+
+/// Visit only error schema fields, never arbitrary provider JSON or echoed
+/// request values. Bounds also prevent unusually nested errors from dominating
+/// classification work. All collected text stays local; only fixed codes leave.
+fn failure_fields(data: &Value, depth: usize, codes: &mut Vec<String>, messages: &mut Vec<String>) {
+    if depth > 8 || codes.len() + messages.len() >= 128 {
+        return;
+    }
+    match data {
+        Value::String(text) => {
+            messages.push(text.chars().take(2048).collect::<String>().to_lowercase())
+        }
+        Value::Array(items) => {
+            for item in items.iter().take(32) {
+                failure_fields(item, depth + 1, codes, messages);
+            }
+        }
+        Value::Object(fields) => {
+            for key in ["code", "type", "error_code", "failureCode"] {
+                if let Some(code) = fields.get(key).and_then(Value::as_str)
+                    && code.len() <= 128
+                {
+                    codes.push(code.to_ascii_lowercase());
+                }
+            }
+            for key in ["message", "msg", "error_message"] {
+                if let Some(text) = fields.get(key).and_then(Value::as_str) {
+                    messages.push(text.chars().take(2048).collect::<String>().to_lowercase());
+                }
+            }
+            for key in ["error", "errors", "detail", "failure"] {
+                if let Some(value) = fields.get(key) {
+                    failure_fields(value, depth + 1, codes, messages);
+                }
+            }
+        }
+        _ => {}
     }
 }

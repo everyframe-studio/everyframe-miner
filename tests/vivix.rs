@@ -187,6 +187,26 @@ fn vivix_state_mapping_and_resume_use_saved_id_without_resubmission() {
 }
 
 #[test]
+fn vivix_poll_errors_keep_fixed_categories_for_worker_reports() {
+    for (code, category) in [
+        (30001, "provider_content_rejected"),
+        (10005, "provider_billing_required"),
+        (20004, "provider_invalid_request"),
+    ] {
+        let api = Api::new(vec![
+            json!({"code":code,"message":"private prompt or credential"}),
+        ]);
+        let error = Router::new(&api, credentials())
+            .poll("vivix_job_test", &spec(5))
+            .unwrap_err();
+        assert_eq!(everyframe_miner::worker::report_category(error.0), category);
+        assert!(!error.0.contains("private"));
+        assert_eq!(api.calls.borrow().len(), 1);
+        assert_eq!(api.calls.borrow()[0].method, "GET");
+    }
+}
+
+#[test]
 fn vivix_downloads_only_completed_output_without_credentials() {
     let api = Api::new(vec![status("succeeded")]);
     let result = Router::new(&api, credentials())

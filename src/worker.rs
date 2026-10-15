@@ -247,8 +247,10 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
             "{}",
             json!({"event":"generation_failed","jobId":work["jobId"],"attemptId":work["attemptId"],"reason":reason})
         );
-        // Coordinators from Oct 2026 accept a fixed failure category; older ones
-        // refuse the extra field, so the plain report is the fallback.
+        // Never downgrade to a reasonless report: transport errors (or a generic
+        // HTTP 400) do not prove legacy compatibility, and losing a moderation
+        // category can trigger an inappropriate paid fallback. An incompatible
+        // coordinator must reconcile rather than accept a different outcome.
         let category = report_category(reason);
         // Never repeat the provider POST or keep fetching a terminal result.
         while self.runtime.now() < deadline {
@@ -258,9 +260,6 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                     json!({"attemptId":work["attemptId"],"reason":category}),
                 )
                 .is_ok()
-                || self
-                    .call("failed", json!({"attemptId":work["attemptId"]}))
-                    .is_ok()
             {
                 return Ok(json!({"state":"failed","reason":reason}));
             }
@@ -533,14 +532,21 @@ pub fn run_live() -> Result<()> {
 /// Maps an internal failure code to a category the coordinator accepts.
 pub fn report_category(reason: &str) -> &'static str {
     match reason {
-        "provider_content_rejected" => "provider_content_rejected",
-        "provider_invalid_request" => "provider_invalid_request",
-        "provider_billing_required" | "vivix_billing_required" => "provider_billing_required",
+        "provider_content_rejected" | "vivix_content_rejected" => "provider_content_rejected",
+        "provider_invalid_request"
+        | "vivix_invalid_parameters"
+        | "http_400"
+        | "http_403"
+        | "http_422" => "provider_invalid_request",
+        "provider_billing_required"
+        | "vivix_billing_required"
+        | "fal_billing_required"
+        | "http_402" => "provider_billing_required",
         "provider_timeout" => "provider_timeout",
-        "provider_unavailable" => "provider_unavailable",
+        "provider_unavailable" | "vivix_unavailable" => "provider_unavailable",
         r if r.starts_with("provider_no_media")
             || r.starts_with("output_")
-            || r == "invalid_media" =>
+            || matches!(r, "invalid_media" | "invalid_media_size") =>
         {
             "output_invalid"
         }

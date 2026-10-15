@@ -10,6 +10,23 @@ See [current live verification and limitations](VALIDATION.md#v040-public-worker
 
 The notes below describe the original port and incremental compatibility changes.
 
+## v0.5.7 worker update: categorized failures
+
+The failure-reporting worker requires a coordinator that accepts a fixed `reason`
+on the signed `failed` action. Reports never contain provider response text or
+echoed inputs. Retries preserve the same attempt and category; a timeout or a
+generic HTTP error never downgrades the report to the legacy reasonless format.
+An incompatible or unreachable coordinator leaves the operation for reconciliation
+at the job deadline, without resubmitting the provider generation. Update the
+coordinator before rolling out this worker; publishing only the CLI does not
+update existing VMs.
+
+The renewal horizon covers the coordinator's 12-minute maximum job deadline plus
+20 seconds. Coordinator sessions must outlive that horizon. Local regression
+tests are not evidence that a new worker image has passed production attestation.
+
+## Port history
+
 Ported from `codex/github-preparation/everyframe-miner`, worker protocol v1 and
 Python `everycli` 0.5.0. The original repository remains separate and unchanged.
 Package versions are independent of the original CLI. v0.1.3 adds hotkey-backed
