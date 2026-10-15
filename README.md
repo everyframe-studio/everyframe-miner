@@ -41,6 +41,18 @@ Recovery does not create or delete cloud resources, end storage billing, or
 resume jobs. Binary updates and automatic authorization repair do not silently
 retire VM bindings. See [v0.5.4 release notes](RELEASE-NOTES-v0.5.4.md).
 
+### v0.5.7 provider failure reporting
+
+Worker failure reports preserve moderation, invalid-input and billing categories,
+including Vivix and Fal errors. Retries never drop the reason or repeat the paid
+generation. Structured error codes take priority over message text; echoed input
+is excluded. Session renewal covers the coordinator's 12-minute maximum job.
+
+Run `everycli update` for the CLI. These worker fixes require a separately verified
+signed image: check `everycli worker-update --check`, then review and confirm
+`everycli worker-update` when available. Updating the CLI alone does not change
+your running VM. See [v0.5.7 release notes](RELEASE-NOTES-v0.5.7.md).
+
 ### v0.5.6 recovery and provider balances
 
 Update with `everycli update`, then close and reopen `everycli ui` if running.

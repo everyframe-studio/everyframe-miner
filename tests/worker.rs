@@ -15,6 +15,8 @@ struct Options {
     submit_error: bool,
     submit_code: Option<&'static str>,
     report_failures: u32,
+    failed_report_failures: u32,
+    failed_report_error: Option<&'static str>,
     denied: bool,
     bad_grant: bool,
     replay: bool,
@@ -34,6 +36,7 @@ struct Fixture {
     encryption_key: RefCell<String>,
     calls: RefCell<Vec<String>>,
     receipts: RefCell<Vec<Value>>,
+    failure_reports: RefCell<Vec<Value>>,
     submits: Cell<u32>,
     submitted: Cell<u32>,
     reports: Cell<u32>,
@@ -113,7 +116,19 @@ impl Runtime for Handle {
                         assert!(request["payload"]["reason"].is_string());
                         json!({"ok":true})
                     }
-                    "unknown" | "failed" | "heartbeat" => json!({}),
+                    "failed" => {
+                        let mut reports = self.failure_reports.borrow_mut();
+                        reports.push(request["payload"].clone());
+                        if reports.len() <= self.options.failed_report_failures as usize {
+                            return Err(Error(
+                                self.options
+                                    .failed_report_error
+                                    .unwrap_or("request_timeout"),
+                            ));
+                        }
+                        json!({})
+                    }
+                    "unknown" | "heartbeat" => json!({}),
                     _ => panic!("unexpected action {action}"),
                 };
                 json!({"sessionId":"session","requestNonce":if self.options.replay {json!("other")}else{request["nonce"].clone()},"result":result})
@@ -205,6 +220,7 @@ fn fixture(options: Options, patch: Value) -> (Worker<Handle, Handle>, Rc<Fixtur
         encryption_key: RefCell::default(),
         calls: RefCell::default(),
         receipts: RefCell::default(),
+        failure_reports: RefCell::default(),
         submits: Cell::new(0),
         submitted: Cell::new(0),
         reports: Cell::new(0),
@@ -223,6 +239,88 @@ fn fixture(options: Options, patch: Value) -> (Worker<Handle, Handle>, Rc<Fixtur
         },
         f,
     )
+}
+#[test]
+fn failed_reports_preserve_reason_across_transport_and_protocol_errors() {
+    for error in [
+        "request_timeout",
+        "connection_failed",
+        "http_500",
+        "response_replayed",
+        "http_400",
+    ] {
+        let (mut w, f) = fixture(
+            Options {
+                poll_error: Some("provider_content_rejected"),
+                failed_report_failures: 1,
+                failed_report_error: Some(error),
+                ..Default::default()
+            },
+            json!({}),
+        );
+        assert_eq!(w.step().unwrap()["state"], "failed");
+        let reports = f.failure_reports.borrow();
+        assert_eq!(reports.len(), 2, "{error}");
+        assert_eq!(
+            reports[0],
+            json!({"attemptId":"attempt", "reason":"provider_content_rejected"})
+        );
+        assert_eq!(
+            reports[1], reports[0],
+            "{error} must not trigger a reasonless downgrade"
+        );
+        assert_eq!(f.submits.get(), 1);
+        assert_eq!(f.clock.get(), 4000, "retry must back off");
+    }
+}
+
+#[test]
+fn failed_reports_reconcile_at_deadline_without_losing_reason_or_resubmitting() {
+    let (mut w, f) = fixture(
+        Options {
+            poll_error: Some("provider_content_rejected"),
+            failed_report_failures: u32::MAX,
+            failed_report_error: Some("http_400"),
+            ..Default::default()
+        },
+        json!({}),
+    );
+    assert_eq!(w.step().unwrap()["state"], "reconcile");
+    let reports = f.failure_reports.borrow();
+    assert_eq!(reports.len(), 3);
+    assert!(
+        reports
+            .iter()
+            .all(|p| p["reason"] == "provider_content_rejected")
+    );
+    assert_eq!(f.submits.get(), 1);
+    assert_eq!(f.clock.get(), 10000);
+}
+
+#[test]
+fn terminal_provider_aliases_reach_signed_reports() {
+    for (code, category) in [
+        ("vivix_content_rejected", "provider_content_rejected"),
+        ("vivix_invalid_parameters", "provider_invalid_request"),
+        ("fal_billing_required", "provider_billing_required"),
+        ("vivix_billing_required", "provider_billing_required"),
+        ("http_422", "provider_invalid_request"),
+    ] {
+        for result_error in [false, true] {
+            let options = Options {
+                poll_error: (!result_error).then_some(code),
+                result_error: result_error.then_some(code),
+                ..Default::default()
+            };
+            let (mut w, f) = fixture(options, json!({}));
+            assert_eq!(w.step().unwrap()["state"], "failed");
+            assert_eq!(
+                *f.failure_reports.borrow(),
+                vec![json!({"attemptId":"attempt", "reason":category})]
+            );
+            assert_eq!(f.submits.get(), 1);
+        }
+    }
 }
 #[test]
 fn completes_with_bound_signed_receipt() {
