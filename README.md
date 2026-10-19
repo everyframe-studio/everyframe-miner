@@ -20,6 +20,31 @@ and ten provider adapters. Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
 
+### v0.5.8 model IDs and availability
+
+The **Everyframe contract ID** is used with `everycli offer --model`. The
+**Provider API ID** is the underlying provider's ID; for example,
+`direct/openrouter/veo-3.1` maps to `google/veo-3.1`. Never paste a
+`studio/` or `direct/` contract ID into the provider's API.
+
+The model dashboard separates **Candidates / retired** from supported models.
+Removed/deprecated models cannot receive new offers, but existing offers can
+still be withdrawn and historical jobs remain readable. Provider catalog checks
+run every 15 minutes; failed checks retry after one minute without paid requests.
+OpenRouter uses the deployed key's filtered model list, Vivix uses its workspace
+model list, and Fal uses its public model catalog (not proof of account access).
+Other provider account access is explicitly unchecked. A listed model is not
+proof of adequate funds, capacity, or successful generation.
+
+These worker checks require the matching signed worker update; installing the
+CLI alone does not enable them. Catalog checks never expand signed permissions
+or silently switch the provider/model. Provider keys and raw errors are not
+included in availability reports.
+
+Unavailable offer pricing now explains the problem before confirmation; it never
+changes part of a batch or reports the misleading "invalid integer" error.
+See [v0.5.8 release notes](RELEASE-NOTES-v0.5.8.md).
+
 ### v0.5.4 deleted-workload recovery
 
 Update with `everycli update`, then reopen `everycli ui`.

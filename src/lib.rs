@@ -11,6 +11,7 @@ pub mod hotkey;
 pub mod invitation;
 pub mod key_check;
 pub mod miner;
+pub mod model_availability;
 pub mod models;
 pub mod network;
 pub mod offer_catalog;

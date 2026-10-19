@@ -93,6 +93,8 @@ pub fn diagnostic(error: &Error, args: Option<&Args>) -> Value {
         "conflicting_offer_options" => ("Offers cannot combine --discount-pct with --withdraw.".into(), "Choose a discount to set an offer, or --withdraw to remove it. Run everycli help offer for examples.".into()),
         "invalid_offer_batch" => ("Choose 1–128 distinct model IDs for this batch.".into(), "Use everycli offers, then everycli offer-batch --models ID,ID --discount-pct 10.".into()),
         "batch_offers_not_supported" => ("This coordinator does not support batch offers yet.".into(), "No offers were changed. Update the coordinator or use individual offers.".into()),
+        "offer_pricing_unavailable" => ("Pricing is temporarily unavailable for a selected model. No discounts were changed.".into(), "The coordinator needs to refresh its pricing. Refresh offers and try again once pricing is available; changing your discount or API keys will not fix this.".into()),
+        "provider_model_unavailable" => ("A selected model is no longer available for new offers or work. No discounts were changed.".into(), "Refresh offers and choose a supported model. Existing offers can still be withdrawn; historical jobs are preserved.".into()),
         "offer_revision_conflict" | "offer_pricing_changed" => ("An offer or its pricing changed during review. Nothing in this batch was applied.".into(), "Refresh offers and review the batch again.".into()),
         "invalid_network" | "unknown_network" => ("Invalid --network. Use mainnet or testnet.".into(), "Example: everycli doctor --network mainnet".into()),
         "unknown_provider" => ("Unknown provider.".into(), format!("Use --provider NAME. Valid providers: {}.", crate::onboarding::credential_providers().join(", "))),

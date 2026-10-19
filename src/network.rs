@@ -54,6 +54,9 @@ fn batch_offer_error(status: u16, bytes: &[u8]) -> Error {
         match (status, v["error"].as_str()) {
             (409, Some("offer_revision_conflict")) => return Error("offer_revision_conflict"),
             (409, Some("offer_pricing_changed")) => return Error("offer_pricing_changed"),
+            (409, Some("provider_model_unavailable")) => {
+                return Error("provider_model_unavailable");
+            }
             (400, Some("invalid_offer_batch")) => return Error("invalid_offer_batch"),
             (403, Some("model_not_allowed")) => return Error("model_not_allowed"),
             _ => {}
@@ -205,8 +208,13 @@ impl Http for PublicHttp {
             if !response.status().is_success() {
                 if u.host_str() == Some("subnet.everyframe.studio")
                     && r.method == "POST"
-                    && ["/v1/miner/offer-batch", "/mainnet/v1/miner/offer-batch"]
-                        .contains(&u.path())
+                    && [
+                        "/v1/miner/offer-batch",
+                        "/mainnet/v1/miner/offer-batch",
+                        "/v1/miner/offer",
+                        "/mainnet/v1/miner/offer",
+                    ]
+                    .contains(&u.path())
                 {
                     let status = response.status().as_u16();
                     let mut bytes = Vec::new();

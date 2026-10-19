@@ -157,6 +157,16 @@ fn all_models_complete_through_their_provider_adapters() {
             bad: false,
         };
         let mut router = Router::new(&api, credentials());
+        if everyframe_miner::model_availability::retired(id).is_some() {
+            let error = router.submit(&spec).unwrap_err();
+            assert_eq!(error.0, "provider_model_unavailable");
+            assert_eq!(
+                everyframe_miner::submission::rejected(error.0),
+                Some("provider_model_unavailable")
+            );
+            assert!(api.calls.borrow().is_empty());
+            continue;
+        }
         let reference = router.submit(&spec).unwrap();
         assert_eq!(router.poll(&reference, &spec).unwrap(), "COMPLETED", "{id}");
         let output = router.result(&reference, &spec).unwrap();
