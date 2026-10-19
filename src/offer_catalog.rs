@@ -57,6 +57,10 @@ pub fn offers(status: &Value, invitation: &Value, credentials: &Value) -> Value 
             "offerable",
             "blockers",
             "contract",
+            "providerApiId",
+            "providerAvailability",
+            "workerAvailability",
+            "catalogGroup",
         ] {
             row[key] = model[key].clone();
         }
@@ -79,6 +83,19 @@ pub fn offers(status: &Value, invitation: &Value, credentials: &Value) -> Value 
 }
 
 pub fn readiness(row: &Value) -> &'static str {
+    for key in ["providerAvailability", "workerAvailability"] {
+        if let Some(status) = row[key]["status"].as_str()
+            && [
+                "removed",
+                "deprecated",
+                "access_denied",
+                "temporarily_unavailable",
+            ]
+            .contains(&status)
+        {
+            return crate::model_availability::label(status);
+        }
+    }
     if !integrated(row) {
         return "Unavailable";
     }
@@ -98,7 +115,11 @@ pub fn readiness(row: &Value) -> &'static str {
     } else if blocked("worker_provider_required") {
         "Enable provider on worker"
     } else if row["offerable"] == true {
-        "Available"
+        if row["workerAvailability"]["status"] == "unchecked" {
+            "Available · account access not checked"
+        } else {
+            "Available"
+        }
     } else {
         "Not reported"
     }

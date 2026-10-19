@@ -825,12 +825,18 @@ function pageKeys() {
 
 // ---------- Models ----------
 function readiness(r) {
+  for (const status of [r.providerAvailability?.status, r.workerAvailability?.status]) {
+    const labels = {removed:"Removed by provider",deprecated:"Deprecated by provider",access_denied:"Provider access unavailable for this key",temporarily_unavailable:"Availability check temporarily unavailable"};
+    if (labels[status]) return [labels[status], status === "temporarily_unavailable" ? "warn" : "bad"];
+  }
   const b = r.blockers || [];
   if (b.includes("pricing_required")) return ["Pricing required", "warn"];
   if (b.includes("worker_release_required")) return ["Worker update required", "warn"];
   if (b.includes("worker_offline")) return ["Worker offline", "bad"];
   if (b.includes("worker_capabilities_unknown")) return ["Worker check required", "warn"];
   if (b.includes("worker_provider_required")) return ["Add provider key to worker", "warn"];
+  if (r.workerAvailability?.status === "unchecked" && r.offerable === true) return ["Available · account access not checked", "warn"];
+  if (!S.overview?.initialized && r.catalogGroup === "supported") return ["Listed · setup required", ""];
   if (r.offerable === true) return ["Available", "ok"];
   return ["Not reported", ""];
 }
@@ -841,11 +847,15 @@ function pageModels() {
   if (!S.offers && !S.offersError) { root.append(card("Offers", [refresh], h("p", { class: "muted" }, "Loading…"))); loadOffers().then(render); return root; }
   if (S.offersError) { root.append(card("Offers", [refresh], errorView(S.offersError))); return root; }
   let rows = (S.offers.offers || []).filter(integratedModel);
-  const filters = [["ready", "Ready for my keys"], ["active", "My active offers"], ["all", "All models"]];
+  const filters = [["ready", "Ready for my keys"], ["active", "My active offers"], ["all", "All models"], ["candidate", "Candidates / retired"]];
   const seg = h("div", { class: "seg" }, filters.map(([f, label]) => h("button", { disabled: S.batchBusy, class: S.offerFilter === f ? "on" : "", onclick: () => { S.offerFilter = f; S.selectedOffers.clear(); clearBatchReport(); if (f === "all") acknowledgeModels(); render(); } }, label,
     f === "all" && S.newModels.size ? h("span", { class: "badge info", "aria-label": S.newModels.size + " new models" }, S.newModels.size + " new") : null)));
   if (S.overview?.initialized && S.offerFilter === "active") rows = rows.filter((r) => r.offered);
-  if (S.overview?.initialized && S.offerFilter === "ready") rows = rows.filter((r) => r.offered || (readiness(r)[0] === "Available" && r.localKeyConfigured !== false));
+  if (S.overview?.initialized && S.offerFilter === "ready") rows = rows.filter((r) => canApplyOffer(r) && (r.offered || (readiness(r)[0].startsWith("Available") && r.localKeyConfigured !== false)));
+  if (S.offerFilter === "all") rows = rows.filter(r => r.catalogGroup !== "candidate" && r.providerAvailability?.status !== "removed");
+  if (!S.overview?.initialized && S.offerFilter === "ready") rows = rows.filter(r => r.catalogGroup !== "candidate");
+  if (S.offerFilter === "candidate") rows = rows.filter(r => r.catalogGroup === "candidate" || ["removed","deprecated"].includes(r.providerAvailability?.status));
+  if (S.offerFilter === "candidate") root.append(notice("", "Not available for new offers", "These contracts are unpriced, retired, or awaiting release. They are not confirmed mining opportunities. Existing offers can still be withdrawn."));
   root.append(card("Offers", [seg, refresh], S.overview?.initialized ? batchToolbar(rows) : null,
     S.batchReport ? batchReportView() : null,
     rows.length ? h("div", { class: "table-wrap" }, h("table", { class: "cards-sm" },
@@ -856,6 +866,10 @@ function pageModels() {
   return root;
 }
 function selectableOffer(r) { return integratedModel(r) && (r.offered || (r.offerable === true && r.localKeyConfigured !== false)); }
+function canApplyOffer(r) {
+  return r.offerable !== false && r.pricingAvailable !== false && r.catalogGroup !== "candidate"
+    && ![r.providerAvailability?.status, r.workerAvailability?.status].some(s => ["removed","deprecated","access_denied","temporarily_unavailable"].includes(s));
+}
 function batchToolbar(rows) {
   const eligible = rows.filter(selectableOffer);
   const visible = new Set(eligible.map(r => r.model));
@@ -895,6 +909,9 @@ async function batchOffers(rows, withdraw) {
   if (S.batchBusy) return;
   const selected = rows.filter(r => S.selectedOffers.has(r.model) && selectableOffer(r));
   if (!selected.length) return;
+  if (!withdraw && selected.some(r => !canApplyOffer(r))) {
+    showBatchReport([{model:"Batch",ok:false,message:"A selected model is unavailable for new offers. No discounts were changed. Refresh models and check its readiness."}]); render(); return;
+  }
   const discount = S.batchDiscount.trim();
   if (!withdraw && (!/^(?:0|[1-9]\d?)(?:\.\d{1,2})?$/.test(discount) || Number(discount) > 99.9)) {
     showBatchReport([{ model: "Discount", ok: false, message: "Enter 0–99.9%, with at most two decimal places." }]); render(); return;
@@ -934,14 +951,16 @@ function offerRow(r) {
   const baseMicrousd = r.baseMinerRewardMicrousd ?? r.pricing?.minerRewardMicrousd;
   const base = typeof baseMicrousd === "number" ? baseMicrousd / 1e6 : null;
   const yours = r.offered ? (r.pricingCurrent ? "Active · " + ((r.discountBp || 0) / 100).toFixed(2) + "% off" : "Stale pricing") : "Not offered";
+  const apply = button(r.offered ? "Update" : "Offer", async () => { await run("offer", { model: r.model, discountPct: disc.value }); await loadOffers(); await loadHealth(); render(); }, "small primary");
+  apply.disabled = !canApplyOffer(r); disc.disabled = !canApplyOffer(r);
   return h("tr", null,
-    h("td", { "data-label": "Model" }, h("label", { class: "row" }, S.overview?.initialized ? h("input", { type: "checkbox", checked: S.selectedOffers.has(r.model), disabled: S.batchBusy || !selectableOffer(r), "aria-label": "Select " + (r.name || r.model), onchange: e => { if (e.target.checked) S.selectedOffers.add(r.model); else S.selectedOffers.delete(r.model); render(); } }) : null, h("b", null, r.name || r.model)), h("span", { class: "id" }, r.model)),
+    h("td", { "data-label": "Model" }, h("label", { class: "row" }, S.overview?.initialized ? h("input", { type: "checkbox", checked: S.selectedOffers.has(r.model), disabled: S.batchBusy || !selectableOffer(r), "aria-label": "Select " + (r.name || r.model), onchange: e => { if (e.target.checked) S.selectedOffers.add(r.model); else S.selectedOffers.delete(r.model); render(); } }) : null, h("b", null, r.name || r.model)), h("span", { class: "id" }, "Everyframe contract: " + r.model), h("span", { class: "id" }, "Provider API ID: " + (r.providerApiId || "Not reported"))),
     h("td", { "data-label": "Provider" }, providerName(r.provider || ""), r.localKeyConfigured === false ? h("div", { class: "small muted" }, "No key saved") : null),
     h("td", { "data-label": "Readiness" }, h("span", { class: "badge " + tone }, ready)),
     h("td", { "data-label": "Your offer" }, h("span", { class: "badge " + (r.offered ? (r.pricingCurrent ? "ok" : "warn") : "") }, yours)),
     h("td", { "data-label": "Base reward" }, base != null ? fmtUsd(base, base < 1 ? 3 : 2) : "—"),
     h("td", { "data-label": "Change" }, !S.overview?.initialized ? h("a", { href: "#/setup" }, "Set up to offer") : h("div", { class: "row nowrap" }, disc, h("span", { class: "small muted" }, "% off"),
-      button(r.offered ? "Update" : "Offer", async () => { await run("offer", { model: r.model, discountPct: disc.value }); await loadOffers(); await loadHealth(); render(); }, "small primary"),
+      apply,
       r.offered ? button("Withdraw", async () => { await run("offer", { model: r.model, withdraw: true }); await loadOffers(); await loadHealth(); render(); }, "small") : null)));
 }
 

@@ -757,10 +757,21 @@ impl Miner<'_> {
             } else {
                 discount_bp
             };
+            if !withdraw {
+                need(
+                    crate::model_availability::retired(model).is_none()
+                        && !matches!(
+                            entry["providerAvailability"]["status"].as_str(),
+                            Some("removed" | "deprecated")
+                        ),
+                    "provider_model_unavailable",
+                )?;
+            }
             if withdraw {
                 lines.push(format!("Withdraw {model}"));
             } else {
-                let base = n(&entry["baseMinerRewardMicrousd"])?;
+                let base = n(&entry["baseMinerRewardMicrousd"])
+                    .map_err(|_| Error("offer_pricing_unavailable"))?;
                 need(
                     base > 0 && entry["pricingHash"].is_string(),
                     "offer_pricing_unavailable",
@@ -839,7 +850,16 @@ impl Miner<'_> {
             invitation::discount(discount.ok_or(Error("invalid_discount"))?)?
         };
         if !withdraw {
-            let base = n(&entry["baseMinerRewardMicrousd"])?;
+            need(
+                crate::model_availability::retired(model).is_none()
+                    && !matches!(
+                        entry["providerAvailability"]["status"].as_str(),
+                        Some("removed" | "deprecated")
+                    ),
+                "provider_model_unavailable",
+            )?;
+            let base = n(&entry["baseMinerRewardMicrousd"])
+                .map_err(|_| Error("offer_pricing_unavailable"))?;
             need(
                 base > 0 && entry["pricingHash"].is_string(),
                 "offer_pricing_unavailable",

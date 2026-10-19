@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-10-19T00:00:00Z",
+  "fal": {
+    "fal-ai/sora-2/text-to-video": "removed",
+    "fal-ai/sora-2/text-to-video/pro": "removed",
+    "fal-ai/veo2": "deprecated",
+    "fal-ai/veo3": "deprecated",
+    "fal-ai/veo3/fast": "deprecated",
+    "fal-ai/kling-video/v2.1/master/text-to-video": "deprecated",
+    "fal-ai/kling-video/v2/master/text-to-video": "deprecated",
+    "fal-ai/kling-video/v1.6/pro/text-to-video": "deprecated",
+    "fal-ai/kling-video/v1.6/standard/text-to-video": "deprecated",
+    "fal-ai/bytedance/seedance/v1/lite/text-to-video": "deprecated"
+  }
+}

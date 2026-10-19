@@ -83,12 +83,17 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
         Ok((response["result"].clone(), nonce))
     }
     pub fn claim(&mut self) -> Result<Value> {
+        // Refresh before enrollment/claim, never during a paid generation.
+        let availability = self.provider.refresh_availability(self.runtime.now());
         if self.session.is_null()
             || n(&self.session["expires"])? < self.runtime.now() + models::max_job_ms() + 20000
         {
             self.enroll()?
         };
         let mut capabilities = json!({"models":self.provider.models(),"durationPolicy":1});
+        if let Some(rows) = availability {
+            capabilities["modelAvailability"] = rows;
+        }
         if self.runtime.balances_enabled() {
             capabilities["balancePolicy"] = json!(1);
         }
@@ -543,7 +548,9 @@ pub fn report_category(reason: &str) -> &'static str {
         | "fal_billing_required"
         | "http_402" => "provider_billing_required",
         "provider_timeout" => "provider_timeout",
-        "provider_unavailable" | "vivix_unavailable" => "provider_unavailable",
+        "provider_unavailable" | "vivix_unavailable" | "provider_model_unavailable" => {
+            "provider_unavailable"
+        }
         r if r.starts_with("provider_no_media")
             || r.starts_with("output_")
             || matches!(r, "invalid_media" | "invalid_media_size") =>

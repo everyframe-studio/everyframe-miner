@@ -2117,6 +2117,57 @@ fn offers_use_revision_and_earnings_are_read_only() {
     assert!(r.envs.borrow().is_empty());
 }
 #[test]
+fn unavailable_offer_pricing_has_actionable_error_without_changing_discounts() {
+    for price in [Value::Null, json!("123456"), json!(0), json!(-1)] {
+        for batch in [false, true] {
+            let r = Rig::new();
+            let mut unavailable = r.status.borrow()["offers"][0].clone();
+            unavailable["model"] = json!("fixture/unpriced");
+            unavailable["baseMinerRewardMicrousd"] = price.clone();
+            r.status.borrow_mut()["offers"]
+                .as_array_mut()
+                .unwrap()
+                .push(unavailable);
+            r.status.borrow_mut()["batchOffersSupported"] = json!(true);
+            r.calls.borrow_mut().clear();
+            let no_review =
+                |_: &str| -> Result<()> { panic!("unavailable pricing must fail before review") };
+            let error = if batch {
+                r.miner().offer_batch(
+                    "fixture/video,fixture/unpriced",
+                    Some("5"),
+                    false,
+                    &no_review,
+                )
+            } else {
+                r.miner()
+                    .offer("fixture/unpriced", Some("5"), false, &no_review)
+            }
+            .unwrap_err();
+            assert_eq!(error.0, "offer_pricing_unavailable");
+            let diagnostic = everyframe_miner::cli_errors::diagnostic(&error, None);
+            assert_eq!(
+                diagnostic["message"],
+                "Pricing is temporarily unavailable for a selected model. No discounts were changed."
+            );
+            assert!(
+                diagnostic["next"]
+                    .as_str()
+                    .unwrap()
+                    .contains("coordinator needs to refresh")
+            );
+            assert!(r.calls.borrow().iter().all(|c| c.0.starts_with("GET ")));
+            assert!(
+                r.status.borrow()["offers"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .all(|o| o["revision"] == 0)
+            );
+        }
+    }
+}
+#[test]
 fn batches_review_once_and_use_one_status_plus_one_post_for_many_models() {
     let r = Rig::new();
     let template = r.status.borrow()["offers"][0].clone();

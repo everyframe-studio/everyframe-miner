@@ -15,6 +15,9 @@ pub struct Output {
 }
 pub trait Provider {
     fn models(&self) -> Vec<String>;
+    fn refresh_availability(&mut self, _now: i64) -> Option<Value> {
+        None
+    }
     fn submit(&mut self, spec: &Value) -> Result<String>;
     fn submit_before(&mut self, spec: &Value, _deadline: i64) -> Result<String> {
         self.submit(spec)
@@ -27,6 +30,7 @@ pub struct Router<'a> {
     pub credentials: Value,
     speech: Option<(String, String, Vec<u8>, String)>,
     submission_deadline: Option<i64>,
+    catalog: crate::model_availability::CatalogCache,
 }
 fn reference(v: &Value) -> Result<String> {
     need(matches("[a-zA-Z0-9_-]{1,150}", v), "invalid_provider_ref")?;
@@ -79,6 +83,7 @@ impl<'a> Router<'a> {
             credentials,
             speech: None,
             submission_deadline: None,
+            catalog: crate::model_availability::CatalogCache::default(),
         }
     }
     fn context(&self, spec: &Value) -> Result<(&'static Value, String)> {
@@ -501,6 +506,9 @@ impl<'a> Router<'a> {
     }
 }
 impl Provider for Router<'_> {
+    fn refresh_availability(&mut self, now: i64) -> Option<Value> {
+        Some(self.catalog.refresh(self.http, &self.credentials, now))
+    }
     fn submit_before(&mut self, spec: &Value, deadline: i64) -> Result<String> {
         let (_, provider) = self.context(spec)?;
         if provider == "vivix"
@@ -523,16 +531,21 @@ impl Provider for Router<'_> {
             .unwrap()
             .iter()
             .chain(models::STUDIO_MODELS.as_object().unwrap().iter())
-            .filter(|(_, m)| {
-                PROVIDERS
-                    .iter()
-                    .any(|(p, k)| m["provider"] == *p && configured(&self.credentials[k]))
+            .filter(|(id, m)| {
+                self.catalog.allows(id)
+                    && PROVIDERS
+                        .iter()
+                        .any(|(p, k)| m["provider"] == *p && configured(&self.credentials[k]))
             })
             .map(|(id, _)| id.clone())
             .collect()
     }
     fn submit(&mut self, spec: &Value) -> Result<String> {
         let (m, p) = self.context(spec)?;
+        need(
+            self.catalog.allows(s(&spec["model"])?),
+            "provider_model_unavailable",
+        )?;
         if s(&spec["model"])?.starts_with("studio/media/") {
             return self.media_submit(spec, &p);
         }

@@ -628,7 +628,15 @@ pub fn render(command: &str, value: &Value) -> String {
                     .map(|r| {
                         vec![
                             text(&r["model"]),
+                            text(&r["providerApiId"]),
                             text(&r["provider"]),
+                            text(&r["catalogGroup"]),
+                            crate::model_availability::label(
+                                r["providerAvailability"]["status"]
+                                    .as_str()
+                                    .unwrap_or("unchecked"),
+                            )
+                            .into(),
                             r["pricing"]["minerRewardMicrousd"]
                                 .as_f64()
                                 .map(|v| format!("${:.6}", v / 1_000_000.))
@@ -638,7 +646,17 @@ pub fn render(command: &str, value: &Value) -> String {
                     .collect();
                 return format!(
                     "{}\n\n{}\n{}\n",
-                    table(&["MODEL", "PROVIDER", "BASE WORK VALUE"], data),
+                    table(
+                        &[
+                            "EVERYFRAME CONTRACT",
+                            "PROVIDER API ID",
+                            "PROVIDER",
+                            "CATALOG",
+                            "AVAILABILITY",
+                            "BASE WORK VALUE"
+                        ],
+                        data
+                    ),
                     text(&value["note"]),
                     text(&value["next"])
                 );
@@ -669,6 +687,7 @@ pub fn render(command: &str, value: &Value) -> String {
                     ];
                     if catalog {
                         row.insert(1, text(&r["provider"]));
+                        row.insert(1, text(&r["providerApiId"]));
                         row.push(crate::offer_catalog::readiness(r).into());
                     }
                     row
@@ -678,7 +697,14 @@ pub fn render(command: &str, value: &Value) -> String {
                 "{}\n\nDiscount is off the base miner reward, not your provider's API price.\n{}",
                 table(
                     if catalog {
-                        &["MODEL", "PROVIDER", "OFFER", "DISCOUNT", "READINESS"]
+                        &[
+                            "EVERYFRAME CONTRACT",
+                            "PROVIDER API ID",
+                            "PROVIDER",
+                            "OFFER",
+                            "DISCOUNT",
+                            "READINESS",
+                        ]
                     } else {
                         &["MODEL", "OFFER", "DISCOUNT"]
                     },
