@@ -1,6 +1,6 @@
 # Compatibility
 
-The next worker adds optional signed `modelAvailability` rows to claim payloads.
+The v0.5.8 worker adds optional signed `modelAvailability` rows to claim payloads.
 Deploy the compatible coordinator before admitting this worker image. Old workers
 remain supported without those rows; they are not claimed to have account-level
 checks. Reports only narrow the existing model allowlist and contain fixed status
