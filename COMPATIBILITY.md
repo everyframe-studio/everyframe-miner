@@ -6,6 +6,9 @@ remain supported without those rows; they are not claimed to have account-level
 checks. Reports only narrow the existing model allowlist and contain fixed status
 codes, contract IDs and timestamps. Existing contract bodies/hashes remain intact,
 including retired contracts needed to validate historical jobs and receipts.
+The coordinator must also accept `provider_model_unavailable` as a definitive
+pre-submission rejection: the catalog guard has not contacted a paid endpoint,
+so another eligible miner may serve the same job without duplicate submission.
 
 Current v0.4.0 adds 11 settings-bound Studio video contracts and 12 Studio media
 contracts alongside the 46 legacy contracts. Their IDs, signed settings and

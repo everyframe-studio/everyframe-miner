@@ -8,6 +8,8 @@ pub fn rejected(code: &str) -> Option<&'static str> {
         "submission_deadline_elapsed" => Some("provider_invalid_request"),
         "http_429" | "vivix_capacity_limited" => Some("provider_capacity_limited"),
         "provider_key_required" => Some("provider_key_required"),
+        // Catalog refusal happens before any paid provider request.
+        "provider_model_unavailable" => Some("provider_model_unavailable"),
         "vivix_content_rejected" => Some("provider_content_rejected"),
         // Generic 403 may be moderation. It must never cause cross-miner retry.
         "http_400"
@@ -125,6 +127,10 @@ mod tests {
     }
     #[test]
     fn ambiguity_and_moderation_never_become_retryable_rejections() {
+        assert_eq!(
+            rejected("provider_model_unavailable"),
+            Some("provider_model_unavailable")
+        );
         for code in [
             "request_timeout",
             "http_408",
