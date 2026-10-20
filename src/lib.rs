@@ -27,6 +27,7 @@ pub mod ui;
 pub mod update;
 pub mod worker;
 pub mod worker_balances;
+pub mod worker_heartbeat;
 pub mod worker_update;
 pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -1,7 +1,5 @@
 //! Public CLI releases are separate from signed worker releases and credentials.
 use crate::{Error, Result, need};
-use base64::{Engine, engine::general_purpose::STANDARD};
-use ed25519_dalek::{Signature, VerifyingKey};
 use reqwest::{blocking::Client, redirect::Policy};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -15,14 +13,6 @@ use std::{
 
 const REPO: &str = "https://github.com/everyframe-studio/everyframe-miner";
 const API: &str = "https://api.github.com/repos/everyframe-studio/everyframe-miner/releases/latest";
-
-/// Raw Ed25519 public key (hex) that signs every published CLI binary. The
-/// private key lives only in the release workflow's `EVERYCLI_RELEASE_SIGNING_KEY`
-/// secret. Rotating it requires a CLI release signed by the previous key.
-pub const RELEASE_SIGNING_PUBLIC_KEY_HEX: &str =
-    "a81643f1026fb20e85399c23fc804fee82bc2e58e570efeaf30a6571eab04149";
-/// Domain separator and version of the signed release statement.
-pub const RELEASE_SIGNATURE_DOMAIN: &str = "everycli-release-v1";
 
 #[derive(Debug, PartialEq)]
 enum ProgressEvent {
@@ -212,75 +202,6 @@ pub fn verify(bytes: &[u8], checksum: &str, name: &str) -> Result<()> {
     need(
         hex::encode(Sha256::digest(bytes)).eq_ignore_ascii_case(fields[0]),
         "release_checksum_mismatch",
-    )
-}
-
-/// The exact bytes signed for one release asset (documented in RELEASING.md):
-/// `everycli-release-v1\n<tag>\n<asset-name>\n<sha256-hex-lowercase>\n`.
-/// Binding the tag prevents replaying an older signed binary as a newer version;
-/// binding the asset name prevents serving one platform's binary for another.
-pub fn signed_message(tag: &str, asset: &str, sha256_hex: &str) -> Vec<u8> {
-    format!("{RELEASE_SIGNATURE_DOMAIN}\n{tag}\n{asset}\n{sha256_hex}\n").into_bytes()
-}
-
-pub fn release_verifying_key() -> Result<VerifyingKey> {
-    let bytes: [u8; 32] = hex::decode(RELEASE_SIGNING_PUBLIC_KEY_HEX)
-        .ok()
-        .and_then(|b| b.try_into().ok())
-        .ok_or(Error("update_signature_invalid"))?;
-    VerifyingKey::from_bytes(&bytes).map_err(|_| Error("update_signature_invalid"))
-}
-
-/// Verify a detached `<asset>.sig` file (standard base64 of a 64-byte Ed25519
-/// signature) over [`signed_message`]. `sha256_hex` must be the digest computed
-/// locally from the downloaded bytes, never the published checksum text.
-pub fn verify_signature_with_key(
-    key: &VerifyingKey,
-    tag: &str,
-    asset: &str,
-    sha256_hex: &str,
-    signature: Option<&[u8]>,
-) -> Result<()> {
-    let signature = signature.ok_or(Error("update_signature_missing"))?;
-    need(
-        version(tag).is_ok()
-            && !asset.is_empty()
-            && asset
-                .bytes()
-                .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_' || b == b'.')
-            && sha256_hex.len() == 64
-            && sha256_hex
-                .bytes()
-                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)),
-        "update_signature_invalid",
-    )?;
-    let text = std::str::from_utf8(signature).map_err(|_| Error("update_signature_invalid"))?;
-    let raw: [u8; 64] = STANDARD
-        .decode(text.trim_ascii())
-        .ok()
-        .and_then(|b| b.try_into().ok())
-        .ok_or(Error("update_signature_invalid"))?;
-    key.verify_strict(
-        &signed_message(tag, asset, sha256_hex),
-        &Signature::from_bytes(&raw),
-    )
-    .map_err(|_| Error("update_signature_invalid"))
-}
-
-/// Production verification against the embedded release key.
-pub fn verify_release_signature(
-    tag: &str,
-    asset: &str,
-    bytes: &[u8],
-    signature: Option<&[u8]>,
-) -> Result<()> {
-    let sha256_hex = hex::encode(Sha256::digest(bytes));
-    verify_signature_with_key(
-        &release_verifying_key()?,
-        tag,
-        asset,
-        &sha256_hex,
-        signature,
     )
 }
 
@@ -505,12 +426,6 @@ fn run_with_progress(
     )));
     progress(ProgressEvent::Stage("Fetching release checksum…".into()));
     let checksum = download(&client, &format!("{base}.sha256"), 1024, &mut |_| {})?;
-    progress(ProgressEvent::Stage("Fetching release signature…".into()));
-    let signature = match download(&client, &format!("{base}.sig"), 1024, &mut |_| {}) {
-        Ok(bytes) => Some(bytes),
-        Err(e) if e.0 == "public_release_not_available" => None,
-        Err(e) => return Err(e),
-    };
     progress(ProgressEvent::Stage(format!(
         "Downloading everycli {} ({name})…",
         display_version(tag)
@@ -526,10 +441,6 @@ fn run_with_progress(
         &name,
     )?;
     need(!bytes.is_empty(), "empty_release_binary")?;
-    progress(ProgressEvent::Stage("Verifying release signature…".into()));
-    // Fail closed: no signature, or one not made by the embedded release key
-    // for exactly this tag, asset and downloaded content, means no install.
-    verify_release_signature(tag, &name, &bytes, signature.as_deref())?;
     let current = fs::symlink_metadata(&target).map_err(|_| Error("installed_binary_changed"))?;
     need(
         current.dev() == original.dev() && current.ino() == original.ino(),

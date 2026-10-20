@@ -22,6 +22,15 @@ pub trait Runtime {
         false
     }
     fn balance_session(&self, _session: &Value, _keys: &Keys) {}
+    fn keepalive(
+        &self,
+        _session: &Value,
+        _keys: &Keys,
+        _coordinator_key: &str,
+        _deadline: i64,
+    ) -> Result<crate::worker_heartbeat::Guard> {
+        Ok(crate::worker_heartbeat::Guard::default())
+    }
     fn now(&self) -> i64 {
         crate::now()
     }
@@ -172,6 +181,11 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
         let mut reference = work["providerRef"].clone();
         let mut grant = work["grantNonce"].clone();
         let deadline = n(&work["deadline"])?;
+        // The real runtime heartbeats on a separate bounded thread through
+        // submit, result download and completion, not only between provider polls.
+        let keepalive =
+            self.runtime
+                .keepalive(&self.session, &self.keys, &self.coordinator_key, deadline)?;
         if work["state"] == "offered" {
             let (start, _) = self.call("start", json!({"attemptId":attempt}))?;
             if start["permitted"] != true {
@@ -238,7 +252,10 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
         }
         let mut heartbeat = self.runtime.now();
         while self.runtime.now() < deadline {
-            if self.runtime.now() - heartbeat > 15000 && self.call("heartbeat", json!({})).is_ok() {
+            if !keepalive.active()
+                && self.runtime.now() - heartbeat > 15000
+                && self.call("heartbeat", json!({})).is_ok()
+            {
                 heartbeat = self.runtime.now()
             };
             let status = match self.provider.poll(s(&reference)?, &work["spec"]) {
@@ -338,6 +355,11 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
         // HTTP 400) do not prove legacy compatibility, and losing a moderation
         // category can trigger an inappropriate paid fallback. An incompatible
         // coordinator must reconcile rather than accept a different outcome.
+        // Preserve account-level refusal evidence before reducing it to the
+        // failure vocabulary accepted by older coordinators.
+        if let Some(account) = crate::submission::rejected(reason) {
+            self.pause_provider_for(&work["spec"], account);
+        }
         let category = report_category(reason);
         self.pause_provider_for(&work["spec"], category);
         // Never repeat the provider POST or keep fetching a terminal result.
@@ -364,6 +386,35 @@ pub struct LiveRuntime {
     pub balance_session: Option<crate::worker_balances::SharedSession>,
 }
 impl Runtime for LiveRuntime {
+    fn keepalive(
+        &self,
+        session: &Value,
+        keys: &Keys,
+        coordinator_key: &str,
+        deadline: i64,
+    ) -> Result<crate::worker_heartbeat::Guard> {
+        let remaining = deadline.min(n(&session["expires"])?) - self.now();
+        need(remaining > 0, "heartbeat_deadline_elapsed")?;
+        let runtime = LiveRuntime {
+            base: self.base.clone(),
+            token: self.token.clone(),
+            auth: self.auth.clone(),
+            http: crate::network::PublicHttp,
+            balance_session: None,
+        };
+        let session = session.clone();
+        let signing = keys.signing.clone();
+        let coordinator_key = coordinator_key.to_string();
+        crate::worker_heartbeat::Guard::spawn(
+            Duration::from_secs(15),
+            Duration::from_millis(remaining as u64),
+            move || {
+                // Liveness failures never replay a provider call or expose secrets.
+                let _ =
+                    crate::worker_heartbeat::send(&runtime, &session, &signing, &coordinator_key);
+            },
+        )
+    }
     fn balances_enabled(&self) -> bool {
         self.balance_session.is_some()
     }
@@ -382,7 +433,7 @@ impl Runtime for LiveRuntime {
     }
     fn post(&self, path: &str, body: &Value) -> Result<Value> {
         need(
-            ["/v1/challenge", "/v1/attest", "/v1/action"].contains(&path),
+            ["/v1/challenge", "/v1/attest", "/v1/action", "/v1/heartbeat"].contains(&path),
             "invalid_worker_path",
         )?;
         let url = format!("{}{path}", self.base.trim_end_matches('/'));
@@ -393,7 +444,10 @@ impl Runtime for LiveRuntime {
             .to_string();
         let mut r = Request::get(url, &[&host]).json("POST", body);
         r.limit = 300000;
-        r.timeout = if body["value"]["action"] == "balances" {
+        r.timeout = if ["balances", "heartbeat"]
+            .iter()
+            .any(|action| body["value"]["action"] == *action)
+        {
             5
         } else if body["value"]["action"] == "complete" {
             complete_timeout_secs(
@@ -635,6 +689,8 @@ pub fn report_category(reason: &str) -> &'static str {
         | "vivix_billing_required"
         | "fal_billing_required"
         | "http_402" => "provider_billing_required",
+        "provider_auth_rejected" | "vivix_auth_rejected" | "http_401" => "provider_auth_rejected",
+        "provider_key_required" => "provider_key_required",
         "provider_timeout" => "provider_timeout",
         "provider_unavailable" | "vivix_unavailable" | "provider_model_unavailable" => {
             "provider_unavailable"

@@ -22,7 +22,7 @@ every model in the registry is necessarily available for mining.
 
 ### v0.6.0
 
-Releases are signed and verified before install; refused outputs fail fast;
+CLI downloads are checksum-verified (publisher signing is postponed); refused outputs fail fast;
 `worker-update --abort` and a stronger `reconcile` recover interrupted updates.
 See [v0.6.0 release notes](RELEASE-NOTES-v0.6.0.md). Jobs go only to the newest
 minor release, with a 3-day grace for the previous one.
@@ -385,10 +385,10 @@ everycli update --check  # Check for an update without changing anything
 everycli --version
 ```
 
-The built-in updater verifies the release checksum and the EveryFrame Ed25519
-release signature (v0.6.0+), then atomically replaces the executable in place. It does not access miner credentials, deploy anything,
-change profiles, or update running workers. A failed download, checksum or
-signature check leaves the old executable intact. It will not automatically downgrade. Run updates as
+The built-in updater verifies the release checksum, then atomically replaces
+the executable in place. It does not access miner credentials, deploy anything,
+change profiles, or update running workers. A failed download or checksum
+check leaves the old executable intact. It will not automatically downgrade. Run updates as
 the account that owns the installation; no sudo is needed for a normal install.
 
 Normal output is readable text, with download percentage/size and verification
@@ -408,13 +408,11 @@ updates a **deployed worker** using an approved signed release. If a documented 
 `everycli --version` and upgrade (rerun the installer for older CLIs without an
 `update` command).
 
-Checksums detect corrupted or mismatched downloads. Since v0.6.0 the installer
-and updater also require a valid Ed25519 publisher signature (`<asset>.sig`) for
-the exact version, platform and downloaded bytes, checked against a release key
-built into everycli, and refuse to install when it is missing or invalid
-(`update_signature_missing`, `update_signature_invalid`). The installer needs
-OpenSSL 1.1.1+ for this (macOS: `brew install openssl@3`). See
-[RELEASING.md](RELEASING.md#release-signing-v060) for the signed format.
+Checksums detect corrupted or mismatched downloads, not a compromised publisher.
+CLI release signing is postponed: v0.6.0 does not download or require `.sig`
+files, OpenSSL or a release signing secret. Trust currently rests on the official
+GitHub repository, HTTPS and release access controls. TEE attestation, signed
+worker configurations, session proofs and job receipts remain mandatory.
 
 If you installed with `cargo install`, upgrade with `cargo install` again:
 `everycli update` and auto-update never replace a cargo build
@@ -424,7 +422,7 @@ If you installed with `cargo install`, upgrade with `cargo install` again:
 
 Native user installations check for the latest stable release in the background
 after successful interactive commands, at most once every six hours. Downloads
-are checksum- and signature-verified and atomically installed; the new version runs on the next
+are checksum-verified and atomically installed; the new version runs on the next
 invocation. Your current command completes normally, even when an update fails.
 
 ```sh

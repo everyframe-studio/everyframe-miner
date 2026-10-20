@@ -1,17 +1,15 @@
 # everycli v0.6.0
 
 ## Security
-- **Signed releases.** Every release binary now carries an Ed25519 signature
-  (`<asset>.sig`) over its tag, asset name and SHA-256. `everycli update`,
-  auto-update and the installer verify it against the release key built into
-  everycli and refuse to install anything unsigned or altered. See SECURITY.md
-  for manual verification.
-- Publishing a release now requires approval (GitHub `release` environment),
+- **CLI release signing is postponed.** Updates and fresh installs keep SHA-256
+  checksums, restricted HTTPS downloads and atomic replacement. They do not
+  fetch `.sig` files or require OpenSSL or a signing secret. Checksums are not
+  independent publisher authentication. TEE, worker configuration and job-receipt
+  signatures are unchanged and remain enforced.
+- Publishing uses the GitHub `release` environment (configure required reviewers),
   and an older-line hotfix no longer becomes the "latest" release.
 - A `cargo install` build is never replaced by auto-update; `everycli update`
   tells you to run `cargo install` again instead.
-- The installer needs OpenSSL 1.1.1 or newer to check signatures (macOS:
-  `brew install openssl@3`).
 
 ## Worker
 - An output the coordinator refuses is reported within seconds instead of being
@@ -21,6 +19,12 @@
   your claims for 15 minutes, so an empty balance no longer loses job after job.
 - Upload time for finished outputs grows with their size (3–10 minutes)
   instead of a fixed 3 minutes.
+- Independent, bounded heartbeats continue during submission, result download
+  and completion. A separate small-body coordinator endpoint prevents uploads
+  from blocking liveness. Completion freshness is checked at authenticated ingress
+  with a bounded upload window; nonce, session, attempt and receipt checks remain.
+- Credential refusals during polling/result retrieval preserve their category and
+  pause the provider, rather than taking another doomed job.
 
 ## Recovery
 - `everycli reconcile` now settles an interrupted activation and a rejected

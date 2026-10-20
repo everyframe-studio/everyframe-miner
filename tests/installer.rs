@@ -1,7 +1,5 @@
 mod common;
 
-use base64::{Engine, engine::general_purpose::STANDARD};
-use ed25519_dalek::{Signer, SigningKey};
 use everyframe_miner::update;
 use sha2::{Digest, Sha256};
 use std::{
@@ -10,12 +8,8 @@ use std::{
     process::{Command, Output},
 };
 
-const RELEASE_KEY_PEM_BODY: &str = "MCowBQYDK2VwAyEAqBZD8QJvsg6FOZwj/IBP7oK8LljlcO/q8wplceqwQUk=";
-
 struct Fixture {
     dir: tempfile::TempDir,
-    key: SigningKey,
-    sha256: String,
 }
 impl Fixture {
     fn new() -> Self {
@@ -48,43 +42,29 @@ done
 [ "$retry" = 3 ] && [ "$connect_timeout" = 30 ] && [ "$retry_limit" = 240 ]
 case "$url" in
   *.sha256) cp "$EVERYCLI_TEST_SUM" "$dest" ;;
-  *.sig) [ -f "$EVERYCLI_TEST_SIG" ] || exit 22; cp "$EVERYCLI_TEST_SIG" "$dest" ;;
   *) cp "$EVERYCLI_TEST_BINARY" "$dest" ;;
 esac
 "#,
         )
         .unwrap();
         fs::set_permissions(p.join("mock-bin/curl"), fs::Permissions::from_mode(0o755)).unwrap();
-        // A throwaway signing key per run; its public key replaces the
-        // embedded release key in this test copy of the installer only.
-        let key = SigningKey::generate(&mut rand::rngs::OsRng);
-        let mut spki = hex::decode("302a300506032b6570032100").unwrap();
-        spki.extend_from_slice(key.verifying_key().as_bytes());
-        let source = include_str!("../scripts/everycli-installer.sh");
-        assert_eq!(source.matches(RELEASE_KEY_PEM_BODY).count(), 1);
         fs::write(
             p.join("installer.sh"),
-            source
-                .replace("@VERSION@", concat!("v", env!("CARGO_PKG_VERSION")))
-                .replace(RELEASE_KEY_PEM_BODY, &STANDARD.encode(spki)),
+            include_str!("../scripts/everycli-installer.sh")
+                .replace("@VERSION@", concat!("v", env!("CARGO_PKG_VERSION"))),
         )
         .unwrap();
         let binary = env!("CARGO_BIN_EXE_everycli");
         let asset = update::asset(std::env::consts::OS, std::env::consts::ARCH).unwrap();
-        let sha256 = hex::encode(Sha256::digest(fs::read(binary).unwrap()));
-        fs::write(p.join("checksum"), format!("{sha256}  {asset}\n")).unwrap();
-        let f = Self { dir, key, sha256 };
-        f.sign(concat!("v", env!("CARGO_PKG_VERSION")), &asset, None);
-        f
-    }
-    fn sign(&self, tag: &str, asset: &str, sha256_hex: Option<&str>) {
-        let sha = sha256_hex.unwrap_or(&self.sha256);
-        let sig = self.key.sign(&update::signed_message(tag, asset, sha));
         fs::write(
-            self.dir.path().join("signature"),
-            format!("{}\n", STANDARD.encode(sig.to_bytes())),
+            p.join("checksum"),
+            format!(
+                "{}  {asset}\n",
+                hex::encode(Sha256::digest(fs::read(binary).unwrap()))
+            ),
         )
         .unwrap();
+        Self { dir }
     }
     fn installed(&self) -> std::path::PathBuf {
         self.dir.path().join("cargo space'quoted/bin/everycli")
@@ -113,7 +93,6 @@ esac
             .env("EVERYCLI_NO_MODIFY_PATH", if modify { "0" } else { "1" })
             .env("EVERYCLI_TEST_BINARY", env!("CARGO_BIN_EXE_everycli"))
             .env("EVERYCLI_TEST_SUM", self.dir.path().join("checksum"))
-            .env("EVERYCLI_TEST_SIG", self.dir.path().join("signature"))
             .env("EVERYCLI_TEST_FAIL", if fail { "1" } else { "0" })
             .output()
             .unwrap()
@@ -245,87 +224,21 @@ fn installer_quotes_shell_paths_without_expansion() {
     assert_eq!(String::from_utf8(out.stdout).unwrap(), path);
 }
 
-fn asset() -> String {
-    update::asset(std::env::consts::OS, std::env::consts::ARCH).unwrap()
-}
-const TAG: &str = concat!("v", env!("CARGO_PKG_VERSION"));
-type Setup<'a> = Box<dyn Fn() + 'a>;
-
 #[test]
-fn installer_refuses_missing_wrong_or_tampered_signatures_before_running_the_binary() {
+fn installer_does_not_invoke_openssl_or_download_a_signature() {
     let f = Fixture::new();
-    let stderr = |out: &Output| String::from_utf8_lossy(&out.stderr).to_string();
-    let out = f.run(false);
-    assert!(out.status.success(), "{}", stderr(&out));
-    let before = fs::read(f.installed()).unwrap();
-    let lock = f
-        .installed()
-        .parent()
-        .unwrap()
-        .join(".everycli-update.lock");
-
-    let mut cases: Vec<(&str, Setup)> = vec![
-        (
-            "missing",
-            Box::new(|| fs::remove_file(f.dir.path().join("signature")).unwrap()),
-        ),
-        ("wrong tag", Box::new(|| f.sign("v99.0.0", &asset(), None))),
-        (
-            "wrong asset",
-            Box::new(|| f.sign(TAG, "everycli-other-target", None)),
-        ),
-        (
-            "wrong hash",
-            Box::new(|| f.sign(TAG, &asset(), Some(&"0".repeat(64)))),
-        ),
-        (
-            "tampered",
-            Box::new(|| {
-                f.sign(TAG, &asset(), None);
-                let path = f.dir.path().join("signature");
-                let mut raw = STANDARD
-                    .decode(fs::read_to_string(&path).unwrap().trim())
-                    .unwrap();
-                raw[0] ^= 0x80;
-                fs::write(&path, STANDARD.encode(raw)).unwrap();
-            }),
-        ),
-        (
-            "malformed",
-            Box::new(|| fs::write(f.dir.path().join("signature"), "not a signature\n").unwrap()),
-        ),
-    ];
-    for (name, setup) in cases.drain(..) {
-        setup();
-        let out = f.run(false);
-        assert!(!out.status.success(), "{name}");
-        let err = stderr(&out);
-        assert!(err.contains("signature"), "{name}: {err}");
-        assert!(err.contains("No binary was replaced"), "{name}: {err}");
-        assert_eq!(fs::read(f.installed()).unwrap(), before, "{name}");
-        assert!(!lock.exists(), "{name}");
-    }
-    // A correct signature installs again.
-    f.sign(TAG, &asset(), None);
-    assert!(f.run(false).status.success());
-}
-
-#[test]
-fn installer_fails_closed_without_a_working_ed25519_openssl() {
-    let f = Fixture::new();
-    // An openssl that cannot verify (like macOS LibreSSL) fails its self-test.
     let fake = f.dir.path().join("mock-bin/openssl");
-    fs::write(&fake, "#!/bin/sh\nexit 1\n").unwrap();
+    fs::write(&fake, b"#!/bin/sh\nexit 99\n").unwrap();
     fs::set_permissions(&fake, fs::Permissions::from_mode(0o755)).unwrap();
+    let curl = f.dir.path().join("mock-bin/curl");
+    let mock = fs::read_to_string(&curl)
+        .unwrap()
+        .replace("*.sha256)", "*.sig) exit 98 ;;\n  *.sha256)");
+    fs::write(curl, mock).unwrap();
     let out = f.run(false);
-    assert!(!out.status.success());
-    assert!(String::from_utf8_lossy(&out.stderr).contains("OpenSSL 1.1.1 or newer"));
-    assert!(!f.installed().exists());
     assert!(
-        !f.installed()
-            .parent()
-            .unwrap()
-            .join(".everycli-update.lock")
-            .exists()
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
     );
 }

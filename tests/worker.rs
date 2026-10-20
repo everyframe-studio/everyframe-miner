@@ -28,6 +28,8 @@ struct Options {
     result_error: Option<&'static str>,
     pending: bool,
     bad_chain: bool,
+    threaded_heartbeat: bool,
+    blocking_ms: u64,
 }
 struct Fixture {
     key: Keys,
@@ -43,6 +45,7 @@ struct Fixture {
     reports: Cell<u32>,
     complete: Cell<u32>,
     claim_models: RefCell<Vec<Value>>,
+    heartbeats: std::sync::Arc<std::sync::atomic::AtomicUsize>,
     options: Options,
 }
 #[derive(Clone)]
@@ -54,6 +57,25 @@ impl std::ops::Deref for Handle {
     }
 }
 impl Runtime for Handle {
+    fn keepalive(
+        &self,
+        _: &Value,
+        _: &Keys,
+        _: &str,
+        _: i64,
+    ) -> Result<everyframe_miner::worker_heartbeat::Guard> {
+        if !self.options.threaded_heartbeat {
+            return Ok(Default::default());
+        }
+        let count = self.heartbeats.clone();
+        everyframe_miner::worker_heartbeat::Guard::spawn(
+            std::time::Duration::from_millis(10),
+            std::time::Duration::from_secs(2),
+            move || {
+                count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            },
+        )
+    }
     fn now(&self) -> i64 {
         self.clock.get()
     }
@@ -102,6 +124,9 @@ impl Runtime for Handle {
                         json!({})
                     }
                     "complete" => {
+                        std::thread::sleep(std::time::Duration::from_millis(
+                            self.options.blocking_ms,
+                        ));
                         let receipt = protocol::verified(
                             &request["payload"]["receipt"],
                             &self.worker_key.borrow(),
@@ -151,6 +176,7 @@ impl Provider for Handle {
         vec![models::DEFAULT_MODEL.into()]
     }
     fn submit(&mut self, _: &Value) -> Result<String> {
+        std::thread::sleep(std::time::Duration::from_millis(self.options.blocking_ms));
         self.submits.set(self.submits.get() + 1);
         if let Some(code) = self.options.submit_code {
             Err(Error(code))
@@ -161,6 +187,7 @@ impl Provider for Handle {
         }
     }
     fn poll(&mut self, _: &str, _: &Value) -> Result<String> {
+        std::thread::sleep(std::time::Duration::from_millis(self.options.blocking_ms));
         if let Some(code) = self.options.poll_error {
             return Err(Error(code));
         }
@@ -174,6 +201,7 @@ impl Provider for Handle {
         .into())
     }
     fn result(&mut self, _: &str, _: &Value) -> Result<Output> {
+        std::thread::sleep(std::time::Duration::from_millis(self.options.blocking_ms));
         if let Some(code) = self.options.result_error {
             return Err(Error(code));
         }
@@ -234,6 +262,7 @@ fn fixture(options: Options, patch: Value) -> (Worker<Handle, Handle>, Rc<Fixtur
         reports: Cell::new(0),
         complete: Cell::new(0),
         claim_models: RefCell::default(),
+        heartbeats: Default::default(),
         options,
     });
     (
@@ -616,4 +645,68 @@ fn upload_timeout_grows_with_the_output() {
     assert_eq!(complete_timeout_secs(0), 180);
     assert_eq!(complete_timeout_secs(100_000_000), 520);
     assert_eq!(complete_timeout_secs(1_000_000_000), 600);
+}
+
+#[test]
+fn heartbeats_survive_blocking_submit_poll_download_and_upload_then_stop() {
+    let (mut w, f) = fixture(
+        Options {
+            threaded_heartbeat: true,
+            blocking_ms: 60,
+            ..Default::default()
+        },
+        json!({}),
+    );
+    assert_eq!(w.step().unwrap()["state"], "accepted");
+    let count = f.heartbeats.load(std::sync::atomic::Ordering::SeqCst);
+    assert!(
+        count >= 4,
+        "must heartbeat independently of the blocked worker"
+    );
+    std::thread::sleep(std::time::Duration::from_millis(40));
+    assert_eq!(
+        f.heartbeats.load(std::sync::atomic::Ordering::SeqCst),
+        count,
+        "guard must stop at terminal result"
+    );
+    assert_eq!(f.submits.get(), 1);
+}
+
+#[test]
+fn account_refusals_during_poll_and_result_pause_the_provider_with_the_correct_reason() {
+    for code in [
+        "http_401",
+        "vivix_auth_rejected",
+        "provider_key_required",
+        "http_402",
+        "fal_billing_required",
+    ] {
+        for result in [false, true] {
+            let options = if result {
+                Options {
+                    result_error: Some(code),
+                    ..Default::default()
+                }
+            } else {
+                Options {
+                    poll_error: Some(code),
+                    ..Default::default()
+                }
+            };
+            let (mut w, f) = fixture(options, json!({}));
+            assert_eq!(w.step().unwrap()["state"], "failed");
+            assert_eq!(f.submits.get(), 1);
+            let provider = models::info(models::DEFAULT_MODEL).unwrap()["provider"]
+                .as_str()
+                .unwrap();
+            assert_eq!(
+                w.provider_pause.get(provider).copied(),
+                Some(f.clock.get() + 15 * 60 * 1000)
+            );
+            assert_eq!(
+                f.failure_reports.borrow()[0]["reason"],
+                everyframe_miner::submission::rejected(code).unwrap()
+            );
+        }
+    }
 }
