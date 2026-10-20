@@ -49,6 +49,15 @@
 - These signed, private, read-only views do not expose customer prompts or media,
   approve work, alter validator accounting or require a worker update.
 
+## Batch offers
+
+- An advertised batch-offer endpoint returning 404 now identifies the coordinator
+  deployment problem and asks you to check current offers. The CLI never retries
+  an uncertain write or falls back to partially applying individual offers.
+- The mainnet public gateway now forwards the atomic batch endpoint with a
+  separate 64 KiB limit, matching the coordinator. This server-side fix also
+  restores batch offers for existing v0.5.8 clients; no worker update is needed.
+
 ## Update
 Run `everycli update`, then `everycli worker-update`. Jobs go only to workers
 on the newest minor release: once v0.6.0 is published, 0.5.x workers keep

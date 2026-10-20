@@ -874,7 +874,15 @@ impl Miner<'_> {
             lines.join("\n")
         ))?;
         // One POST, never retried on an uncertain transport result.
-        let out = self.api(&c, "offer-batch", json!({"offers":changes}))?;
+        let out = self
+            .api(&c, "offer-batch", json!({"offers":changes}))
+            .map_err(|e| {
+                if e.0 == "http_404" {
+                    Error("batch_offer_endpoint_unavailable")
+                } else {
+                    e
+                }
+            })?;
         let saved = out["offers"]
             .as_array()
             .ok_or(Error("invalid_coordinator_response"))?;

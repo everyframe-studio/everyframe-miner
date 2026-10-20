@@ -10,7 +10,10 @@ use everyframe_miner::{
     state::State,
 };
 use serde_json::{Value, json};
-use std::{cell::RefCell, path::PathBuf};
+use std::{
+    cell::{Cell, RefCell},
+    path::PathBuf,
+};
 use x25519_dalek::{PublicKey, StaticSecret};
 
 #[test]
@@ -1423,6 +1426,9 @@ impl Http for Rig {
         if self.fail.borrow().as_str() == "history404" && path.ends_with("/v1/miner/jobs") {
             return Err(Error("http_404"));
         }
+        if self.fail.borrow().as_str() == "batch404" && path.ends_with("/v1/miner/offer-batch") {
+            return Err(Error("http_404"));
+        }
         if u.host_str() == Some("entrypoint-finney.opentensor.ai") {
             let result = match body["method"].as_str().unwrap() {
                 "chain_getBlockHash" => self.trust["genesis"].clone(),
@@ -2227,6 +2233,60 @@ fn batches_review_once_and_use_one_status_plus_one_post_for_many_models() {
     assert!(r.calls.borrow()[1].0.ends_with("/offer-batch"));
     assert!(r.envs.borrow().is_empty());
 }
+#[test]
+fn batch_endpoint_404_is_actionable_and_never_retries_or_falls_back_to_partial_offers() {
+    let r = Rig::new();
+    let mut second = r.status.borrow()["offers"][0].clone();
+    second["model"] = json!("fixture/second");
+    r.status.borrow_mut()["offers"]
+        .as_array_mut()
+        .unwrap()
+        .push(second);
+    r.status.borrow_mut()["batchOffersSupported"] = json!(true);
+    *r.fail.borrow_mut() = "batch404".into();
+    let before_offers = r.status.borrow()["offers"].clone();
+    let before_config = r.state().read("config", false).unwrap();
+    let before_keys = r.state().read("credentials", false).unwrap();
+    r.calls.borrow_mut().clear();
+    let reviews = Cell::new(0);
+    let error = r
+        .miner()
+        .offer_batch("fixture/video,fixture/second", Some("10"), false, &|_| {
+            reviews.set(reviews.get() + 1);
+            Ok(())
+        })
+        .unwrap_err();
+    assert_eq!(error.0, "batch_offer_endpoint_unavailable");
+    let diagnostic = everyframe_miner::cli_errors::diagnostic(&error, None);
+    assert!(
+        diagnostic["message"]
+            .as_str()
+            .unwrap()
+            .contains("coordinator's batch-offer endpoint")
+    );
+    assert!(
+        diagnostic["next"]
+            .as_str()
+            .unwrap()
+            .contains("not automatically retried or split")
+    );
+    assert!(
+        diagnostic["next"]
+            .as_str()
+            .unwrap()
+            .contains("everycli offers")
+    );
+    assert_eq!(reviews.get(), 1);
+    let calls = r.calls.borrow();
+    assert_eq!(calls.len(), 2);
+    assert!(calls[0].0.starts_with("GET ") && calls[0].0.ends_with("/v1/miner/status"));
+    assert!(calls[1].0.starts_with("POST ") && calls[1].0.ends_with("/v1/miner/offer-batch"));
+    assert!(!calls.iter().any(|c| c.0.ends_with("/v1/miner/offer")));
+    assert_eq!(r.status.borrow()["offers"], before_offers);
+    assert_eq!(r.state().read("config", false).unwrap(), before_config);
+    assert_eq!(r.state().read("credentials", false).unwrap(), before_keys);
+}
+
 #[test]
 fn batch_decline_changed_quotes_and_uncertain_posts_are_not_retried() {
     let r = Rig::new();
