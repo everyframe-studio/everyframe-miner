@@ -348,10 +348,10 @@ everycli update --check  # Check for an update without changing anything
 everycli --version
 ```
 
-The built-in updater verifies the release checksum and atomically replaces
-the executable in place. It does not access miner credentials, deploy anything,
-change profiles, or update running workers. A failed download or checksum leaves
-the old executable intact. It will not automatically downgrade. Run updates as
+The built-in updater verifies the release checksum and the EveryFrame Ed25519
+release signature (v0.6.0+), then atomically replaces the executable in place. It does not access miner credentials, deploy anything,
+change profiles, or update running workers. A failed download, checksum or
+signature check leaves the old executable intact. It will not automatically downgrade. Run updates as
 the account that owns the installation; no sudo is needed for a normal install.
 
 Normal output is readable text, with download percentage/size and verification
@@ -371,15 +371,23 @@ updates a **deployed worker** using an approved signed release. If a documented 
 `everycli --version` and upgrade (rerun the installer for older CLIs without an
 `update` command).
 
-Checksums detect corrupted or mismatched downloads; they are not independent
-publisher signatures. The installer and updater trust this GitHub repository
-and HTTPS.
+Checksums detect corrupted or mismatched downloads. Since v0.6.0 the installer
+and updater also require a valid Ed25519 publisher signature (`<asset>.sig`) for
+the exact version, platform and downloaded bytes, checked against a release key
+built into everycli, and refuse to install when it is missing or invalid
+(`update_signature_missing`, `update_signature_invalid`). The installer needs
+OpenSSL 1.1.1+ for this (macOS: `brew install openssl@3`). See
+[RELEASING.md](RELEASING.md#release-signing-v060) for the signed format.
+
+If you installed with `cargo install`, upgrade with `cargo install` again:
+`everycli update` and auto-update never replace a cargo build
+(`cargo_install_update_disabled`); `everycli update --check` still works.
 
 ### Automatic CLI updates (v0.3.8)
 
 Native user installations check for the latest stable release in the background
 after successful interactive commands, at most once every six hours. Downloads
-are checksum-verified and atomically installed; the new version runs on the next
+are checksum- and signature-verified and atomically installed; the new version runs on the next
 invocation. Your current command completes normally, even when an update fails.
 
 ```sh
@@ -391,10 +399,13 @@ everycli auto-update --json     # Structured settings/result, no background work
 
 `EVERYCLI_DISABLE_AUTO_UPDATE=1` also disables background updates. No background
 check runs for JSON, CI, non-interactive, help, version, or explicit update commands.
-Auto-updates are restricted to owner-managed native installs in
-`${CARGO_HOME:-$HOME/.cargo}/bin/everycli` or `~/.local/bin/everycli`.
-Build directories, package-manager paths, custom symlink launchers and unsafe
-permissions remain manual. Settings and the last result live separately from
+Auto-updates are restricted to owner-managed official binaries in
+`${CARGO_HOME:-$HOME/.cargo}/bin/everycli` (where the installer puts them) or
+`~/.local/bin/everycli`. A `cargo install` build in any cargo install root
+(recorded in that root's `.crates.toml`/`.crates2.json`) is a source build and is
+never auto-updated: rerun `cargo install` to upgrade it. Build directories,
+package-manager paths, custom symlink launchers and unsafe permissions remain
+manual. Settings and the last result live separately from
 miner profiles in `~/.config/everycli-updater/`. No daemon or system service is installed.
 
 Only the CLI executable is updated: cloud workers, saved keys, model offers,
