@@ -212,6 +212,159 @@ fn jobs_table(value: &Value) -> String {
     )
 }
 
+fn usd(value: &Value) -> String {
+    value
+        .as_u64()
+        .filter(|n| *n <= 9_007_199_254_740_991)
+        .map(|n| format!("${:.6}", n as f64 / 1e6))
+        .unwrap_or_else(|| "Not measured".into())
+}
+
+fn history_table(value: &Value) -> String {
+    let Some(rows) = value["history"]["rows"].as_array() else {
+        return format!("{}\n\n{}", text(&value["note"]), jobs_table(value));
+    };
+    let mut out = format!(
+        "Individual job history · newest attempts first\n\n{}\n",
+        table(
+            &["JOB", "MODEL", "ATTEMPT STATE", "REVIEW", "WORK VALUE"],
+            rows.iter()
+                .map(|r| vec![
+                    text(&r["jobId"]).chars().take(12).collect(),
+                    text(&r["name"]).chars().take(30).collect(),
+                    text(&r["state"]),
+                    match r["reviewState"].as_str() {
+                        Some("review") => "Pending review".into(),
+                        Some("approved") => "Approved".into(),
+                        Some("disputed") => "Excluded".into(),
+                        _ => "—".into(),
+                    },
+                    if r["recordedWorkValueMicrousd"].is_null() {
+                        "—".into()
+                    } else {
+                        usd(&r["recordedWorkValueMicrousd"])
+                    }
+                ])
+                .collect()
+        )
+    );
+    for r in rows {
+        out.push_str(&format!(
+            "\nJob: {}\nAttempt: {} · provider: {}\nVerification: {} · reward flag: {}\n",
+            text(&r["jobId"]),
+            text(&r["attemptId"]),
+            text(&r["provider"]),
+            text(&r["verification"]),
+            text(&r["rewardEligibility"])
+        ));
+        if r["failureReason"].is_string() {
+            out.push_str(&format!("Failure: {}\n", text(&r["failureReason"])));
+        }
+    }
+    if value["history"]["nextCursor"].is_string() {
+        let filters = &value["history"]["filters"];
+        let model = filters["model"]
+            .as_str()
+            .map(|m| format!(" --model {m}"))
+            .unwrap_or_default();
+        out.push_str(&format!(
+            "\nNext page: everycli jobs --status {}{} --limit {} --cursor {}\n",
+            text(&filters["status"]),
+            model,
+            value["history"]["limit"],
+            value["history"]["nextCursor"].as_str().unwrap_or("")
+        ));
+    }
+    out.push_str("\nOne row per own attempt. Work value is not cash or alpha received. Use --json for full timestamps/settings; --summary for all-time model counts.\n");
+    out
+}
+
+fn earnings_report(value: &Value) -> String {
+    let valid_units = value["currency"] == "USD" && value["unit"] == "microusd";
+    let amount = |v: &Value| {
+        if valid_units {
+            usd(v)
+        } else {
+            "Not reported".into()
+        }
+    };
+    let mut out = "Earnings · all time\n\nWork value (accounting, not payments)\n".to_string();
+    if value["summary"].is_object() {
+        out.push_str(&table(
+            &["CATEGORY", "WORK VALUE USD"],
+            vec![
+                vec![
+                    "Recorded work".into(),
+                    amount(&value["summary"]["totalWorkValueMicrousd"]),
+                ],
+                vec![
+                    "Pending review".into(),
+                    amount(&value["summary"]["pendingReviewMicrousd"]),
+                ],
+                vec![
+                    "Approved".into(),
+                    amount(&value["summary"]["approvedMicrousd"]),
+                ],
+                vec![
+                    "Marked reward-eligible (subset of approved)".into(),
+                    amount(&value["summary"]["markedRewardEligibleMicrousd"]),
+                ],
+                vec![
+                    "Excluded / disputed".into(),
+                    amount(&value["summary"]["excludedMicrousd"]),
+                ],
+            ],
+        ));
+    } else {
+        out.push_str("Detailed accounting summary is not reported by this coordinator.\n");
+    }
+    if let Some(rows) = value["fees"].as_array() {
+        out.push_str(&format!(
+            "\n\n{}",
+            table(
+                &["REVIEW STATE", "JOBS", "RECORDED USD"],
+                rows.iter()
+                    .map(|r| vec![
+                        text(&r["state"]),
+                        count(&r["jobs"]),
+                        amount(&r["amountMicrousd"])
+                    ])
+                    .collect()
+            )
+        ));
+    }
+    out.push_str(&format!(
+        "\n\nActual payments and costs\n{}\n",
+        table(
+            &["ITEM", "MEASURED AMOUNT"],
+            vec![
+                vec!["Alpha received".into(), "Not measured".into()],
+                vec!["Provider bills".into(), "Not measured".into()],
+                vec!["Hosting costs".into(), "Not measured".into()],
+                vec![
+                    "Wallet payments".into(),
+                    if value["payoutsImplemented"] == false {
+                        "Not implemented".into()
+                    } else {
+                        "Not measured".into()
+                    }
+                ],
+                vec![
+                    "Net profit".into(),
+                    "Unavailable: actual income/costs are not measured".into()
+                ],
+            ]
+        )
+    ));
+    if value["estimates"].is_object() {
+        out.push_str(&format!("\nEstimated provider exposure (NOT a bill): {}\nQuoted attempts: {} · unpriced attempts: {} · uncertain submissions: {}\nIncludes failed submissions where recorded; not other activity on a shared provider account.\n",
+            amount(&value["estimates"]["providerExposureMicrousd"]),count(&value["estimates"]["quotedAttempts"]),
+            count(&value["estimates"]["unpricedAttempts"]),count(&value["estimates"]["uncertainAttempts"])));
+    }
+    out.push_str("\nRecorded work values are not wallet payments. Approved work and reward flags do not prove inclusion in a finalized epoch or alpha payment. Estimates are never subtracted from work value to invent profit.\n");
+    out
+}
+
 fn health_table(value: &Value) -> String {
     let checks = value["checks"].as_array().cloned().unwrap_or_default();
     let all_pass = !checks.is_empty()
@@ -372,38 +525,12 @@ pub fn render(command: &str, value: &Value) -> String {
     }
     let rows = |key: &str| value[key].as_array().cloned().unwrap_or_default();
     match command {
+        "jobs" if value["historyAvailable"].is_boolean() => history_table(value),
         "jobs" => format!(
             "Jobs by model · all time\n\n{}\n\nCompleted means accepted, verified output. Failed/cancelled counts describe attempts, not payments or alpha rewards.\n",
             jobs_table(value)
         ),
-        "earnings" => {
-            let data = rows("fees")
-                .iter()
-                .map(|r| {
-                    vec![
-                        text(&r["state"]),
-                        count(&r["jobs"]),
-                        if value["currency"] == "USD" && value["unit"] == "microusd" {
-                            r["amountMicrousd"]
-                                .as_i64()
-                                .map(|n| format!("${:.6}", n as f64 / 1e6))
-                                .unwrap_or_else(|| "Not reported".into())
-                        } else {
-                            "Not reported".into()
-                        },
-                    ]
-                })
-                .collect();
-            format!(
-                "Recorded serving fees\n\n{}\n\nServing fees are not wallet payments, alpha received, or net profit.\nOn-chain rewards and provider costs are not measured here.\n{}",
-                table(&["STATE", "JOBS", "RECORDED USD"], data),
-                if value["payoutsImplemented"] == false {
-                    "Wallet payments are not implemented.\n"
-                } else {
-                    ""
-                }
-            )
-        }
+        "earnings" => earnings_report(value),
         "offer-batch" => format!(
             "{}\n",
             table(

@@ -119,6 +119,11 @@ try {
     assert.equal(await summary.evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length), columns);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'overview must fit viewport');
   }
+  await page.setViewportSize({width:390,height:844});
+  await page.evaluate(()=>{window.phaseBeforeHistoryTest=S.overview.deployment.phase;S.overview.deployment.phase='awaiting_readmission';render();});
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'long worker-status pills must fit mobile');
+  await page.evaluate(()=>{S.overview.deployment.phase=window.phaseBeforeHistoryTest;render();});
+  await page.setViewportSize({width:1440,height:1000});
 
   await page.evaluate(() => {
     S.overview.initialized = true;
@@ -351,11 +356,11 @@ try {
   await page.waitForFunction(()=>currentRoute()==='overview'&&S.batchReport===null);
   await page.evaluate(()=>{
     S.health={state:'done',result:{value:{ok:true,checks:[],activity:{jobsByModel:[{model:'fixture/video',completed:32,active:1,failed:2,cancelled:0}]}}}};
-    S.earnings={state:'done',result:{value:{currency:'USD',unit:'microusd',fees:[{state:'approved',jobs:32,amountMicrousd:1234567}],payoutsImplemented:false,paidMicrousd:null}}};render();
+    S.earnings={state:'done',result:{value:{currency:'USD',unit:'microusd',summary:{totalWorkValueMicrousd:1234567,pendingReviewMicrousd:0,approvedMicrousd:1234567,markedRewardEligibleMicrousd:1234567,excludedMicrousd:0},fees:[{state:'approved',jobs:32,amountMicrousd:1234567}],payoutsImplemented:false,paidMicrousd:null}}};render();
   });
   assert.equal(await page.getByRole('heading',{name:'Jobs by model',exact:true}).count(),1);
   assert.match(await page.locator('tr').filter({hasText:'fixture/video'}).innerText(),/32/);
-  assert.match(await page.locator('#main').innerText(),/\$1\.2346/);
+  assert.match(await page.locator('#main').innerText(),/\$1\.234567/);
   assert.doesNotMatch(await page.locator('#main').innerText(),/amountMicrousd|payoutsImplemented|\[\{/);
 
   await page.setViewportSize({ width: 390, height: 844 });
@@ -364,8 +369,85 @@ try {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'batch models fit mobile');
   await page.evaluate(() => { history.replaceState(null, '', '#/setup'); render(); });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'mobile viewport must not overflow');
+
+  // Individual history uses the same read-only command, with cursor-bound filters.
+  await page.evaluate(() => {
+    window.historyRunOriginal=run;window.historyCalls=[];document.querySelector('#activity').replaceChildren();
+    const completed={jobId:'job-accepted-1',attemptId:'attempt-accepted-1',name:'H3 Max Turbo',model:'minimax/h3-max-turbo/text-to-video',provider:'fal',kind:'video',durationSeconds:5,resolution:'768p',state:'accepted',jobCreatedAt:Date.now()-120000,startedAt:Date.now()-90000,completedAt:Date.now()-30000,reviewState:'review',verification:'accepted',rewardEligibility:'pending_review',recordedWorkValueMicrousd:200000,providerCostEstimateMicrousd:250000};
+    const failed={...completed,jobId:'job-failed-2',attemptId:'attempt-failed-2',name:'<img src=x onerror=alert(1)>',model:'direct/vivix/vivix-w1',provider:'vivix',state:'failed',completedAt:null,reviewState:'not_applicable',verification:'not_verified',rewardEligibility:'not_applicable',recordedWorkValueMicrousd:null,failureReason:'provider_billing_required'};
+    window.historyFixture={completed,failed};
+    run=async(action,params)=>{
+      if(action!=='jobs')return window.historyRunOriginal(action,params,{quiet:true});
+      window.historyCalls.push({...params});
+      const rows=params.status==='failed'?[failed]:params.cursor?[{...completed,jobId:'older-job',attemptId:'older-attempt'}]:[completed,failed];
+      return {state:'done',result:{value:{minerId:'fixture',asOf:Date.now(),historyAvailable:true,history:{version:1,currency:'USD',unit:'microusd',limit:20,rows,nextCursor:params.cursor||params.status==='failed'?null:'next_page',filters:{status:params.status||'all',model:params.model||null}}}}};
+    };
+    S.history=null;S.historyBusy=false;S.historyStatus='all';S.historyModel='';S.historyModelDraft='';S.historyCursors=[null];S.historyPage=0;
+    history.replaceState(null,'','#/jobs');render();
+  });
+  await page.getByRole('button',{name:'View attempt attempt-failed-2',exact:true}).waitFor();
+  assert.equal(await page.locator('#main img').count(),0,'model text cannot become HTML');
+  await page.getByRole('button',{name:'View attempt attempt-failed-2',exact:true}).click();
+  assert.match(await page.locator('#job-detail').innerText(),/Provider billing requires attention/);
+  assert.match(await page.locator('#job-detail').innerText(),/Not recorded/);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'mobile attempt details fit');
+  if(process.env.EVERYCLI_QA_DIR){await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:join(process.env.EVERYCLI_QA_DIR,'jobs-mobile.png'),fullPage:true});}
+  await page.getByRole('button',{name:'Close details',exact:true}).click();
+  await page.getByRole('button',{name:'Next page',exact:true}).click();
+  await page.getByRole('button',{name:'View attempt older-attempt',exact:true}).waitFor();
+  assert.equal(await page.getByRole('button',{name:'Next page',exact:true}).isDisabled(),true);
+  assert.equal(await page.evaluate(()=>window.historyCalls.at(-1).cursor),'next_page');
+  await page.getByRole('button',{name:'Previous page',exact:true}).click();
+  await page.getByRole('button',{name:'View attempt attempt-accepted-1',exact:true}).waitFor();
+  await page.getByLabel('Filter job status',{exact:true}).selectOption('failed');
+  await page.waitForFunction(()=>!S.historyBusy&&S.history.result.value.history.rows.length===1);
+  await page.getByLabel('Filter job model',{exact:true}).fill('direct/vivix/vivix-w1');
+  await page.getByRole('button',{name:'Apply model filter',exact:true}).click();
+  await page.waitForFunction(()=>!S.historyBusy&&window.historyCalls.at(-1).model==='direct/vivix/vivix-w1');
+  assert.equal(await page.evaluate(()=>window.historyCalls.at(-1).status),'failed');
+  assert.equal(await page.evaluate(()=>window.historyCalls.at(-1).cursor),undefined,'changed filters start at page one');
+  await page.setViewportSize({width:1440,height:1000});
+  if(process.env.EVERYCLI_QA_DIR)await page.screenshot({path:join(process.env.EVERYCLI_QA_DIR,'jobs-desktop.png'),fullPage:true});
+  const race=await page.evaluate(async()=>{
+    const original=run,pending=[];
+    try{
+      run=()=>new Promise(resolve=>pending.push(resolve));
+      S.historyStatus='all';const older=loadHistory(true);
+      S.historyStatus='failed';const newer=loadHistory(true);
+      const answer=marker=>({state:'done',result:{value:{historyAvailable:true,history:{rows:[],nextCursor:null,marker}}}});
+      pending[1](answer('new'));await newer;pending[0](answer('old'));await older;
+      return S.history.result.value.history.marker;
+    }finally{run=original;}
+  });
+  assert.equal(race,'new','late history responses cannot overwrite changed filters');
+  await page.evaluate(()=>{S.history={state:'failed',result:{error:{message:'Coordinator unavailable'}}};render();});
+  assert.equal(await page.getByText('Could not load job history',{exact:true}).count(),1);
+  assert.equal(await page.locator('table.job-history').count(),0,'an error must not show stale history as current');
+  await page.evaluate(()=>{S.history={state:'done',result:{value:{historyAvailable:true,history:{rows:[],nextCursor:null}}}};render();});
+  assert.equal(await page.getByText('No attempts match these filters.',{exact:true}).count(),1);
+  await page.evaluate(()=>{run=window.historyRunOriginal;S.history={state:'done',result:{value:{historyAvailable:false,note:'Coordinator upgrade required'}}};render();});
+  assert.equal(await page.getByText('History is not available yet',{exact:true}).count(),1);
+
+  await page.evaluate(()=>{
+    S.earnings={state:'done',result:{value:{currency:'USD',unit:'microusd',asOf:Date.now(),summary:{totalWorkValueMicrousd:400000,pendingReviewMicrousd:200000,approvedMicrousd:200000,markedRewardEligibleMicrousd:100000,excludedMicrousd:0},fees:[{state:'review',jobs:1,amountMicrousd:200000},{state:'approved',jobs:1,amountMicrousd:200000}],payoutsImplemented:false,estimates:{providerExposureMicrousd:350000,quotedAttempts:2,unpricedAttempts:1,uncertainAttempts:1}}}};
+    history.replaceState(null,'','#/earnings');render();
+  });
+  assert.equal(await page.getByRole('heading',{name:'Earnings',exact:true}).count(),1);
+  assert.match(await page.locator('#main').innerText(),/\$0\.40/);
+  assert.match(await page.locator('#main').innerText(),/Subset of approved work; do not add twice/);
+  assert.match(await page.locator('#main').innerText(),/Net profit\s+Unavailable/);
+  assert.doesNotMatch(await page.locator('#main').innerText(),/\$0\.050000/,'no invented profit from estimates');
+  if(process.env.EVERYCLI_QA_DIR)await page.screenshot({path:join(process.env.EVERYCLI_QA_DIR,'earnings-desktop.png'),fullPage:true});
+  await page.setViewportSize({width:390,height:844});
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'earnings report fits mobile');
+  if(process.env.EVERYCLI_QA_DIR)await page.screenshot({path:join(process.env.EVERYCLI_QA_DIR,'earnings-mobile.png'),fullPage:true});
+  await page.evaluate(()=>{S.earnings={state:'done',result:{value:{fees:[],payoutsImplemented:false}}};render();});
+  assert.match(await page.locator('#main').innerText(),/Unknown amounts are not treated as zero/);
+  assert.doesNotMatch(await page.locator('#main').innerText(),/\$0\.000000/);
+  await page.evaluate(()=>{S.health={state:'failed',result:{error:{message:'Unavailable'}}};history.replaceState(null,'','#/overview');render();});
+  assert.equal(await page.getByLabel('Miner overview summary').locator('.stat').nth(3).locator('.value').textContent(),'Unknown');
   assert.deepEqual(errors, []);
-  console.log('UI browser regressions passed: pairing, drafts, lifecycle, readiness, W credits, diagnostics, modal and mobile.');
+  console.log('UI browser regressions passed: pairing, drafts, lifecycle, readiness, W credits, diagnostics, history filters/pagination/details/races, earnings and mobile.');
 } finally {
   if (browser) await browser.close();
   if (cli.exitCode === null) { const stopped = once(cli, 'exit'); cli.kill('SIGTERM'); await stopped; }

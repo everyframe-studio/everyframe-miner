@@ -97,6 +97,9 @@ const PARAMS: &[(&str, &str)] = &[
     ("provider", "--provider"),
     ("name", "--name"),
     ("appId", "--app-id"),
+    ("limit", "--limit"),
+    ("cursor", "--cursor"),
+    ("status", "--status"),
 ];
 const FLAG_PARAMS: &[(&str, &str)] = &[
     ("withdraw", "--withdraw"),

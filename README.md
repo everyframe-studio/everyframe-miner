@@ -20,6 +20,37 @@ and ten provider adapters. Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
 
+### In development: individual job history and clearer earnings
+
+The next CLI build adds **Job history** and **Earnings** to `everycli ui`.
+These changes are not part of the already-published v0.5.8 binary.
+
+```sh
+everycli jobs                            # newest 20 of your own attempts
+everycli jobs --status failed --limit 20
+everycli jobs --model direct/vivix/vivix-w1
+everycli jobs --summary                  # existing all-time model counts
+everycli earnings
+```
+
+History supports Previous/Next pages, status/model filters and attempt details:
+timestamps, settings, output verification, review status and fixed failure codes.
+Terminal output supplies a next-page cursor command; keep its model/status
+filters. `--json` includes full timestamps and IDs. The signed private endpoint
+does not expose prompts, media, customer references, provider request IDs,
+credentials or other miners' attempts. Older coordinators fall back explicitly
+to model counts; malformed signed history is rejected.
+
+Earnings separates pending review, approved work and marked reward-eligible
+value. The eligible value is a subset of approved work, not an extra payment.
+A review flag does not prove finalized epoch inclusion or alpha received.
+Provider exposure uses locked job quotes for confirmed/uncertain submissions,
+including failed attempts; it is not an invoice. Unpriced and uncertain attempts
+are counted separately. Actual provider bills, hosting costs, wallet payments,
+alpha received and net profit are not invented from balances or work value.
+These read-only reports never approve work, change offers, replay generations,
+or alter validator accounting. No worker update is needed for these views.
+
 ### v0.5.8 model IDs and availability
 
 The **Everyframe contract ID** is used with `everycli offer --model`. The
@@ -856,8 +887,8 @@ resources and ongoing charges. To restart the saved workload, use
 | `balances` | Show USD balances and native Vivix W credits; `--publish` syncs private snapshots |
 | `offers`, `offer` | Inspect, set, or withdraw a revision-checked model bid |
 | `offer-batch` | Review and apply multiple model bids atomically; no automatic retry |
-| `jobs` | All-time completed jobs by model; `--json` for structured counts |
-| `earnings` | Read coordinator accounting; does not initiate payouts |
+| `jobs` | Individual attempts with filters/pagination; `--summary` for all-time model counts (development build) |
+| `earnings` | Work/review accounting and estimated exposure, separate from unmeasured actual income/costs; no payouts |
 | `deploy` | Create a pinned workload with provider credentials disabled |
 | `activate` | Release encrypted provider keys only after fresh admission |
 | `resume` | Permit new work after post-restart admission |

@@ -38,6 +38,8 @@ Options:
   --max-hourly-usd N (deploy/start; storage extra)
   --model ID --discount-pct PCT | --withdraw (offer)
   --models ID,ID --discount-pct PCT | --withdraw (offer-batch)
+  --limit N --status all|active|completed|failed|cancelled --cursor CURSOR (jobs)
+  --model ID (jobs; filter by model) --summary (jobs; all-time model counts)
   --drain-only (stop)
   --port N --no-open (ui)
   --force (stop; emergency cloud shutdown without coordinator)
@@ -76,6 +78,9 @@ const VALUE_OPTIONS: &[&str] = &[
     "--port",
     "--app-id",
     "--name",
+    "--limit",
+    "--cursor",
+    "--status",
 ];
 
 // Recover only a recognized command for parse-error help. Never echo positional
@@ -146,6 +151,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
             "--disable",
             "--no-open",
             "--force",
+            "--summary",
         ]
         .contains(&a)
         {
@@ -266,6 +272,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
         "set-api-keys" => vec!["--provider", "--stdin"],
         "remove-api-key" => vec!["--provider"],
         "balances" => vec!["--publish"],
+        "jobs" => vec!["--limit", "--cursor", "--status", "--model", "--summary"],
         "offer" => vec!["--model", "--discount-pct", "--withdraw"],
         "offer-batch" => vec!["--models", "--discount-pct", "--withdraw"],
         "update" => vec!["--release", "--check"],
@@ -396,6 +403,9 @@ pub fn key_prompt(provider: &str, saved: bool) -> String {
 pub fn validate_args(args: &Args) -> Result<()> {
     if args.flag("--help") || args.flag("--version") {
         return Ok(());
+    }
+    if args.command == "jobs" {
+        crate::job_history::query(args)?;
     }
     if let Some(network) = args.get("--network") {
         need(["mainnet", "testnet"].contains(&network), "invalid_network")?;
@@ -835,7 +845,8 @@ pub fn run_with(
         "balances" => miner.balances(args.flag("--publish")),
         "offers" => miner.offers(),
         "earnings" => miner.earnings(),
-        "jobs" => miner.jobs(),
+        "jobs" if args.flag("--summary") => miner.jobs(),
+        "jobs" => miner.job_history(crate::job_history::query(args)?),
         "offer-batch" => miner.offer_batch(
             args.required("--models")?,
             args.get("--discount-pct"),
