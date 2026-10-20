@@ -20,6 +20,13 @@ and ten provider adapters. Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
 
+### v0.6.0
+
+Releases are signed and verified before install; refused outputs fail fast;
+`worker-update --abort` and a stronger `reconcile` recover interrupted updates.
+See RELEASE-NOTES-v0.6.0.md. Jobs go only to the newest minor release, with a
+3-day grace for the previous one.
+
 ### v0.5.8 model IDs and availability
 
 The **Everyframe contract ID** is used with `everycli offer --model`. The

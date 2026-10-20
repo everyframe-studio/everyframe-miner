@@ -1,5 +1,17 @@
 # Compatibility
 
+The v0.6.0 worker reports an output the coordinator refuses twice (HTTP
+400/413/422 on `complete`) as `failed` with reason `output_invalid`, instead of
+resending it until the deadline. The coordinator already accepts that reason
+(GENERATION_FAILURES). A 401/409 on `complete` now ends the attempt as
+`reconcile`. Claims may omit a provider's models for 15 minutes after a
+billing, credential or missing-key refusal. No protocol fields were added.
+
+The coordinator routes jobs only to the newest published minor release
+(0.6.x once v0.6.0 is published) and keeps the previous minor (0.5.x) routed
+for 3 days after the release file changes, so publish the v0.6.0 worker
+release only when miners can update within that window.
+
 The v0.5.8 worker adds optional signed `modelAvailability` rows to claim payloads.
 Deploy the compatible coordinator before admitting this worker image. Old workers
 remain supported without those rows; they are not claimed to have account-level
