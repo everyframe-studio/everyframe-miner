@@ -24,8 +24,38 @@ every model in the registry is necessarily available for mining.
 
 Releases are signed and verified before install; refused outputs fail fast;
 `worker-update --abort` and a stronger `reconcile` recover interrupted updates.
-See RELEASE-NOTES-v0.6.0.md. Jobs go only to the newest minor release, with a
-3-day grace for the previous one.
+See [v0.6.0 release notes](RELEASE-NOTES-v0.6.0.md). Jobs go only to the newest
+minor release, with a 3-day grace for the previous one.
+
+#### Individual job history and clearer earnings
+
+v0.6.0 adds **Job history** and **Earnings** to `everycli ui`.
+
+```sh
+everycli jobs                            # newest 20 of your own attempts
+everycli jobs --status failed --limit 20
+everycli jobs --model direct/vivix/vivix-w1
+everycli jobs --summary                  # existing all-time model counts
+everycli earnings
+```
+
+History supports Previous/Next pages, status/model filters and attempt details:
+timestamps, settings, output verification, review status and fixed failure codes.
+Terminal output supplies a next-page cursor command; keep its model/status
+filters. `--json` includes full timestamps and IDs. The signed private endpoint
+does not expose prompts, media, customer references, provider request IDs,
+credentials or other miners' attempts. Older coordinators fall back explicitly
+to model counts; malformed signed history is rejected.
+
+Earnings separates pending review, approved work and marked reward-eligible
+value. The eligible value is a subset of approved work, not an extra payment.
+A review flag does not prove finalized epoch inclusion or alpha received.
+Provider exposure uses locked job quotes for confirmed/uncertain submissions,
+including failed attempts; it is not an invoice. Unpriced and uncertain attempts
+are counted separately. Actual provider bills, hosting costs, wallet payments,
+alpha received and net profit are not invented from balances or work value.
+These read-only reports never approve work, change offers, replay generations,
+or alter validator accounting. No worker update is needed for these views.
 
 ### v0.5.8 model IDs and availability
 
@@ -875,8 +905,8 @@ resources and ongoing charges. To restart the saved workload, use
 | `balances` | Show USD balances and native Vivix W credits; `--publish` syncs private snapshots |
 | `offers`, `offer` | Inspect, set, or withdraw a revision-checked model bid |
 | `offer-batch` | Review and apply multiple model bids atomically; no automatic retry |
-| `jobs` | All-time completed jobs by model; `--json` for structured counts |
-| `earnings` | Read coordinator accounting; does not initiate payouts |
+| `jobs` | Individual attempts with filters/pagination; `--summary` for all-time model counts |
+| `earnings` | Work/review accounting and estimated exposure, separate from unmeasured actual income/costs; no payouts |
 | `deploy` | Create a pinned workload with provider credentials disabled |
 | `activate` | Release encrypted provider keys only after fresh admission |
 | `resume` | Permit new work after post-restart admission |

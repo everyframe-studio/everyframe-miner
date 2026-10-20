@@ -264,6 +264,7 @@ impl Miner<'_> {
                 "bind-app",
                 "balances",
                 "worker-update",
+                "jobs",
             ]
             .contains(&action),
             "unsupported_action",
@@ -278,8 +279,18 @@ impl Miner<'_> {
         // Keep a hard bound shared with public discovery, never unbounded reads.
         r.limit = 1000000;
         let mut auth_body = Value::Null;
-        if ["status", "worker-update"].contains(&action) {
-            r.url += &format!("?nonce={nonce}")
+        if ["status", "worker-update", "jobs"].contains(&action) {
+            let mut url =
+                url::Url::parse(&r.url).map_err(|_| Error("invalid_coordinator_response"))?;
+            url.query_pairs_mut().append_pair("nonce", &nonce);
+            if action == "jobs" {
+                crate::job_history::validate_query(&payload)?;
+                for (key, value) in payload.as_object().ok_or(Error("invalid_history_query"))? {
+                    url.query_pairs_mut()
+                        .append_pair(key, value.as_str().ok_or(Error("invalid_history_query"))?);
+                }
+            }
+            r.url = url.into();
         } else {
             let mut body = payload;
             body["nonce"] = json!(nonce);
@@ -744,6 +755,27 @@ impl Miner<'_> {
             json!({"minerId":v["minerId"],"asOf":v["at"],"jobsByModel":v["jobsByModel"],
             "note":"All-time completed jobs are accepted, verified outputs. Failed and cancelled counts describe attempts, not payments or alpha rewards."}),
         )
+    }
+    pub fn job_history(&self, query: Value) -> Result<Value> {
+        crate::job_history::validate_query(&query)?;
+        let c = self.load(false)?;
+        match self.api(&c, "jobs", query) {
+            Ok(v) => {
+                crate::job_history::validate_page(&v["history"])?;
+                Ok(
+                    json!({"minerId":v["minerId"],"asOf":v["at"],"historyAvailable":true,"history":v["history"]}),
+                )
+            }
+            Err(e) if e.0 == "http_404" => {
+                let mut out = self.jobs()?;
+                out["historyAvailable"] = json!(false);
+                out["note"] = json!(
+                    "Individual history is not available on this coordinator yet. Only all-time model counts are shown; no generation or retry was submitted."
+                );
+                Ok(out)
+            }
+            Err(e) => Err(e),
+        }
     }
     pub fn offer_batch(
         &self,

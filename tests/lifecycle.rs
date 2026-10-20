@@ -1420,6 +1420,9 @@ impl Http for Rig {
         self.calls
             .borrow_mut()
             .push((format!("{} {path}", r.method), self.phase()));
+        if self.fail.borrow().as_str() == "history404" && path.ends_with("/v1/miner/jobs") {
+            return Err(Error("http_404"));
+        }
         if u.host_str() == Some("entrypoint-finney.opentensor.ai") {
             let result = match body["method"].as_str().unwrap() {
                 "chain_getBlockHash" => self.trust["genesis"].clone(),
@@ -1528,7 +1531,7 @@ impl Http for Rig {
                 );
             }
             let action = path.rsplit('/').next().unwrap();
-            let nonce = if ["status", "worker-update"].contains(&action) {
+            let nonce = if ["status", "worker-update", "jobs"].contains(&action) {
                 u.query_pairs()
                     .find(|(k, _)| k == "nonce")
                     .unwrap()
@@ -2298,6 +2301,52 @@ fn batch_input_and_legacy_coordinator_fail_without_mutations_and_jobs_are_read_o
         json!([{"model":"fixture/video","completed":42,"active":0,"failed":1,"cancelled":0}]);
     assert_eq!(r.miner().jobs().unwrap()["jobsByModel"][0]["completed"], 42);
     assert!(r.calls.borrow().iter().all(|c| c.0.starts_with("GET ")));
+}
+
+#[test]
+fn individual_history_is_signed_scoped_get_and_does_not_change_offers_or_deployments() {
+    let r = Rig::new();
+    r.status.borrow_mut()["history"] = json!({"version":1,"currency":"USD","unit":"microusd","rows":[{"jobId":"job-fixture","state":"accepted","reviewState":"review"}],"nextCursor":null,"limit":20,"filters":{"status":"all","model":null}});
+    let before = r.state().read("config", false).unwrap();
+    let offers = r.status.borrow()["offers"].clone();
+    r.calls.borrow_mut().clear();
+    let out = r
+        .miner()
+        .job_history(json!({"limit":"20","status":"all"}))
+        .unwrap();
+    assert_eq!(out["historyAvailable"], true);
+    assert_eq!(out["history"]["rows"][0]["reviewState"], "review");
+    assert_eq!(r.calls.borrow().len(), 1);
+    assert!(r.calls.borrow()[0].0.starts_with("GET "));
+    assert!(r.calls.borrow()[0].0.ends_with("/v1/miner/jobs"));
+    assert_eq!(r.state().read("config", false).unwrap(), before);
+    assert_eq!(r.status.borrow()["offers"], offers);
+    assert!(r.miner().job_history(json!({"minerId":"other"})).is_err());
+    assert_eq!(r.calls.borrow().len(), 1);
+    r.status.borrow_mut()["history"]["version"] = json!(99);
+    assert_eq!(
+        r.miner().job_history(json!({})).unwrap_err().0,
+        "invalid_job_history"
+    );
+}
+
+#[test]
+fn history_on_an_older_coordinator_falls_back_explicitly_to_model_counts() {
+    let r = Rig::new();
+    r.status.borrow_mut()["jobsByModel"] = json!([{"model":"fixture/video","completed":3}]);
+    *r.fail.borrow_mut() = "history404".into();
+    r.calls.borrow_mut().clear();
+    let out = r.miner().job_history(json!({"status":"failed"})).unwrap();
+    assert_eq!(out["historyAvailable"], false);
+    assert_eq!(out["jobsByModel"][0]["completed"], 3);
+    assert!(
+        out["note"]
+            .as_str()
+            .unwrap()
+            .contains("Only all-time model counts")
+    );
+    assert_eq!(r.calls.borrow().len(), 2);
+    assert!(r.calls.borrow().iter().all(|(p, _)| p.starts_with("GET ")));
 }
 #[test]
 fn altered_expired_or_wrong_network_invitations_fail() {

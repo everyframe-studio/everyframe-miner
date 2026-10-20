@@ -9,6 +9,7 @@ pub mod display;
 pub mod health;
 pub mod hotkey;
 pub mod invitation;
+pub mod job_history;
 pub mod key_check;
 pub mod miner;
 pub mod model_availability;

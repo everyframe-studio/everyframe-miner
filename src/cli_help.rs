@@ -110,14 +110,14 @@ pub fn render(command: &str) -> String {
             "offer --model minimax/h3-max-turbo/text-to-video --discount-pct 10",
         ),
         "earnings" => (
-            "Read recorded serving fees. Fees are not wallet payments, measured alpha or net profit.",
+            "Read all-time work value, review status and quoted provider exposure. Separates accounting from payments; actual provider bills, hosting costs, alpha received and net profit remain unmeasured.",
             "  No command-specific options.",
             "earnings",
         ),
         "jobs" => (
-            "Show all-time completed jobs per model. Completed means accepted, verified output; not a payment or alpha reward.",
-            "  No command-specific options.",
-            "jobs",
+            "Read your individual attempts, newest first, including verification, review status and safe failure reasons. No prompts, media or other miners' history. Completed means verified output, not payment. No generation is submitted.",
+            "  --limit N      Page size, 1–100 (default 20)\n  --status NAME  all, active, completed, failed or cancelled\n  --model ID     Filter by EveryFrame contract ID\n  --cursor VALUE Next-page cursor; keep the same status/model filters\n  --summary      All-time per-model counts; cannot combine with filters",
+            "jobs --status failed --limit 20",
         ),
         "offer-batch" => (
             "Review and apply multiple offers atomically. Changed pricing or revisions reject the whole batch. No automatic retry.",

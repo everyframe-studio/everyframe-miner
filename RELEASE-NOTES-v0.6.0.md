@@ -34,6 +34,21 @@
   quotes print prices as `$0.05/hour`.
 - `everycli miner update` still works but points you to `everycli worker-update`.
 
+## Job history and earnings
+
+- `everycli jobs` lists your individual attempts with status/model filters,
+  cursor pagination and verification, review and failure details. Use
+  `--summary` for the previous all-time counts by model. Older coordinators
+  explicitly fall back to those counts.
+- The browser UI adds **Job history** and **Earnings** pages, including attempt
+  details, filters and Previous/Next navigation.
+- Earnings separates pending review, approved and marked reward-eligible work
+  from actual payments. Estimated provider exposure uses job quotes, not an
+  invented invoice; uncertain and unpriced submissions are counted separately.
+  Actual provider bills, hosting, alpha received and net profit remain unmeasured.
+- These signed, private, read-only views do not expose customer prompts or media,
+  approve work, alter validator accounting or require a worker update.
+
 ## Update
 Run `everycli update`, then `everycli worker-update`. Jobs go only to workers
 on the newest minor release: once v0.6.0 is published, 0.5.x workers keep

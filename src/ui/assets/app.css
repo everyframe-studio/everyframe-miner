@@ -216,3 +216,18 @@ input.tiny { width: 72px; }
 .miner-identity code { font-size: 13px; }
 .notice { overflow-wrap: anywhere; }
 .copy code { min-width: 0; }
+.topbar-meta { min-width: 0; }
+.topbar-meta .pill { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.pill .dot { flex-shrink: 0; }
+.history-filters { margin: 18px 0; }
+.history-filters input { flex: 1 1 240px; max-width: 440px; }
+.job-history td { overflow-wrap: anywhere; }
+.job-kv dd { font-variant-numeric: tabular-nums; }
+.earnings-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 16px; }
+.exposure-value { font-size: 26px; font-weight: 650; letter-spacing: -.02em; margin: 4px 0 14px; }
+@media (max-width: 600px) {
+  .earnings-stats { grid-template-columns: minmax(0, 1fr); }
+  .job-kv { grid-template-columns: minmax(0, 1fr); }
+  .job-kv dd { margin-bottom: 6px; }
+  .history-filters input, .history-filters select { width: 100%; max-width: none; flex-basis: 100%; }
+}
