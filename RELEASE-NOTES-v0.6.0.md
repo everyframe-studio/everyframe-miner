@@ -63,6 +63,13 @@
   restores batch offers for existing v0.5.8 clients; no worker update is needed.
 
 ## Update
-Run `everycli update`, then `everycli worker-update`. Jobs go only to workers
-on the newest minor release: once v0.6.0 is published, 0.5.x workers keep
-receiving jobs for 3 days, then stop until they update.
+Run `everycli update`, then `everycli worker-update`. These are separate updates:
+the first updates the local CLI; the second installs an available, signed worker
+release in the existing VM after review and fresh attestation.
+
+Routing prefers eligible workers on the published major/minor, ignoring patch
+versions. Once the v0.6.0 worker release is published, 0.6.x workers are preferred
+for each model/job. If no eligible 0.6.x capacity is available, the previous
+published minor (0.5.x) continues serving as fallback, without a three-day expiry.
+Routing automatically returns to 0.6.x when eligible capacity becomes available.
+Existing in-flight jobs finish on their assigned workers.

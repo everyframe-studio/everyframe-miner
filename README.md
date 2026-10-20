@@ -24,8 +24,10 @@ every model in the registry is necessarily available for mining.
 
 CLI downloads are checksum-verified (publisher signing is postponed); refused outputs fail fast;
 `worker-update --abort` and a stronger `reconcile` recover interrupted updates.
-See [v0.6.0 release notes](RELEASE-NOTES-v0.6.0.md). Jobs go only to the newest
-minor release, with a 3-day grace for the previous one.
+See [v0.6.0 release notes](RELEASE-NOTES-v0.6.0.md). For each job, routing prefers
+eligible workers on the published major/minor (for example, 0.6.x). If none can
+serve that model, the previous published minor remains available as fallback,
+without a fixed expiry. Patch versions do not affect this preference.
 
 #### Individual job history and clearer earnings
 
