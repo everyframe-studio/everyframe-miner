@@ -828,7 +828,8 @@ everycli earnings
 model from `offers`, then submit your bid. The model above is an example, not
 a guarantee that it is enabled for every deployment.
 
-`--max-hourly-usd` is a **compute-rate ceiling, not a total spending budget**.
+`--max-hourly-usd` is a **compute-rate ceiling, not a total spending budget**
+(greater than 0 and at most 100 USD per hour).
 Storage is extra and may remain billable after shutdown. There is no automatic
 total-budget cutoff in this CLI. Provider bills do not decrease when you discount
 your mining offer; traffic and earnings are not guaranteed.
@@ -878,8 +879,8 @@ resources and ongoing charges. To restart the saved workload, use
 | `label` | View the local display name or change it with `--name NAME`; never changes the signed VM identity |
 | `start` | Restart the saved stopped workload, with a reviewed hourly ceiling |
 | `update` | Upgrade the CLI executable only; `--check` checks without installing |
-| `worker-update` | Discover and install a signed update on the existing VM, then restore its accepting/paused state; `--check` is read-only |
-| `reconcile` | Inspect uncertain operations without replaying paid cloud mutations |
+| `worker-update` | Discover and install a signed update on the existing VM, then restore its accepting/paused state; `--check` is read-only; `--abort` cancels an unfinished update and keeps the running worker |
+| `reconcile` | Settle uncertain operations from observed cloud/coordinator state without replaying paid cloud mutations |
 
 Mainnet SN117 is the default. Use `--network testnet` for SN566. Default state
 paths match the original CLI: `~/.config/everycli-mainnet117` and
@@ -990,6 +991,31 @@ Run `everycli reconcile` to perform that read-only cloud verification explicitly
 A genuinely different VM/configuration still fails closed. Keep the profile and journal.
 The OS releases the operation lock after a process exits or crashes; a leftover
 lock file alone does not block the CLI. Never delete it to bypass a live operation.
+
+From v0.6.0, `everycli worker-update --abort` cancels an unfinished update. It
+settles any recorded cloud step from what Phala and the coordinator actually
+report (never by repeating a request), keeps whichever signed release the VM is
+running, closes the saved update journal and prints what it did and what to run
+next. It never resumes paid work by itself. With nothing in progress it says so,
+changes nothing and exits 0. If the signed release expires mid-update, the
+command stops with `release_expired`: before installation run `--abort`, then
+`worker-update` again to fetch a fresh release; after installation rerunning
+finishes the update.
+
+`everycli reconcile` (also run automatically by `worker-update`) now settles:
+
+- an interrupted key activation (`activate_intent`): if the running worker
+  attested after the request and advertises a model backed by a released key,
+  activation is confirmed and `resume` is next; otherwise the profile returns to
+  its last known-good phase and `activate` (or `apply-api-keys`) can be run again;
+- a worker update Phala definitively rejected (HTTP 4xx): the unchanged worker is
+  restored locally and work stays paused until `resume`.
+
+A commit whose response was lost still waits for Phala (`update_not_observed`);
+if the VM keeps the previous release, `worker-update --abort` restores it, and a
+later `reconcile` adopts the update if Phala applies it after all. The hidden
+`everycli miner update` alias still works but prints a deprecation notice; use
+`everycli worker-update`.
 
 If no compatible package is published, the command says so and changes nothing;
 that is not a claim that all providers are already supported. The advanced

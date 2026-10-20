@@ -69,7 +69,11 @@ fn missing_options_and_bad_values_fail_before_profile_creation() {
         (vec!["deploy"], "deploy needs --max-hourly-usd"),
         (
             vec!["worker-update", "--check", "--release", "file.json"],
-            "cannot combine --check with --release",
+            "only one of --check, --release or --abort",
+        ),
+        (
+            vec!["worker-update", "--abort", "--check"],
+            "only one of --check, --release or --abort",
         ),
         (vec!["remove-api-key"], "remove-api-key needs --provider"),
         (
@@ -82,11 +86,15 @@ fn missing_options_and_bad_values_fail_before_profile_creation() {
         ),
         (
             vec!["start", "--max-hourly-usd", "NaN"],
-            "positive finite number",
+            "greater than 0 and at most 100",
         ),
         (
             vec!["deploy", "--max-hourly-usd", "0"],
-            "positive finite number",
+            "greater than 0 and at most 100",
+        ),
+        (
+            vec!["deploy", "--max-hourly-usd", "100.5"],
+            "greater than 0 and at most 100",
         ),
         (
             vec!["deploy", "--max-hourly-usd", "--json"],
@@ -404,4 +412,136 @@ fn setup_stops_at_failures_cancellation_and_existing_workloads() {
     let out = run(&["setup", "--yes"], dir.path());
     assert!(!out.status.success());
     assert!(output(&out).contains("interactive terminal"));
+}
+
+#[test]
+fn recovery_error_codes_have_specific_actionable_messages() {
+    let a = args(&["worker-update"]);
+    for (code, message, next) in [
+        (
+            "operation_locked",
+            "already changing this miner profile",
+            "Wait for that command to finish, then rerun this one",
+        ),
+        (
+            "hotkey_delegation_expired_reinitialize",
+            "hotkey authorization has expired",
+            "everycli init --wallet <wallet> --hotkey default",
+        ),
+        (
+            "reconciliation_required",
+            "did not finish",
+            "everycli reconcile",
+        ),
+        (
+            "update_not_observed",
+            "still reports the previous release",
+            "everycli worker-update --abort",
+        ),
+        (
+            "update_in_progress_cannot_abort",
+            "can no longer be cancelled",
+            "everycli worker-update",
+        ),
+    ] {
+        let d = cli_errors::diagnostic(&Error(code), Some(&a));
+        assert_eq!(d["error"], code);
+        assert!(
+            d["message"].as_str().unwrap().contains(message),
+            "{code}: {d}"
+        );
+        assert!(d["next"].as_str().unwrap().contains(next), "{code}: {d}");
+        // Never the generic "code with spaces." fallback.
+        assert_ne!(d["message"], format!("{}.", code.replace('_', " ")));
+    }
+    let d = cli_errors::diagnostic(&Error("reconciliation_required"), Some(&a));
+    assert!(d["next"].as_str().unwrap().contains("--abort"));
+}
+
+#[test]
+fn hourly_limit_above_one_hundred_states_the_allowed_range() {
+    for value in ["100.01", "250", "1e9"] {
+        let error = cli::validate_args(&args(&["deploy", "--max-hourly-usd", value])).unwrap_err();
+        assert_eq!(error.0, "compute_limit_required");
+        let d = cli_errors::diagnostic(&error, None);
+        assert!(
+            d["message"]
+                .as_str()
+                .unwrap()
+                .contains("greater than 0 and at most 100"),
+            "{d}"
+        );
+        assert!(!d["message"].as_str().unwrap().contains("positive finite"));
+    }
+    assert!(cli::validate_args(&args(&["deploy", "--max-hourly-usd", "100"])).is_ok());
+    assert!(cli::validate_args(&args(&["start", "--max-hourly-usd", "0.05"])).is_ok());
+}
+
+#[test]
+fn hosting_quotes_format_compute_rates_as_dollars() {
+    use everyframe_miner::miner::usd_rate;
+    assert_eq!(usd_rate(&json!("0.05")), "$0.05");
+    assert_eq!(usd_rate(&json!(0.1)), "$0.10");
+    assert_eq!(usd_rate(&json!("0.0125")), "$0.0125");
+    assert_eq!(usd_rate(&json!(2)), "$2.00");
+    assert_eq!(usd_rate(&json!("n/a")), "an unreported rate");
+}
+
+#[test]
+fn worker_update_abort_is_parsed_and_conflicts_with_other_modes() {
+    let a = args(&["worker-update", "--abort"]);
+    assert_eq!(a.command, "update");
+    assert!(a.flag("--abort"));
+    assert!(cli::validate_args(&a).is_ok());
+    for words in [
+        vec!["worker-update", "--abort", "--check"],
+        vec!["worker-update", "--abort", "--release", "file.json"],
+    ] {
+        assert_eq!(
+            cli::validate_args(&args(&words)).unwrap_err().0,
+            "worker_update_conflicting_options"
+        );
+    }
+    // --abort belongs to worker-update only.
+    assert_eq!(
+        cli::parse(&["stop".to_string(), "--abort".to_string()])
+            .err()
+            .unwrap()
+            .0,
+        "invalid_option"
+    );
+}
+
+#[test]
+fn hidden_miner_update_alias_prints_one_deprecation_line_and_still_runs() {
+    let owned = |w: &[&str]| w.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+    assert_eq!(
+        cli::deprecation_notice(&owned(&["miner", "update", "--check"])),
+        Some(cli::MINER_UPDATE_DEPRECATED)
+    );
+    assert_eq!(cli::deprecation_notice(&owned(&["worker-update"])), None);
+    assert_eq!(cli::deprecation_notice(&owned(&["update"])), None);
+    assert_eq!(
+        cli::deprecation_notice(&owned(&["--state-dir", "miner", "update"])),
+        None
+    );
+    assert_eq!(args(&["miner", "update"]).command, "update");
+
+    let dir = common::tempdir();
+    let state = dir.path().join("profile");
+    let out = run(&["miner", "update", "--check", "--json"], &state);
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert_eq!(
+        stderr
+            .lines()
+            .filter(|l| l.contains("deprecated"))
+            .collect::<Vec<_>>(),
+        vec![cli::MINER_UPDATE_DEPRECATED]
+    );
+    assert!(stderr.contains("everycli worker-update"));
+    // The alias still dispatches to worker-update (here: no profile yet).
+    let value: Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(value["error"], "profile_not_initialized");
+    let modern = run(&["worker-update", "--check", "--json"], &state);
+    assert!(!String::from_utf8_lossy(&modern.stderr).contains("deprecated"));
 }

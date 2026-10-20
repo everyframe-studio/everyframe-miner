@@ -151,7 +151,7 @@ pub fn render(command: &str) -> String {
         ),
         "worker-update" => (
             "Fetch the latest compatible signed worker update, drain jobs, update the existing VM, wait for attestation and restore its previous accepting/paused state. Previously active keys are reactivated. Offers and discounts stay unchanged. Rerun to continue a saved update; uncertain cloud mutations are never blindly repeated. Use the original management profile. This does not upgrade the CLI.",
-            "  --check         Check availability without changing the worker\n  --release FILE  Advanced: apply an explicit signed file (manual reconcile/activation)",
+            "  --check         Check availability without changing the worker\n  --abort         Cancel an unfinished update and keep the release the VM is running\n  --release FILE  Advanced: apply an explicit signed file (manual reconcile/activation)",
             "worker-update",
         ),
         "stop" => (

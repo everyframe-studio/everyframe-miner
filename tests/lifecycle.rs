@@ -775,7 +775,7 @@ impl Rig {
             "applying" => {
                 self.info.borrow_mut()["compose_hash"] = envelope["value"]["composeHash"].clone()
             }
-            "attesting" | "readmitting" => {
+            "attesting" | "readmitting" | "activating" => {
                 let mut status = self.status.borrow_mut();
                 status["composeHash"] = envelope["value"]["composeHash"].clone();
                 status["attestation"]["at"] =
@@ -998,13 +998,22 @@ fn automatic_update_does_not_replay_ambiguous_cloud_mutations() {
             .worker_update_with_wait(false, &|_| Ok(()), &|_| {}, &|stage| {
                 r.advance_update(stage, &envelope)
             });
-        if failure == "/compose_file" || failure == "/compose_file/provision" {
-            assert_eq!(result.unwrap()["state"], "complete");
-        } else {
-            assert_eq!(result.unwrap_err().0, "worker_update_uncertain_operation");
+        // A lost activation response is settled from observed state first:
+        // without worker evidence it rolls back, waits for an attestation newer
+        // than the lost request, and only then releases the keys once more.
+        assert_eq!(result.unwrap()["state"], "complete", "{failure}");
+        if failure == "/envs" {
+            let calls = r.calls.borrow();
+            let patches: Vec<_> = calls
+                .iter()
+                .filter(|(p, _)| p.starts_with("PATCH") && p.ends_with("/envs"))
+                .collect();
+            assert_eq!(patches.len(), 1);
+            assert_eq!(patches[0].1, "activate_intent");
         }
         assert!(
             failure == "/compose_file/provision"
+                || failure == "/envs"
                 || !r
                     .calls
                     .borrow()
@@ -1476,6 +1485,13 @@ impl Http for Rig {
         if self.fail.borrow().as_str() == "gone" && path.contains("/cvms/app_") && r.method == "GET"
         {
             return Err(Error("http_404"));
+        }
+        // "reject:PATH" is a definitive Phala refusal (HTTP 422): not applied.
+        if let Some(rejected) = self.fail.borrow().strip_prefix("reject:")
+            && r.method != "GET"
+            && path.ends_with(rejected)
+        {
+            return Err(Error("http_422"));
         }
         if !self.fail.borrow().is_empty() && path.ends_with(self.fail.borrow().as_str()) {
             return Err(Error("ambiguous_network_error"));
@@ -2298,4 +2314,396 @@ fn altered_expired_or_wrong_network_invitations_fail() {
     inv["expiresAt"] = json!(now() - 1);
     assert!(r.miner().validate(&r.sign(&inv), false).is_err());
     assert!(r.miner().validate(&r.sign(&inv), true).is_ok());
+}
+
+impl Rig {
+    /// An `activate` whose PATCH /envs response was lost: activate_intent.
+    fn interrupted_activation(&self) {
+        self.deploy().unwrap();
+        *self.fail.borrow_mut() = "/envs".into();
+        assert!(self.miner().activate(&|_| Ok(())).is_err());
+        *self.fail.borrow_mut() = String::new();
+        assert_eq!(self.phase(), "activate_intent");
+        self.calls.borrow_mut().clear();
+    }
+    fn mutations(&self) -> Vec<String> {
+        self.calls
+            .borrow()
+            .iter()
+            .filter(|(p, _)| !p.starts_with("GET") && !p.contains("/v1/miner/"))
+            .map(|(p, _)| p.clone())
+            .collect()
+    }
+}
+
+#[test]
+fn reconcile_confirms_an_interrupted_activation_the_worker_proves_it_received() {
+    let r = Rig::new();
+    r.interrupted_activation();
+    {
+        // Restarted worker: attested after the request, advertising a model
+        // backed by the released FAL key.
+        let mut status = r.status.borrow_mut();
+        status["attestation"]["at"] = json!(now() + 5);
+        status["modelCatalog"] = json!([{"model":"fixture/video","provider":"fal","workerAvailable":true,"offerable":true,"blockers":[]}]);
+    }
+    let out = r.miner().reconcile().unwrap();
+    assert_eq!(out["resolved"], true);
+    assert_eq!(out["activation"], "confirmed");
+    assert_eq!(r.phase(), "awaiting_readmission");
+    let d = r.state().read("deployment", false).unwrap();
+    assert_eq!(d["providerConfigured"], true);
+    assert!(r.mutations().is_empty(), "{:?}", r.mutations());
+    // The profile is unblocked: resume works without stop --force.
+    std::thread::sleep(std::time::Duration::from_millis(10));
+    assert_eq!(r.miner().resume(&|_| Ok(())).unwrap()["phase"], "running");
+    assert!(r.mutations().is_empty());
+}
+
+#[test]
+fn reconcile_rolls_back_an_unconfirmed_activation_so_it_can_be_requested_again() {
+    for evidence in ["none", "disabled_provider_only", "stale_attestation"] {
+        let r = Rig::new();
+        r.interrupted_activation();
+        match evidence {
+            // Worker reports a model, but not one backed by a released key.
+            "disabled_provider_only" => {
+                r.status.borrow_mut()["modelCatalog"] =
+                    json!([{"model":"x/y","provider":"runway","workerAvailable":true}])
+            }
+            // Keys visible, but no attestation after the lost request.
+            "stale_attestation" => {
+                let mut status = r.status.borrow_mut();
+                status["attestation"]["at"] = json!(now() - 60000);
+                status["modelCatalog"] =
+                    json!([{"model":"fixture/video","provider":"fal","workerAvailable":true}]);
+            }
+            _ => {}
+        }
+        let out = r.miner().reconcile().unwrap();
+        assert_eq!(out["resolved"], true, "{evidence}");
+        assert_eq!(out["activation"], "rolled_back", "{evidence}");
+        assert!(out["next"].as_str().unwrap().contains("everycli activate"));
+        assert_eq!(r.phase(), "awaiting_attestation", "{evidence}");
+        assert_ne!(
+            r.state().read("deployment", false).unwrap()["providerConfigured"],
+            true
+        );
+        assert!(r.mutations().is_empty(), "{evidence}");
+        // Not stuck: activate can be requested again, once, deliberately.
+        r.status.borrow_mut()["attestation"]["at"] = json!(now());
+        assert_eq!(
+            r.miner().activate(&|_| Ok(())).unwrap()["phase"],
+            "awaiting_readmission"
+        );
+        assert_eq!(
+            r.mutations(),
+            vec![format!("PATCH /api/v1/cvms/app_{}/envs", "1".repeat(40))]
+        );
+    }
+    // A VM found stopped rolls back to stopped, which start can handle.
+    let r = Rig::new();
+    r.interrupted_activation();
+    r.info.borrow_mut()["status"] = json!("stopped");
+    assert_eq!(r.miner().reconcile().unwrap()["phase"], "stopped");
+    assert_eq!(r.phase(), "stopped");
+}
+
+#[test]
+fn worker_update_settles_an_interrupted_activation_instead_of_failing() {
+    // Fresh worker-update on a profile left in activate_intent.
+    let r = Rig::new();
+    r.interrupted_activation();
+    let mut d = r.state().read("deployment", false).unwrap();
+    d["operationAt"] = json!(now() - 1000);
+    r.state().write("deployment", &d).unwrap();
+    let out = r
+        .miner()
+        .worker_update_with_wait(true, &|_| panic!(), &|_| {}, &|_| panic!())
+        .unwrap_err();
+    assert_eq!(out.0, "reconciliation_required");
+    assert_eq!(r.phase(), "activate_intent"); // --check never settles.
+    r.status.borrow_mut()["update"] = json!({"state":"unavailable"});
+    let out = r
+        .miner()
+        .worker_update_with_wait(false, &|_| Ok(()), &|_| {}, &|_| panic!())
+        .unwrap();
+    assert_eq!(out["state"], "unavailable");
+    assert_eq!(r.phase(), "awaiting_attestation");
+    assert!(r.mutations().is_empty());
+}
+
+#[test]
+fn rejected_compose_patch_is_restored_by_reconcile_and_closed_by_worker_update() {
+    // Manual --release flow, then reconcile.
+    let r = Rig::new();
+    let envelope = r.staged_update(false, true);
+    *r.fail.borrow_mut() = "reject:/compose_file".into();
+    let error = r.miner().update(&envelope, &|_| Ok(())).unwrap_err();
+    assert_eq!(error.0, "phala_http_422");
+    assert_eq!(r.phase(), "update_commit_intent");
+    let d = r.state().read("deployment", false).unwrap();
+    assert_eq!(d["commitRejected"]["code"], "phala_http_422");
+    *r.fail.borrow_mut() = String::new();
+    r.calls.borrow_mut().clear();
+    let out = r.miner().reconcile().unwrap();
+    assert_eq!(out["resolved"], true);
+    assert_eq!(out["update"], "rolled_back");
+    assert_eq!(out["rejectedCode"], "phala_http_422");
+    assert_eq!(r.phase(), "drained");
+    let d = r.state().read("deployment", false).unwrap();
+    assert!(d["pendingInvitation"].is_null() && d["commitRejected"].is_null());
+    assert_eq!(d["updateRejected"]["code"], "phala_http_422");
+    assert_eq!(d["providerConfigured"], true);
+    assert!(r.mutations().is_empty());
+    // Not stuck: a later automatic update installs normally.
+    let out = r
+        .miner()
+        .worker_update_with_wait(false, &|_| Ok(()), &|_| {}, &|stage| {
+            r.advance_update(stage, &envelope)
+        })
+        .unwrap();
+    assert_eq!(out["state"], "complete");
+
+    // Automatic flow: the rejection closes the update with a clear result.
+    let r = Rig::new();
+    let envelope = r.staged_update(true, true);
+    *r.fail.borrow_mut() = "reject:/compose_file".into();
+    let out = r
+        .miner()
+        .worker_update_with_wait(false, &|_| Ok(()), &|_| {}, &|stage| {
+            r.advance_update(stage, &envelope)
+        })
+        .unwrap();
+    assert_eq!(out["state"], "rejected");
+    assert_eq!(out["ok"], false);
+    assert_eq!(out["rejectedCode"], "phala_http_422");
+    assert!(out["next"].as_str().unwrap().contains("everycli resume"));
+    assert_eq!(r.phase(), "drained");
+    let flow = r.state().read("worker-update", false).unwrap();
+    assert_eq!(flow["stage"], "complete");
+    assert_eq!(flow["aborted"], "rejected");
+    assert_eq!(
+        r.mutations()
+            .iter()
+            .filter(|p| p.starts_with("PATCH") && p.ends_with("/compose_file"))
+            .count(),
+        1
+    );
+    assert_eq!(r.status.borrow()["draining"], true); // never auto-resumed
+    *r.fail.borrow_mut() = String::new();
+    let out = r
+        .miner()
+        .worker_update_with_wait(false, &|_| Ok(()), &|_| {}, &|stage| {
+            r.advance_update(stage, &envelope)
+        })
+        .unwrap();
+    assert_eq!(out["state"], "complete");
+}
+
+#[test]
+fn worker_update_abort_is_a_noop_when_idle() {
+    let r = Rig::new();
+    let out = r.miner().worker_update_abort().unwrap();
+    assert_eq!(out["state"], "nothing_pending");
+    assert_eq!(out["ok"], true);
+    assert!(!everyframe_miner::cli::result_failed("update", &out));
+    r.deploy().unwrap();
+    r.calls.borrow_mut().clear();
+    let before = r.state().read("deployment", false).unwrap();
+    let out = r.miner().worker_update_abort().unwrap();
+    assert_eq!(out["state"], "nothing_pending");
+    assert_eq!(out["aborted"], false);
+    assert!(!everyframe_miner::cli::result_failed("update", &out));
+    assert_eq!(r.state().read("deployment", false).unwrap(), before);
+    assert!(r.state().read("worker-update", true).unwrap().is_null());
+    assert!(r.calls.borrow().is_empty());
+}
+
+#[test]
+fn worker_update_abort_cancels_a_draining_update_and_allows_a_fresh_one() {
+    let r = Rig::new();
+    let envelope = r.staged_update(true, true);
+    r.status.borrow_mut()["activeJobs"] = json!(1);
+    let out = r
+        .miner()
+        .worker_update_with_wait(false, &|_| Ok(()), &|_| {}, &|_| false)
+        .unwrap();
+    assert_eq!(out["state"], "waiting");
+    assert!(
+        out["next"]
+            .as_str()
+            .unwrap()
+            .contains("worker-update --abort")
+    );
+    r.calls.borrow_mut().clear();
+    let out = r.miner().worker_update_abort().unwrap();
+    assert_eq!(out["state"], "aborted");
+    assert_eq!(out["aborted"], true);
+    assert_eq!(out["phase"], "running");
+    assert!(
+        out["reason"]
+            .as_str()
+            .unwrap()
+            .contains("journal was closed")
+    );
+    assert!(out["next"].as_str().unwrap().contains("everycli resume"));
+    assert!(r.calls.borrow().is_empty()); // local only, no cloud or coordinator call
+    let flow = r.state().read("worker-update", false).unwrap();
+    assert_eq!(flow["stage"], "complete");
+    assert_eq!(flow["aborted"], "aborted");
+    assert_eq!(flow["abortedFromStage"], "draining");
+    // Aborting twice is harmless.
+    assert_eq!(
+        r.miner().worker_update_abort().unwrap()["state"],
+        "nothing_pending"
+    );
+    // A fresh update starts from discovery again.
+    r.status.borrow_mut()["activeJobs"] = json!(0);
+    let out = r
+        .miner()
+        .worker_update_with_wait(false, &|_| Ok(()), &|_| {}, &|stage| {
+            r.advance_update(stage, &envelope)
+        })
+        .unwrap();
+    assert_eq!(out["state"], "complete");
+}
+
+#[test]
+fn worker_update_abort_restores_an_unobserved_commit_and_adopts_it_if_it_lands_later() {
+    let r = Rig::new();
+    let envelope = r.staged_update(true, true);
+    *r.fail.borrow_mut() = "/compose_file".into(); // lost response, outcome unknown
+    assert!(
+        r.miner()
+            .worker_update_with_wait(false, &|_| Ok(()), &|_| {}, &|_| false)
+            .is_err()
+    );
+    *r.fail.borrow_mut() = String::new();
+    assert_eq!(r.phase(), "update_commit_intent");
+    // v0.5.8 behaviour preserved: reconcile cannot tell, and says how to cancel.
+    assert_eq!(r.miner().reconcile().unwrap_err().0, "update_not_observed");
+    r.calls.borrow_mut().clear();
+    let out = r.miner().worker_update_abort().unwrap();
+    assert_eq!(out["state"], "aborted");
+    assert_eq!(out["phase"], "drained");
+    assert!(r.mutations().is_empty());
+    let d = r.state().read("deployment", false).unwrap();
+    assert!(d["pendingInvitation"].is_null());
+    assert_eq!(d["abandonedInvitation"], envelope);
+    assert_eq!(
+        r.state().read("worker-update", false).unwrap()["stage"],
+        "complete"
+    );
+    // Still manageable while the old release runs.
+    assert!(r.miner().status().unwrap()["cloudError"].is_null());
+    // If Phala applies the lost request later, reconcile adopts it.
+    r.info.borrow_mut()["compose_hash"] = envelope["value"]["composeHash"].clone();
+    assert!(r.miner().status().unwrap()["cloudError"].is_null());
+    let out = r.miner().reconcile().unwrap();
+    assert_eq!(out["lateUpdateAdopted"], true);
+    assert_eq!(r.phase(), "awaiting_attestation");
+    let config = r.state().read("config", false).unwrap();
+    assert_eq!(config["invitation"], envelope);
+    assert!(r.state().read("deployment", false).unwrap()["abandonedInvitation"].is_null());
+}
+
+#[test]
+fn worker_update_abort_keeps_an_update_that_already_reached_the_vm() {
+    let r = Rig::new();
+    let envelope = r.staged_update(true, true);
+    *r.fail.borrow_mut() = "/compose_file".into();
+    assert!(
+        r.miner()
+            .worker_update_with_wait(false, &|_| Ok(()), &|_| {}, &|_| false)
+            .is_err()
+    );
+    *r.fail.borrow_mut() = String::new();
+    r.info.borrow_mut()["compose_hash"] = envelope["value"]["composeHash"].clone();
+    r.calls.borrow_mut().clear();
+    let out = r.miner().worker_update_abort().unwrap();
+    assert_eq!(out["state"], "aborted");
+    assert_eq!(out["phase"], "awaiting_attestation");
+    assert!(
+        out["reason"]
+            .as_str()
+            .unwrap()
+            .contains("already reached the VM")
+    );
+    assert!(out["next"].as_str().unwrap().contains("everycli activate"));
+    assert_eq!(
+        r.state().read("config", false).unwrap()["invitation"],
+        envelope
+    );
+    assert!(r.mutations().is_empty());
+}
+
+#[test]
+fn expired_release_mid_update_stops_with_recovery_steps() {
+    let expire = |r: &Rig| {
+        let mut flow = r.state().read("worker-update", false).unwrap();
+        let mut inv = flow["release"]["value"].clone();
+        inv["issuedAt"] = json!(now() - 20000);
+        inv["expiresAt"] = json!(now() - 1);
+        flow["release"] = r.sign(&inv);
+        r.state().write("worker-update", &flow).unwrap();
+    };
+    // Before installation: stop, nothing changed, --abort recovers.
+    let r = Rig::new();
+    let envelope = r.staged_update(true, true);
+    r.status.borrow_mut()["activeJobs"] = json!(1);
+    r.miner()
+        .worker_update_with_wait(false, &|_| Ok(()), &|_| {}, &|_| false)
+        .unwrap();
+    expire(&r);
+    r.status.borrow_mut()["activeJobs"] = json!(0);
+    r.calls.borrow_mut().clear();
+    for check in [true, false] {
+        let out = r
+            .miner()
+            .worker_update_with_wait(check, &|_| Ok(()), &|_| {}, &|_| panic!("must not wait"))
+            .unwrap();
+        assert_eq!(out["state"], "release_expired");
+        assert!(
+            out["reason"]
+                .as_str()
+                .unwrap()
+                .contains("before it was installed")
+        );
+        assert!(
+            out["next"]
+                .as_str()
+                .unwrap()
+                .contains("everycli worker-update --abort")
+        );
+        assert!(everyframe_miner::cli::result_failed("update", &out));
+    }
+    assert!(r.mutations().is_empty());
+    assert_eq!(r.miner().worker_update_abort().unwrap()["state"], "aborted");
+    let out = r
+        .miner()
+        .worker_update_with_wait(false, &|_| Ok(()), &|_| {}, &|stage| {
+            r.advance_update(stage, &envelope)
+        })
+        .unwrap();
+    assert_eq!(out["state"], "complete");
+
+    // After installation: rerunning finishes; the signature is still verified.
+    let r = Rig::new();
+    let envelope = r.staged_update(true, true);
+    let out = r
+        .miner()
+        .worker_update_with_wait(false, &|_| Ok(()), &|_| {}, &|stage| {
+            stage != "attesting" && r.advance_update(stage, &envelope)
+        })
+        .unwrap();
+    assert_eq!(out["stage"], "attesting");
+    expire(&r);
+    let out = r
+        .miner()
+        .worker_update_with_wait(false, &|_| Ok(()), &|_| {}, &|stage| {
+            r.advance_update(stage, &envelope)
+        })
+        .unwrap();
+    assert_eq!(out["state"], "complete");
 }
