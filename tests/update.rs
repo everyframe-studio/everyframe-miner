@@ -1,5 +1,7 @@
 mod common;
 
+use base64::{Engine, engine::general_purpose::STANDARD};
+use ed25519_dalek::{Signer, SigningKey};
 use everyframe_miner::{cli, update};
 use sha2::{Digest, Sha256};
 use std::{
@@ -166,4 +168,162 @@ fn replacement_refuses_symlinks_and_writable_install_dirs() {
     fs::set_permissions(tmp.path(), fs::Permissions::from_mode(0o777)).unwrap();
     assert!(update::replace_binary(&binary, b"new").is_err());
     assert_eq!(fs::read(&binary).unwrap(), b"old");
+}
+
+// A throwaway key generated per test run; the real release key is never used.
+fn throwaway_key() -> SigningKey {
+    SigningKey::generate(&mut rand::rngs::OsRng)
+}
+
+fn sign(key: &SigningKey, tag: &str, asset: &str, sha256_hex: &str) -> Vec<u8> {
+    let signature = key.sign(&update::signed_message(tag, asset, sha256_hex));
+    format!("{}\n", STANDARD.encode(signature.to_bytes())).into_bytes()
+}
+
+#[test]
+fn signed_message_has_the_documented_canonical_format() {
+    let sha = "ab".repeat(32);
+    assert_eq!(
+        update::signed_message("v0.6.1", "everycli-x86_64-unknown-linux-gnu", &sha),
+        format!("everycli-release-v1\nv0.6.1\neverycli-x86_64-unknown-linux-gnu\n{sha}\n")
+            .into_bytes()
+    );
+    let documented = "everycli-release-v1\\n<tag>\\n<asset-name>\\n<sha256-hex-lowercase>\\n";
+    for doc in [
+        include_str!("../RELEASING.md"),
+        include_str!("../SECURITY.md"),
+    ] {
+        assert!(doc.contains(documented));
+        assert!(doc.contains(update::RELEASE_SIGNING_PUBLIC_KEY_HEX));
+    }
+}
+
+#[test]
+fn release_signature_accepts_only_the_exact_tag_asset_and_hash() {
+    let key = throwaway_key();
+    let public = key.verifying_key();
+    let tag = "v0.6.1";
+    let asset = "everycli-x86_64-unknown-linux-gnu";
+    let sha = hex::encode(Sha256::digest(b"synthetic release binary"));
+    let sig = sign(&key, tag, asset, &sha);
+    let check = |tag: &str, asset: &str, sha: &str, sig: Option<&[u8]>| {
+        update::verify_signature_with_key(&public, tag, asset, sha, sig).map_err(|e| e.0)
+    };
+    assert_eq!(check(tag, asset, &sha, Some(&sig)), Ok(()));
+    // Surrounding whitespace in the .sig file is tolerated.
+    let padded = format!("  {}\r\n\n", String::from_utf8(sig.clone()).unwrap().trim());
+    assert_eq!(check(tag, asset, &sha, Some(padded.as_bytes())), Ok(()));
+
+    let invalid = Err("update_signature_invalid");
+    // Replaying an older signed binary as a newer version.
+    assert_eq!(check("v0.6.2", asset, &sha, Some(&sig)), invalid);
+    // Another platform's binary.
+    assert_eq!(
+        check(tag, "everycli-aarch64-apple-darwin", &sha, Some(&sig)),
+        invalid
+    );
+    // Different (tampered) content.
+    let other = hex::encode(Sha256::digest(b"tampered release binary"));
+    assert_eq!(check(tag, asset, &other, Some(&sig)), invalid);
+    assert_eq!(check(tag, asset, &sha.to_uppercase(), Some(&sig)), invalid);
+    // Tampered signature bytes.
+    let mut raw = STANDARD
+        .decode(String::from_utf8(sig.clone()).unwrap().trim())
+        .unwrap();
+    raw[10] ^= 1;
+    let tampered = STANDARD.encode(&raw);
+    assert_eq!(check(tag, asset, &sha, Some(tampered.as_bytes())), invalid);
+    // Signed by a different key.
+    let foreign = sign(&throwaway_key(), tag, asset, &sha);
+    assert_eq!(check(tag, asset, &sha, Some(&foreign)), invalid);
+    // Malformed signature files.
+    for bad in [
+        b"".as_slice(),
+        b"not base64!",
+        STANDARD.encode([0u8; 63]).as_bytes(),
+        STANDARD.encode([0u8; 65]).as_bytes(),
+        &[0xff, 0xfe],
+    ] {
+        assert_eq!(check(tag, asset, &sha, Some(bad)), invalid);
+    }
+    // Missing .sig is refused, never treated as "unsigned is fine".
+    assert_eq!(
+        check(tag, asset, &sha, None),
+        Err("update_signature_missing")
+    );
+}
+
+#[test]
+fn production_verification_uses_the_embedded_release_key() {
+    let embedded = update::release_verifying_key().unwrap();
+    assert_eq!(
+        hex::encode(embedded.as_bytes()),
+        update::RELEASE_SIGNING_PUBLIC_KEY_HEX
+    );
+    let bytes = b"synthetic release binary";
+    let tag = "v0.6.1";
+    let asset = "everycli-x86_64-unknown-linux-gnu";
+    let sha = hex::encode(Sha256::digest(bytes));
+    // A throwaway key's valid signature is refused by the production check.
+    let sig = sign(&throwaway_key(), tag, asset, &sha);
+    assert_eq!(
+        update::verify_release_signature(tag, asset, bytes, Some(&sig))
+            .unwrap_err()
+            .0,
+        "update_signature_invalid"
+    );
+    assert_eq!(
+        update::verify_release_signature(tag, asset, bytes, None)
+            .unwrap_err()
+            .0,
+        "update_signature_missing"
+    );
+}
+
+#[test]
+fn installer_and_workflow_pin_the_same_release_key() {
+    // The installer embeds the key as an SPKI PEM: fixed Ed25519 prefix + raw key.
+    let installer = include_str!("../scripts/everycli-installer.sh");
+    let start = installer
+        .find("release_key='-----BEGIN PUBLIC KEY-----\n")
+        .unwrap();
+    let body = installer[start..].lines().nth(1).unwrap();
+    let der = STANDARD.decode(body).unwrap();
+    assert_eq!(hex::encode(&der[..12]), "302a300506032b6570032100");
+    assert_eq!(
+        hex::encode(&der[12..]),
+        update::RELEASE_SIGNING_PUBLIC_KEY_HEX
+    );
+    assert!(installer.contains(update::RELEASE_SIGNING_PUBLIC_KEY_HEX));
+    assert!(installer.contains(
+        "printf 'everycli-release-v1\\n%s\\n%s\\n%s\\n' \"$version\" \"$asset\" \"$actual\""
+    ));
+
+    let workflow = include_str!("../.github/workflows/release.yml");
+    assert!(workflow.contains("secrets.EVERYCLI_RELEASE_SIGNING_KEY"));
+    assert!(workflow.contains("environment: release"));
+    assert!(workflow.contains("pkeyutl -sign -inkey \"$work/key.pem\" -rawin"));
+    assert!(workflow.contains(
+        "printf 'everycli-release-v1\\n%s\\n%s\\n%s\\n' \"$RELEASE_TAG\" \"$asset\" \"$digest\""
+    ));
+    assert!(workflow.contains("pub const RELEASE_SIGNING_PUBLIC_KEY_HEX"));
+    assert!(workflow.contains("--latest=\"$latest\""));
+    assert!(!workflow.contains("--latest\n"));
+    assert!(!workflow.contains("set -x"));
+}
+
+#[test]
+fn updater_verifies_the_signature_before_running_or_installing_the_download() {
+    let updater = include_str!("../src/update.rs");
+    let body = &updater[updater.find("fn run_with_progress").unwrap()..];
+    let sig = body.find("{base}.sig").unwrap();
+    let verify = body
+        .find("verify_release_signature(tag, &name, &bytes, signature.as_deref())?")
+        .unwrap();
+    let install = body.find("replace_binary_checked(").unwrap();
+    assert!(sig < verify && verify < install);
+    // Only a 404 means "missing"; other download failures stay failures.
+    assert!(body.contains("Err(e) if e.0 == \"public_release_not_available\" => None"));
+    let cargo = body.find("\"cargo_install_update_disabled\"").unwrap();
+    assert!(cargo < body.find("Client::builder()").unwrap());
 }

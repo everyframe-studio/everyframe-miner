@@ -23,8 +23,10 @@ fn state() -> Result<State> {
     })
 }
 
-// Only native, owner-managed installation paths. Never rewrite Cargo builds,
-// Homebrew/Nix/system packages or custom symlink launchers behind the user's back.
+// Only native, owner-managed installation paths: the official installer's
+// `${CARGO_HOME:-~/.cargo}/bin` and `~/.local/bin`. Homebrew/Nix/system packages,
+// build directories and custom symlink launchers are never rewritten. A binary in
+// one of these paths that `cargo install` put there is excluded by `cargo_managed`.
 pub fn native_path(target: &Path, user_home: &Path, cargo_home: Option<&Path>) -> bool {
     let cargo = cargo_home
         .map(Path::to_path_buf)
@@ -36,6 +38,29 @@ pub fn native_path(target: &Path, user_home: &Path, cargo_home: Option<&Path>) -
             user_home.join(".local/bin/everycli"),
         ]
         .contains(&target.to_path_buf())
+}
+
+/// True when the executable is a `cargo install` (source) build: cargo's own
+/// install records beside its bin directory (`<root>/.crates.toml` or
+/// `<root>/.crates2.json`, for `~/.cargo`, `$CARGO_HOME` or any `--root`) list
+/// an `everycli` binary. Such builds are never replaced by `everycli update` or
+/// auto-update; the user reruns `cargo install`. The official installer writes
+/// no cargo records, so its `~/.cargo/bin` installs keep updating.
+pub fn cargo_managed(target: &Path) -> bool {
+    let Some(bin) = target.parent() else {
+        return false;
+    };
+    let Some(root) = bin.parent() else {
+        return false;
+    };
+    bin.file_name() == Some("bin".as_ref())
+        && [".crates.toml", ".crates2.json"].iter().any(|name| {
+            let path = root.join(name);
+            // Bounded read of cargo's metadata; never follows a symlinked record.
+            fs::symlink_metadata(&path).is_ok_and(|m| m.is_file() && m.len() <= 4 << 20)
+                && fs::read(&path)
+                    .is_ok_and(|bytes| String::from_utf8_lossy(&bytes).contains("\"everycli\""))
+        })
 }
 fn eligible() -> bool {
     if !crate::update::official_build() {
@@ -49,6 +74,7 @@ fn eligible() -> bool {
     };
     let cargo_home = std::env::var_os("CARGO_HOME").map(PathBuf::from);
     if !native_path(&target, Path::new(&user_home), cargo_home.as_deref())
+        || cargo_managed(&target)
         || crate::state::no_symlink(&target).is_err()
     {
         return false;
@@ -119,7 +145,8 @@ pub fn settings(enable: bool, disable: bool) -> Result<Value> {
     let enabled = configured(&s)?;
     Ok(
         json!({"enabled":enabled,"effective":enabled && !env_disabled() && eligible(),
-        "environmentDisabled":env_disabled(),"nativeInstallation":eligible(),"intervalHours":6,
+        "environmentDisabled":env_disabled(),"nativeInstallation":eligible(),
+        "cargoInstall":std::env::current_exe().is_ok_and(|p| cargo_managed(&p)),"intervalHours":6,
         "lastAttempt":s.read("auto-update-result",true)?,
         "note":"Interactive native CLI only; updates take effect on the next invocation. JSON, CI, help and version commands do not start background updates. Miner workers, keys and offers are unchanged."}),
     )
@@ -234,6 +261,7 @@ mod tests {
     #[test]
     fn native_paths_exclude_builds_packages_and_relative_overrides() {
         let h = Path::new("/home/miner");
+        // Installer location; `cargo_managed` separately excludes cargo builds.
         assert!(native_path(
             Path::new("/home/miner/.cargo/bin/everycli"),
             h,
@@ -257,6 +285,51 @@ mod tests {
             h,
             Some(Path::new("relative"))
         ));
+    }
+    #[test]
+    fn cargo_install_builds_in_any_install_root_are_not_native_updates() {
+        let dir = tempfile::tempdir().unwrap();
+        let home = fs::canonicalize(dir.path()).unwrap();
+        let cargo = home.join(".cargo");
+        let target = cargo.join("bin/everycli");
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        fs::write(&target, b"binary").unwrap();
+        // Installer-placed binary: no cargo records.
+        assert!(native_path(&target, &home, None) && !cargo_managed(&target));
+        // Unrelated cargo installs do not make everycli a cargo build.
+        fs::write(
+            cargo.join(".crates.toml"),
+            "[v1]\n\"ripgrep 14.1.0 (registry+https://github.com/rust-lang/crates.io-index)\" = [\"rg\"]\n",
+        )
+        .unwrap();
+        assert!(!cargo_managed(&target));
+        for (file, text) in [
+            (
+                ".crates.toml",
+                "[v1]\n\"everyframe-miner 0.5.8 (git+https://github.com/everyframe-studio/everyframe-miner#b1c20c7)\" = [\"everycli\"]\n",
+            ),
+            (
+                ".crates2.json",
+                r#"{"installs":{"everyframe-miner 0.5.8 (path+file:///src)":{"bins":["everycli"]}}}"#,
+            ),
+        ] {
+            let _ = fs::remove_file(cargo.join(".crates.toml"));
+            let _ = fs::remove_file(cargo.join(".crates2.json"));
+            fs::write(cargo.join(file), text).unwrap();
+            assert!(cargo_managed(&target), "{file}");
+        }
+        // `cargo install --root ~/.local` records beside ~/.local/bin.
+        let local = home.join(".local/bin/everycli");
+        fs::create_dir_all(local.parent().unwrap()).unwrap();
+        fs::write(&local, b"binary").unwrap();
+        assert!(!cargo_managed(&local));
+        fs::write(
+            home.join(".local/.crates2.json"),
+            r#"{"installs":{"everyframe-miner 0.6.0":{"bins":["everycli"]}}}"#,
+        )
+        .unwrap();
+        assert!(cargo_managed(&local));
+        assert!(!cargo_managed(Path::new("/everycli")));
     }
     #[test]
     fn interval_handles_first_run_failure_backoff_and_clock_change() {

@@ -9,9 +9,22 @@ It does not read miner profiles or provider credentials. Installation and update
 share a per-install-directory lock. A stale `.everycli-update.lock` after a crash
 must only be removed after verifying no installer or updater is running.
 
-Release checksums are obtained from the same repository as the binaries; they
-are not independent code signatures. GitHub account, release workflow, and tag
-security remain part of the trust boundary. The installer executes a published
+Since v0.6.0, every CLI binary is also verified against a detached Ed25519
+signature (`<asset>.sig`) made with the EveryFrame release key, whose public half
+is embedded in the CLI and the installer:
+`a81643f1026fb20e85399c23fc804fee82bc2e58e570efeaf30a6571eab04149`. The signed
+message is exactly `everycli-release-v1\n<tag>\n<asset-name>\n<sha256-hex-lowercase>\n`
+(UTF-8; the hash is computed locally from the downloaded bytes), so a signature
+cannot be replayed for another version, platform or content. Updates and installs
+fail closed on a missing (`update_signature_missing`) or invalid
+(`update_signature_invalid`) signature, before the downloaded binary is ever run.
+The installer verifies with OpenSSL 1.1.1+ and refuses to install without it.
+The private key exists only as the `EVERYCLI_RELEASE_SIGNING_KEY` secret of the
+approval-gated `release` GitHub environment, so publishing a GitHub release, or
+pushing a tag, is no longer enough to push code to installed CLIs. Signing-key
+custody, environment reviewers and tag protection remain part of the trust
+boundary; v0.5.x CLIs still trust checksums only until they update to v0.6.0.
+`cargo install` builds are not self-replaced; users rerun `cargo install`. The installer executes a published
 shell script and modifies shell PATH configuration unless explicitly opted out.
 CLI self-updates do not alter or bypass signed worker image admission.
 

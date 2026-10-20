@@ -73,6 +73,9 @@ jobs:
     needs: build
     runs-on: ubuntu-22.04
     timeout-minutes: 10
+    # Publishing (and access to the signing key) waits for an approval: configure
+    # required reviewers on the `release` environment and scope the secret to it.
+    environment: release
     permissions:
       contents: write
     steps:
@@ -95,6 +98,45 @@ jobs:
           cp LICENSE LICENSE-NOTICE.md dist/
           cd dist
           sha256sum --check everycli-*.sha256
+      - name: Sign release binaries
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          SIGNING_KEY: ${{ secrets.EVERYCLI_RELEASE_SIGNING_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          test -n "$SIGNING_KEY" || { echo 'EVERYCLI_RELEASE_SIGNING_KEY is not configured' >&2; exit 1; }
+          work=$(mktemp -d)
+          trap 'rm -rf "$work"' EXIT
+          # The key is only ever written to this private file, never echoed.
+          printf '%s\n' "$SIGNING_KEY" > "$work/key.pem"
+          unset SIGNING_KEY
+          # Refuse to sign with a key that does not match the one built into the CLI.
+          expected=$(grep -A1 'pub const RELEASE_SIGNING_PUBLIC_KEY_HEX' src/update.rs | grep -oE '[0-9a-f]{64}' | head -n 1)
+          test "${#expected}" -eq 64
+          actual=$(openssl pkey -in "$work/key.pem" -pubout -outform DER | tail -c 32 | od -An -v -tx1 | tr -d ' \n')
+          test "$actual" = "$expected" || { echo 'Signing key does not match RELEASE_SIGNING_PUBLIC_KEY_HEX' >&2; exit 1; }
+          openssl pkey -in "$work/key.pem" -pubout -out "$work/pub.pem"
+          count=0
+          for sum in dist/everycli-*.sha256; do
+            asset=$(basename "$sum" .sha256)
+            case "$asset" in everycli-installer.sh) continue ;; esac
+            test -f "dist/$asset"
+            digest=$(sha256sum "dist/$asset" | awk '{print $1}')
+            # Canonical statement (RELEASING.md): domain, tag, asset name, lowercase SHA-256.
+            printf 'everycli-release-v1\n%s\n%s\n%s\n' "$RELEASE_TAG" "$asset" "$digest" > "$work/message"
+            openssl pkeyutl -sign -inkey "$work/key.pem" -rawin -in "$work/message" -out "$work/signature"
+            test "$(wc -c < "$work/signature")" -eq 64
+            openssl pkeyutl -verify -pubin -inkey "$work/pub.pem" -rawin -in "$work/message" -sigfile "$work/signature" >/dev/null
+            base64 -w 0 "$work/signature" > "dist/$asset.sig"
+            printf '\n' >> "dist/$asset.sig"
+            count=$((count + 1))
+          done
+          test "$count" -eq 4
+      - name: Checksum installer
+        run: |
+          set -euo pipefail
+          cd dist
           sha256sum everycli-installer.sh > everycli-installer.sh.sha256
       - name: Create release draft, upload, then publish
         env:
@@ -110,4 +152,15 @@ jobs:
             gh release create "$RELEASE_TAG" --verify-tag --draft --title "everycli $RELEASE_TAG" --generate-notes
           fi
           gh release upload "$RELEASE_TAG" dist/*
-          gh release edit "$RELEASE_TAG" --draft=false --latest
+          # Only the highest published version becomes "latest" (the updater and
+          # installer URL follow it); a hotfix tag on an older line must not.
+          # A failed listing aborts here instead of defaulting to "latest".
+          tags=$(gh release list --exclude-drafts --exclude-pre-releases --limit 1000 --json tagName --jq '.[].tagName')
+          highest=$(printf '%s\n' "$tags" | grep -E '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' | sort -V | tail -n 1 || true)
+          if [ -z "$highest" ] || [ "$(printf '%s\n%s\n' "$highest" "$RELEASE_TAG" | sort -V | tail -n 1)" = "$RELEASE_TAG" ]; then
+            latest=true
+          else
+            latest=false
+          fi
+          echo "Highest published release: ${highest:-none}; marking $RELEASE_TAG latest=$latest"
+          gh release edit "$RELEASE_TAG" --draft=false --latest="$latest"
