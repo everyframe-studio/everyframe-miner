@@ -77,7 +77,29 @@ fn compatible(c: &Context, inv: &Value, from: &Value) -> Result<()> {
 fn waiting(flow: &Value, reason: &'static str) -> Value {
     json!({"ok":false,"state":"waiting","stage":flow["stage"],"appId":flow["appId"],
         "release":flow["release"]["value"]["release"],"reason":reason,
-        "next":"Rerun everycli worker-update using this same profile to continue. Do not redeploy. No offers were changed."})
+        "next":"Rerun everycli worker-update using this same profile to continue, or run everycli worker-update --abort to cancel it and keep the current worker. Do not redeploy. No offers were changed."})
+}
+
+fn release_expired(flow: &Value, installed: bool) -> Value {
+    let (reason, next) = if installed {
+        (
+            "The signed worker release expired after it was installed, so it can no longer authorize key activation or resume.",
+            "Run everycli worker-update --abort to close this update, then renew the signed profile with everycli init --wallet <wallet> --hotkey default, then run everycli activate and everycli resume. The updated VM keeps running; do not redeploy.",
+        )
+    } else {
+        (
+            "The signed worker release expired before it was installed. The VM was not changed by this update.",
+            "Run everycli worker-update --abort to cancel this update and keep the current worker, then run everycli worker-update to fetch a fresh signed release. Work stays paused until you resume or a new update finishes. Do not redeploy.",
+        )
+    };
+    json!({"ok":false,"state":"release_expired","stage":flow["stage"],"appId":flow["appId"],
+        "release":flow["release"]["value"]["release"],"reason":reason,"next":next})
+}
+
+/// Phases left by an interrupted cloud operation; reconcile settles them.
+fn unsettled(phase: &str) -> bool {
+    (phase.ends_with("_intent") && phase != "delete_intent")
+        || ["provisioned", "starting", "stopping", "updating"].contains(&phase)
 }
 
 impl Miner<'_> {
@@ -129,14 +151,190 @@ impl Miner<'_> {
         wait: &dyn Fn(&str) -> bool,
         interrupted: &dyn Fn() -> bool,
     ) -> Result<Value> {
+        match self.worker_update_run(check, confirm, progress, wait, interrupted) {
+            // A release (or the profile's adopted copy of it) expiring mid-update
+            // stops with recovery steps instead of a bare validation error.
+            Err(e) if e.0 == "invitation_expired" => {
+                let flow = self.state.read("worker-update", true)?;
+                if flow.is_null() || flow["stage"] == "complete" {
+                    return Err(e);
+                }
+                let config = self.state.read("config", false)?;
+                let installed = config["invitation"]["value"]["composeHash"]
+                    == flow["release"]["value"]["composeHash"];
+                Ok(release_expired(&flow, installed))
+            }
+            other => other,
+        }
+    }
+
+    /// Mark the saved flow finished without completing it. Readers that only
+    /// know "complete" (reconnect, preparation recovery) are then unblocked.
+    fn close_flow(&self, flow: &mut Value, reason: &str) -> Result<()> {
+        if !flow.is_object() {
+            return Ok(());
+        }
+        flow["abortedFromStage"] = flow["stage"].clone();
+        flow["stage"] = json!("complete");
+        flow["aborted"] = json!(reason);
+        flow["completedAt"] = json!(now());
+        self.state.write("worker-update", flow)
+    }
+
+    fn close_rejected_update(&self, flow: &mut Value, settled: &Value) -> Result<Value> {
+        self.close_flow(flow, "rejected")?;
+        let paused = if flow["restoreAccepting"] == true {
+            " The update paused new work; it stays paused until you run everycli resume."
+        } else {
+            ""
+        };
+        Ok(
+            json!({"ok":false,"state":"rejected","appId":flow["appId"],"phase":settled["phase"],
+            "release":flow["release"]["value"]["release"],"rejectedCode":settled["rejectedCode"],
+            "reason":"Phala rejected the signed worker update; the existing worker is unchanged and this update was closed.",
+            "next":format!("{}{paused} To try again later, rerun everycli worker-update. Do not redeploy; offers were not changed.", settled["next"].as_str().unwrap_or(""))}),
+        )
+    }
+
+    /// Cancel an unfinished worker update. Settles any recorded cloud intent
+    /// from observed state (never replaying it), keeps whatever signed release
+    /// the VM actually runs, and closes the saved flow. Safe when idle.
+    pub fn worker_update_abort(&self) -> Result<Value> {
         let _lock = self.state.lock()?;
         let c = self.load(false)?;
+        let mut flow = self.state.read("worker-update", true)?;
+        let flow_pending = !flow.is_null() && flow["stage"] != "complete";
+        let phase = c.deployment["phase"].as_str().unwrap_or("").to_string();
+        let update_intent = [
+            "update_provision_intent",
+            "update_commit_intent",
+            "updating",
+        ]
+        .contains(&phase.as_str());
+        if !flow_pending && !update_intent {
+            let next = if unsettled(&phase) {
+                "Nothing was changed. A different operation is unfinished; run everycli reconcile to settle it."
+            } else {
+                "Nothing was changed. Run everycli worker-update --check to look for a signed update."
+            };
+            return Ok(
+                json!({"ok":true,"state":"nothing_pending","aborted":false,"phase":c.deployment["phase"],
+                "reason":"No worker update was in progress.","next":next}),
+            );
+        }
+        let mut done = vec![];
+        if update_intent {
+            let info = self.target(&c, true)?;
+            if phase != "update_provision_intent"
+                && info["compose_hash"] != c.invitation["composeHash"]
+            {
+                // target() proved the VM runs the pending signed release: it
+                // already landed, so keep it rather than pretend to undo it.
+                let settled = self.reconcile_locked()?;
+                need(
+                    settled["phase"] == "awaiting_attestation",
+                    "update_in_progress_cannot_abort",
+                )?;
+                done.push("The update had already reached the VM, so it was kept: this profile now tracks the release that is running.");
+            } else if phase == "update_provision_intent" {
+                // Preparation only; the existing reconcile path verifies the
+                // old worker is unchanged before dropping the candidate.
+                self.reconcile_locked()?;
+                done.push("The prepared (uncommitted) update was discarded; the VM still runs the previous release.");
+            } else {
+                let uncertain = c.deployment["commitRejected"].is_null();
+                self.restore_unchanged_worker(&c, s(&info["status"])?, uncertain)?;
+                done.push(if uncertain {
+                    "The pending update was cancelled; the VM still runs the previous release. If Phala applies the earlier request later, everycli reconcile will adopt it."
+                } else {
+                    "Phala had rejected the update; the VM still runs the previous release."
+                });
+            }
+        } else if phase == "activate_intent" {
+            self.reconcile_locked()?;
+            done.push(
+                "The interrupted key activation was settled from the worker's observed state.",
+            );
+        }
+        let stage = flow["stage"].as_str().unwrap_or("").to_string();
+        if flow_pending {
+            self.close_flow(&mut flow, "aborted")?;
+            done.push("The saved worker-update journal was closed.");
+        }
+        let d = self.state.read("deployment", false)?;
+        let phase = d["phase"].as_str().unwrap_or("");
+        let mut next = match phase {
+            "running" if stage == "draining" || stage == "applying" => {
+                "If everycli status shows the miner draining, run everycli resume to accept work again."
+            }
+            "running" => "The worker keeps its current state.",
+            "drained" => {
+                "Provider keys remain active and work remains paused. Run everycli resume when you are ready to accept provider-billed work."
+            }
+            "awaiting_readmission" => {
+                "Wait for fresh accepted attestation in everycli status, then run everycli resume."
+            }
+            "stopped" => "The VM is stopped. Run everycli start --max-hourly-usd N when you want it back.",
+            _ => {
+                "Provider keys are not active on this worker. Once everycli status shows accepted attestation, run everycli activate, then everycli resume."
+            }
+        }
+        .to_string();
+        next.push_str(" Run everycli worker-update later to start a fresh update. No VM was created or deleted and offers were not changed.");
+        let config = self.state.read("config", false)?;
+        Ok(
+            json!({"ok":true,"state":"aborted","aborted":true,"phase":phase,"appId":d["appId"],
+            "release":config["invitation"]["value"]["release"],"reason":done.join(" "),"next":next}),
+        )
+    }
+
+    /// The saved release, verified. After the update reached the VM (or its
+    /// commit may have), an elapsed signature window must not strand the
+    /// worker half-updated; before that, an expired release stops the update.
+    fn flow_release(&self, c: &Context, flow: &Value) -> Result<Value> {
+        match self.validate(&flow["release"], false) {
+            Err(e) if e.0 == "invitation_expired" => {
+                let inv = self.validate(&flow["release"], true)?;
+                let phase = c.deployment["phase"].as_str().unwrap_or("");
+                need(
+                    c.invitation["composeHash"] == inv["composeHash"]
+                        || ["update_commit_intent", "updating"].contains(&phase),
+                    "invitation_expired",
+                )?;
+                Ok(inv)
+            }
+            other => other,
+        }
+    }
+
+    fn worker_update_run(
+        &self,
+        check: bool,
+        confirm: &dyn Fn(&str) -> Result<()>,
+        progress: &dyn Fn(&str),
+        wait: &dyn Fn(&str) -> bool,
+        interrupted: &dyn Fn() -> bool,
+    ) -> Result<Value> {
+        let _lock = self.state.lock()?;
+        let mut c = self.load(false)?;
         need(
             c.deployment["appId"].is_string(),
             "worker_update_original_profile_required",
         )?;
         let mut flow = self.state.read("worker-update", true)?;
         if flow.is_null() || flow["stage"] == "complete" {
+            // An interrupted activation, update or start/stop must be settled
+            // from observed cloud state before a new update can be planned.
+            if unsettled(c.deployment["phase"].as_str().unwrap_or("")) {
+                need(!check, "reconciliation_required")?;
+                progress("Settling an unfinished operation from the observed cloud state…");
+                self.reconcile_locked()?;
+                c = self.load(false)?;
+                need(
+                    !unsettled(c.deployment["phase"].as_str().unwrap_or("")),
+                    "reconciliation_required",
+                )?;
+            }
             progress("Checking for a compatible signed worker update…");
             let discovery = self.api(&c, "worker-update", json!({}))?;
             let update = &discovery["update"];
@@ -211,11 +409,7 @@ impl Miner<'_> {
                     && (flow["restoreAccepting"] != true || flow["reactivate"] == true),
                 "invalid_worker_update_journal",
             )?;
-            compatible(
-                &c,
-                &self.validate(&flow["release"], false)?,
-                &flow["fromComposeHash"],
-            )?;
+            compatible(&c, &self.flow_release(&c, &flow)?, &flow["fromComposeHash"])?;
             if check {
                 return Ok(waiting(
                     &flow,
@@ -235,7 +429,7 @@ impl Miner<'_> {
                 ));
             }
             let c = self.load(false)?;
-            let inv = self.validate(&flow["release"], false)?;
+            let inv = self.flow_release(&c, &flow)?;
             compatible(&c, &inv, &flow["fromComposeHash"])?;
             let phase = c.deployment["phase"].as_str().unwrap_or("");
             let stage_owned = s(&flow["stage"])?.to_string();
@@ -292,10 +486,16 @@ impl Miner<'_> {
                         continue;
                     }
                     if phase == "activate_intent" {
-                        return Err(Error("worker_update_uncertain_operation"));
+                        // Settle from observed state (confirm or roll back);
+                        // the env request itself is never replayed here.
+                        self.reconcile_locked()?;
+                        continue;
                     }
                     if ["update_commit_intent", "updating"].contains(&phase) {
                         match self.reconcile_locked() {
+                            Ok(v) if v["update"] == "rolled_back" => {
+                                return self.close_rejected_update(&mut flow, &v);
+                            }
                             Ok(_) => {}
                             Err(e) if e.0 == "update_not_observed" => {}
                             Err(e) => return Err(e),
@@ -313,7 +513,14 @@ impl Miner<'_> {
                     } else if c.invitation["composeHash"] == flow["fromComposeHash"] {
                         // update_locked records provision/commit intent before each
                         // cloud mutation. A lost response never takes this branch again.
-                        self.update_locked(&flow["release"], &|_| Ok(()))?;
+                        if let Err(e) = self.update_locked(&flow["release"], &|_| Ok(())) {
+                            // A definitive commit rejection is journaled; the next
+                            // pass verifies the old worker and closes the update.
+                            if self.state.read("deployment", false)?["commitRejected"].is_object() {
+                                continue;
+                            }
+                            return Err(e);
+                        }
                         continue;
                     } else {
                         need(
@@ -370,7 +577,10 @@ impl Miner<'_> {
                 }
                 "activating" => {
                     if phase == "activate_intent" {
-                        return Err(Error("worker_update_uncertain_operation"));
+                        // A lost activation response: confirm it from the
+                        // worker's own evidence or roll back, then continue.
+                        self.reconcile_locked()?;
+                        continue;
                     }
                     if phase != "awaiting_readmission" {
                         need(
@@ -378,15 +588,23 @@ impl Miner<'_> {
                             "worker_update_state_changed",
                         )?;
                         let status = self.api(&c, "status", json!({}))?;
-                        self.ensure_ready(&c, &status)?;
-                        need(
-                            status["attestation"]["at"].as_i64().unwrap_or(0)
+                        let fresh = self.ensure_ready(&c, &status).is_ok()
+                            && status["attestation"]["at"].as_i64().unwrap_or(0)
                                 >= flow["previousAttestationAt"].as_i64().unwrap_or(i64::MAX)
-                                && status["attestation"]["at"].as_i64().unwrap_or(0)
-                                    > c.deployment["operationAt"].as_i64().unwrap_or(i64::MAX)
-                                && status["sessionExpires"].as_i64().is_some_and(|t| t > now()),
-                            "post_restart_attestation_required",
-                        )?;
+                            && status["attestation"]["at"].as_i64().unwrap_or(0)
+                                > c.deployment["operationAt"].as_i64().unwrap_or(i64::MAX)
+                            && status["sessionExpires"].as_i64().is_some_and(|t| t > now());
+                        if !fresh {
+                            // After a rolled-back activation, wait for an
+                            // attestation newer than that request.
+                            if wait(stage) {
+                                continue;
+                            }
+                            return Ok(waiting(
+                                &flow,
+                                "Fresh attestation is not ready for key activation. Work remains paused; no verification was bypassed.",
+                            ));
+                        }
                         self.activate_keys_locked(&|_| Ok(()), false)?;
                     }
                     flow["stage"] = json!("readmitting");
