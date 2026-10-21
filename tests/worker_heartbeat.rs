@@ -9,6 +9,7 @@ use std::{
     sync::{
         Arc, Mutex,
         atomic::{AtomicUsize, Ordering},
+        mpsc,
     },
     time::{Duration, Instant},
 };
@@ -101,6 +102,21 @@ fn heartbeat_is_signed_session_bound_replay_checked_and_uses_only_an_advertised_
 
 #[test]
 fn heartbeat_window_is_bounded_and_drop_wakes_an_idle_thread() {
+    // Check delivery separately from expiry. A busy runner can schedule a new
+    // thread after a 30 ms window has already expired; sending nothing then is
+    // correct, not a heartbeat failure.
+    let (tx, rx) = mpsc::channel();
+    let delivery = Guard::spawn(
+        Duration::from_millis(5),
+        Duration::from_secs(10),
+        move || {
+            let _ = tx.send(());
+        },
+    )
+    .unwrap();
+    rx.recv_timeout(Duration::from_secs(5))
+        .expect("heartbeat callback should run within the delivery window");
+    drop(delivery);
     let count = Arc::new(AtomicUsize::new(0));
     let sent = count.clone();
     let guard = Guard::spawn(
@@ -113,7 +129,6 @@ fn heartbeat_window_is_bounded_and_drop_wakes_an_idle_thread() {
     .unwrap();
     std::thread::sleep(Duration::from_millis(80));
     let done = count.load(Ordering::SeqCst);
-    assert!(done > 0);
     std::thread::sleep(Duration::from_millis(20));
     assert_eq!(count.load(Ordering::SeqCst), done);
     drop(guard);
