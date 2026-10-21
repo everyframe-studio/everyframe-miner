@@ -1083,6 +1083,12 @@ function pageWorker() {
   if (d.needsReconcile) root.append(notice("warn", "Confirm worker state", h("div", null,
     h("p", null, "A lifecycle operation is pending. Re-sync checks its result at Phala and the coordinator without repeating the cloud operation."),
     button("Re-sync operation", async () => { await run("reconcile"); await refreshAll(); }, "primary"))));
+  root.append(card("Automatic worker updates", null,
+    h("p", { class: "small muted" }, "Opt in to an isolated updater inside your existing VM. It works while this computer is offline, drains jobs and verifies attestation before resuming. Manual updates remain the default."),
+    h("div", { class: "row" },
+      button("Check status", async () => { await run("worker-auto-status"); }),
+      button("Enable…", async () => { await run("worker-auto-enable"); await refreshAll(); }, "primary"),
+      button("Disable", async () => { await run("worker-auto-disable"); await refreshAll(); }))));
   const ph = d.phase || "not_deployed", deployed = !!d.appId && !["stopped", "stopping"].includes(ph);
   const accepting = findCheck("Accepting new work");
   const when = (ok, el, why) => { if (!ok) { el.disabled = true; el.title = why; } return el; };

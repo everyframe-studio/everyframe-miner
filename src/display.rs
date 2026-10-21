@@ -552,6 +552,28 @@ pub fn render(command: &str, value: &Value) -> String {
                     .collect()
             )
         ),
+        "worker-auto-update" => {
+            let a = &value["automaticUpdates"];
+            format!(
+                "{}\n\n{}",
+                table(
+                    &["WORKER AUTO-UPDATE", "STATUS"],
+                    vec![
+                        vec![
+                            "Mode".into(),
+                            if a["enabled"] == true || value["enabled"] == true {
+                                "Automatic (in VM)".into()
+                            } else {
+                                "Manual".into()
+                            }
+                        ],
+                        vec!["Last result".into(), text(&a["report"]["state"])],
+                        vec!["Diagnostic".into(), text(&a["report"]["code"])],
+                    ]
+                ),
+                text(&value["next"])
+            )
+        }
         "auto-update" => {
             let enabled = if value["enabled"] == true {
                 "On"

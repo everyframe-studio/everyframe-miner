@@ -47,6 +47,50 @@ pub trait Http {
     }
 }
 pub struct PublicHttp;
+fn worker_update_endpoint(u: &Url, method: &str) -> bool {
+    u.host_str() == Some("subnet.everyframe.studio")
+        && method == "POST"
+        && ["/v1/miner/", "/mainnet/v1/miner/"].iter().any(|prefix| {
+            u.path().strip_prefix(prefix).is_some_and(|action| {
+                [
+                    "worker-update-prepare",
+                    "worker-rollback",
+                    "worker-auto-update-policy",
+                    "worker-auto-update-report",
+                    "worker-auto-drain",
+                    "worker-auto-resume",
+                ]
+                .contains(&action)
+            })
+        })
+}
+fn worker_update_error(status: u16, bytes: &[u8]) -> Error {
+    if bytes.len() <= 4096
+        && let Ok(v) = serde_json::from_slice::<Value>(bytes)
+    {
+        let code = match (status, v["error"].as_str()) {
+            (409, Some("worker_auto_fleet_update_busy")) => "worker_auto_fleet_update_busy",
+            (409, Some("worker_auto_update_lease_lost")) => "worker_auto_update_lease_lost",
+            (409, Some("worker_auto_update_not_enabled")) => "worker_auto_update_not_enabled",
+            (409, Some("worker_auto_update_bootstrap_required")) => {
+                "worker_auto_update_bootstrap_required"
+            }
+            (409, Some("worker_auto_update_disable_first")) => "worker_auto_update_disable_first",
+            (409, Some("worker_auto_update_recovery_pending")) => {
+                "worker_auto_update_recovery_pending"
+            }
+            (409, Some("worker_recovery_unavailable")) => "worker_recovery_unavailable",
+            (409, Some("worker_recovery_in_progress")) => "worker_recovery_in_progress",
+            (409, Some("worker_recovery_not_idle")) => "worker_recovery_not_idle",
+            (409, Some("worker_recovery_target_changed")) => "worker_recovery_target_changed",
+            (409, Some("worker_update_target_changed")) => "worker_update_target_changed",
+            (400, Some("invalid_updater_capsule")) => "invalid_updater_capsule",
+            _ => return crate::diagnostics::http_error(status),
+        };
+        return Error(code);
+    }
+    crate::diagnostics::http_error(status)
+}
 fn history_error(status: u16, bytes: &[u8]) -> Error {
     if status == 400
         && bytes.len() <= 4096
@@ -222,6 +266,15 @@ impl Http for PublicHttp {
                 return Err(enrollment_error(&bytes));
             }
             if !response.status().is_success() {
+                if worker_update_endpoint(&u, &r.method) {
+                    let status = response.status().as_u16();
+                    let mut bytes = Vec::new();
+                    response
+                        .take(4097)
+                        .read_to_end(&mut bytes)
+                        .map_err(|_| Error("response_read_failed"))?;
+                    return Err(worker_update_error(status, &bytes));
+                }
                 if u.host_str() == Some("subnet.everyframe.studio")
                     && r.method == "GET"
                     && ["/v1/miner/jobs", "/mainnet/v1/miner/jobs"].contains(&u.path())
@@ -332,6 +385,66 @@ mod tests {
             super::batch_offer_error(409, &vec![b' '; 4097]).0,
             "http_409"
         );
+    }
+    #[test]
+    fn worker_update_errors_are_scoped_bounded_and_never_echo_remote_text() {
+        for action in [
+            "worker-update-prepare",
+            "worker-rollback",
+            "worker-auto-update-policy",
+            "worker-auto-update-report",
+            "worker-auto-drain",
+            "worker-auto-resume",
+        ] {
+            let u = url::Url::parse(&format!(
+                "https://subnet.everyframe.studio/mainnet/v1/miner/{action}"
+            ))
+            .unwrap();
+            assert!(super::worker_update_endpoint(&u, "POST"));
+            assert!(!super::worker_update_endpoint(&u, "GET"));
+        }
+        for url in [
+            "https://api.phala.network/v1/miner/worker-rollback",
+            "https://subnet.everyframe.studio/mainnet/v1/miner/worker-auto-drain/other",
+        ] {
+            assert!(!super::worker_update_endpoint(
+                &url::Url::parse(url).unwrap(),
+                "POST"
+            ));
+        }
+        for code in [
+            "worker_auto_fleet_update_busy",
+            "worker_auto_update_lease_lost",
+            "worker_auto_update_not_enabled",
+            "worker_auto_update_bootstrap_required",
+            "worker_auto_update_disable_first",
+            "worker_auto_update_recovery_pending",
+            "worker_recovery_unavailable",
+            "worker_recovery_in_progress",
+            "worker_recovery_not_idle",
+            "worker_recovery_target_changed",
+            "worker_update_target_changed",
+        ] {
+            let body =
+                serde_json::json!({"error":code,"message":"never expose this secret"}).to_string();
+            assert_eq!(super::worker_update_error(409, body.as_bytes()).0, code);
+            assert_eq!(crate::diagnostics::safe_code(code), code);
+            assert_eq!(
+                super::worker_update_error(500, body.as_bytes()).0,
+                "http_500"
+            );
+        }
+        assert_eq!(
+            super::worker_update_error(400, br#"{"error":"invalid_updater_capsule"}"#).0,
+            "invalid_updater_capsule"
+        );
+        for body in [
+            b"secret".as_slice(),
+            br#"{"error":"private-key"}"#,
+            &vec![b' '; 4097],
+        ] {
+            assert_eq!(super::worker_update_error(409, body).0, "http_409");
+        }
     }
     #[test]
     fn enrollment_errors_never_echo_remote_text_or_secrets() {

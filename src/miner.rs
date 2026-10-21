@@ -253,7 +253,28 @@ impl Miner<'_> {
             deployment: if d.is_null() { json!({}) } else { d },
         })
     }
-    pub fn api(&self, c: &Context, action: &str, payload: Value) -> Result<Value> {
+    pub fn api(&self, c: &Context, action: &str, mut payload: Value) -> Result<Value> {
+        let action = if ["drain", "resume"].contains(&action)
+            && self.state.read("worker-auto-update", true)?["controller"] == true
+        {
+            if action == "drain" {
+                "worker-auto-drain"
+            } else {
+                "worker-auto-resume"
+            }
+        } else {
+            action
+        };
+        if ["worker-auto-drain", "worker-auto-resume"].contains(&action) {
+            payload["capsuleId"] =
+                self.state.read("worker-auto-update", false)?["capsuleId"].clone();
+        }
+        if ["worker-update-prepare", "worker-rollback"].contains(&action)
+            && self.state.read("worker-auto-update", true)?["controller"] == true
+        {
+            payload["capsuleId"] =
+                self.state.read("worker-auto-update", false)?["capsuleId"].clone();
+        }
         need(
             [
                 "status",
@@ -264,6 +285,13 @@ impl Miner<'_> {
                 "bind-app",
                 "balances",
                 "worker-update",
+                "worker-update-prepare",
+                "worker-rollback",
+                "worker-auto-update",
+                "worker-auto-update-policy",
+                "worker-auto-update-report",
+                "worker-auto-drain",
+                "worker-auto-resume",
                 "jobs",
             ]
             .contains(&action),
@@ -279,7 +307,7 @@ impl Miner<'_> {
         // Keep a hard bound shared with public discovery, never unbounded reads.
         r.limit = 1000000;
         let mut auth_body = Value::Null;
-        if ["status", "worker-update", "jobs"].contains(&action) {
+        if ["status", "worker-update", "jobs", "worker-auto-update"].contains(&action) {
             let mut url =
                 url::Url::parse(&r.url).map_err(|_| Error("invalid_coordinator_response"))?;
             url.query_pairs_mut().append_pair("nonce", &nonce);
@@ -1205,6 +1233,14 @@ impl Miner<'_> {
         confirm: &dyn Fn(&str) -> Result<()>,
         refresh: bool,
     ) -> Result<Value> {
+        self.activate_keys_locked_mode(confirm, refresh, false)
+    }
+    pub(crate) fn activate_keys_locked_mode(
+        &self,
+        confirm: &dyn Fn(&str) -> Result<()>,
+        refresh: bool,
+        enrolling_updater: bool,
+    ) -> Result<Value> {
         let c = self.load(true)?;
         need(
             if refresh {
@@ -1230,7 +1266,17 @@ impl Miner<'_> {
         confirm(
             "Release provider keys into this verified workload and restart it? Work remains paused until fresh attestation and everycli resume.",
         )?;
-        self.ensure_ready(&c, &self.drain(&c)?)?;
+        let drained = if enrolling_updater {
+            let v = self.api(&c, "worker-auto-drain", json!({}))?;
+            need(
+                v["draining"] == true && v["activeJobs"] == 0,
+                "draining_in_progress",
+            )?;
+            v
+        } else {
+            self.drain(&c)?
+        };
+        self.ensure_ready(&c, &drained)?;
         let mut state = c.deployment.clone();
         state["phase"] = json!("activate_intent");
         state["operationAt"] = json!(now());

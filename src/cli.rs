@@ -21,6 +21,7 @@ Manage: health, doctor, status, providers, balances, offers, offer, offer-batch,
         apply-api-keys, resume, worker-update, stop, start, reconcile, delete, logs, label
 Browser: ui (local setup guide and status dashboard on 127.0.0.1)
 CLI updates: update, auto-update (--enable / --disable)
+Worker automation: worker-auto-update (--enable / --disable; isolated in-VM updater)
 
 Options:
   --network mainnet|testnet (default mainnet SN117; testnet SN566)
@@ -260,6 +261,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
             "start",
             "reconcile",
             "auto-update",
+            "worker-auto-update",
             "ui",
             "delete",
             "logs",
@@ -275,6 +277,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
     }
     let allowed = match out.command.as_str() {
         "auto-update" => vec!["--enable", "--disable"],
+        "worker-auto-update" => vec!["--enable", "--disable"],
         "setup" => vec![
             "--continue",
             "--wallet",
@@ -335,6 +338,10 @@ pub fn parse(args: &[String]) -> Result<Args> {
     need(
         !(out.flag("--withdraw") && out.get("--discount-pct").is_some()),
         "conflicting_offer_options",
+    )?;
+    need(
+        !(out.command == "worker-auto-update" && out.flag("--enable") && out.flag("--disable")),
+        "conflicting_auto_update_options",
     )?;
     Ok(out)
 }
@@ -910,6 +917,16 @@ pub fn run_with(
         "stop" => miner.stop_mode(args.flag("--drain-only"), args.flag("--force"), confirm),
         "delete" => miner.delete(args.required("--app-id")?, confirm),
         "label" => miner.label(args.get("--name")),
+        "worker-auto-update" => miner.worker_auto_settings(
+            if args.flag("--enable") {
+                Some(true)
+            } else if args.flag("--disable") {
+                Some(false)
+            } else {
+                None
+            },
+            confirm,
+        ),
         "logs" => miner.logs(),
         "update" => {
             if args.flag("--abort") {

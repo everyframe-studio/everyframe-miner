@@ -62,6 +62,20 @@ pub fn environment(inv: &Value, credentials: &Value, provider: bool) -> Result<V
             json!(DISABLED)
         }
     }
+    if inv["request"]["compose_file"]["allowed_envs"]
+        .as_array()
+        .is_some_and(|a| a.iter().any(|k| k == "EVERYFRAME_UPDATER_SEED"))
+    {
+        crate::updater_vm::image(&inv["request"]["compose_file"])?;
+        // Only the isolated, pinned supervisor receives this environment key.
+        // An empty value keeps an already enrolled persistent supervisor alive.
+        let seed = credentials["UPDATER_SEED"].as_str().unwrap_or("");
+        need(
+            seed.len() <= crate::updater_vm::MAX_SEED_BYTES,
+            "updater_seed_too_large",
+        )?;
+        env["EVERYFRAME_UPDATER_SEED"] = json!(seed);
+    }
     Ok(env)
 }
 pub fn encrypt(inv: &Value, credentials: &Value, key: &str, provider: bool) -> Result<Value> {

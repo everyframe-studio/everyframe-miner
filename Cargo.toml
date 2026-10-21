@@ -1,6 +1,6 @@
 [package]
 name = "everyframe-miner"
-version = "0.6.2"
+version = "0.6.3"
 edition = "2024"
 rust-version = "1.88"
 description = "EveryFrame attested worker and native Rust operator CLI"
@@ -14,6 +14,10 @@ path = "src/bin/worker.rs"
 [[bin]]
 name = "everycli"
 path = "src/bin/everycli.rs"
+
+[[bin]]
+name = "everyframe-updater"
+path = "src/bin/updater.rs"
 
 [dependencies]
 aes-gcm = "0.10"

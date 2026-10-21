@@ -1,5 +1,21 @@
 # Compatibility
 
+## v0.6.3 offline automatic updates (release candidate)
+
+Requires the matching coordinator's signed recovery, capsule-bound enrollment,
+bounded single-flight lease and explicitly exposed updater routes. A one-container
+deployment cannot enroll: first install the signed two-container bootstrap with
+`everycli worker-update`, then explicitly enable automation. Legacy expiring
+delegates must be renewed to supported v2 authorizations before enrollment.
+
+CLI updates alone do not enable automation or install the supervisor. The
+supervisor uses the same VM and preserves its own independent image pin, OS,
+resources and KMS. Fresh hardware attestation is mandatory before restoring
+provider credentials and accepting work. A stale, disabled or replaced capsule
+cannot report progress or take over a newer deployment. No model contract,
+offer, credit price or validator accounting policy changes in this feature.
+
+
 The v0.6.0 worker reports an output the coordinator refuses twice (HTTP
 400/413/422 on `complete`) as `failed` with reason `output_invalid`, instead of
 resending it until the deadline. The coordinator already accepts that reason

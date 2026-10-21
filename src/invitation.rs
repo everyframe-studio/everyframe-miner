@@ -55,7 +55,13 @@ pub fn valid_environment(v: &Value) -> bool {
         && PROVIDERS.iter().any(|(_, k)| set.contains(k))
         && (!REGISTRY.iter().any(|k| set.contains(k)) || REGISTRY.iter().all(|k| set.contains(k)))
         && keys.iter().all(|k| {
-            ["MINER_ID", "MINER_TOKEN", "MINER_AUTH"].contains(k)
+            [
+                "MINER_ID",
+                "MINER_TOKEN",
+                "MINER_AUTH",
+                "EVERYFRAME_UPDATER_SEED",
+            ]
+            .contains(k)
                 || REGISTRY.contains(k)
                 || PROVIDERS.iter().any(|(_, key)| key == k)
         })
@@ -200,6 +206,12 @@ pub fn validate(envelope: &Value, t: &Value, now: i64, allow_expired: bool) -> R
         "unsafe_compose",
     )?;
     let docker = s(&c["docker_compose_file"])?;
+    if c["allowed_envs"]
+        .as_array()
+        .is_some_and(|a| a.iter().any(|k| k == "EVERYFRAME_UPDATER_SEED"))
+    {
+        crate::updater_vm::image(c)?;
+    }
     let envs = c["allowed_envs"]
         .as_array()
         .ok_or(Error("unsafe_compose"))?;

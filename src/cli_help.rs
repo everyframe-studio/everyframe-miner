@@ -27,6 +27,7 @@ pub const COMMANDS: &[&str] = &[
     "reconcile",
     "update",
     "auto-update",
+    "worker-auto-update",
     "ui",
     "delete",
     "logs",
@@ -44,6 +45,11 @@ pub fn public_name(command: &str) -> &str {
 pub fn render(command: &str) -> String {
     let name = public_name(command);
     let (summary, options, example) = match name {
+        "worker-auto-update" => (
+            "Opt-in automatic worker updates inside the existing attested VM. Works while your computer is offline. Requires the signed updater bootstrap release; transfers management credentials only after consent and fresh attestation. No new VM or changed offers.",
+            "  --enable   Enroll the isolated updater (one-time VM restart)\n  --disable  Disable further automatic stages remotely; hosting continues\n  No flags   Show coordinator-reported automation status",
+            "worker-auto-update --enable",
+        ),
         "setup" => (
             "Guided first-time setup: check registration, save keys, initialize, then review deployment. Interactive only. Existing deployment records stop the wizard; it never activates or resumes paid work automatically.",
             "  --wallet NAME --hotkey NAME | --hotkey-file FILE\n  --max-hourly-usd N  Optional compute ceiling; prompted if omitted\n  --provider NAME     Optional generation provider to configure (Phala is also prompted)\n  --continue          Show the numbered checklist for an existing local deployment; no paid operations",

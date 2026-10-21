@@ -12,6 +12,126 @@ macro_rules! reasons {
 }
 reasons![
     (
+        "worker_recovery_unavailable",
+        "The previous worker is no longer authorized for automatic recovery.",
+        "Keep the VM paused and preserve its journal. Review the expired or revoked recovery with support; do not bypass attestation."
+    ),
+    (
+        "worker_recovery_in_progress",
+        "A previous recovery is still in progress.",
+        "Finish the recorded recovery before requesting another update. Do not clear the journal."
+    ),
+    (
+        "worker_recovery_not_idle",
+        "The worker is not paused and idle for this operation.",
+        "Let active jobs finish and inspect worker status. No cloud operation was authorized by this response."
+    ),
+    (
+        "worker_recovery_target_changed",
+        "The worker's deployment or authorization changed after recovery was prepared.",
+        "Recovery is blocked. Reconcile the exact VM and keep its journal; do not recreate it or release keys to an unverified image."
+    ),
+    (
+        "worker_update_target_changed",
+        "The approved update changed before preparation completed.",
+        "Check the signed release again. No new update was authorized by this response."
+    ),
+    (
+        "invalid_updater_capsule",
+        "The updater enrollment identifier is missing or invalid.",
+        "Use explicit enrollment for this exact VM. Never share or edit the credential capsule."
+    ),
+    (
+        "updater_enrollment_busy",
+        "The worker has active jobs; updater enrollment has not started.",
+        "Wait for the jobs to finish and enable automatic updates again. No keys were transferred and the worker was not paused."
+    ),
+    (
+        "worker_auto_fleet_update_busy",
+        "Another miner is currently updating.",
+        "The updater will check again. Your worker has not been drained or restarted; automatic rollouts are serialized."
+    ),
+    (
+        "worker_auto_update_lease_lost",
+        "The automatic update's rollout lease is no longer valid.",
+        "No further cloud mutation was sent. Inspect the saved update and coordinator status before resuming recovery."
+    ),
+    (
+        "worker_auto_update_recovery_pending",
+        "The existing updater has an unfinished operation.",
+        "Finish recovery before replacing updater credentials. The persistent journal was preserved and no new VM was created."
+    ),
+    (
+        "worker_auto_update_disable_first",
+        "The current updater must be disabled before replacing its enrollment.",
+        "Disable automatic updates, let any current operation settle, then explicitly re-enroll."
+    ),
+    (
+        "invalid_updater_seed",
+        "The encrypted updater enrollment does not match the coordinator's current authorization.",
+        "No credentials or journals were replaced. Check the current enrollment and same-VM binding."
+    ),
+    (
+        "updater_seed_too_large",
+        "The updater enrollment exceeds the safe size limit.",
+        "No enrollment was submitted. Contact support with this diagnostic code; never share the credential capsule."
+    ),
+    (
+        "updater_already_enrolled",
+        "This updater enrollment is already installed.",
+        "The persistent journal was kept. Check automatic-update status instead of replaying enrollment."
+    ),
+    (
+        "updater_nonexpiring_delegate_required",
+        "The profile still uses expiring miner delegates.",
+        "Reconnect with the same hotkey to obtain the non-expiring, revocable delegates before enrolling the offline updater. Never transfer the wallet secret."
+    ),
+    (
+        "worker_auto_credentials_changed",
+        "The updater's credentials changed after consent.",
+        "Automatic mutations are paused. Review the credential change and re-enroll explicitly; no new key was silently released."
+    ),
+    (
+        "worker_auto_update_bootstrap_required",
+        "This worker does not include the signed isolated updater yet.",
+        "Install the approved bootstrap with everycli worker-update, wait for fresh attestation, then enable automatic updates. No credentials were transferred."
+    ),
+    (
+        "worker_auto_update_not_enabled",
+        "Automatic updates are disabled or belong to a different VM.",
+        "Review everycli worker-auto-update. Existing miners remain manual until explicitly enrolled."
+    ),
+    (
+        "worker_auto_update_resources_changed",
+        "The proposed update changes VM resources or the pinned updater.",
+        "Review this migration manually. Automatic updates never resize, replace the OS or replace their own recovery controller."
+    ),
+    (
+        "worker_auto_update_release_blocked",
+        "This release previously failed and is blocked from automatic retry.",
+        "Check the updater report. Review a corrected signed release; no repeated restart loop was started."
+    ),
+    (
+        "worker_auto_rollback_needs_attention",
+        "Automatic recovery cannot safely continue; work remains paused.",
+        "Inspect worker status and the cloud workload. Preserve the recovery journal; do not recreate the VM or bypass attestation."
+    ),
+    (
+        "manual_worker_update_pending",
+        "A manually started update is unfinished.",
+        "Finish or abort that update explicitly. Automatic updates will not take over a manual operation."
+    ),
+    (
+        "invalid_worker_recovery",
+        "The signed recovery does not match this VM's previous deployment.",
+        "No rollback was performed. Contact support with the public miner ID and diagnostic code."
+    ),
+    (
+        "updater_not_isolated",
+        "The signed workload does not isolate the updater as required.",
+        "Do not release management credentials. Use an approved bootstrap release."
+    ),
+    (
         "reconciliation_required",
         "A previous deployment operation is unfinished; saved keys have not been changed.",
         "Run everycli reconcile in this same profile, or choose Re-sync operation in the UI. Do not delete profile files or deploy another VM."

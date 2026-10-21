@@ -117,6 +117,7 @@ impl State {
                 "deployment",
                 "registration",
                 "worker-update",
+                "worker-auto-update",
                 "auto-update-settings",
                 "auto-update-result",
                 "label",

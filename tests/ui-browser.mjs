@@ -446,6 +446,12 @@ try {
   assert.doesNotMatch(await page.locator('#main').innerText(),/\$0\.000000/);
   await page.evaluate(()=>{S.health={state:'failed',result:{error:{message:'Unavailable'}}};history.replaceState(null,'','#/overview');render();});
   assert.equal(await page.getByLabel('Miner overview summary').locator('.stat').nth(3).locator('.value').textContent(),'Unknown');
+  await page.evaluate(()=>{history.replaceState(null,'','#/worker');render();});
+  assert.equal(await page.getByText('Automatic worker updates',{exact:true}).count(),1);
+  assert.match(await page.locator('#main').innerText(),/Manual updates remain the default/);
+  assert.equal(await page.getByRole('button',{name:'Enable…',exact:true}).count(),1);
+  assert.equal(await page.getByRole('button',{name:'Check status',exact:true}).count(),1);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'offline update controls fit mobile');
   assert.deepEqual(errors, []);
   console.log('UI browser regressions passed: pairing, drafts, lifecycle, readiness, W credits, diagnostics, history filters/pagination/details/races, earnings and mobile.');
 } finally {

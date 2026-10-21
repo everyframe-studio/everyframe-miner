@@ -435,6 +435,26 @@ If you installed with `cargo install`, upgrade with `cargo install` again:
 `everycli update` and auto-update never replace a cargo build
 (`cargo_install_update_disabled`); `everycli update --check` still works.
 
+### Offline worker updates (unreleased, opt-in)
+
+The v0.6.3 automatic-worker-update implementation is prepared for release. It is **not yet
+available in the public signed worker release**; existing miners remain on the
+manual `worker-update` path.
+
+Unlike automatic CLI updates, it uses a separate, pinned supervisor inside the
+existing Phala VM, so the management computer can be offline. Enrollment needs
+an approved bootstrap worker, fresh attestation and explicit consent to store
+the Phala management token and scoped credentials in the isolated supervisor.
+Use a dedicated Phala workspace. No wallet secret is transferred.
+
+Once that bootstrap is released, `everycli worker-auto-update --enable` opts in;
+`everycli worker-auto-update` reads remote status and `--disable` stops further
+automatic stages. Disabling does not stop hosting charges or erase an unfinished
+recovery journal. Signed updates drain jobs, preserve the previous accepting or
+paused state, and require fresh attestation before returning to service. Failed
+admission can trigger a signed rollback; uncertain cloud operations are never
+blindly repeated. See [the recovery and security contract](AUTOMATIC-WORKER-UPDATES.md).
+
 ### Automatic CLI updates (v0.3.8)
 
 Native user installations check for the latest stable release in the background
@@ -932,6 +952,7 @@ resources and ongoing charges. To restart the saved workload, use
 | `start` | Restart the saved stopped workload, with a reviewed hourly ceiling |
 | `update` | Upgrade the CLI executable only; `--check` checks without installing |
 | `worker-update` | Discover and install a signed update on the existing VM, then restore its accepting/paused state; `--check` is read-only; `--abort` cancels an unfinished update and keeps the running worker |
+| `worker-auto-update` | Unreleased opt-in supervisor: read remote status, `--enable` enrolls after consent, `--disable` stops automatic stages without stopping VM billing |
 | `reconcile` | Settle uncertain operations from observed cloud/coordinator state without replaying paid cloud mutations |
 
 Mainnet SN117 is the default. Use `--network testnet` for SN566. Default state

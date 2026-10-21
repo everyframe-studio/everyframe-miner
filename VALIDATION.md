@@ -1,5 +1,36 @@
 # Validation
 
+## v0.6.3 offline updater candidate — 21 October 2026
+
+- Final local Linux Rust suite: 290 passed, with one live hotkey probe deliberately
+  ignored. This includes the added Docker-context and scoped coordinator error-
+  mapping regressions. Formatting, strict all-target Clippy, installer shell syntax
+  and desktop/mobile browser regressions against the optimized CLI passed.
+- Final digest-pinned worker/supervisor Docker builds and network-isolated idle
+  supervisor smoke test passed. Both images include license notices. These local
+  image IDs are not published registry digests or proof of Phala admission.
+- Matching coordinator suite: 294 tests passed using `npm test`. This is the
+  package's scoped test command; bare `node --test` also discovers historical
+  tools and vendored sources and is not the release test command.
+- New checks cover isolated supervisor compose, exact signed VM binding, capsule
+  replay and credential filtering, preflight rejection without policy/key writes,
+  draining, uncertain mutations, signed rollback, lease expiry, remote disable
+  and replacement-VM fencing. No generation jobs were submitted for this review.
+- Prior disposable Phala upgrade and timed rollback succeeded, with fresh
+  attestation and confirmed VM deletion. That controller predates final
+  hardening; final-artifact canary validation remains a publication gate. See
+  AUTOMATIC-WORKER-UPDATES.md for evidence boundaries.
+- Production coordinator was checked read-only and remained active. No production
+  miner has automatic updates enabled. The final coordinator hardening remains
+  local; this review has not published a tag, container or signed bootstrap.
+- The locked TLS dependencies were patched after an OSV scan found advisories:
+  rustls 0.23.46, rustls-webpki 0.103.16 and webpki-roots 1.0.10. The repeated OSV
+  query across all 202 registry packages returned no findings on 21 October 2026.
+  This is a database lookup, not proof that every dependency is vulnerability-free.
+- Native macOS/ARM CI and exact final-image Phala
+  admission are not certified by these local test results. Publishing is gated
+  by the checklist in RELEASING.md.
+
 ## v0.6.0 release candidate — 20 October 2026
 
 - Linux native validation: 273 Rust tests passed, one registered-live-hotkey

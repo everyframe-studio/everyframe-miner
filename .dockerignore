@@ -5,9 +5,12 @@
 !src/**
 !config/
 !config/models.json
+!config/provider-model-status.json
 !config/studio-video.json
 !config/studio-media.json
 !config/release.json
 !config/mainnet.json
 !config/testnet.json
 !Dockerfile
+!LICENSE
+!LICENSE-NOTICE.md
