@@ -3,6 +3,22 @@ use everyframe_miner::{cli, display};
 use serde_json::Value;
 use std::{fs, process::Command};
 
+// Parallel tests can fork while another thread copies a fixture executable.
+// A child can briefly retain the writer until exec, causing ETXTBSY even after
+// fs::copy returned. Retry only this pre-execution OS error, never a CLI result.
+fn copied_binary_output(command: &mut Command) -> std::process::Output {
+    for attempt in 0..20 {
+        match command.output() {
+            Ok(output) => return output,
+            Err(error) if cfg!(unix) && error.raw_os_error() == Some(26) && attempt < 19 => {
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
+            Err(error) => panic!("launch copied CLI fixture: {error}"),
+        }
+    }
+    unreachable!("last attempt returns or reports the OS error")
+}
+
 #[test]
 fn settings_are_global_human_by_default_and_json_only_on_request() {
     let home = common::tempdir();
@@ -67,12 +83,12 @@ fn json_help_version_ci_and_nonterminal_do_not_schedule_updates() {
         vec!["providers", "--json"],
         vec!["providers"],
     ] {
-        let out = Command::new(&bin)
-            .args(args)
-            .env("HOME", home.path())
-            .env("CI", "1")
-            .output()
-            .unwrap();
+        let out = copied_binary_output(
+            Command::new(&bin)
+                .args(args)
+                .env("HOME", home.path())
+                .env("CI", "1"),
+        );
         assert!(
             out.status.success(),
             "{}",
@@ -104,13 +120,13 @@ fn cargo_install_builds_are_never_auto_updated_or_self_replaced() {
     fs::create_dir_all(bin.parent().unwrap()).unwrap();
     fs::copy(env!("CARGO_BIN_EXE_everycli"), &bin).unwrap();
     let run = |args: &[&str]| {
-        Command::new(&bin)
-            .args(args)
-            .env("HOME", home.path())
-            .env_remove("CARGO_HOME")
-            .env_remove("EVERYCLI_DISABLE_AUTO_UPDATE")
-            .output()
-            .unwrap()
+        copied_binary_output(
+            Command::new(&bin)
+                .args(args)
+                .env("HOME", home.path())
+                .env_remove("CARGO_HOME")
+                .env_remove("EVERYCLI_DISABLE_AUTO_UPDATE"),
+        )
     };
     // Installer-placed binary (no cargo records): not a cargo build.
     let v: Value = serde_json::from_slice(&run(&["auto-update", "--json"]).stdout).unwrap();
