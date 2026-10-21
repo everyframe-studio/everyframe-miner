@@ -212,7 +212,9 @@ fn check_provider(
 }
 fn fal(http: &dyn Http, ids: &[String], found: &mut Catalog, requests: &mut usize) -> Result<()> {
     *requests += 1;
-    need(*requests <= 12, "provider_catalog_request_limit")?;
+    // A 50-model batch needs up to 13 calls to isolate one removed endpoint;
+    // leave room for the next catalog batch as new models are added.
+    need(*requests <= 16, "provider_catalog_request_limit")?;
     let mut url = url::Url::parse("https://api.fal.ai/v1/models").unwrap();
     for id in ids {
         url.query_pairs_mut().append_pair("endpoint_id", id);

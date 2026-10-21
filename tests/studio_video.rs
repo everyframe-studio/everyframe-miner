@@ -16,6 +16,34 @@ fn asset(role: &str) -> Value {
     json!({"url":format!("https://api.everyframe.studio/v1/attachment/att_{role}?t={}","a".repeat(32)),"sha256":sha(b"fixture image bytes"),"bytes":19,"mime":"image/jpeg","role":role,"width":720,"height":1280,"durationMs":0})
 }
 #[test]
+fn flux3_max_body_and_reference_contract() {
+    let mut s = spec("fal", "blackforestlabs/flux-3-max/text-to-video");
+    let (path, b) = studio_video::body(&s, &[]).unwrap();
+    assert_eq!(path, "/blackforestlabs/flux-3-max/text-to-video");
+    assert_eq!(
+        b,
+        json!({"prompt":"A cinematic product shot","seed":42,"duration":5,"aspect_ratio":"9:16","resolution":"720p","generate_audio":true,"reasoning_level":"low"})
+    );
+    s["input"]["duration"] = json!(20);
+    s["input"]["resolution"] = json!("1080p");
+    s["input"]["references"] = json!([asset("first"), asset("last")]);
+    let (path, b) = studio_video::body(&s, &["first".into(), "last".into()]).unwrap();
+    assert_eq!(path, "/blackforestlabs/flux-3-max/image-to-video");
+    assert_eq!(b["image_url"], "first");
+    assert_eq!(b["end_image_url"], "last");
+    assert_eq!(b["aspect_ratio"], "auto");
+    s["input"]["references"] = json!([asset("image")]);
+    assert!(studio_video::check(&s).is_err());
+    s["input"]["references"] = json!([asset("last")]);
+    assert!(studio_video::check(&s).is_err());
+    s["input"]["references"] = json!([]);
+    for (key, value) in [("duration", json!(30)), ("resolution", json!("480p"))] {
+        let mut bad = s.clone();
+        bad["input"][key] = value;
+        assert!(studio_video::check(&bad).is_err());
+    }
+}
+#[test]
 fn slow_reference_download_cannot_submit_after_deadline() {
     struct Slow;
     impl Http for Slow {

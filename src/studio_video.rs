@@ -290,6 +290,12 @@ pub fn body(spec: &Value, urls: &[String]) -> Result<(String, Value)> {
     let h3 = app.starts_with("minimax/h3-max");
     let wan = app == "alibaba/wan-3.0";
     let seedance = app == "bytedance/seedance-2.5";
+    if app == "blackforestlabs/flux-3-max" {
+        b["generate_audio"] = json!(true);
+        // Studio's fast/balanced intent maps to FLUX's documented low effort.
+        // FLUX has no disabled reasoning mode; never send H3-only fields.
+        b["reasoning_level"] = json!("low");
+    }
     if h3 {
         b["resolution"] = json!(s(&v["resolution"])?.to_uppercase());
         b["enable_safety_checker"] = json!(true);

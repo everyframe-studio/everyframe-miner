@@ -184,7 +184,7 @@ fn fal_batch_not_found_isolated_without_removing_other_models() {
     };
     let mut router = Router::new(&api, json!({"FAL_KEY":"synthetic-secret"}));
     let rows = router.refresh_availability(1_000_000).unwrap();
-    assert!(*api.calls.borrow() <= 12);
+    assert!(*api.calls.borrow() <= 16);
     assert!(
         router
             .models()
