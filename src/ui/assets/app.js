@@ -7,6 +7,7 @@
 const S = {
   token: null, session: null, overview: null, wallets: null, help: null,
   health: null, healthAt: 0, offers: null, offersError: null, balances: null, earnings: null,
+  history: null, historyBusy: false, historyRequest: 0, historyStatus: "all", historyModel: "", historyModelDraft: "", historyCursors: [null], historyPage: 0, openAttempt: null, earningsBusy: false,
   cliUpdate: null, workerUpdate: null, hotkeySel: null, registration: null,
   selectedOffers: new Set(), batchDiscount: "0", batchBusy: false, batchReport: null,
   batchReportTimer: null, navigationEpoch: 0, newModels: new Set(), modelSeen: new Map(),
@@ -67,7 +68,7 @@ const LABELS = {
   "offers": "Model offers", "earnings": "Earnings", "register-hotkey": "Check hotkey registration",
   "worker-update-check": "Check for worker update", "cli-update-check": "Check for CLI update", "init": "Create miner profile",
   "offer": "Update model offer", "deploy": "Deploy worker", "start": "Start worker", "activate": "Activate keys",
-  "offer-batch": "Update model offers", "jobs": "Jobs by model",
+  "offer-batch": "Update model offers", "jobs": "Job history",
   "apply-api-keys": "Apply keys to worker", "resume": "Start accepting work", "stop": "Stop worker",
   "worker-update": "Update worker", "reconcile": "Re-sync operation", "remove-api-key": "Remove key",
   "balances-publish": "Publish balances",
@@ -264,7 +265,25 @@ async function loadHealth(quiet = true) {
   S.healthAt = Date.now();
 }
 async function loadBalances() { if (S.overview?.initialized) S.balances = await run("balances", {}, { quiet: true }); }
-async function loadEarnings() { if (S.overview?.initialized) S.earnings = await run("earnings", {}, { quiet: true }); }
+async function loadEarnings() {
+  if (!S.overview?.initialized || S.earningsBusy) return;
+  S.earningsBusy = true;
+  try { S.earnings = await run("earnings", {}, { quiet: true }); } finally { S.earningsBusy = false; }
+}
+async function loadHistory(reset = false) {
+  if (!S.overview?.initialized) return;
+  if (reset) { S.historyCursors = [null]; S.historyPage = 0; }
+  const request = ++S.historyRequest;
+  const params = { limit: "20", status: S.historyStatus };
+  if (S.historyModel) params.model = S.historyModel;
+  if (S.historyCursors[S.historyPage]) params.cursor = S.historyCursors[S.historyPage];
+  S.historyBusy = true; S.openAttempt = null;
+  if (currentRoute() === "jobs") render();
+  const result = await run("jobs", params, { quiet: true });
+  if (request !== S.historyRequest) return;
+  S.history = result; S.historyBusy = false;
+  if (currentRoute() === "jobs") render();
+}
 async function loadOffers(quiet = true) {
   const job = await run("offers", {}, { quiet });
   S.offers = value(job); S.offersError = errorOf(job);
@@ -294,7 +313,7 @@ function acknowledgeModels() {
 }
 
 // ---------- shell ----------
-const ROUTES = [["overview", "Overview"], ["setup", "Setup guide"], ["models", "Models"], ["keys", "API keys"], ["worker", "Worker"], ["help", "Help"]];
+const ROUTES = [["overview", "Overview"], ["setup", "Setup guide"], ["models", "Models"], ["jobs", "Job history"], ["earnings", "Earnings"], ["keys", "API keys"], ["worker", "Worker"], ["help", "Help"]];
 function route() { const m = location.hash.match(/^#\/(\w+)/); return m && ROUTES.some(([r]) => r === m[1]) ? m[1] : null; }
 function currentRoute() { return route() || (S.overview?.initialized ? "overview" : "setup"); }
 function go(r) { location.hash = "#/" + r; }
@@ -321,7 +340,7 @@ function render() {
   if (!S.token) return renderUnpaired();
   renderMeta(); renderNav();
   const r = currentRoute();
-  const page = { overview: pageOverview, setup: pageSetup, models: pageModels, keys: pageKeys, worker: pageWorker, help: pageHelp }[r];
+  const page = { overview: pageOverview, setup: pageSetup, models: pageModels, jobs: pageJobs, earnings: pageEarnings, keys: pageKeys, worker: pageWorker, help: pageHelp }[r];
   $("#main").replaceChildren(page());
 }
 function renderUnpaired() {
@@ -444,7 +463,7 @@ function pageOverview() {
     workerStat(phase, tone),
     workStatusStat(),
     stat("Active offers", String(activeOffers), activeOffers ? "" : "Choose models to serve", activeOffers ? "ok" : "warn"),
-    stat("Jobs", (activity.activeJobs ?? 0) + " active", (activity.acceptedJobs ?? 0) + " accepted so far")));
+    stat("Jobs", activity.activeJobs == null ? "Unknown" : activity.activeJobs + " active", activity.acceptedJobs == null ? "Accepted count not reported" : activity.acceptedJobs + " accepted so far")));
   if (S.workloads?.length) root.append(notice("warn", "A worker for this miner runs in your Phala account, but this computer doesn't manage it",
     h("div", null, "It was probably deployed from another computer. Keep managing it there, or delete or replace it from the ", h("a", { href: "#/worker" }, "Worker page"), ".")));
   if (o.deployment.needsReconcile) root.append(notice("warn", "An operation was interrupted", "Your last change didn't finish cleanly. Re-sync it from the Worker page before anything else; never deploy a second worker."));
@@ -452,7 +471,7 @@ function pageOverview() {
     S.health ? (errorOf(S.health) ? errorView(errorOf(S.health)) : healthList(checks)) : h("p", { class: "muted" }, "Checking…"),
     h("p", { class: "small muted" }, "All green means the current readiness checks passed. It does not guarantee traffic, provider funds or earnings.")));
   const jobs = activity.jobsByModel;
-  root.append(card("Jobs by model", [h("span", { class: "small muted" }, "All time")],
+  root.append(card("Jobs by model", [h("a", { class: "btn small", href: "#/jobs" }, "Individual job history"), h("span", { class: "small muted" }, "All time")],
     errorOf(S.health) ? errorView(errorOf(S.health)) : !Array.isArray(jobs)
       ? h("p", { class: "empty" }, "Per-model job counts have not been reported yet.")
       : jobs.length ? h("div", { class: "table-wrap" }, h("table", { class: "cards-sm" },
@@ -487,20 +506,103 @@ function balancesCard() {
 }
 function earningsCard() {
   const v = value(S.earnings);
-  const rows = Array.isArray(v?.fees) ? v.fees : [];
-  const money = n => Number.isSafeInteger(n) && v?.currency === "USD" && v?.unit === "microusd" ? fmtUsd(n / 1e6, 4) : "Not reported";
-  const labels = { pending: "Pending review", approved: "Approved", rejected: "Rejected", paid: "Paid", accrued: "Accrued", void: "Voided" };
-  return card("Serving fees", null,
+  return card("Work value · not payments", [h("a", { class: "btn small", href: "#/earnings" }, "View earnings report")],
     !S.earnings ? h("p", { class: "muted" }, "Loading…") : errorOf(S.earnings) ? errorView(errorOf(S.earnings)) : [
-      rows.length ? h("div", { class: "table-wrap" }, h("table", null,
-        h("thead", null, h("tr", null, ["Status", "Jobs", "Recorded value"].map(label => h("th", null, label)))),
-        h("tbody", null, rows.map(r => h("tr", null, h("td", null, labels[r.state] || String(r.state || "Not reported").replaceAll("_", " ")),
-          h("td", null, Number.isSafeInteger(r.jobs) ? r.jobs.toLocaleString() : "—"), h("td", null, money(r.amountMicrousd)))))))
-        : h("p", { class: "empty" }, "No serving fees recorded yet."),
-      h("dl", { class: "kv" }, h("dt", null, "Wallet payments"), h("dd", null, v?.payoutsImplemented === false ? "Not implemented" : money(v?.paidMicrousd)),
-        h("dt", null, "On-chain alpha"), h("dd", null, "Not measured here"), h("dt", null, "Provider costs"), h("dd", null, "Not measured here")),
-      h("p", { class: "small muted" }, "Recorded serving fees are not wallet payments, alpha received, or net profit."),
+      h("dl", { class: "kv" }, h("dt", null, "Pending review"), h("dd", null, reportUsd(v, v?.summary?.pendingReviewMicrousd)),
+        h("dt", null, "Approved work"), h("dd", null, reportUsd(v, v?.summary?.approvedMicrousd)),
+        h("dt", null, "Alpha received"), h("dd", null, "Not measured")),
+      h("p", { class: "small muted" }, "These are accounting values, not wallet payments or net profit. Actual provider bills and hosting costs are not measured."),
       v?.asOf ? h("p", { class: "small muted" }, "Updated " + ago(v.asOf)) : null]);
+}
+
+// ---------- Private job history and accounting ----------
+const ATTEMPT_LABELS = { offered: "Assigned", starting: "Starting", submitted: "Generating", unknown: "Submission uncertain", accepted: "Completed", failed: "Failed", rejected: "Not generated", timed_out: "Timed out", cancelled: "Cancelled", expired: "Expired" };
+const REVIEW_LABELS = { review: "Pending review", approved: "Approved", disputed: "Excluded", not_applicable: "Not applicable" };
+const ELIGIBILITY_LABELS = { pending_review: "Pending review", marked_eligible: "Marked eligible", not_eligible: "Not marked eligible", excluded: "Excluded", not_applicable: "Not applicable" };
+const FAILURE_LABELS = { provider_auth_rejected: "Provider rejected the API key", provider_billing_required: "Provider billing requires attention", provider_capacity_limited: "Provider capacity unavailable", provider_key_required: "Provider key missing", provider_model_unavailable: "Provider model unavailable", provider_invalid_request: "Provider rejected the request", provider_content_rejected: "Provider declined the content", provider_timeout: "Provider timed out", provider_unavailable: "Provider unavailable", output_invalid: "Output failed validation", deadline_exceeded: "Job deadline exceeded", generation_failed: "Generation failed", provider_generation_failed: "Provider generation failed", request_timeout: "Submission timed out; charges may be uncertain", submission_unknown: "Submission outcome unknown" };
+function reportUsd(v, amount) { return v?.currency === "USD" && v?.unit === "microusd" && Number.isSafeInteger(amount) && amount >= 0 ? new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 6 }).format(amount / 1e6) : "Not reported"; }
+function reportDate(t) { return Number.isSafeInteger(t) && t > 0 ? new Date(t).toLocaleString(undefined, { timeZone: "UTC" }) + " UTC" : "Not recorded"; }
+function historyUsd(amount) { return reportUsd({ currency: "USD", unit: "microusd" }, amount); }
+function historyDetail(row) {
+  const processing = Number.isSafeInteger(row.startedAt) && Number.isSafeInteger(row.completedAt) && row.completedAt >= row.startedAt ? ((row.completedAt - row.startedAt) / 1000).toFixed(1) + " seconds (start grant to accepted output)" : "Not recorded";
+  const details = card("Attempt details", [button("Close details", () => { S.openAttempt = null; render(); }, "small")],
+    h("dl", { class: "kv job-kv" }, ...[
+      ["Job ID", row.jobId], ["Attempt ID", row.attemptId], ["Model", row.name || row.model], ["Contract ID", row.model],
+      ["Provider", row.provider ? providerName(row.provider) : "Not reported"], ["Attempt", ATTEMPT_LABELS[row.state] || "Not reported"],
+      ["Job created", reportDate(row.jobCreatedAt)], ["Start grant", reportDate(row.startedAt)], ["Output accepted", reportDate(row.completedAt)],
+      ["Failure reported", reportDate(row.failedAt)], ["Processing time", processing],
+      ["Requested media duration", row.durationSeconds != null ? row.durationSeconds + " seconds" : "Not reported"], ["Resolution", row.resolution || "Not reported"],
+      ["Output verification", row.verification === "accepted" ? "Accepted" : "Not verified"], ["Review", REVIEW_LABELS[row.reviewState] || "Not reported"],
+      ["Review decision", reportDate(row.reviewedAt)], ["Reward flag", ELIGIBILITY_LABELS[row.rewardEligibility] || "Not reported"],
+      ["Recorded work value", historyUsd(row.recordedWorkValueMicrousd)], ["Provider quote estimate", historyUsd(row.providerCostEstimateMicrousd)],
+      ["Failure reason", row.failureReason ? ({ miner_silent: "Worker heartbeat stopped", submission_timeout: "Worker did not confirm submission in time", attempt_timed_out: "Attempt timed out; exact cause not recorded", offer_lease_expired: "Assignment was not accepted in time" }[row.failureReason] || FAILURE_LABELS[row.failureReason] || "Failure reported (see code below)") : "Not reported"],
+    ].flatMap(([label, text]) => [h("dt", null, label), h("dd", null, text || "Not reported")])),
+    row.failureReason ? h("p", { class: "small muted mono" }, "Failure code: " + row.failureReason) : null,
+    h("p", { class: "small muted" }, "Provider quote estimates are not bills. A failed or uncertain generation may still incur charges. Review flags do not prove epoch inclusion or alpha payment."));
+  details.id = "job-detail"; details.tabIndex = -1; return details;
+}
+function pageJobs() {
+  const root = h("div", null, h("h1", null, "Job history"), h("p", { class: "lede" }, "Every attempt by your miner, newest first. Inspect verification, review decisions and failures without exposing customer prompts or media."));
+  if (!S.overview?.initialized) { root.append(notice("", "Connect your miner", "Complete setup to read this miner's private history.")); return root; }
+  const status = h("select", { "aria-label": "Filter job status", disabled: S.historyBusy, onchange: e => { S.historyStatus = e.target.value; loadHistory(true); } },
+    [["all", "All attempts"], ["active", "Active"], ["completed", "Completed"], ["failed", "Failed / rejected"], ["cancelled", "Cancelled / expired"]].map(([v, label]) => h("option", { value: v, selected: S.historyStatus === v }, label)));
+  const model = h("input", { type: "text", value: S.historyModelDraft, placeholder: "Contract ID (optional)", "aria-label": "Filter job model", oninput: e => { S.historyModelDraft = e.target.value; } });
+  const apply = () => { S.historyModel = S.historyModelDraft.trim(); loadHistory(true); };
+  model.addEventListener("keydown", e => { if (e.key === "Enter" && !S.historyBusy) apply(); });
+  root.append(h("div", { class: "row history-filters" }, status, model, h("button", { class: "btn", disabled: S.historyBusy, onclick: apply }, "Apply model filter"), h("button", { class: "btn", disabled: S.historyBusy, onclick: () => loadHistory(true) }, "Refresh")));
+  const v = value(S.history), history = v?.history;
+  if (S.historyBusy) root.append(h("p", { role: "status", class: "muted" }, "Loading job history…"));
+  else if (errorOf(S.history)) root.append(notice("bad", "Could not load job history", errorView(errorOf(S.history))));
+  else if (v?.historyAvailable === false) root.append(notice("warn", "History is not available yet", v.note || "This coordinator reports model counts only."));
+  else if (Array.isArray(history?.rows)) {
+    const rows = history.rows;
+    root.append(card("Your attempts", [h("span", { class: "small muted" }, "Page " + (S.historyPage + 1))], rows.length ? h("div", { class: "table-wrap" }, h("table", { class: "cards-sm job-history" },
+      h("thead", null, h("tr", null, ["Model", "Created", "Attempt", "Review", "Work value", "Inspect"].map(label => h("th", null, label)))),
+      h("tbody", null, rows.map(row => h("tr", null,
+        h("td", { "data-label": "Model" }, h("b", null, row.name || row.model), h("span", { class: "id" }, "Job " + String(row.jobId).slice(0, 12)), h("span", { class: "small muted" }, row.provider ? providerName(row.provider) : "Provider not reported")),
+        h("td", { "data-label": "Created", title: reportDate(row.jobCreatedAt) }, Number.isSafeInteger(row.jobCreatedAt) ? ago(row.jobCreatedAt) : "Not recorded"),
+        h("td", { "data-label": "Attempt" }, h("span", { class: "badge " + (row.state === "accepted" ? "ok" : ["failed", "rejected", "timed_out"].includes(row.state) ? "bad" : "warn") }, ATTEMPT_LABELS[row.state] || "Not reported")),
+        h("td", { "data-label": "Review" }, REVIEW_LABELS[row.reviewState] || "Not reported"),
+        h("td", { "data-label": "Work value" }, row.recordedWorkValueMicrousd == null ? "—" : historyUsd(row.recordedWorkValueMicrousd)),
+        h("td", { "data-label": "Inspect" }, h("button", { class: "btn small", "aria-label": "View attempt " + row.attemptId, onclick: () => { S.openAttempt = row.attemptId; render(); $("#job-detail")?.focus({ preventScroll: true }); $("#job-detail")?.scrollIntoView({ block: "nearest", behavior: "smooth" }); } }, "Details"))
+      ))))) : h("p", { class: "empty" }, S.historyStatus === "all" && !S.historyModel ? "No attempts yet. Your miner's first assignment will appear here." : "No attempts match these filters."),
+      h("div", { class: "row end" }, h("button", { class: "btn small", disabled: S.historyPage === 0, onclick: () => { S.historyPage--; loadHistory(); } }, "Previous page"),
+        h("button", { class: "btn small", disabled: !history.nextCursor, onclick: () => { S.historyCursors = [...S.historyCursors.slice(0, S.historyPage + 1), history.nextCursor]; S.historyPage++; loadHistory(); } }, "Next page")),
+      h("p", { class: "small muted" }, "One row per attempt, not one payment. Work value is not cash or alpha received. Updated " + (v.asOf ? ago(v.asOf) : "time not reported") + ".")));
+    const selected = rows.find(row => row.attemptId === S.openAttempt); if (selected) root.append(historyDetail(selected));
+  }
+  if (!S.history && !S.historyBusy) queueMicrotask(() => { if (!S.history && !S.historyBusy && currentRoute() === "jobs") loadHistory(); });
+  return root;
+}
+function pageEarnings() {
+  const root = h("div", null, h("h1", null, "Earnings"), h("p", { class: "lede" }, "All-time work accounting for this miner. Recorded work value, actual payments and estimated costs are different things."));
+  if (!S.overview?.initialized) { root.append(notice("", "Connect your miner", "Complete setup to read this miner's private earnings.")); return root; }
+  root.append(h("div", { class: "row end" }, button("Refresh earnings", async () => { await loadEarnings(); render(); })));
+  if (!S.earnings) { root.append(h("p", { class: "muted" }, "Loading earnings…")); if (!S.earningsBusy) queueMicrotask(() => { if (!S.earnings && !S.earningsBusy && currentRoute() === "earnings") loadEarnings().then(render); }); return root; }
+  if (errorOf(S.earnings)) { root.append(notice("bad", "Could not load earnings", errorView(errorOf(S.earnings)))); return root; }
+  const v = value(S.earnings), summary = v?.summary, estimates = v?.estimates;
+  root.append(notice("", "Work value is not a payment", "Approved work contributes to accounting. A reward-eligibility flag is not proof of inclusion in a finalized epoch or alpha received in your wallet."));
+  if (summary) root.append(h("div", { class: "grid earnings-stats" },
+    stat("Recorded work value", reportUsd(v, summary.totalWorkValueMicrousd), "All review states combined"),
+    stat("Pending review", reportUsd(v, summary.pendingReviewMicrousd), "Verified outputs awaiting a decision"),
+    stat("Approved work", reportUsd(v, summary.approvedMicrousd), "Reviewed accounting value, not cash"),
+    stat("Marked reward-eligible", reportUsd(v, summary.markedRewardEligibleMicrousd), "Subset of approved work; do not add twice")));
+  else root.append(notice("warn", "Detailed summary not reported", "This coordinator provides review totals only. Unknown amounts are not treated as zero."));
+  const fees = Array.isArray(v?.fees) ? v.fees : [];
+  root.append(card("Review breakdown", [h("a", { class: "btn small", href: "#/jobs" }, "Inspect individual jobs")], fees.length ? h("div", { class: "table-wrap" }, h("table", null,
+    h("thead", null, h("tr", null, ["Review status", "Jobs", "Work value"].map(label => h("th", null, label)))),
+    h("tbody", null, fees.map(row => h("tr", null, h("td", null, REVIEW_LABELS[row.state] || "Other accounting state"), h("td", null, Number.isSafeInteger(row.jobs) ? row.jobs.toLocaleString() : "Not reported"), h("td", null, reportUsd(v, row.amountMicrousd))))))) : h("p", { class: "empty" }, "No verified work value recorded yet."),
+    h("p", { class: "small muted" }, "Excluded/disputed work is not approved. Pending review does not mean rejected. These amounts are accounting records, not payments.")));
+  root.append(card("Actual income and costs", null, h("dl", { class: "kv" }, ...[
+    ["Alpha received", "Not measured"], ["Provider bills", "Not measured"], ["Hosting costs", "Not measured"],
+    ["Wallet payments", v?.payoutsImplemented === false ? "Not implemented" : "Not measured"], ["Net profit", "Unavailable — actual income and costs are not measured"],
+  ].flatMap(([label, text]) => [h("dt", null, label), h("dd", null, text)])), h("p", { class: "small muted" }, "A provider balance is not per-miner spending. Shared-account balances cannot establish this miner's costs.")));
+  if (estimates) root.append(card("Estimated provider exposure · not a bill", null,
+    h("p", { class: "exposure-value" }, reportUsd(v, estimates.providerExposureMicrousd)),
+    h("dl", { class: "kv" }, ...[["Attempts with quotes", estimates.quotedAttempts], ["Attempts missing a quote", estimates.unpricedAttempts], ["Uncertain submissions", estimates.uncertainAttempts]].flatMap(([label, n]) => [h("dt", null, label), h("dd", null, Number.isSafeInteger(n) ? n.toLocaleString() : "Not reported")])),
+    h("p", { class: "small muted" }, "Conservative locked-job quotes for confirmed or uncertain submissions, including failed attempts. Actual charges may differ. Missing quotes and other account activity are excluded; this estimate is never presented as profit.")));
+  if (v?.asOf) root.append(h("p", { class: "small muted" }, "Report updated " + reportDate(v.asOf)));
+  return root;
 }
 
 // ---------- Setup guide ----------
@@ -1081,7 +1183,7 @@ async function boot() {
   if (!managedHere()) { await loadWorkloads(); if (currentRoute() === "overview" && !S.renaming) render(); }
   if (S.overview?.initialized) {
     await Promise.all([loadHealth(), loadBalances(), loadEarnings(), loadOffers()]);
-    if (currentRoute() === "overview" && !S.renaming) render(); else { renderMeta(); renderNav(); }
+    if (["overview", "earnings"].includes(currentRoute()) && !S.renaming) render(); else { renderMeta(); renderNav(); }
   }
   run("cli-update-check", {}, { quiet: true }).then((j) => { S.cliUpdate = j; renderMeta(); });
   let tick = 0;
@@ -1099,7 +1201,7 @@ async function boot() {
     // Only redraw pages without typing in progress.
     // Forms keep their DOM and drafts during background polling, even if a
     // field lost focus. Explicit actions/navigation are the only form redraws.
-    if (currentRoute() === "overview" && !S.renaming) render(); else { renderMeta(); renderNav(); }
+    if (["overview", "earnings"].includes(currentRoute()) && !S.renaming) render(); else { renderMeta(); renderNav(); }
     } finally { S.refreshing = false; }
   }, 30000);
 }

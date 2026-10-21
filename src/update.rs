@@ -376,6 +376,12 @@ fn run_with_progress(
     let target = std::env::current_exe().map_err(|_| Error("installed_binary_unavailable"))?;
     let original =
         fs::symlink_metadata(&target).map_err(|_| Error("installed_binary_unavailable"))?;
+    // A `cargo install` build belongs to cargo: replacing it would desync cargo's
+    // install records and silently swap a source build for a prebuilt binary.
+    need(
+        check_only || !crate::auto_update::cargo_managed(&target),
+        "cargo_install_update_disabled",
+    )?;
     need(
         check_only || official_build(),
         "source_build_update_disabled",

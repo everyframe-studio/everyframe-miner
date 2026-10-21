@@ -73,6 +73,8 @@ jobs:
     needs: build
     runs-on: ubuntu-22.04
     timeout-minutes: 10
+    # Configure required reviewers on this environment for publication approval.
+    environment: release
     permissions:
       contents: write
     steps:
@@ -95,6 +97,10 @@ jobs:
           cp LICENSE LICENSE-NOTICE.md dist/
           cd dist
           sha256sum --check everycli-*.sha256
+      - name: Checksum installer
+        run: |
+          set -euo pipefail
+          cd dist
           sha256sum everycli-installer.sh > everycli-installer.sh.sha256
       - name: Create release draft, upload, then publish
         env:
@@ -110,4 +116,15 @@ jobs:
             gh release create "$RELEASE_TAG" --verify-tag --draft --title "everycli $RELEASE_TAG" --generate-notes
           fi
           gh release upload "$RELEASE_TAG" dist/*
-          gh release edit "$RELEASE_TAG" --draft=false --latest
+          # Only the highest published version becomes "latest" (the updater and
+          # installer URL follow it); a hotfix tag on an older line must not.
+          # A failed listing aborts here instead of defaulting to "latest".
+          tags=$(gh release list --exclude-drafts --exclude-pre-releases --limit 1000 --json tagName --jq '.[].tagName')
+          highest=$(printf '%s\n' "$tags" | grep -E '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' | sort -V | tail -n 1 || true)
+          if [ -z "$highest" ] || [ "$(printf '%s\n%s\n' "$highest" "$RELEASE_TAG" | sort -V | tail -n 1)" = "$RELEASE_TAG" ]; then
+            latest=true
+          else
+            latest=false
+          fi
+          echo "Highest published release: ${highest:-none}; marking $RELEASE_TAG latest=$latest"
+          gh release edit "$RELEASE_TAG" --draft=false --latest="$latest"

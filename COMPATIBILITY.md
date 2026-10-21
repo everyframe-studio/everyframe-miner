@@ -1,5 +1,21 @@
 # Compatibility
 
+The v0.6.0 worker reports an output the coordinator refuses twice (HTTP
+400/413/422 on `complete`) as `failed` with reason `output_invalid`, instead of
+resending it until the deadline. The coordinator already accepts that reason
+(GENERATION_FAILURES). A 401/409 on `complete` now ends the attempt as
+`reconcile`. Claims may omit a provider's models for 15 minutes after a
+billing, credential or missing-key refusal. No protocol fields were added.
+
+The coordinator prefers eligible workers on the published major/minor
+(0.6.x once the v0.6.0 worker release is published), ignoring patch versions.
+If no current-minor worker can serve a particular job, the previous published
+minor (0.5.x) is used as fallback, without a fixed expiry. Availability includes
+the model, current offer/pricing, attested session, provider readiness and idle
+capacity. Routing returns to the current minor as soon as eligible capacity is
+available; already assigned jobs are not interrupted. This policy is server-side:
+updating the local CLI does not change the VM's worker version.
+
 The v0.5.8 worker adds optional signed `modelAvailability` rows to claim payloads.
 Deploy the compatible coordinator before admitting this worker image. Old workers
 remain supported without those rows; they are not claimed to have account-level

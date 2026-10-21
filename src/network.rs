@@ -47,6 +47,22 @@ pub trait Http {
     }
 }
 pub struct PublicHttp;
+fn history_error(status: u16, bytes: &[u8]) -> Error {
+    if status == 400
+        && bytes.len() <= 4096
+        && let Ok(v) = serde_json::from_slice::<Value>(bytes)
+    {
+        return Error(match v["error"].as_str() {
+            Some("invalid_history_cursor") => "invalid_history_cursor",
+            Some("invalid_history_limit") => "invalid_history_limit",
+            Some("invalid_history_status") => "invalid_history_status",
+            Some("invalid_history_model") => "invalid_history_model",
+            Some("invalid_history_query") => "invalid_history_query",
+            _ => "http_400",
+        });
+    }
+    crate::diagnostics::http_error(status)
+}
 fn batch_offer_error(status: u16, bytes: &[u8]) -> Error {
     if bytes.len() <= 4096
         && let Ok(v) = serde_json::from_slice::<Value>(bytes)
@@ -207,6 +223,18 @@ impl Http for PublicHttp {
             }
             if !response.status().is_success() {
                 if u.host_str() == Some("subnet.everyframe.studio")
+                    && r.method == "GET"
+                    && ["/v1/miner/jobs", "/mainnet/v1/miner/jobs"].contains(&u.path())
+                {
+                    let status = response.status().as_u16();
+                    let mut bytes = Vec::new();
+                    response
+                        .take(4097)
+                        .read_to_end(&mut bytes)
+                        .map_err(|_| Error("response_read_failed"))?;
+                    return Err(history_error(status, &bytes));
+                }
+                if u.host_str() == Some("subnet.everyframe.studio")
                     && r.method == "POST"
                     && [
                         "/v1/miner/offer-batch",
@@ -260,6 +288,25 @@ impl Http for PublicHttp {
 #[cfg(test)]
 mod tests {
     use super::enrollment_error;
+    #[test]
+    fn history_errors_never_echo_remote_bodies() {
+        assert_eq!(
+            super::history_error(
+                400,
+                br#"{"error":"invalid_history_cursor","secret":"never displayed"}"#
+            )
+            .0,
+            "invalid_history_cursor"
+        );
+        assert_eq!(
+            super::history_error(400, br#"{"error":"private-key"}"#).0,
+            "http_400"
+        );
+        assert_eq!(
+            super::history_error(500, br#"{"error":"invalid_history_cursor"}"#).0,
+            "http_500"
+        );
+    }
     #[test]
     fn batch_errors_are_fixed_bounded_and_status_checked() {
         assert_eq!(

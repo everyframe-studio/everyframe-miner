@@ -11,8 +11,8 @@ After reviewing and committing the release changes, the maintainer can publish
 the corrected version (these commands create an external release when pushed):
 
 ```sh
-git tag v0.5.0
-git push origin v0.5.0
+git tag v0.6.0
+git push origin v0.6.0
 ```
 
 For subsequent releases, bump Cargo.toml and Cargo.lock first, then tag the
@@ -72,9 +72,27 @@ token while it still runs a token-only image. Binding migration must be drained
 and idle; it invalidates the old token and sessions. It is not performed by
 `everycli update` or by publishing a GitHub release.
 
-Checksums verify transfer integrity, not an independent publisher signature:
-the installer/updater trust this GitHub repository and HTTPS. Follow the signing
-and third-party notice review below before calling this an audited distribution.
+## CLI release verification (v0.6.0)
+
+CLI release signing is postponed. The installer and updater verify SHA-256
+checksums over restricted HTTPS and use locked, atomic replacement. They do not
+fetch detached signatures, use OpenSSL or need a release signing secret.
+Checksums detect corruption and mismatched assets; they are not independent
+publisher authentication. Protect the GitHub repository, workflow and release tags.
+
+The publish job retains the `release` environment; configure required reviewers
+for approval. Older-line hotfixes do not become the latest release. Reintroducing
+publisher signing requires a separately reviewed trust/bootstrap/rotation design
+and old-client plus fresh-install tests, not a runtime bypass switch.
+
+This postponement does not disable signed deployment configurations, hardware TEE
+attestation, session proofs, input/output hashes or signed job receipts.
+
+`cargo install` builds are never replaced by `everycli update` or auto-update:
+when cargo's install records (`.crates.toml` / `.crates2.json` in the install
+root) list `everycli`, the update stops with `cargo_install_update_disabled`
+and tells the user to rerun `cargo install`. Binaries placed in `~/.cargo/bin`
+by the official installer are not in those records and keep updating.
 
 ## Worker and distribution review
 
@@ -83,7 +101,7 @@ and third-party notice review below before calling this an audited distribution.
 2. Run formatting, strict Clippy, tests, and a release build with `--locked`.
    Audit Rust dependencies and preserve applicable dependency notices.
 3. For CLI distribution, build for each supported OS/architecture, publish binary
-   checksums, and sign artifacts through the owner's existing release process.
+   checksums (see "CLI release verification" above).
 4. For worker distribution, review `config/release.json`, coordinator/chain pins,
    the registry, and source changes. Public trust pins are not credentials;
    changing them requires a separately reviewed worker release.

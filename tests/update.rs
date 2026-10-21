@@ -167,3 +167,25 @@ fn replacement_refuses_symlinks_and_writable_install_dirs() {
     assert!(update::replace_binary(&binary, b"new").is_err());
     assert_eq!(fs::read(&binary).unwrap(), b"old");
 }
+
+#[test]
+fn cli_signing_is_postponed_without_disabling_checksums_or_worker_signatures() {
+    let updater = include_str!("../src/update.rs");
+    let body = &updater[updater.find("fn run_with_progress").unwrap()..];
+    assert!(body.contains("{base}.sha256"));
+    assert!(!body.contains("{base}.sig"));
+    assert!(body.find("verify(").unwrap() < body.find("replace_binary_checked(").unwrap());
+    assert!(
+        body.find("cargo_install_update_disabled").unwrap()
+            < body.find("Client::builder()").unwrap()
+    );
+    let installer = include_str!("../scripts/everycli-installer.sh");
+    assert!(!installer.contains("openssl") && !installer.contains("$asset.sig"));
+    let workflow = include_str!("../.github/workflows/release.yml");
+    assert!(!workflow.contains("EVERYCLI_RELEASE_SIGNING_KEY"));
+    assert!(!workflow.contains("pkeyutl"));
+    assert!(workflow.contains("sha256sum --check"));
+    assert!(workflow.contains("--latest=\"$latest\""));
+    assert!(include_str!("../src/worker.rs").contains("let receipt = protocol::signed"));
+    assert!(include_str!("../src/invitation.rs").contains("verified(envelope"));
+}

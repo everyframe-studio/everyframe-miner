@@ -96,3 +96,43 @@ fn automatic_update_options_do_not_silently_ignore_profile_flags() {
     let text = display::render("auto-update", &v);
     assert!(text.contains("release_checksum_mismatch") && text.contains("everycli update"));
 }
+
+#[test]
+fn cargo_install_builds_are_never_auto_updated_or_self_replaced() {
+    let home = common::tempdir();
+    let bin = home.path().join(".cargo/bin/everycli");
+    fs::create_dir_all(bin.parent().unwrap()).unwrap();
+    fs::copy(env!("CARGO_BIN_EXE_everycli"), &bin).unwrap();
+    let run = |args: &[&str]| {
+        Command::new(&bin)
+            .args(args)
+            .env("HOME", home.path())
+            .env_remove("CARGO_HOME")
+            .env_remove("EVERYCLI_DISABLE_AUTO_UPDATE")
+            .output()
+            .unwrap()
+    };
+    // Installer-placed binary (no cargo records): not a cargo build.
+    let v: Value = serde_json::from_slice(&run(&["auto-update", "--json"]).stdout).unwrap();
+    assert_eq!(v["cargoInstall"], false);
+    // `cargo install` records the binary in the install root.
+    fs::write(
+        home.path().join(".cargo/.crates2.json"),
+        r#"{"installs":{"everyframe-miner 0.5.8 (git+https://github.com/everyframe-studio/everyframe-miner#b1c20c7)":{"bins":["everycli","everyframe-worker"]}}}"#,
+    )
+    .unwrap();
+    let v: Value = serde_json::from_slice(&run(&["auto-update", "--json"]).stdout).unwrap();
+    assert_eq!(v["cargoInstall"], true);
+    assert_eq!(v["nativeInstallation"], false);
+    assert_eq!(v["effective"], false);
+    // Manual update stops before any network access and points to cargo.
+    let before = fs::read(&bin).unwrap();
+    let out = run(&["update", "--json"]);
+    assert!(!out.status.success());
+    let v: Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(v["error"], "cargo_install_update_disabled");
+    assert!(v["next"].as_str().unwrap().contains("cargo install"));
+    assert_eq!(fs::read(&bin).unwrap(), before);
+    assert!(!bin.with_file_name("everycli.rollback").exists());
+    assert!(!home.path().join(".config/everycli-updater").exists());
+}

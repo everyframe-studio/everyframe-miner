@@ -35,9 +35,12 @@ Options:
   --invitation FILE (init; optional legacy deployment import)
   --secrets-file FILE (init; optional legacy credential import)
   --release FILE (worker-update)
+  --abort (worker-update; cancel an unfinished update, keep the running worker)
   --max-hourly-usd N (deploy/start; storage extra)
   --model ID --discount-pct PCT | --withdraw (offer)
   --models ID,ID --discount-pct PCT | --withdraw (offer-batch)
+  --limit N --status all|active|completed|failed|cancelled --cursor CURSOR (jobs)
+  --model ID (jobs; filter by model) --summary (jobs; all-time model counts)
   --drain-only (stop)
   --port N --no-open (ui)
   --force (stop; emergency cloud shutdown without coordinator)
@@ -57,7 +60,7 @@ pub struct Args {
     pub options: HashMap<String, String>,
     pub flags: Vec<String>,
 }
-pub const UPDATE_HELP: &str = "\nCLI upgrades (no login required):\n  everycli update          Install the latest stable CLI\n  everycli update --check  Check without installing\nWorker upgrades:\n  everycli worker-update          Discover, update and restore previous state\n  everycli worker-update --check  Check without updating\n  everycli worker-update --release FILE  Advanced manual flow\nCLI upgrades never update the deployed worker.\n";
+pub const UPDATE_HELP: &str = "\nCLI upgrades (no login required):\n  everycli update          Install the latest stable CLI\n  everycli update --check  Check without installing\nWorker upgrades:\n  everycli worker-update          Discover, update and restore previous state\n  everycli worker-update --check  Check without updating\n  everycli worker-update --release FILE  Advanced manual flow\n  everycli worker-update --abort  Cancel an unfinished update; keep the running worker\nCLI upgrades never update the deployed worker.\n";
 const VALUE_OPTIONS: &[&str] = &[
     "--network",
     "--state-dir",
@@ -76,7 +79,32 @@ const VALUE_OPTIONS: &[&str] = &[
     "--port",
     "--app-id",
     "--name",
+    "--limit",
+    "--cursor",
+    "--status",
 ];
+
+pub const MINER_UPDATE_DEPRECATED: &str = "Note: `everycli miner update` is deprecated and will be removed; use `everycli worker-update`.";
+
+/// One-line notice for a deprecated spelling that still runs. Only positional
+/// words are inspected; option values are skipped and never echoed.
+pub fn deprecation_notice(raw: &[String]) -> Option<&'static str> {
+    let mut words = raw.iter();
+    let mut positionals = vec![];
+    while let Some(word) = words.next() {
+        let key = word.split('=').next().unwrap_or("");
+        if VALUE_OPTIONS.contains(&key) {
+            if !word.contains('=') {
+                words.next();
+            }
+            continue;
+        }
+        if !word.starts_with('-') {
+            positionals.push(word.as_str());
+        }
+    }
+    (positionals == ["miner", "update"]).then_some(MINER_UPDATE_DEPRECATED)
+}
 
 // Recover only a recognized command for parse-error help. Never echo positional
 // values, unknown-option values or credentials as a command name.
@@ -146,6 +174,8 @@ pub fn parse(args: &[String]) -> Result<Args> {
             "--disable",
             "--no-open",
             "--force",
+            "--abort",
+            "--summary",
         ]
         .contains(&a)
         {
@@ -266,9 +296,10 @@ pub fn parse(args: &[String]) -> Result<Args> {
         "set-api-keys" => vec!["--provider", "--stdin"],
         "remove-api-key" => vec!["--provider"],
         "balances" => vec!["--publish"],
+        "jobs" => vec!["--limit", "--cursor", "--status", "--model", "--summary"],
         "offer" => vec!["--model", "--discount-pct", "--withdraw"],
         "offer-batch" => vec!["--models", "--discount-pct", "--withdraw"],
-        "update" => vec!["--release", "--check"],
+        "update" => vec!["--release", "--check", "--abort"],
         "ui" => vec!["--port", "--no-open"],
         "stop" => vec!["--drain-only", "--force"],
         "delete" => vec!["--app-id"],
@@ -397,6 +428,9 @@ pub fn validate_args(args: &Args) -> Result<()> {
     if args.flag("--help") || args.flag("--version") {
         return Ok(());
     }
+    if args.command == "jobs" {
+        crate::job_history::query(args)?;
+    }
     if let Some(network) = args.get("--network") {
         need(["mainnet", "testnet"].contains(&network), "invalid_network")?;
     }
@@ -411,7 +445,10 @@ pub fn validate_args(args: &Args) -> Result<()> {
         let limit = limit
             .parse::<f64>()
             .map_err(|_| Error("compute_limit_required"))?;
-        need(limit.is_finite() && limit > 0., "compute_limit_required")?;
+        need(
+            limit.is_finite() && limit > 0. && limit <= 100.,
+            "compute_limit_required",
+        )?;
     }
     match args.command.as_str() {
         "deploy" | "start" => {
@@ -425,7 +462,15 @@ pub fn validate_args(args: &Args) -> Result<()> {
         }
         "update" => {
             need(
-                !(args.flag("--check") && args.get("--release").is_some()),
+                [
+                    args.flag("--check"),
+                    args.get("--release").is_some(),
+                    args.flag("--abort"),
+                ]
+                .iter()
+                .filter(|v| **v)
+                .count()
+                    <= 1,
                 "worker_update_conflicting_options",
             )?;
         }
@@ -835,7 +880,8 @@ pub fn run_with(
         "balances" => miner.balances(args.flag("--publish")),
         "offers" => miner.offers(),
         "earnings" => miner.earnings(),
-        "jobs" => miner.jobs(),
+        "jobs" if args.flag("--summary") => miner.jobs(),
+        "jobs" => miner.job_history(crate::job_history::query(args)?),
         "offer-batch" => miner.offer_batch(
             args.required("--models")?,
             args.get("--discount-pct"),
@@ -866,7 +912,9 @@ pub fn run_with(
         "label" => miner.label(args.get("--name")),
         "logs" => miner.logs(),
         "update" => {
-            if let Some(file) = args.get("--release") {
+            if args.flag("--abort") {
+                miner.worker_update_abort()
+            } else if let Some(file) = args.get("--release") {
                 miner.update(&read_json(Path::new(file), false)?, confirm)
             } else {
                 miner.worker_update(args.flag("--check"), confirm, progress)
@@ -884,6 +932,11 @@ pub fn main_entry() -> i32 {
     }
     let json_mode = raw.iter().any(|a| a == "--json");
     let parsed = parse(&raw);
+    if parsed.is_ok()
+        && let Some(notice) = deprecation_notice(&raw)
+    {
+        eprintln!("{notice}");
+    }
     let diagnostic_args = parsed
         .as_ref()
         .ok()

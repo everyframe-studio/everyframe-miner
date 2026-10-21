@@ -22,6 +22,15 @@ pub trait Runtime {
         false
     }
     fn balance_session(&self, _session: &Value, _keys: &Keys) {}
+    fn keepalive(
+        &self,
+        _session: &Value,
+        _keys: &Keys,
+        _coordinator_key: &str,
+        _deadline: i64,
+    ) -> Result<crate::worker_heartbeat::Guard> {
+        Ok(crate::worker_heartbeat::Guard::default())
+    }
     fn now(&self) -> i64 {
         crate::now()
     }
@@ -37,6 +46,30 @@ pub struct Worker<R, P> {
     pub session: Value,
     pub runtime: R,
     pub provider: P,
+    /// Providers whose account refused a job for billing or credentials, and
+    /// until when (ms) this worker stops offering their models. Without it a
+    /// worker with an empty balance takes, and loses, one job after another.
+    pub provider_pause: std::collections::HashMap<String, i64>,
+}
+/// Upload time for the finished output: three minutes, plus a second per
+/// 250 KB above that (assumes at least 2 Mbit/s up), capped at ten minutes.
+/// A fixed 180 s timed out on long 1080p clips after the provider was paid.
+pub fn complete_timeout_secs(encoded_bytes: usize) -> u64 {
+    (120 + encoded_bytes as u64 / 250_000).clamp(180, 600)
+}
+/// How long a billing or credential refusal keeps a provider's models off the claim.
+pub const PROVIDER_PAUSE_MS: i64 = 15 * 60 * 1000;
+/// Refusals that mean the account itself can't pay or authenticate right now.
+pub fn pauses_provider(category: &str) -> bool {
+    matches!(
+        category,
+        "provider_billing_required" | "provider_auth_rejected" | "provider_key_required"
+    )
+}
+/// The coordinator refused the uploaded output itself (validation). The same
+/// bytes will be refused again, so retrying only burns the job's deadline.
+pub fn output_refused(code: &str) -> bool {
+    matches!(code, "http_400" | "http_413" | "http_422")
 }
 impl<R: Runtime, P: Provider> Worker<R, P> {
     pub fn enroll(&mut self) -> Result<()> {
@@ -90,7 +123,21 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
         {
             self.enroll()?
         };
-        let mut capabilities = json!({"models":self.provider.models(),"durationPolicy":1});
+        let now = self.runtime.now();
+        self.provider_pause.retain(|_, until| *until > now);
+        let models: Vec<String> = self
+            .provider
+            .models()
+            .into_iter()
+            .filter(|id| {
+                let provider = models::info(id)
+                    .ok()
+                    .and_then(|m| m["provider"].as_str())
+                    .unwrap_or("");
+                !self.provider_pause.contains_key(provider)
+            })
+            .collect();
+        let mut capabilities = json!({"models":models,"durationPolicy":1});
         if let Some(rows) = availability {
             capabilities["modelAvailability"] = rows;
         }
@@ -134,6 +181,11 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
         let mut reference = work["providerRef"].clone();
         let mut grant = work["grantNonce"].clone();
         let deadline = n(&work["deadline"])?;
+        // The real runtime heartbeats on a separate bounded thread through
+        // submit, result download and completion, not only between provider polls.
+        let keepalive =
+            self.runtime
+                .keepalive(&self.session, &self.keys, &self.coordinator_key, deadline)?;
         if work["state"] == "offered" {
             let (start, _) = self.call("start", json!({"attemptId":attempt}))?;
             if start["permitted"] != true {
@@ -165,6 +217,7 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                         "{}",
                         json!({"event":action,"jobId":work["jobId"],"attemptId":attempt,"reason":reason})
                     );
+                    self.pause_provider_for(&work["spec"], reason);
                     while self.runtime.now() < deadline {
                         if self
                             .call(action, json!({"attemptId":attempt,"reason":reason}))
@@ -199,7 +252,10 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
         }
         let mut heartbeat = self.runtime.now();
         while self.runtime.now() < deadline {
-            if self.runtime.now() - heartbeat > 15000 && self.call("heartbeat", json!({})).is_ok() {
+            if !keepalive.active()
+                && self.runtime.now() - heartbeat > 15000
+                && self.call("heartbeat", json!({})).is_ok()
+            {
                 heartbeat = self.runtime.now()
             };
             let status = match self.provider.poll(s(&reference)?, &work["spec"]) {
@@ -232,14 +288,40 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
             let value = json!({"protocol":1,"sessionId":self.session["sessionId"],"minerId":self.miner_id,"jobId":work["jobId"],"attemptId":attempt,"inputHash":work["inputHash"],"grantNonce":grant,"providerRef":reference,"outputHash":protocol::sha(&output.media),"bytes":output.media.len(),"providerResponseHash":output.response_hash});
             let receipt = protocol::signed(&value, &self.keys.signing)?;
             let payload = json!({"receipt":receipt,"video":protocol::b64(&output.media)});
+            let mut refused = 0;
             while self.runtime.now() < deadline {
-                if let Ok((out, _)) = self.call("complete", payload.clone())
-                    && out["outputHash"] == value["outputHash"]
-                    && out["jobId"] == value["jobId"]
-                {
-                    return Ok(
-                        json!({"state":"accepted","jobId":work["jobId"],"outputHash":value["outputHash"]}),
-                    );
+                match self.call("complete", payload.clone()) {
+                    Ok((out, _))
+                        if out["outputHash"] == value["outputHash"]
+                            && out["jobId"] == value["jobId"] =>
+                    {
+                        return Ok(
+                            json!({"state":"accepted","jobId":work["jobId"],"outputHash":value["outputHash"]}),
+                        );
+                    }
+                    // Refused twice in a row: the output itself failed validation.
+                    // Report it now so the job can move on, instead of resending
+                    // the same bytes until the deadline.
+                    Err(e) if output_refused(e.0) => {
+                        refused += 1;
+                        if refused >= 2 {
+                            eprintln!(
+                                "{}",
+                                json!({"event":"output_refused","jobId":work["jobId"],"attemptId":attempt,"reason":e.0})
+                            );
+                            return self.fail_generation(
+                                &work,
+                                "output_refused_by_coordinator",
+                                deadline,
+                            );
+                        }
+                    }
+                    // The attempt is no longer ours to complete (already accepted
+                    // after a lost reply, reassigned, or the session ended).
+                    Err(e) if matches!(e.0, "http_401" | "http_409") => {
+                        return Ok(json!({"state":"reconcile","reason":e.0}));
+                    }
+                    _ => refused = 0,
                 }
                 self.runtime.sleep(1000)
             }
@@ -247,7 +329,24 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
         }
         Ok(json!({"state":"deadline_exceeded"}))
     }
-    fn fail_generation(&self, work: &Value, reason: &str, deadline: i64) -> Result<Value> {
+    fn pause_provider_for(&mut self, spec: &Value, category: &str) {
+        if !pauses_provider(category) {
+            return;
+        }
+        if let Some(provider) = spec["model"]
+            .as_str()
+            .and_then(|id| models::info(id).ok())
+            .and_then(|m| m["provider"].as_str())
+        {
+            eprintln!(
+                "{}",
+                json!({"event":"provider_paused","provider":provider,"reason":category,"minutes":PROVIDER_PAUSE_MS/60000})
+            );
+            self.provider_pause
+                .insert(provider.into(), self.runtime.now() + PROVIDER_PAUSE_MS);
+        }
+    }
+    fn fail_generation(&mut self, work: &Value, reason: &str, deadline: i64) -> Result<Value> {
         eprintln!(
             "{}",
             json!({"event":"generation_failed","jobId":work["jobId"],"attemptId":work["attemptId"],"reason":reason})
@@ -256,7 +355,13 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
         // HTTP 400) do not prove legacy compatibility, and losing a moderation
         // category can trigger an inappropriate paid fallback. An incompatible
         // coordinator must reconcile rather than accept a different outcome.
+        // Preserve account-level refusal evidence before reducing it to the
+        // failure vocabulary accepted by older coordinators.
+        if let Some(account) = crate::submission::rejected(reason) {
+            self.pause_provider_for(&work["spec"], account);
+        }
         let category = report_category(reason);
+        self.pause_provider_for(&work["spec"], category);
         // Never repeat the provider POST or keep fetching a terminal result.
         while self.runtime.now() < deadline {
             if self
@@ -281,6 +386,35 @@ pub struct LiveRuntime {
     pub balance_session: Option<crate::worker_balances::SharedSession>,
 }
 impl Runtime for LiveRuntime {
+    fn keepalive(
+        &self,
+        session: &Value,
+        keys: &Keys,
+        coordinator_key: &str,
+        deadline: i64,
+    ) -> Result<crate::worker_heartbeat::Guard> {
+        let remaining = deadline.min(n(&session["expires"])?) - self.now();
+        need(remaining > 0, "heartbeat_deadline_elapsed")?;
+        let runtime = LiveRuntime {
+            base: self.base.clone(),
+            token: self.token.clone(),
+            auth: self.auth.clone(),
+            http: crate::network::PublicHttp,
+            balance_session: None,
+        };
+        let session = session.clone();
+        let signing = keys.signing.clone();
+        let coordinator_key = coordinator_key.to_string();
+        crate::worker_heartbeat::Guard::spawn(
+            Duration::from_secs(15),
+            Duration::from_millis(remaining as u64),
+            move || {
+                // Liveness failures never replay a provider call or expose secrets.
+                let _ =
+                    crate::worker_heartbeat::send(&runtime, &session, &signing, &coordinator_key);
+            },
+        )
+    }
     fn balances_enabled(&self) -> bool {
         self.balance_session.is_some()
     }
@@ -299,7 +433,7 @@ impl Runtime for LiveRuntime {
     }
     fn post(&self, path: &str, body: &Value) -> Result<Value> {
         need(
-            ["/v1/challenge", "/v1/attest", "/v1/action"].contains(&path),
+            ["/v1/challenge", "/v1/attest", "/v1/action", "/v1/heartbeat"].contains(&path),
             "invalid_worker_path",
         )?;
         let url = format!("{}{path}", self.base.trim_end_matches('/'));
@@ -310,10 +444,17 @@ impl Runtime for LiveRuntime {
             .to_string();
         let mut r = Request::get(url, &[&host]).json("POST", body);
         r.limit = 300000;
-        r.timeout = if body["value"]["action"] == "balances" {
+        r.timeout = if ["balances", "heartbeat"]
+            .iter()
+            .any(|action| body["value"]["action"] == *action)
+        {
             5
         } else if body["value"]["action"] == "complete" {
-            180
+            complete_timeout_secs(
+                body["value"]["payload"]["video"]
+                    .as_str()
+                    .map_or(0, str::len),
+            )
         } else {
             30
         };
@@ -498,6 +639,7 @@ pub fn run_live() -> Result<()> {
         chain,
         keys: Keys::default(),
         session: Value::Null,
+        provider_pause: Default::default(),
         runtime: LiveRuntime {
             base: base.to_string(),
             token,
@@ -547,6 +689,8 @@ pub fn report_category(reason: &str) -> &'static str {
         | "vivix_billing_required"
         | "fal_billing_required"
         | "http_402" => "provider_billing_required",
+        "provider_auth_rejected" | "vivix_auth_rejected" | "http_401" => "provider_auth_rejected",
+        "provider_key_required" => "provider_key_required",
         "provider_timeout" => "provider_timeout",
         "provider_unavailable" | "vivix_unavailable" | "provider_model_unavailable" => {
             "provider_unavailable"

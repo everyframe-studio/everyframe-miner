@@ -399,6 +399,7 @@ pub fn http_error(status: u16) -> Error {
         405 => "http_405",
         408 => "http_408",
         409 => "http_409",
+        413 => "http_413",
         422 => "http_422",
         429 => "http_429",
         500 => "http_500",

@@ -223,3 +223,22 @@ fn installer_quotes_shell_paths_without_expansion() {
     assert!(out.status.success());
     assert_eq!(String::from_utf8(out.stdout).unwrap(), path);
 }
+
+#[test]
+fn installer_does_not_invoke_openssl_or_download_a_signature() {
+    let f = Fixture::new();
+    let fake = f.dir.path().join("mock-bin/openssl");
+    fs::write(&fake, b"#!/bin/sh\nexit 99\n").unwrap();
+    fs::set_permissions(&fake, fs::Permissions::from_mode(0o755)).unwrap();
+    let curl = f.dir.path().join("mock-bin/curl");
+    let mock = fs::read_to_string(&curl)
+        .unwrap()
+        .replace("*.sha256)", "*.sig) exit 98 ;;\n  *.sha256)");
+    fs::write(curl, mock).unwrap();
+    let out = f.run(false);
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+}

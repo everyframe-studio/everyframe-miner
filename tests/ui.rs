@@ -29,6 +29,10 @@ fn batch_and_jobs_ui_actions_use_the_same_scoped_cli_commands() {
     let (args, changes) = ui::action_args(&sh, "jobs", &json!({})).unwrap();
     assert!(!changes);
     assert_eq!(args.command, "jobs");
+    let (args,changes)=ui::action_args(&sh,"jobs",&json!({"limit":"20","status":"failed","model":"direct/vivix/vivix-w1","cursor":"safe_cursor"})).unwrap();
+    assert!(!changes);
+    assert_eq!(args.get("--status"), Some("failed"));
+    assert_eq!(args.get("--cursor"), Some("safe_cursor"));
 }
 
 /// Answers every provider key check with a fixed result; never touches the network.

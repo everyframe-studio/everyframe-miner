@@ -1,5 +1,33 @@
 # Validation
 
+## v0.6.0 release candidate — 20 October 2026
+
+- Linux native validation: 273 Rust tests passed, one registered-live-hotkey
+  probe intentionally ignored; formatting, strict Clippy, installer shell checks
+  and desktop/mobile browser regressions passed. The release gate also requires
+  native Linux ARM64, macOS Intel and macOS Apple Silicon CI.
+- A disposable real Phala TDX worker completed three Fal generations: five-second
+  H3 Max Turbo, ten-second H3 Max, and a five-second Turbo output after rollback,
+  upgrade and key reactivation. Each had one recorded attempt, a verified signed
+  receipt, attested session/policy binding, matching input/output hashes and full
+  FFmpeg decoding. These were controlled operator jobs, not customer traffic or
+  evidence of alpha rewards. The VM/storage was deleted and its identity disabled.
+- The native CLI exercised live atomic batch offers and withdrawal, individual
+  history pagination/filters, earnings, signed same-VM worker rollback/upgrade,
+  key reactivation and deletion reconciliation. The permanent miner was unchanged.
+- Coordinator validation: 269 tests passed, including 23 availability-based
+  minor-version routing cases. The server prefers current-major/minor capacity
+  per job/model, with previous-minor fallback without expiry. Existing assignments,
+  pricing reservations and paid-attempt fencing remain intact.
+- CLI download signing is postponed. Checksum/HTTPS/atomic-install protections
+  remain; hardware attestation, signed configuration and job receipts remain required.
+- Coverage limits: only Fal H3 Max/Turbo had paid live validation in this candidate.
+  No new public hotkey registration, alpha payout or live over-60-second provider
+  stall was certified. Slow-upload stress used real local transports with a fake
+  provider, not a paid cloud endurance run. Updating the CLI does not update a VM.
+
+The sections below are historical validation records for earlier releases.
+
 ## v0.5.0 browser UI — 14 October 2026
 
 - Real loopback-server/browser tests use an isolated profile and mocked external

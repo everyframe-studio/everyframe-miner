@@ -7,11 +7,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: [ubuntu-22.04, macos-14, macos-15-intel]
+        runner: [ubuntu-22.04, ubuntu-22.04-arm, macos-14, macos-15-intel]
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
+    env:
+      EVERYCLI_RELEASE_BUILD: '1'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Install release-matched toolchain
         run: rustup toolchain install 1.97.1 --profile minimal --component rustfmt --component clippy
       - run: cargo +1.97.1 fmt --check

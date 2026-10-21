@@ -20,6 +20,45 @@ and ten provider adapters. Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
 
+### v0.6.0
+
+CLI downloads are checksum-verified (publisher signing is postponed); refused outputs fail fast;
+`worker-update --abort` and a stronger `reconcile` recover interrupted updates.
+See [v0.6.0 release notes](RELEASE-NOTES-v0.6.0.md). For each job, routing prefers
+eligible workers on the published major/minor (for example, 0.6.x). If none can
+serve that model, the previous published minor remains available as fallback,
+without a fixed expiry. Patch versions do not affect this preference.
+
+#### Individual job history and clearer earnings
+
+v0.6.0 adds **Job history** and **Earnings** to `everycli ui`.
+
+```sh
+everycli jobs                            # newest 20 of your own attempts
+everycli jobs --status failed --limit 20
+everycli jobs --model direct/vivix/vivix-w1
+everycli jobs --summary                  # existing all-time model counts
+everycli earnings
+```
+
+History supports Previous/Next pages, status/model filters and attempt details:
+timestamps, settings, output verification, review status and fixed failure codes.
+Terminal output supplies a next-page cursor command; keep its model/status
+filters. `--json` includes full timestamps and IDs. The signed private endpoint
+does not expose prompts, media, customer references, provider request IDs,
+credentials or other miners' attempts. Older coordinators fall back explicitly
+to model counts; malformed signed history is rejected.
+
+Earnings separates pending review, approved work and marked reward-eligible
+value. The eligible value is a subset of approved work, not an extra payment.
+A review flag does not prove finalized epoch inclusion or alpha received.
+Provider exposure uses locked job quotes for confirmed/uncertain submissions,
+including failed attempts; it is not an invoice. Unpriced and uncertain attempts
+are counted separately. Actual provider bills, hosting costs, wallet payments,
+alpha received and net profit are not invented from balances or work value.
+These read-only reports never approve work, change offers, replay generations,
+or alter validator accounting. No worker update is needed for these views.
+
 ### v0.5.8 model IDs and availability
 
 The **Everyframe contract ID** is used with `everycli offer --model`. The
@@ -348,10 +387,10 @@ everycli update --check  # Check for an update without changing anything
 everycli --version
 ```
 
-The built-in updater verifies the release checksum and atomically replaces
+The built-in updater verifies the release checksum, then atomically replaces
 the executable in place. It does not access miner credentials, deploy anything,
-change profiles, or update running workers. A failed download or checksum leaves
-the old executable intact. It will not automatically downgrade. Run updates as
+change profiles, or update running workers. A failed download or checksum
+check leaves the old executable intact. It will not automatically downgrade. Run updates as
 the account that owns the installation; no sudo is needed for a normal install.
 
 Normal output is readable text, with download percentage/size and verification
@@ -371,9 +410,15 @@ updates a **deployed worker** using an approved signed release. If a documented 
 `everycli --version` and upgrade (rerun the installer for older CLIs without an
 `update` command).
 
-Checksums detect corrupted or mismatched downloads; they are not independent
-publisher signatures. The installer and updater trust this GitHub repository
-and HTTPS.
+Checksums detect corrupted or mismatched downloads, not a compromised publisher.
+CLI release signing is postponed: v0.6.0 does not download or require `.sig`
+files, OpenSSL or a release signing secret. Trust currently rests on the official
+GitHub repository, HTTPS and release access controls. TEE attestation, signed
+worker configurations, session proofs and job receipts remain mandatory.
+
+If you installed with `cargo install`, upgrade with `cargo install` again:
+`everycli update` and auto-update never replace a cargo build
+(`cargo_install_update_disabled`); `everycli update --check` still works.
 
 ### Automatic CLI updates (v0.3.8)
 
@@ -391,10 +436,13 @@ everycli auto-update --json     # Structured settings/result, no background work
 
 `EVERYCLI_DISABLE_AUTO_UPDATE=1` also disables background updates. No background
 check runs for JSON, CI, non-interactive, help, version, or explicit update commands.
-Auto-updates are restricted to owner-managed native installs in
-`${CARGO_HOME:-$HOME/.cargo}/bin/everycli` or `~/.local/bin/everycli`.
-Build directories, package-manager paths, custom symlink launchers and unsafe
-permissions remain manual. Settings and the last result live separately from
+Auto-updates are restricted to owner-managed official binaries in
+`${CARGO_HOME:-$HOME/.cargo}/bin/everycli` (where the installer puts them) or
+`~/.local/bin/everycli`. A `cargo install` build in any cargo install root
+(recorded in that root's `.crates.toml`/`.crates2.json`) is a source build and is
+never auto-updated: rerun `cargo install` to upgrade it. Build directories,
+package-manager paths, custom symlink launchers and unsafe permissions remain
+manual. Settings and the last result live separately from
 miner profiles in `~/.config/everycli-updater/`. No daemon or system service is installed.
 
 Only the CLI executable is updated: cloud workers, saved keys, model offers,
@@ -817,7 +865,8 @@ everycli earnings
 model from `offers`, then submit your bid. The model above is an example, not
 a guarantee that it is enabled for every deployment.
 
-`--max-hourly-usd` is a **compute-rate ceiling, not a total spending budget**.
+`--max-hourly-usd` is a **compute-rate ceiling, not a total spending budget**
+(greater than 0 and at most 100 USD per hour).
 Storage is extra and may remain billable after shutdown. There is no automatic
 total-budget cutoff in this CLI. Provider bills do not decrease when you discount
 your mining offer; traffic and earnings are not guaranteed.
@@ -856,8 +905,8 @@ resources and ongoing charges. To restart the saved workload, use
 | `balances` | Show USD balances and native Vivix W credits; `--publish` syncs private snapshots |
 | `offers`, `offer` | Inspect, set, or withdraw a revision-checked model bid |
 | `offer-batch` | Review and apply multiple model bids atomically; no automatic retry |
-| `jobs` | All-time completed jobs by model; `--json` for structured counts |
-| `earnings` | Read coordinator accounting; does not initiate payouts |
+| `jobs` | Individual attempts with filters/pagination; `--summary` for all-time model counts |
+| `earnings` | Work/review accounting and estimated exposure, separate from unmeasured actual income/costs; no payouts |
 | `deploy` | Create a pinned workload with provider credentials disabled |
 | `activate` | Release encrypted provider keys only after fresh admission |
 | `resume` | Permit new work after post-restart admission |
@@ -867,8 +916,8 @@ resources and ongoing charges. To restart the saved workload, use
 | `label` | View the local display name or change it with `--name NAME`; never changes the signed VM identity |
 | `start` | Restart the saved stopped workload, with a reviewed hourly ceiling |
 | `update` | Upgrade the CLI executable only; `--check` checks without installing |
-| `worker-update` | Discover and install a signed update on the existing VM, then restore its accepting/paused state; `--check` is read-only |
-| `reconcile` | Inspect uncertain operations without replaying paid cloud mutations |
+| `worker-update` | Discover and install a signed update on the existing VM, then restore its accepting/paused state; `--check` is read-only; `--abort` cancels an unfinished update and keeps the running worker |
+| `reconcile` | Settle uncertain operations from observed cloud/coordinator state without replaying paid cloud mutations |
 
 Mainnet SN117 is the default. Use `--network testnet` for SN566. Default state
 paths match the original CLI: `~/.config/everycli-mainnet117` and
@@ -979,6 +1028,31 @@ Run `everycli reconcile` to perform that read-only cloud verification explicitly
 A genuinely different VM/configuration still fails closed. Keep the profile and journal.
 The OS releases the operation lock after a process exits or crashes; a leftover
 lock file alone does not block the CLI. Never delete it to bypass a live operation.
+
+From v0.6.0, `everycli worker-update --abort` cancels an unfinished update. It
+settles any recorded cloud step from what Phala and the coordinator actually
+report (never by repeating a request), keeps whichever signed release the VM is
+running, closes the saved update journal and prints what it did and what to run
+next. It never resumes paid work by itself. With nothing in progress it says so,
+changes nothing and exits 0. If the signed release expires mid-update, the
+command stops with `release_expired`: before installation run `--abort`, then
+`worker-update` again to fetch a fresh release; after installation rerunning
+finishes the update.
+
+`everycli reconcile` (also run automatically by `worker-update`) now settles:
+
+- an interrupted key activation (`activate_intent`): if the running worker
+  attested after the request and advertises a model backed by a released key,
+  activation is confirmed and `resume` is next; otherwise the profile returns to
+  its last known-good phase and `activate` (or `apply-api-keys`) can be run again;
+- a worker update Phala definitively rejected (HTTP 4xx): the unchanged worker is
+  restored locally and work stays paused until `resume`.
+
+A commit whose response was lost still waits for Phala (`update_not_observed`);
+if the VM keeps the previous release, `worker-update --abort` restores it, and a
+later `reconcile` adopts the update if Phala applies it after all. The hidden
+`everycli miner update` alias still works but prints a deprecation notice; use
+`everycli worker-update`.
 
 If no compatible package is published, the command says so and changes nothing;
 that is not a claim that all providers are already supported. The advanced

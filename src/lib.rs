@@ -9,6 +9,7 @@ pub mod display;
 pub mod health;
 pub mod hotkey;
 pub mod invitation;
+pub mod job_history;
 pub mod key_check;
 pub mod miner;
 pub mod model_availability;
@@ -26,6 +27,7 @@ pub mod ui;
 pub mod update;
 pub mod worker;
 pub mod worker_balances;
+pub mod worker_heartbeat;
 pub mod worker_update;
 pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug, Clone, PartialEq, Eq)]
