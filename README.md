@@ -20,7 +20,7 @@ and ten provider adapters. Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
 
-### v0.6.1 — FLUX 3 Max
+### v0.6.2 — FLUX 3 Max
 
 FLUX 3 Max is a **video** model served through Fal (`FAL_KEY`). Its contract is
 `studio/fal/blackforestlabs/flux-3-max/text-to-video`: 5–20 seconds, 720p or 1080p,
@@ -33,7 +33,7 @@ compatible signed worker update. Select FLUX 3 Max in **All models**, review its
 current price and set a discount. The model needs its own offer; existing bids
 are not copied. A Fal key and fresh TEE verification remain mandatory.
 Promotional pricing expires automatically; a price change requires a new offer.
-See [v0.6.1 release notes](RELEASE-NOTES-v0.6.1.md).
+See [v0.6.2 release notes](RELEASE-NOTES-v0.6.2.md).
 
 ### v0.6.0
 
