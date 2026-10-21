@@ -97,9 +97,14 @@ local credentials were removed. The canary-only fault and opt-in were disabled,
 customer routing remained enabled, and the briefly paused synthetic schedule
 was restored. The test remained within its approved $1 ceiling.
 
-The canary controller predates final capsule-size, re-enable compose-check,
-enrollment preflight, metadata filtering, bounded lease and replacement-VM
-hardening. This is not certification of a final
-published binary. Public distribution still requires a final reviewed updater
-artifact, signed bootstrap publication, and CLI release. Existing miners have
-not been opted in automatically.
+That first canary controller predates final capsule-size, re-enable compose-check,
+enrollment preflight, metadata filtering, bounded lease, replacement-VM and TLS
+hardening. A second disposable Phala canary exercised the exact final images and
+matching deployed coordinator, including unattended signed-image transition and
+timed rollback. See REAL-MINER-TEST-v0.6.3.md for pins, live evidence, cleanup
+status and coverage limits. The final rerun passed 290 Rust and 294 coordinator
+tests, with one live hotkey probe intentionally ignored.
+
+This is not certification of an official downloadable binary. Public distribution
+still requires native release CI, signed bootstrap publication and CLI release.
+Existing miners have not been opted in automatically.

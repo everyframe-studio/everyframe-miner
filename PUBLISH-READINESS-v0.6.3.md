@@ -23,12 +23,11 @@ The companion coordinator changes are separate from the miner repository:
 `src/worker-update-recovery.mjs`, `src/worker-update-lock.mjs`,
 `src/updater-compose.mjs`, and the explicit routes in `deploy/Caddyfile`.
 
-Recovery support was exercised by the earlier live canary. The latest bounded
-lease and replacement-VM/report fencing changes still require deployment. Use
-exact file hashes and a backup; do not copy the whole dirty coordinator tree.
-Read-only comparison on 21 October confirmed the other seven listed runtime
-files already match production; only `miner-console.mjs` and
-`worker-update-lock.mjs` differ.
+The latest bounded lease and replacement-VM/report fencing changes were deployed
+at a natural idle window on 21 October. Only `miner-console.mjs` and
+`worker-update-lock.mjs` needed replacement; exact-source guards and a backup were
+used. Read-only comparison confirms all nine listed runtime files match tested
+source. Do not copy the whole dirty coordinator tree for later deployments.
 
 ## Verified locally
 
@@ -63,20 +62,27 @@ the local binaries as official release assets.
    other platforms. The tag workflow cannot publish until all native jobs and
    the container build/smoke job succeed.
 2. Deploy the matching coordinator hardening without interrupting active jobs.
+   Completed for the final canary; mandatory attestation/routing remain enabled.
 3. Publish immutable worker and supervisor images only after approval; record
    both digests. The supervisor pin stays fixed in subsequent worker updates.
+   Prefer promoting the exact tested manifests. If a rebuild changes either
+   digest, repeat exact-artifact admission validation before signing that digest.
 4. Validate the exact final supervisor/bootstrap in a budget-approved disposable
-   Phala canary, including fresh attestation and recovery. Earlier live proofs
-   predate final hardening/TLS patches and do not certify these exact artifacts.
+   Phala canary, including fresh attestation and recovery. These checks passed on
+   final artifacts; see REAL-MINER-TEST-v0.6.3.md for exact pins, scope limits and
+   final cleanup status. Earlier canary artifacts are not the final release pins.
 5. Confirm VM/storage deletion, publish the signed bootstrap, publish CLI v0.6.3,
    verify anonymous downloads/checksums, then update public website docs.
+   Disposable VM/storage deletion is confirmed. Signed bootstrap, official CLI
+   publication, download verification and public website docs remain pending.
 
 No real miners are opted in by these steps. Enrollment is a separate, explicit
 operator choice; CLI updates do not install or enable the supervisor.
 
 ## Scope limitations
 
-No additional paid generations, customer-routing changes, validator changes,
-alpha payments, registry pushes, tags or production enrollment are part of this
-review. The prior canary VM was confirmed deleted and local credentials removed.
-The live coordinator was checked read-only and had zero automatic-update opt-ins.
+The final canary used candidate-only registry tags and its own temporary opt-in.
+No paid generations, customer-routing changes, validator changes, alpha payments,
+official CLI tags or enrollment of existing miners were performed. See the live
+test record for disposal status. Native release CI and official distribution
+remain separate gates; this checklist does not authorize publication.
