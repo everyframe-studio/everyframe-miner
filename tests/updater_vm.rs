@@ -27,6 +27,7 @@ fn docker_context_includes_every_embedded_registry_but_excludes_private_state() 
     }
     for file in [
         "models.json",
+        "provider-expansion.json",
         "provider-model-status.json",
         "studio-video.json",
         "studio-media.json",

@@ -15,8 +15,8 @@ After reviewing and committing the release changes, the maintainer can publish
 the corrected version (these commands create an external release when pushed):
 
 ```sh
-git tag v0.7.0
-git push origin v0.7.0
+git tag v0.7.1
+git push origin v0.7.1
 ```
 
 For subsequent releases, bump Cargo.toml and Cargo.lock first, then tag the

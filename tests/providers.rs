@@ -136,7 +136,7 @@ impl Http for Api {
                     json!({"id":native,"status":"SUCCEEDED","output":["https://media.runwayml.com/video.mp4"]})
                 }
                 "luma" => {
-                    json!({"id":native,"state":"completed","assets":{"video":"https://media.lumalabs.ai/video.mp4"}})
+                    json!({"id":native,"state":"completed","assets":{"video":"https://storage.cdn-luma.com/video.mp4"}})
                 }
                 _ => panic!("unexpected poll"),
             }
@@ -268,4 +268,112 @@ fn synchronous_speech_cannot_resubmit_after_restart() {
     assert!(restarted.poll(&reference, &api.spec).is_err());
     assert_eq!(api.calls.borrow().len(), 1);
     assert_ne!(protocol::digest(&api.spec).unwrap(), "");
+}
+
+#[test]
+fn expansion_preserves_original_registry_and_is_fixed_text_only() {
+    let original: Value = serde_json::from_str(include_str!("../config/models.json")).unwrap();
+    for (id, contract) in original.as_object().unwrap() {
+        assert_eq!(models::info(id).unwrap(), contract, "{id}");
+    }
+    let added: Value =
+        serde_json::from_str(include_str!("../config/provider-expansion.json")).unwrap();
+    assert_eq!(added.as_object().unwrap().len(), 15);
+    for (id, m) in added.as_object().unwrap() {
+        assert!(original.get(id).is_none());
+        assert!(
+            invitation::PROVIDERS
+                .iter()
+                .any(|(p, _)| m["provider"] == *p)
+        );
+        assert_eq!(m["validationStatus"], "documentation-reviewed");
+        let value = spec(id);
+        models::check(&value).unwrap();
+        for (field, extra) in [
+            ("callback_url", json!("https://evil.invalid")),
+            ("input_images", json!(["https://evil.invalid"])),
+            ("resolution", json!("4k")),
+            ("model", json!("arbitrary")),
+        ] {
+            let mut altered = value.clone();
+            altered["input"][field] = extra;
+            assert!(models::check(&altered).is_err(), "{id}: {field}");
+        }
+    }
+}
+
+#[test]
+fn openrouter_failure_with_unassigned_model_is_terminal() {
+    struct Failed;
+    impl Http for Failed {
+        fn bytes(&self, r: Request) -> Result<Vec<u8>> {
+            assert_eq!(r.method, "GET");
+            Ok(json!({"id":"job123","model":null,"status":"failed","error":"Content policy violation"}).to_string().into_bytes())
+        }
+    }
+    let mut router = Router::new(&Failed, credentials());
+    assert_eq!(
+        router
+            .poll("openrouter_job123", &spec("direct/openrouter/veo-3.1-fast"))
+            .unwrap_err()
+            .0,
+        "provider_content_rejected"
+    );
+}
+
+#[test]
+fn every_added_model_checks_deadline_and_does_not_retry_ambiguous_submission() {
+    struct Timeout(std::cell::Cell<usize>);
+    impl Http for Timeout {
+        fn bytes(&self, r: Request) -> Result<Vec<u8>> {
+            assert_eq!(r.method, "POST");
+            assert!(r.submit_deadline.is_some());
+            self.0.set(self.0.get() + 1);
+            Err(everyframe_miner::Error("request_timeout"))
+        }
+    }
+    let added: Value =
+        serde_json::from_str(include_str!("../config/provider-expansion.json")).unwrap();
+    for id in added.as_object().unwrap().keys() {
+        let api = Timeout(std::cell::Cell::new(0));
+        let mut router = Router::new(&api, credentials());
+        assert_eq!(
+            router.submit_before(&spec(id), 0).unwrap_err().0,
+            "submission_deadline_elapsed"
+        );
+        assert_eq!(api.0.get(), 0, "{id}");
+        let error = router
+            .submit_before(&spec(id), everyframe_miner::now() + 60_000)
+            .unwrap_err();
+        assert_eq!(error.0, "request_timeout");
+        assert_eq!(everyframe_miner::submission::rejected(error.0), None);
+        assert_eq!(api.0.get(), 1, "{id}");
+    }
+}
+
+#[test]
+fn expanded_speech_is_bound_to_input_and_cannot_be_recovered_by_resubmitting() {
+    for (id, m) in models::MODELS.as_object().unwrap() {
+        if m["provider"] != "elevenlabs" {
+            continue;
+        }
+        let s = spec(id);
+        let api = Api {
+            provider: "elevenlabs".into(),
+            spec: s.clone(),
+            calls: RefCell::default(),
+            bad: false,
+        };
+        let mut router = Router::new(&api, credentials());
+        let r = router.submit(&s).unwrap();
+        let changed = models::spec(&json!({"model":id,"prompt":"Different words"})).unwrap();
+        assert!(router.result(&r, &changed).is_err());
+        let mut restarted = Router::new(&api, credentials());
+        assert_eq!(
+            restarted.poll(&r, &s).unwrap_err().0,
+            "synchronous_result_unavailable"
+        );
+        assert!(restarted.result(&r, &s).is_err());
+        assert_eq!(api.calls.borrow().len(), 1);
+    }
 }

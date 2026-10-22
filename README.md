@@ -14,11 +14,22 @@ signed release (one-command flow in v0.3.7 and later).
 New to mining? Run `everycli ui` for a guided setup page and status dashboard
 in your browser (see [Set up in your browser](#set-up-in-your-browser-everycli-ui)).
 
-This repository includes the worker, the CLI with built-in updates, 46 legacy
-contracts, 12 flexible Studio video contracts, 12 Studio media contracts,
-and ten provider adapters. Available jobs depend on the coordinator's
+This source tree includes the worker, the CLI with built-in updates, 62 base
+contracts (including 15 new provider-model candidates), flexible Studio video
+and media contracts, and eleven provider adapters. See the
+[provider expansion and activation requirements](PROVIDER-EXPANSION.md).
+Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
+
+### v0.7.1 — More provider-model candidates
+
+Adds 15 fixed contracts across existing MiniMax, BFL, Replicate, Runway, Luma,
+ElevenLabs and OpenRouter adapters, plus OpenRouter failure handling and Luma
+download compatibility fixes. **These new models are not enabled for live mining
+by this CLI release.** Pricing, funded provider tests and signed worker admission
+are separate gates. Existing workers, offers and automatic-update preferences
+remain unchanged. See [v0.7.1 release notes](RELEASE-NOTES-v0.7.1.md).
 
 ### v0.6.2 — FLUX 3 Max
 
@@ -996,7 +1007,8 @@ Use the key for the provider serving the contract, not just the model's brand.
 For example, a MiniMax model served through Fal uses `FAL_KEY`; the direct
 MiniMax adapter uses `MINIMAX_API_KEY`.
 
-Exact contracts and immutable parameters are in `config/models.json`.
+Exact base contracts and immutable parameters are in `config/models.json`
+and `config/provider-expansion.json`; flexible formats use the Studio registries.
 Credential names are centralized in `src/invitation.rs`. Possessing a provider key
 does **not** enable a model: the operator must separately approve and price it.
 

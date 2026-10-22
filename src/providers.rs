@@ -360,7 +360,7 @@ impl<'a> Router<'a> {
                 let d = self.api(p, &format!("/api/v1/videos/{r}"), None)?;
                 need(d["id"] == r, "provider_id_mismatch")?;
                 need(
-                    d.get("model").is_none() || d["model"] == model,
+                    d["model"].is_null() || d["model"] == model,
                     "provider_model_mismatch",
                 )?;
                 d
@@ -885,7 +885,7 @@ impl Provider for Router<'_> {
             }
             "luma" => self.download(
                 s(&data["assets"]["video"])?,
-                &["*.lumalabs.ai", "*.luma.ai"],
+                &["*.lumalabs.ai", "*.luma.ai", "storage.cdn-luma.com"],
                 None,
                 &[],
             )?,

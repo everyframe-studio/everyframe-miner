@@ -8,8 +8,21 @@ use std::sync::LazyLock;
 pub const DEFAULT_MODEL: &str = "minimax/h3-max-turbo/text-to-video";
 pub const MAX_MEDIA: usize = 64 * 1024 * 1024;
 pub static MODELS: LazyLock<Value> = LazyLock::new(|| {
-    serde_json::from_str(include_str!("../config/models.json"))
-        .expect("embedded reviewed model registry")
+    let mut models: Value = serde_json::from_str(include_str!("../config/models.json"))
+        .expect("embedded reviewed model registry");
+    let additions: Value = serde_json::from_str(include_str!("../config/provider-expansion.json"))
+        .expect("embedded provider expansion registry");
+    for (id, contract) in additions.as_object().unwrap() {
+        assert!(
+            models.get(id).is_none(),
+            "expansion must not replace signed contracts"
+        );
+        models
+            .as_object_mut()
+            .unwrap()
+            .insert(id.clone(), contract.clone());
+    }
+    models
 });
 pub static STUDIO_MODELS: LazyLock<Value> = LazyLock::new(|| {
     let mut models = crate::studio_video::model_registry();
