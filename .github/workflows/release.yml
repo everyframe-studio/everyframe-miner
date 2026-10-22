@@ -69,8 +69,34 @@ jobs:
           name: everycli-${{ matrix.target }}
           path: dist/*
           if-no-files-found: error
+  containers:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          persist-credentials: false
+      - name: Verify clean worker and supervisor builds (no publication)
+        env:
+          RUST_IMAGE: rust@sha256:7f7a53a25a0319dd8284e279d529d45759cb384d59b14cc6806132910f45522e
+          RUNTIME_IMAGE: debian@sha256:a99cfc517144bc59b1978475ec53b46ecabec7e43635402ee5b77cc54cd1b20a
+        run: |
+          set -euo pipefail
+          docker build --target updater --build-arg RUST_IMAGE="$RUST_IMAGE" --build-arg RUNTIME_IMAGE="$RUNTIME_IMAGE" -t everyframe-updater:check .
+          docker build --target worker --build-arg RUST_IMAGE="$RUST_IMAGE" --build-arg RUNTIME_IMAGE="$RUNTIME_IMAGE" -t everyframe-worker:check .
+          test "$(docker image inspect everyframe-worker:check --format '{{index .Config.Entrypoint 0}}')" = /usr/local/bin/everyframe-worker
+          test "$(docker image inspect everyframe-updater:check --format '{{index .Config.Entrypoint 0}}')" = /usr/local/bin/everyframe-updater
+          # Empty, isolated supervisor must stay idle without contacting services.
+          docker run -d --name updater-smoke --network none --read-only --cap-drop ALL --security-opt no-new-privileges --tmpfs /state:mode=0700 --tmpfs /tmp everyframe-updater:check
+          trap 'docker rm -f updater-smoke >/dev/null 2>&1 || true' EXIT
+          for attempt in $(seq 1 10); do
+            docker logs updater-smoke 2>&1 | grep -q '"state":"not_enrolled"' && break
+            sleep 1
+          done
+          test "$(docker inspect updater-smoke --format '{{.State.Running}}')" = true
+          docker logs updater-smoke 2>&1 | grep -q '"state":"not_enrolled"'
   publish:
-    needs: build
+    needs: [build, containers]
     runs-on: ubuntu-22.04
     timeout-minutes: 10
     # Configure required reviewers on this environment for publication approval.

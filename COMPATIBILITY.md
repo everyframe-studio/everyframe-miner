@@ -1,5 +1,35 @@
 # Compatibility
 
+## v0.7.0 offline automatic updates and Kling
+
+The CLI ships these implementations; signed bootstrap deployment and direct
+Kling mining activation remain pending. Publishing the CLI does not enable them.
+
+Adds optional `KLING_API_KEY` and `direct/kling/kling-3.0`, without changing
+existing model hashes. Kling requires matching coordinator contract/duration
+support, a signed environment allowlist, independent pricing and exact-artifact
+live admission. No existing Fal Kling contract is renamed or repriced. CLI
+key storage cannot widen the signed deployment's permissions. Its balance
+telemetry reports unsupported USD; delayed package units do not gate routing.
+
+The real updater canary in `REAL-MINER-TEST-v0.6.3.md` is historical evidence
+for those pinned artifacts, not a live test of this new Kling build. Rebuilds
+must pass exact-artifact admission again before signing the v0.7.0 release.
+
+Requires the matching coordinator's signed recovery, capsule-bound enrollment,
+bounded single-flight lease and explicitly exposed updater routes. A one-container
+deployment cannot enroll: first install the signed two-container bootstrap with
+`everycli worker-update`, then explicitly enable automation. Legacy expiring
+delegates must be renewed to supported v2 authorizations before enrollment.
+
+CLI updates alone do not enable automation or install the supervisor. The
+supervisor uses the same VM and preserves its own independent image pin, OS,
+resources and KMS. Fresh hardware attestation is mandatory before restoring
+provider credentials and accepting work. A stale, disabled or replaced capsule
+cannot report progress or take over a newer deployment. No model contract,
+offer, credit price or validator accounting policy changes in this feature.
+
+
 The v0.6.0 worker reports an output the coordinator refuses twice (HTTP
 400/413/422 on `complete`) as `failed` with reason `output_invalid`, instead of
 resending it until the deadline. The coordinator already accepts that reason

@@ -240,6 +240,7 @@ const PROVIDERS = {
   phala: ["Phala Cloud", "Hosting. Your worker runs in a sealed (TEE) machine billed to your Phala account."],
   fal: ["fal", "Most video, image and audio models on the network (for example H3 Max, Seedance 2.5, Flux 3)."],
   vivix: ["Vivix", "Vivix W1 world video. Needs Vivix W credits (a W credit pack); A credits do not work."],
+  kling: ["Kling (direct)", "Kling developer API key, not a Fal key or legacy access/secret pair. API resource packs are separate from the web subscription. Model availability requires a signed worker release and pricing."],
   openrouter: ["OpenRouter", "Seedance and image models served through OpenRouter."],
   minimax: ["MiniMax (direct)", "MiniMax models served by MiniMax's own API."],
   bfl: ["Black Forest Labs", "FLUX image models from BFL's own API."],
@@ -1083,6 +1084,12 @@ function pageWorker() {
   if (d.needsReconcile) root.append(notice("warn", "Confirm worker state", h("div", null,
     h("p", null, "A lifecycle operation is pending. Re-sync checks its result at Phala and the coordinator without repeating the cloud operation."),
     button("Re-sync operation", async () => { await run("reconcile"); await refreshAll(); }, "primary"))));
+  root.append(card("Automatic worker updates", null,
+    h("p", { class: "small muted" }, "Opt in to an isolated updater inside your existing VM. It works while this computer is offline, drains jobs and verifies attestation before resuming. Manual updates remain the default."),
+    h("div", { class: "row" },
+      button("Check status", async () => { await run("worker-auto-status"); }),
+      button("Enable…", async () => { await run("worker-auto-enable"); await refreshAll(); }, "primary"),
+      button("Disable", async () => { await run("worker-auto-disable"); await refreshAll(); }))));
   const ph = d.phase || "not_deployed", deployed = !!d.appId && !["stopped", "stopping"].includes(ph);
   const accepting = findCheck("Accepting new work");
   const when = (ok, el, why) => { if (!ok) { el.disabled = true; el.title = why; } return el; };

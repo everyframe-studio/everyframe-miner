@@ -48,7 +48,7 @@ impl Drop for InterruptGuard {
     }
 }
 
-fn compatible(c: &Context, inv: &Value, from: &Value) -> Result<()> {
+pub(crate) fn compatible(c: &Context, inv: &Value, from: &Value) -> Result<()> {
     need(
         [
             "minerId",
@@ -128,6 +128,7 @@ impl Miner<'_> {
                 true
             },
             &|| INTERRUPTED.load(Ordering::Relaxed),
+            false,
         )
     }
 
@@ -140,7 +141,11 @@ impl Miner<'_> {
         progress: &dyn Fn(&str),
         wait: &dyn Fn(&str) -> bool,
     ) -> Result<Value> {
-        self.worker_update_controlled(check, confirm, progress, wait, &|| false)
+        self.worker_update_controlled(check, confirm, progress, wait, &|| false, false)
+    }
+
+    pub fn worker_update_automatic_with_wait(&self, wait: &dyn Fn(&str) -> bool) -> Result<Value> {
+        self.worker_update_controlled(false, &|_| Ok(()), &|_| {}, wait, &|| false, true)
     }
 
     fn worker_update_controlled(
@@ -150,8 +155,9 @@ impl Miner<'_> {
         progress: &dyn Fn(&str),
         wait: &dyn Fn(&str) -> bool,
         interrupted: &dyn Fn() -> bool,
+        automatic: bool,
     ) -> Result<Value> {
-        match self.worker_update_run(check, confirm, progress, wait, interrupted) {
+        match self.worker_update_run(check, confirm, progress, wait, interrupted, automatic) {
             // A release (or the profile's adopted copy of it) expiring mid-update
             // stops with recovery steps instead of a bare validation error.
             Err(e) if e.0 == "invitation_expired" => {
@@ -314,14 +320,38 @@ impl Miner<'_> {
         progress: &dyn Fn(&str),
         wait: &dyn Fn(&str) -> bool,
         interrupted: &dyn Fn() -> bool,
+        automatic: bool,
     ) -> Result<Value> {
         let _lock = self.state.lock()?;
         let mut c = self.load(false)?;
+        let settings = self.state.read("worker-auto-update", true)?;
+        if automatic {
+            need(
+                settings["enabled"] == true
+                    && settings["appId"] == c.deployment["appId"]
+                    && settings["minerId"] == c.invitation["minerId"],
+                "worker_auto_update_not_enabled",
+            )?;
+            need(
+                settings["credentialHash"] == crate::protocol::digest(&c.credentials)?,
+                "worker_auto_credentials_changed",
+            )?;
+            let status = self.api(&c, "worker-auto-update", json!({}))?;
+            need(
+                status["automaticUpdates"]["enabled"] == true
+                    && status["automaticUpdates"]["capsuleId"] == settings["capsuleId"]
+                    && status["automaticUpdates"]["appId"] == c.deployment["appId"],
+                "worker_auto_update_not_enabled",
+            )?;
+        }
         need(
             c.deployment["appId"].is_string(),
             "worker_update_original_profile_required",
         )?;
         let mut flow = self.state.read("worker-update", true)?;
+        if automatic && !flow.is_null() && flow["stage"] != "complete" {
+            need(flow["automatic"] == true, "manual_worker_update_pending")?;
+        }
         if flow.is_null() || flow["stage"] == "complete" {
             // An interrupted activation, update or start/stop must be settled
             // from observed cloud state before a new update can be planned.
@@ -349,6 +379,28 @@ impl Miner<'_> {
             )?;
             let inv = self.validate(&update["release"], false)?;
             compatible(&c, &inv, &inv["previousComposeHash"])?;
+            if automatic {
+                need(
+                    settings["blockedComposeHash"] != inv["composeHash"],
+                    "worker_auto_update_release_blocked",
+                )?;
+                let mut before = c.invitation["request"].clone();
+                let mut after = inv["request"].clone();
+                before
+                    .as_object_mut()
+                    .ok_or(Error("update_target_mismatch"))?
+                    .remove("compose_file");
+                after
+                    .as_object_mut()
+                    .ok_or(Error("update_target_mismatch"))?
+                    .remove("compose_file");
+                need(before == after, "worker_auto_update_resources_changed")?;
+                need(
+                    crate::updater_vm::image(&c.invitation["request"]["compose_file"])?
+                        == crate::updater_vm::image(&inv["request"]["compose_file"])?,
+                    "worker_auto_update_resources_changed",
+                )?;
+            }
             if c.invitation["composeHash"] == inv["composeHash"] {
                 need(
                     self.target(&c, false)?["compose_hash"] == inv["composeHash"],
@@ -398,6 +450,25 @@ impl Miner<'_> {
                 "fromComposeHash":c.invitation["composeHash"],"release":update["release"],
                 "restoreAccepting":status["draining"] == false,"reactivate":c.deployment["providerConfigured"] == true,
                 "previousAttestationAt":status["attestation"]["at"].as_i64().unwrap_or(0),"startedAt":now()});
+            if automatic {
+                // Recovery must be authorized BEFORE draining or cloud mutation.
+                let recovery = self.api(
+                    &c,
+                    "worker-update-prepare",
+                    json!({"from":c.invitation["composeHash"],"to":inv["composeHash"]}),
+                )?;
+                let back = self.validate(&recovery["rollback"], false)?;
+                need(
+                    back["composeHash"] == c.invitation["composeHash"]
+                        && back["previousComposeHash"] == inv["composeHash"]
+                        && back["request"] == c.invitation["request"]
+                        && back["appId"] == c.deployment["appId"]
+                        && back["minerId"] == c.invitation["minerId"],
+                    "invalid_worker_recovery",
+                )?;
+                flow["automatic"] = json!(true);
+                flow["rollback"] = recovery["rollback"].clone();
+            }
             self.state.write("worker-update", &flow)?;
         } else {
             need(
@@ -429,6 +500,22 @@ impl Miner<'_> {
                 ));
             }
             let c = self.load(false)?;
+            if automatic {
+                let status = self.api(&c, "worker-auto-update", json!({}))?;
+                need(
+                    status["automaticUpdates"]["enabled"] == true
+                        && status["automaticUpdates"]["capsuleId"] == settings["capsuleId"]
+                        && status["automaticUpdates"]["appId"] == c.deployment["appId"],
+                    "worker_auto_update_not_enabled",
+                )?;
+            }
+            if automatic {
+                let status = self.api(&c, "worker-auto-update", json!({}))?;
+                need(
+                    status["automaticUpdates"]["leaseHeld"] == true,
+                    "worker_auto_update_lease_lost",
+                )?;
+            }
             let inv = self.flow_release(&c, &flow)?;
             compatible(&c, &inv, &flow["fromComposeHash"])?;
             let phase = c.deployment["phase"].as_str().unwrap_or("");

@@ -7,7 +7,7 @@ use serde_json::{Value, json};
 pub const DISABLED: &str = "DISABLED_PENDING_OPERATOR_ATTESTATION";
 pub const PUBLIC_SCRIPT: &str =
     "#!/bin/sh\nset -eu\n# Public image: anonymous pull; no registry credentials.\n";
-pub const PROVIDERS: [(&str, &str); 10] = [
+pub const PROVIDERS: [(&str, &str); 11] = [
     ("fal", "FAL_KEY"),
     ("minimax", "MINIMAX_API_KEY"),
     ("openrouter", "OPENROUTER_API_KEY"),
@@ -18,6 +18,7 @@ pub const PROVIDERS: [(&str, &str); 10] = [
     ("luma", "LUMA_API_KEY"),
     ("elevenlabs", "ELEVENLABS_API_KEY"),
     ("vivix", "VIVIX_API_KEY"),
+    ("kling", "KLING_API_KEY"),
 ];
 const REGISTRY: [&str; 3] = [
     "DSTACK_DOCKER_USERNAME",
@@ -55,7 +56,13 @@ pub fn valid_environment(v: &Value) -> bool {
         && PROVIDERS.iter().any(|(_, k)| set.contains(k))
         && (!REGISTRY.iter().any(|k| set.contains(k)) || REGISTRY.iter().all(|k| set.contains(k)))
         && keys.iter().all(|k| {
-            ["MINER_ID", "MINER_TOKEN", "MINER_AUTH"].contains(k)
+            [
+                "MINER_ID",
+                "MINER_TOKEN",
+                "MINER_AUTH",
+                "EVERYFRAME_UPDATER_SEED",
+            ]
+            .contains(k)
                 || REGISTRY.contains(k)
                 || PROVIDERS.iter().any(|(_, key)| key == k)
         })
@@ -200,6 +207,12 @@ pub fn validate(envelope: &Value, t: &Value, now: i64, allow_expired: bool) -> R
         "unsafe_compose",
     )?;
     let docker = s(&c["docker_compose_file"])?;
+    if c["allowed_envs"]
+        .as_array()
+        .is_some_and(|a| a.iter().any(|k| k == "EVERYFRAME_UPDATER_SEED"))
+    {
+        crate::updater_vm::image(c)?;
+    }
     let envs = c["allowed_envs"]
         .as_array()
         .ok_or(Error("unsafe_compose"))?;

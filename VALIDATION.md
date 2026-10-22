@@ -1,5 +1,61 @@
 # Validation
 
+## v0.7.0 Kling direct API candidate — 21 October 2026
+
+- Rust: 295 passed, one explicitly opt-in live hotkey probe ignored.
+- Coordinator: 298 passed, including embedded worker contract parity, candidate
+  pricing/admission gates, optional signed Kling key upgrades and unknown-balance
+  handling. Run with `EVERYFRAME_MINER_ROOT` pointing at this checkout.
+- Formatting, strict all-target Clippy and `git diff --check` passed.
+- Desktop/mobile Playwright regressions passed, including the distinct Kling
+  credential field and setup explanation. Browser checks use isolated profiles
+  and mocked external command results, not real cloud mutations.
+- Free live `/account/costs` check accepted the configured Kling key: HTTP 200,
+  outer code 0, inner code 0. The response omitted the resource-pack list; this
+  does not prove positive funds or model generation access. Regression coverage
+  accepts that shape without inventing a balance.
+- No paid Kling generation or v0.7.0 Phala artifact test was performed. The
+  historical v0.6.3 updater canary below remains tied to its recorded image pins.
+  New artifact admission, reviewed direct pricing, native release CI and public
+  publication remain required. See `PUBLISH-READINESS-v0.7.0.md`.
+
+## v0.6.3 offline updater candidate — 21 October 2026
+
+- Final local Linux Rust suite: 290 passed, with one live hotkey probe deliberately
+  ignored. This includes the added Docker-context and scoped coordinator error-
+  mapping regressions. Formatting, strict all-target Clippy, installer shell syntax
+  and desktop/mobile browser regressions against the optimized CLI passed.
+- Final digest-pinned worker/supervisor Docker builds and network-isolated idle
+  supervisor smoke test passed. Both images include license notices. These local
+  image IDs are not published registry digests or proof of Phala admission.
+- Matching coordinator suite: 294 tests passed using `npm test`. This is the
+  package's scoped test command; bare `node --test` also discovers historical
+  tools and vendored sources and is not the release test command.
+- New checks cover isolated supervisor compose, exact signed VM binding, capsule
+  replay and credential filtering, preflight rejection without policy/key writes,
+  draining, uncertain mutations, signed rollback, lease expiry, remote disable
+  and replacement-VM fencing. No generation jobs were submitted for this review.
+- Final source `86f8ab043aaf743f440b41d1d427295be9b4beac` was exercised on a
+  disposable real Phala TDX worker. Fresh hardware admission, unattended signed
+  image transition, and automatic rollback after the real 15-minute failed-
+  admission timeout passed. The original paused state was preserved, with zero
+  jobs/offers. See REAL-MINER-TEST-v0.6.3.md for artifact pins and coverage limits.
+- The final coordinator hardening was deployed at a natural idle window, with
+  an exact-source backup. All nine companion runtime files match tested source;
+  customer routing and mandatory attestation remain enabled. Only the disposable
+  canary was opted in. Canary-only container tags were pushed, but no official
+  CLI tag or public signed bootstrap was published.
+- Failed-release retry blocking and remote CLI disable passed. The VM/storage
+  was deleted and absence verified; local credentials, temporary fault/guard
+  rules and opt-in were removed. The synthetic schedule is restored, no existing
+  miner was updated, and the public release is unchanged.
+- The locked TLS dependencies were patched after an OSV scan found advisories:
+  rustls 0.23.46, rustls-webpki 0.103.16 and webpki-roots 1.0.10. The repeated OSV
+  query across all 202 registry packages returned no findings on 21 October 2026.
+  This is a database lookup, not proof that every dependency is vulnerability-free.
+- Native macOS/ARM release CI and public download checks remain separate gates.
+  Publishing is gated by the checklist in RELEASING.md.
+
 ## v0.6.0 release candidate — 20 October 2026
 
 - Linux native validation: 273 Rust tests passed, one registered-live-hotkey

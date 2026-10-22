@@ -6,6 +6,24 @@ use serde_json::{Value, json};
 use std::{collections::HashMap, sync::Arc};
 
 #[test]
+fn offline_update_ui_requires_explicit_enable_and_distinguishes_read_only_status() {
+    let dir = common::tempdir();
+    let sh = shared(dir.path());
+    for (action, flag, mutates) in [
+        ("worker-auto-status", None, false),
+        ("worker-auto-enable", Some("--enable"), true),
+        ("worker-auto-disable", Some("--disable"), true),
+    ] {
+        let (args, changes) = ui::action_args(&sh, action, &json!({})).unwrap();
+        assert_eq!(args.command, "worker-auto-update");
+        assert_eq!(changes, mutates);
+        if let Some(flag) = flag {
+            assert!(args.flag(flag));
+        }
+    }
+}
+
+#[test]
 fn batch_and_jobs_ui_actions_use_the_same_scoped_cli_commands() {
     let dir = common::tempdir();
     let sh = shared(dir.path());

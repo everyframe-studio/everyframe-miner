@@ -688,6 +688,77 @@ fn health_never_hides_an_optional_saved_provider_release_mismatch() {
     );
 }
 impl Rig {
+    fn updater_enrollment_fixture() -> Self {
+        let (mut r, path) = Self::reconnect_fixture();
+        *r.fail.borrow_mut() = String::new();
+        let compose = &mut r.inv["request"]["compose_file"];
+        compose["docker_compose_file"] = json!(format!(
+            "{}{}",
+            compose["docker_compose_file"].as_str().unwrap(),
+            everyframe_miner::updater_vm::suffix(&format!(
+                "ghcr.io/everyframebuilder/updater@sha256:{}",
+                "d".repeat(64)
+            ))
+        ));
+        compose["allowed_envs"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!("EVERYFRAME_UPDATER_SEED"));
+        r.inv["composeHash"] = json!(cloud::compose_hash(compose).unwrap());
+        r.credentials["CONSOLE_AUTH"] =
+            everyframe_miner::hotkey::create(&path, &r.inv, "console").unwrap();
+        r.credentials["WORKER_AUTH"] =
+            everyframe_miner::hotkey::create(&path, &r.inv, "worker").unwrap();
+        let mut config = r.state().read("config", false).unwrap();
+        config["invitation"] = r.sign(&r.inv);
+        r.state().write("config", &config).unwrap();
+        r.state().write("credentials", &r.credentials).unwrap();
+        r.info.borrow_mut()["compose_hash"] = r.inv["composeHash"].clone();
+        r.status.borrow_mut()["composeHash"] = r.inv["composeHash"].clone();
+        let baseline = Self::new();
+        baseline.deploy().unwrap();
+        let mut deployment = baseline.state().read("deployment", false).unwrap();
+        deployment["phase"] = json!("running");
+        deployment["providerConfigured"] = json!(true);
+        r.state().write("deployment", &deployment).unwrap();
+        r.status.borrow_mut()["draining"] = json!(false);
+        r.status.borrow_mut()["sessionExpires"] = json!(now() + 60000);
+        r.calls.borrow_mut().clear();
+        r.envs.borrow_mut().clear();
+        r
+    }
+    fn staged_automatic_update() -> (Self, Value) {
+        let mut r = Self::new();
+        let compose = &mut r.inv["request"]["compose_file"];
+        compose["docker_compose_file"] = json!(format!(
+            "{}{}",
+            compose["docker_compose_file"].as_str().unwrap(),
+            everyframe_miner::updater_vm::suffix(&format!(
+                "ghcr.io/everyframebuilder/updater@sha256:{}",
+                "d".repeat(64)
+            ))
+        ));
+        compose["allowed_envs"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!("EVERYFRAME_UPDATER_SEED"));
+        r.inv["composeHash"] = json!(cloud::compose_hash(compose).unwrap());
+        let mut config = r.state().read("config", false).unwrap();
+        config["invitation"] = r.sign(&r.inv);
+        r.state().write("config", &config).unwrap();
+        r.info.borrow_mut()["compose_hash"] = r.inv["composeHash"].clone();
+        r.status.borrow_mut()["composeHash"] = r.inv["composeHash"].clone();
+        let next = r.staged_update(true, true);
+        r.status.borrow_mut()["automaticUpdates"] = json!({"enabled":true,"capsuleId":"c".repeat(48),"leaseHeld":true,"appId":r.info.borrow()["app_id"]});
+        r.state()
+            .write(
+                "worker-auto-update",
+            &json!({"enabled":true,"controller":true,"capsuleId":"c".repeat(48),"appId":r.info.borrow()["app_id"],"minerId":r.inv["minerId"],
+            "credentialHash":protocol::digest(&r.credentials).unwrap()}),
+            )
+            .unwrap();
+        (r, next)
+    }
     fn reconnect_fixture() -> (Self, PathBuf) {
         use everyframe_miner::hotkey;
         use schnorrkel::{ExpansionMode, MiniSecretKey};
@@ -906,6 +977,376 @@ fn automatic_worker_update_restores_accepting_paused_and_unactivated_states() {
             || p.ends_with("/offer")));
         assert!(!out.to_string().contains("synthetic"));
     }
+}
+
+#[test]
+fn unattended_update_drains_and_restores_with_recovery_prepared_before_cloud_changes() {
+    let (r, next) = Rig::staged_automatic_update();
+    let offers = r.status.borrow()["offers"].clone();
+    r.status.borrow_mut()["activeJobs"] = json!(1);
+    let out = r
+        .miner()
+        .worker_update_automatic_with_wait(&|stage| r.advance_update(stage, &next))
+        .unwrap();
+    assert_eq!(out["state"], "complete");
+    assert_eq!(r.status.borrow()["offers"], offers);
+    assert_eq!(
+        r.state().read("worker-update", false).unwrap()["automatic"],
+        true
+    );
+    let calls = r.calls.borrow();
+    let prepare = calls
+        .iter()
+        .position(|(p, _)| p.ends_with("worker-update-prepare"))
+        .unwrap();
+    let drain = calls
+        .iter()
+        .position(|(p, _)| p.ends_with("/worker-auto-drain"))
+        .unwrap();
+    assert!(prepare < drain);
+    assert_eq!(calls.iter().filter(|(p, _)| p == "POST /cvms").count(), 0);
+}
+
+#[test]
+fn unattended_updates_are_off_by_default_and_remote_revocation_stops_before_mutation() {
+    let r = Rig::new();
+    r.calls.borrow_mut().clear();
+    assert_eq!(r.miner().worker_auto_tick().unwrap()["state"], "disabled");
+    assert!(r.calls.borrow().is_empty());
+    let (r, _) = Rig::staged_automatic_update();
+    r.status.borrow_mut()["automaticUpdates"]["enabled"] = json!(false);
+    assert_eq!(r.miner().worker_auto_tick().unwrap()["state"], "disabled");
+    assert!(r.calls.borrow().iter().all(|(p, _)| p.starts_with("GET ")));
+}
+
+#[test]
+fn unattended_updates_never_take_over_manual_journals_or_changed_credentials() {
+    let (r, _) = Rig::staged_automatic_update();
+    r.state()
+        .write(
+            "worker-update",
+            &json!({"stage":"draining","automatic":false}),
+        )
+        .unwrap();
+    assert_eq!(
+        r.miner()
+            .worker_update_automatic_with_wait(&|_| panic!())
+            .unwrap_err()
+            .0,
+        "manual_worker_update_pending"
+    );
+    let mut creds = r.credentials.clone();
+    creds["FAL_KEY"] = json!("new-unapproved-generation-key");
+    r.state().write("credentials", &creds).unwrap();
+    assert_eq!(
+        r.miner()
+            .worker_update_automatic_with_wait(&|_| panic!())
+            .unwrap_err()
+            .0,
+        "worker_auto_credentials_changed"
+    );
+}
+
+#[test]
+fn unattended_update_cannot_replace_its_recovery_controller() {
+    let (r, next) = Rig::staged_automatic_update();
+    let mut v = next["value"].clone();
+    v["request"]["compose_file"]["docker_compose_file"] = json!(
+        v["request"]["compose_file"]["docker_compose_file"]
+            .as_str()
+            .unwrap()
+            .replace(&"d".repeat(64), &"e".repeat(64))
+    );
+    v["composeHash"] = json!(cloud::compose_hash(&v["request"]["compose_file"]).unwrap());
+    r.status.borrow_mut()["update"]["release"] = r.sign(&v);
+    assert_eq!(
+        r.miner()
+            .worker_update_automatic_with_wait(&|_| panic!())
+            .unwrap_err()
+            .0,
+        "worker_auto_update_resources_changed"
+    );
+    assert!(r.calls.borrow().iter().all(|(p, _)| p.starts_with("GET ")));
+}
+
+#[test]
+fn unattended_failed_admission_recovers_previous_image_and_blocks_failed_release() {
+    let (r, next) = Rig::staged_automatic_update();
+    let out = r
+        .miner()
+        .worker_update_automatic_with_wait(&|stage| {
+            if stage == "applying" {
+                r.advance_update(stage, &next)
+            } else {
+                false
+            }
+        })
+        .unwrap();
+    assert_eq!(out["stage"], "attesting");
+    let mut flow = r.state().read("worker-update", false).unwrap();
+    flow["startedAt"] = json!(now() - 901000);
+    r.state().write("worker-update", &flow).unwrap();
+    let mut deployment = r.state().read("deployment", false).unwrap();
+    deployment["operationAt"] = json!(now() - 901000);
+    r.state().write("deployment", &deployment).unwrap();
+    r.status.borrow_mut()["attestation"]["state"] = json!("rejected");
+    let result = r.miner().worker_auto_tick().unwrap();
+    assert_eq!(result["state"], "waiting", "{result}");
+    let recovery = r.state().read("worker-update", false).unwrap();
+    assert_eq!(recovery["rollbackMode"], true);
+    assert_eq!(
+        recovery["release"]["value"]["composeHash"],
+        r.inv["composeHash"]
+    );
+    let previous = recovery["release"].clone();
+    r.status.borrow_mut()["attestation"]["state"] = json!("accepted");
+    let done = r
+        .miner()
+        .worker_update_automatic_with_wait(&|stage| r.advance_update(stage, &previous))
+        .unwrap();
+    assert_eq!(done["state"], "complete");
+    assert_eq!(r.status.borrow()["draining"], false);
+    assert_eq!(
+        r.state().read("worker-auto-update", false).unwrap()["blockedComposeHash"],
+        next["value"]["composeHash"]
+    );
+    assert_eq!(
+        r.miner()
+            .worker_update_automatic_with_wait(&|_| panic!())
+            .unwrap_err()
+            .0,
+        "worker_auto_update_release_blocked"
+    );
+}
+
+#[test]
+fn unattended_cloud_commit_with_lost_response_is_not_repeated_or_rolled_back_blindly() {
+    let (r, _) = Rig::staged_automatic_update();
+    *r.fail.borrow_mut() = "/compose_file".into();
+    assert_eq!(
+        r.miner()
+            .worker_update_automatic_with_wait(&|_| false)
+            .unwrap_err()
+            .0,
+        "ambiguous_network_error"
+    );
+    let patches = || {
+        r.calls
+            .borrow()
+            .iter()
+            .filter(|(p, _)| p.starts_with("PATCH ") && p.ends_with("/compose_file"))
+            .count()
+    };
+    assert_eq!(patches(), 1);
+    *r.fail.borrow_mut() = String::new();
+    let out = r
+        .miner()
+        .worker_update_automatic_with_wait(&|_| false)
+        .unwrap();
+    assert_eq!(out["state"], "waiting");
+    assert_eq!(patches(), 1);
+    assert!(
+        !r.calls
+            .borrow()
+            .iter()
+            .any(|(p, _)| p.ends_with("worker-rollback"))
+    );
+}
+
+#[test]
+fn unattended_late_healthy_admission_continues_without_rollback() {
+    let (r, next) = Rig::staged_automatic_update();
+    r.miner()
+        .worker_update_automatic_with_wait(&|stage| {
+            if stage == "applying" {
+                r.advance_update(stage, &next)
+            } else {
+                false
+            }
+        })
+        .unwrap();
+    let mut flow = r.state().read("worker-update", false).unwrap();
+    flow["startedAt"] = json!(now() - 901000);
+    r.state().write("worker-update", &flow).unwrap();
+    let mut deployment = r.state().read("deployment", false).unwrap();
+    deployment["operationAt"] = json!(now() - 901000);
+    r.state().write("deployment", &deployment).unwrap();
+    r.advance_update("attesting", &next);
+    let out = r.miner().worker_auto_tick().unwrap();
+    assert_eq!(out["state"], "waiting", "{out}");
+    assert_eq!(out["stage"], "readmitting", "{out}");
+    assert!(
+        r.calls
+            .borrow()
+            .iter()
+            .all(|(p, _)| !p.ends_with("worker-rollback"))
+    );
+    assert!(r.state().read("worker-auto-update", false).unwrap()["blockedComposeHash"].is_null());
+}
+
+#[test]
+fn updater_enrollment_preflight_and_declined_consent_never_pause_or_write_keys() {
+    for case in [
+        "busy",
+        "oversized",
+        "pending",
+        "manual",
+        "uncertain",
+        "declined",
+    ] {
+        let r = Rig::updater_enrollment_fixture();
+        if case == "busy" {
+            r.status.borrow_mut()["activeJobs"] = json!(1);
+        }
+        if case == "pending" {
+            r.status.borrow_mut()["automaticUpdates"] = json!({"report":{"pending":true}});
+        }
+        if case == "oversized" {
+            let mut credentials = r.state().read("credentials", false).unwrap();
+            credentials["testPadding"] = json!("x".repeat(188_000));
+            r.state().write("credentials", &credentials).unwrap();
+        }
+        if case == "manual" {
+            r.state()
+                .write("worker-update", &json!({"stage":"draining"}))
+                .unwrap();
+        }
+        if case == "uncertain" {
+            let mut deployment = r.state().read("deployment", false).unwrap();
+            deployment["abandonedInvitation"] = r.sign(&r.inv);
+            r.state().write("deployment", &deployment).unwrap();
+        }
+        let before = r.state().read("credentials", false).unwrap();
+        let error = r
+            .miner()
+            .enroll_updater(&|_| {
+                assert_eq!(case, "declined", "preflight must precede consent");
+                Err(Error("confirmation_declined"))
+            })
+            .unwrap_err();
+        assert_eq!(
+            error.0,
+            match case {
+                "busy" => "updater_enrollment_busy",
+                "oversized" => "updater_seed_too_large",
+                "pending" => "worker_auto_update_recovery_pending",
+                "manual" | "uncertain" => "manual_worker_update_pending",
+                _ => "confirmation_declined",
+            }
+        );
+        assert_eq!(r.status.borrow()["draining"], false);
+        assert_eq!(r.state().read("credentials", false).unwrap(), before);
+        assert!(r.envs.borrow().is_empty());
+        assert!(r.calls.borrow().iter().all(|(p, _)| {
+            !["drain", "worker-auto-drain", "worker-auto-update-policy"]
+                .iter()
+                .any(|end| p.ends_with(end))
+        }));
+    }
+}
+
+#[test]
+fn unattended_capsule_is_encrypted_attested_and_replay_safe() {
+    let r = Rig::updater_enrollment_fixture();
+    for name in ["config", "deployment"] {
+        let mut state = r.state().read(name, false).unwrap();
+        state["localOnlySecret"] = json!("never-export-local-metadata");
+        r.state().write(name, &state).unwrap();
+    }
+    assert_eq!(
+        r.miner().enroll_updater(&|_| Ok(())).unwrap()["state"],
+        "enrolling"
+    );
+    let env = r.envs.borrow().last().unwrap().clone();
+    let seed: Value = serde_json::from_str(
+        env["env"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|e| e["key"] == "EVERYFRAME_UPDATER_SEED")
+            .unwrap()["value"]
+            .as_str()
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        seed["settings"]["capsuleId"],
+        r.status.borrow()["automaticUpdates"]["capsuleId"]
+    );
+    assert!(!seed.to_string().contains("secretSeed"));
+    assert!(!seed.to_string().contains("never-export-local-metadata"));
+    assert!(!seed.to_string().contains("DSTACK_DOCKER_PASSWORD"));
+    let private = common::tempdir();
+    let supervisor = Miner {
+        state: State {
+            directory: private.path().join("supervisor"),
+        },
+        trust: r.trust.clone(),
+        http: &r,
+    };
+    supervisor.state.prepare().unwrap();
+    everyframe_miner::updater_vm::adopt_seed(&supervisor, &seed).unwrap();
+    assert_eq!(
+        supervisor.worker_auto_tick().unwrap()["reason"],
+        "bootstrap_attestation"
+    );
+    r.status.borrow_mut()["attestation"]["at"] = json!(now() + 1000);
+    assert_eq!(supervisor.worker_auto_tick().unwrap()["state"], "idle");
+    assert_eq!(r.status.borrow()["draining"], false);
+    let mutations = r.envs.borrow().len();
+    assert_eq!(
+        r.miner().enroll_updater(&|_| Ok(())).unwrap()["state"],
+        "enabled"
+    );
+    assert_eq!(
+        r.envs.borrow().len(),
+        mutations,
+        "unchanged enrollment must not restart"
+    );
+    r.status.borrow_mut()["automaticUpdates"]["report"]["composeHash"] = json!("f".repeat(64));
+    assert!(
+        r.miner().enroll_updater(&|_| Ok(())).is_err(),
+        "a stale controller must not be re-enabled after a manual image migration"
+    );
+    assert_eq!(r.envs.borrow().len(), mutations);
+    assert_eq!(
+        everyframe_miner::updater_vm::adopt_seed(&supervisor, &seed)
+            .unwrap_err()
+            .0,
+        "updater_already_enrolled"
+    );
+    let mut replacement = seed.clone();
+    replacement["settings"]["capsuleId"] = json!("e".repeat(48));
+    replacement["credentials"]["FAL_KEY"] = json!("new-generation-key");
+    replacement["settings"]["credentialHash"] =
+        json!(protocol::digest(&replacement["credentials"]).unwrap());
+    assert!(everyframe_miner::updater_vm::adopt_seed(&supervisor, &replacement).is_err());
+    r.status.borrow_mut()["automaticUpdates"]["capsuleId"] =
+        replacement["settings"]["capsuleId"].clone();
+    supervisor
+        .state
+        .write("worker-update", &json!({"stage":"attesting"}))
+        .unwrap();
+    assert_eq!(
+        everyframe_miner::updater_vm::adopt_seed(&supervisor, &replacement)
+            .unwrap_err()
+            .0,
+        "worker_auto_update_recovery_pending"
+    );
+    supervisor
+        .state
+        .write("worker-update", &json!({"stage":"complete"}))
+        .unwrap();
+    everyframe_miner::updater_vm::adopt_seed(&supervisor, &replacement).unwrap();
+    assert_eq!(
+        supervisor.state.read("credentials", false).unwrap()["FAL_KEY"],
+        "new-generation-key"
+    );
+    assert!(everyframe_miner::updater_vm::adopt_seed(&supervisor, &seed).is_err());
+    assert_eq!(
+        supervisor.state.read("credentials", false).unwrap()["FAL_KEY"],
+        "new-generation-key"
+    );
 }
 
 #[test]
@@ -1537,16 +1978,35 @@ impl Http for Rig {
                 );
             }
             let action = path.rsplit('/').next().unwrap();
-            let nonce = if ["status", "worker-update", "jobs"].contains(&action) {
-                u.query_pairs()
-                    .find(|(k, _)| k == "nonce")
-                    .unwrap()
-                    .1
-                    .to_string()
-            } else {
-                body["nonce"].as_str().unwrap().into()
-            };
+            let nonce =
+                if ["status", "worker-update", "jobs", "worker-auto-update"].contains(&action) {
+                    u.query_pairs()
+                        .find(|(k, _)| k == "nonce")
+                        .unwrap()
+                        .1
+                        .to_string()
+                } else {
+                    body["nonce"].as_str().unwrap().into()
+                };
             let mut status = self.status.borrow_mut();
+            if action == "worker-update-prepare" {
+                let mut back = self.inv.clone();
+                back["appId"] = status["appId"].clone();
+                back["previousComposeHash"] = body["to"].clone();
+                status["rollback"] = self.sign(&back);
+            }
+            if action == "worker-auto-update-policy" {
+                let capsule = if body["capsuleId"].is_null() {
+                    status["automaticUpdates"]["capsuleId"].clone()
+                } else {
+                    body["capsuleId"].clone()
+                };
+                status["automaticUpdates"] =
+                    json!({"enabled":body["enabled"],"appId":body["appId"],"capsuleId":capsule});
+            }
+            if action == "worker-auto-update-report" {
+                status["automaticUpdates"]["report"] = json!({"state":body["state"],"pending":body["pending"],"composeHash":status["composeHash"]});
+            }
             if action == "bind-app" {
                 assert_eq!(body["previousAppId"], status["appId"]);
                 status["appId"] = body["appId"].clone();
@@ -1559,8 +2019,8 @@ impl Http for Rig {
                 assert!(!raw.contains("synthetic"));
                 status["balances"] = body["balances"].clone();
             }
-            if action == "drain" || action == "resume" {
-                status["draining"] = json!(action == "drain")
+            if ["drain", "resume", "worker-auto-drain", "worker-auto-resume"].contains(&action) {
+                status["draining"] = json!(action.ends_with("drain"))
             }
             if action == "offer" {
                 assert_eq!(body["expectedRevision"], status["offers"][0]["revision"]);

@@ -679,22 +679,29 @@ pub fn run_live() -> Result<()> {
 /// Maps an internal failure code to a category the coordinator accepts.
 pub fn report_category(reason: &str) -> &'static str {
     match reason {
-        "provider_content_rejected" | "vivix_content_rejected" => "provider_content_rejected",
+        "provider_content_rejected" | "vivix_content_rejected" | "kling_content_rejected" => {
+            "provider_content_rejected"
+        }
         "provider_invalid_request"
         | "vivix_invalid_parameters"
+        | "kling_invalid_parameters"
         | "http_400"
         | "http_403"
         | "http_422" => "provider_invalid_request",
         "provider_billing_required"
         | "vivix_billing_required"
+        | "kling_billing_required"
         | "fal_billing_required"
         | "http_402" => "provider_billing_required",
-        "provider_auth_rejected" | "vivix_auth_rejected" | "http_401" => "provider_auth_rejected",
+        "provider_auth_rejected" | "vivix_auth_rejected" | "kling_auth_rejected" | "http_401" => {
+            "provider_auth_rejected"
+        }
         "provider_key_required" => "provider_key_required",
         "provider_timeout" => "provider_timeout",
-        "provider_unavailable" | "vivix_unavailable" | "provider_model_unavailable" => {
-            "provider_unavailable"
-        }
+        "provider_unavailable"
+        | "vivix_unavailable"
+        | "kling_unavailable"
+        | "provider_model_unavailable" => "provider_unavailable",
         r if r.starts_with("provider_no_media")
             || r.starts_with("output_")
             || matches!(r, "invalid_media" | "invalid_media_size") =>

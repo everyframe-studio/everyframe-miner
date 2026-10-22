@@ -37,6 +37,17 @@ impl Http for Api {
         } else if r.method == "POST" {
             assert!(!r.headers.is_empty());
             match self.provider.as_str() {
+                "kling" => {
+                    assert_eq!(u.host_str(), Some("api-singapore.klingai.com"));
+                    assert_eq!(path, "/text-to-video/kling-3.0");
+                    let mut settings = self.spec["input"].clone();
+                    settings.as_object_mut().unwrap().remove("prompt");
+                    assert_eq!(
+                        body,
+                        json!({"prompt":self.spec["input"]["prompt"],"settings":settings,"options":{"watermark_info":{"enabled":false}}})
+                    );
+                    json!({"code":0,"data":{"id":"job123","status":"submitted"}})
+                }
                 "fal" => {
                     assert_eq!(body, self.spec["input"]);
                     assert_eq!(path, format!("/{}", self.spec["model"].as_str().unwrap()));
@@ -85,6 +96,12 @@ impl Http for Api {
             }
         } else {
             match self.provider.as_str() {
+                "kling" => {
+                    assert_eq!(u.host_str(), Some("api-singapore.klingai.com"));
+                    assert_eq!(path, "/tasks");
+                    assert_eq!(u.query(), Some("task_ids=job123"));
+                    json!({"code":0,"data":[{"id":native,"status":"succeeded","outputs":[{"type":"video","url":"https://p1-kling.klingai.com/output.mp4"}]}]})
+                }
                 "fal" => {
                     if path.ends_with("/status") {
                         json!({"status":"COMPLETED"})

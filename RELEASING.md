@@ -6,13 +6,17 @@
 macOS Intel/Apple Silicon binaries on matching GitHub-hosted runners. It uses
 Rust 1.97.1, validates the tag against Cargo.toml, and publishes only after every
 platform passes. This is separate from worker image admission.
+The release also gates on clean worker/supervisor Docker builds and a network-
+isolated idle supervisor smoke test. Container builds use the reviewed pinned
+Rust 1.98.0 image; native CLI builds use Rust 1.97.1. This job neither pushes images
+nor substitutes for Phala attestation validation.
 
 After reviewing and committing the release changes, the maintainer can publish
 the corrected version (these commands create an external release when pushed):
 
 ```sh
-git tag v0.6.0
-git push origin v0.6.0
+git tag v0.7.0
+git push origin v0.7.0
 ```
 
 For subsequent releases, bump Cargo.toml and Cargo.lock first, then tag the
@@ -117,6 +121,9 @@ docker build --target worker \
 ```
 
 Use `--target cli` for a standalone CLI container; the default target is `worker`.
+Use `--target updater` to build the separate offline supervisor. Never use its
+digest as the generation worker digest. Both artifacts must be built from the
+reviewed source and recorded separately.
 Final images contain only their
 native executable and the chosen base runtime—no Node.js or Python is added.
 
@@ -129,6 +136,25 @@ native executable and the chosen base runtime—no Node.js or Python is added.
    dstack quotes, admission, activation, job completion, provider accounting,
    recovery, and shutdown before production promotion.
 
-The Rust source does not automatically replace the current Node worker or Python
-CLI. An existing signed invitation for a Node image still deploys that Node image;
-using the Rust CLI alone does not change the worker selected by the invitation.
+Publishing a CLI does not change the worker selected by an existing signed
+deployment. Worker admission and automatic-update opt-in are separate operations.
+
+## v0.7.0 offline updater publication gates
+
+1. Merge the reviewed miner branch and the matching coordinator changes. Run
+   native CI for all four release platforms; do not infer macOS/ARM success from
+   Linux tests. No tag should be pushed before the release review is complete.
+2. Deploy the tested coordinator recovery, bounded fleet lease, replacement-VM
+   fencing and explicit proxy routes before exposing the bootstrap package.
+3. Build and record separate immutable worker and supervisor image digests. The
+   supervisor's digest must remain unchanged during ordinary automatic updates.
+4. Validate the exact final supervisor artifact and signed bootstrap against the
+   approved Phala OS/KMS policy in a separately budget-approved canary. The prior
+   live upgrade/rollback experiment verified the recorded v0.6.3 artifacts, not
+   the new v0.7.0 Kling build. Delete the new canary VM/storage and retain proof.
+5. Publish the signed two-container bootstrap, then publish the CLI downloads.
+   Recheck anonymous installer access, checksums, discovery and opt-in messaging.
+   Keep existing miners opted out; no bulk enrollment or provider jobs are part
+   of publishing. Manual bootstrap/enrollment requires the miner's consent.
+
+See AUTOMATIC-WORKER-UPDATES.md for trust boundaries and validation limitations.

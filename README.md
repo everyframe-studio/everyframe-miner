@@ -435,6 +435,26 @@ If you installed with `cargo install`, upgrade with `cargo install` again:
 `everycli update` and auto-update never replace a cargo build
 (`cargo_install_update_disabled`); `everycli update --check` still works.
 
+### Offline worker updates (bootstrap pending, opt-in)
+
+The v0.7.0 CLI includes the automatic-worker-update implementation. It is **not yet
+available in the public signed worker release**; existing miners remain on the
+manual `worker-update` path.
+
+Unlike automatic CLI updates, it uses a separate, pinned supervisor inside the
+existing Phala VM, so the management computer can be offline. Enrollment needs
+an approved bootstrap worker, fresh attestation and explicit consent to store
+the Phala management token and scoped credentials in the isolated supervisor.
+Use a dedicated Phala workspace. No wallet secret is transferred.
+
+Once that bootstrap is released, `everycli worker-auto-update --enable` opts in;
+`everycli worker-auto-update` reads remote status and `--disable` stops further
+automatic stages. Disabling does not stop hosting charges or erase an unfinished
+recovery journal. Signed updates drain jobs, preserve the previous accepting or
+paused state, and require fresh attestation before returning to service. Failed
+admission can trigger a signed rollback; uncertain cloud operations are never
+blindly repeated. See [the recovery and security contract](AUTOMATIC-WORKER-UPDATES.md).
+
 ### Automatic CLI updates (v0.3.8)
 
 Native user installations check for the latest stable release in the background
@@ -710,7 +730,7 @@ everycli providers
 ```
 
 Provider names: `phala`, `fal`, `minimax`, `openrouter`, `bfl`, `replicate`,
-`google`, `runway`, `luma`, `elevenlabs`, `vivix`. For automation, pipe a secret manager's
+`google`, `runway`, `luma`, `elevenlabs`, `vivix`, `kling`. For automation, pipe a secret manager's
 output into `everycli set-api-keys --provider NAME --stdin`; never put the
 key itself in command arguments or shell history. `--json` never enables prompts.
 
@@ -932,6 +952,7 @@ resources and ongoing charges. To restart the saved workload, use
 | `start` | Restart the saved stopped workload, with a reviewed hourly ceiling |
 | `update` | Upgrade the CLI executable only; `--check` checks without installing |
 | `worker-update` | Discover and install a signed update on the existing VM, then restore its accepting/paused state; `--check` is read-only; `--abort` cancels an unfinished update and keeps the running worker |
+| `worker-auto-update` | Unreleased opt-in supervisor: read remote status, `--enable` enrolls after consent, `--disable` stops automatic stages without stopping VM billing |
 | `reconcile` | Settle uncertain operations from observed cloud/coordinator state without replaying paid cloud mutations |
 
 Mainnet SN117 is the default. Use `--network testnet` for SN566. Default state
@@ -969,6 +990,7 @@ separate steps. The CLI does not initiate payouts.
 | Luma | `luma` | `LUMA_API_KEY` |
 | ElevenLabs | `elevenlabs` | `ELEVENLABS_API_KEY` |
 | Vivix (direct API) | `vivix` | `VIVIX_API_KEY` |
+| Kling (direct API) | `kling` | `KLING_API_KEY` |
 
 Use the key for the provider serving the contract, not just the model's brand.
 For example, a MiniMax model served through Fal uses `FAL_KEY`; the direct
@@ -985,6 +1007,37 @@ inspect the available model offers:
 everycli providers  # Reports key presence and permissions, never key values
 everycli offers
 ```
+
+### Kling direct API (v0.7.0; mining activation pending)
+
+Use a current **Kling developer API key**, not a Fal key or legacy access-key /
+secret-key pair. Create it in the [Kling developer console](https://kling.ai/dev/api-key).
+API resource packs are separate from website subscriptions.
+
+```sh
+everycli set-api-keys --provider kling
+everycli providers
+everycli offers
+```
+
+The CLI checks the key with a free, read-only account query before saving it.
+The candidate `direct/kling/kling-3.0` contract uses the official Singapore API:
+text-to-video, 720p, 16:9, silent single shot, integer durations **3–15 seconds**
+(default 5). This contract does not expose references, native audio, portrait,
+4K, Omni or Turbo variants; existing Kling-through-Fal contracts are unchanged.
+See the [official API specification](https://kling.ai/document-api/apiReference/model/textToVideo).
+
+Saving the key does **not** authorize mining. A signed deployment must permit
+`KLING_API_KEY`, and the coordinator needs independently reviewed direct-API
+pricing and an attested, live-tested worker image. Until then the model remains
+a candidate, not an offerable live route. CLI installation alone does not change
+running workers; use the approved worker update when available.
+
+`everycli balances` reports Kling USD balance as **unsupported**, never zero.
+Kling's [resource-pack query](https://kling.ai/document-api/api/assets/account-usage)
+reports quantities with up to a 12-hour delay, not verified live USD funds.
+Check packages in the developer console. Explicit billing refusals are handled
+separately from moderation; lost submission responses are never blindly retried.
 
 ### Vivix W1
 

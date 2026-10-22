@@ -59,6 +59,14 @@ fn probe(provider: &str, key: &str) -> Option<Probe> {
             "api.vivix.ai",
             bearer(),
         ),
+        "kling" => (
+            format!(
+                "https://api-singapore.klingai.com/account/costs?start_time=0&end_time={}",
+                crate::now()
+            ),
+            "api-singapore.klingai.com",
+            bearer(),
+        ),
         "minimax" => (
             "https://api.minimax.io/v1/files/list?purpose=video_generation".into(),
             "api.minimax.io",
@@ -112,7 +120,7 @@ fn classify_error(provider: &str, code: &str) -> Verdict {
         // Vivix answers a funded-or-not question; a billing code still proves the key.
         ("vivix", "vivix_billing_required") => Verdict::Valid,
         ("fal-billing", "http_403") => Verdict::Rejected,
-        (_, "http_401" | "vivix_auth_rejected") => Verdict::Rejected,
+        (_, "http_401" | "vivix_auth_rejected" | "kling_auth_rejected") => Verdict::Rejected,
         _ => Verdict::Unverified,
     }
 }
@@ -128,6 +136,23 @@ pub fn check(http: &dyn Http, provider: &str, key: &str) -> (Verdict, &'static s
     req.limit = 256_000;
     match http.json(req) {
         Ok(v) => {
+            if provider == "kling" {
+                return match v["code"].as_i64() {
+                    Some(1000..=1004 | 1103) => (Verdict::Rejected, "key_rejected"),
+                    // Live read-only check (2026-10-21): successful accounts
+                    // can omit the package list. This proves authentication,
+                    // never package availability, positive balance or model access.
+                    Some(0)
+                        if v["data"]["code"] == 0
+                            && v["data"]
+                                .get("resource_pack_subscribe_infos")
+                                .is_none_or(Value::is_array) =>
+                    {
+                        (Verdict::Valid, "key_accepted")
+                    }
+                    _ => (Verdict::Unverified, "key_check_inconclusive"),
+                };
+            }
             // MiniMax answers 200 with base_resp.status_code (1004 = authentication).
             if provider == "minimax" {
                 return match v["base_resp"]["status_code"].as_i64() {

@@ -250,6 +250,13 @@ pub fn collect(http: &dyn Http, credentials: &Value) -> Vec<Value> {
 
 pub fn diagnostic(provider: &str, code: &str) -> Value {
     let mut d = crate::diagnostics::value(code);
+    if provider == "kling" && code == "unsupported_balance" {
+        d["message"] =
+            json!("Kling does not expose a verified live USD balance through this integration.");
+        d["next"] = json!(
+            "Check API resource packs in the Kling developer console. Package quantities can lag by 12 hours and are not converted to USD."
+        );
+    }
     if provider == "vivix" && code == "unsupported_balance" {
         d["message"] = json!("This snapshot does not include a Vivix W-credit balance.");
         d["next"] = json!(

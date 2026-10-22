@@ -34,6 +34,7 @@ pub fn duration_range(model: &str) -> Option<(i64, i64)> {
         "minimax/h3-max-turbo/text-to-video" | "minimax/h3-max/text-to-video" => Some((1, 15)),
         "bytedance/seedance-2.5/text-to-video" => Some((4, 30)),
         "direct/vivix/vivix-w1" => Some((5, 15)),
+        "direct/kling/kling-3.0" => Some((3, 15)),
         _ => None,
     }
 }

@@ -48,6 +48,7 @@ fn prefix(p: &str) -> &str {
         "luma" => "https://api.lumalabs.ai",
         "elevenlabs" => "https://api.elevenlabs.io",
         "vivix" => "https://api.vivix.ai",
+        "kling" => "https://api-singapore.klingai.com",
         _ => "",
     }
 }
@@ -129,6 +130,19 @@ impl<'a> Router<'a> {
             self.guard_submission(&mut req)?;
         };
         let data = self.http.json(req)?;
+        if p == "kling" {
+            let code = data["code"]
+                .as_i64()
+                .ok_or(Error("invalid_provider_response"))?;
+            if code != 0 {
+                return Err(crate::submission::kling_error(code));
+            }
+            need(
+                data["data"].is_object() || data["data"].is_array(),
+                "invalid_provider_response",
+            )?;
+            return Ok(data["data"].clone());
+        }
         if p == "vivix" {
             // Never expose upstream messages (which may echo credentials/prompts),
             // and never retry a POST whose acceptance is uncertain.
@@ -329,6 +343,13 @@ impl<'a> Router<'a> {
                 )?;
                 d
             }
+            "kling" => {
+                let d = self.api(p, &format!("/tasks?task_ids={r}"), None)?;
+                let tasks = d.as_array().ok_or(Error("invalid_provider_response"))?;
+                need(tasks.len() == 1, "invalid_provider_response")?;
+                need(tasks[0]["id"] == r, "provider_id_mismatch")?;
+                tasks[0].clone()
+            }
             "fal" => self.api(p, &format!("/{}/requests/{r}/status", s(&m["app"])?), None)?,
             "minimax" => {
                 let d = self.api(p, &format!("/v1/query/video_generation?task_id={r}"), None)?;
@@ -471,6 +492,7 @@ impl<'a> Router<'a> {
             ),
             "luma" => (&["queued"], &["dreaming"], &["completed"], &["failed"]),
             "vivix" => (&["queued"], &["processing"], &["succeeded"], &["failed"]),
+            "kling" => (&["submitted"], &["processing"], &["succeeded"], &["failed"]),
             _ => return Err(Error("unsupported_provider")),
         };
         if queue.contains(&st) {
@@ -556,6 +578,18 @@ impl Provider for Router<'_> {
         let input = &spec["input"];
         let mut body = input.clone();
         let result = match p.as_str() {
+            "kling" => {
+                body.as_object_mut().unwrap().remove("prompt");
+                let d = self.api(
+                    &p,
+                    "/text-to-video/kling-3.0",
+                    Some(&json!({
+                        "prompt": input["prompt"], "settings": body,
+                        "options": {"watermark_info": {"enabled": false}}
+                    })),
+                )?;
+                reference(&d["id"])?
+            }
             "vivix" => {
                 // Seed belongs to the envelope, not jobs[0]. Unknown fields,
                 // including resolution, are rejected by the provider.
@@ -746,6 +780,18 @@ impl Provider for Router<'_> {
         )?;
         let mut metadata = data.clone();
         let media = match p.as_str() {
+            "kling" => {
+                let outputs = data["outputs"]
+                    .as_array()
+                    .ok_or(Error("provider_no_media"))?;
+                need(
+                    outputs.len() == 1 && outputs[0]["type"] == "video",
+                    "provider_no_media",
+                )?;
+                // No API credentials, redirects, arbitrary origins or caller URLs.
+                // Exact artifact admission and live CDN verification remain release gates.
+                self.download(s(&outputs[0]["url"])?, &["*.klingai.com"], None, &[])?
+            }
             // Exact CDN hosts: clipgen-us was returned by the authenticated
             // W1 API in the 2026-10-12 smoke test. No wildcard or redirects.
             "vivix" => self.download(

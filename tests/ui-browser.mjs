@@ -66,6 +66,16 @@ try {
   });
   assert.equal(await page.getByText('Setup complete', { exact: true }).count(), 0, 'failed health cannot retain readiness');
 
+  // Direct Kling is a separate key, not a re-labeled Fal credential.
+  await page.evaluate(() => {
+    S.overview.keys = [{ provider: 'kling', kind: 'generation', saved: false }];
+    history.replaceState(null, '', '#/keys'); render();
+  });
+  assert.equal(await page.getByText('Kling (direct)', { exact: true }).count(), 1);
+  assert.equal(await page.getByText(/Kling developer API key, not a Fal key/).count(), 1);
+  assert.equal(await page.locator('input[type="password"]').count(), 1);
+  await page.evaluate(() => { S.overview.keys = []; });
+
   for (const phase of ['stopping', 'starting', 'provisioned', 'updating']) {
     await page.evaluate(phase => { S.overview.deployment.phase = phase; S.overview.deployment.needsReconcile = true; history.replaceState(null, '', '#/worker'); render(); }, phase);
     assert.equal(await page.getByRole('button', { name: 'Re-sync operation', exact: true }).isEnabled(), true, phase);
@@ -446,6 +456,12 @@ try {
   assert.doesNotMatch(await page.locator('#main').innerText(),/\$0\.000000/);
   await page.evaluate(()=>{S.health={state:'failed',result:{error:{message:'Unavailable'}}};history.replaceState(null,'','#/overview');render();});
   assert.equal(await page.getByLabel('Miner overview summary').locator('.stat').nth(3).locator('.value').textContent(),'Unknown');
+  await page.evaluate(()=>{history.replaceState(null,'','#/worker');render();});
+  assert.equal(await page.getByText('Automatic worker updates',{exact:true}).count(),1);
+  assert.match(await page.locator('#main').innerText(),/Manual updates remain the default/);
+  assert.equal(await page.getByRole('button',{name:'Enable…',exact:true}).count(),1);
+  assert.equal(await page.getByRole('button',{name:'Check status',exact:true}).count(),1);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'offline update controls fit mobile');
   assert.deepEqual(errors, []);
   console.log('UI browser regressions passed: pairing, drafts, lifecycle, readiness, W credits, diagnostics, history filters/pagination/details/races, earnings and mobile.');
 } finally {
