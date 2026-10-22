@@ -69,7 +69,7 @@ fn original_canonical_and_ed25519_vectors() {
 fn all_45_original_model_hashes_match() {
     let f: Value = serde_json::from_str(include_str!("fixtures/compatibility.json")).unwrap();
     assert_eq!(f["models"].as_object().unwrap().len(), 45);
-    assert_eq!(models::MODELS.as_object().unwrap().len(), 47);
+    assert_eq!(models::MODELS.as_object().unwrap().len(), 62);
     for (id, hash) in f["models"].as_object().unwrap() {
         let mut input = json!({"model":id,"prompt":"Everyframe protocol compatibility fixture"});
         if models::info(id).unwrap()["seed"] == true {

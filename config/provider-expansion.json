@@ -1,0 +1,546 @@
+{
+  "direct/minimax/hailuo-02": {
+    "kind": "video",
+    "mime": "video/mp4",
+    "duration": 6,
+    "resolution": "1080p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1920,
+        1080
+      ]
+    ],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "deadlineMs": 480000,
+    "seed": false,
+    "audio": false,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "provider": "minimax",
+    "apiModel": "MiniMax-Hailuo-02",
+    "name": "Hailuo 02 (direct)",
+    "vendor": "MiniMax",
+    "family": "Hailuo",
+    "params": {
+      "duration": 6,
+      "resolution": "1080P",
+      "prompt_optimizer": false
+    },
+    "schemaUrl": "https://platform.minimax.io/docs/api-reference/video-generation-t2v",
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-10-22",
+    "validationStatus": "documentation-reviewed",
+    "description": "Hailuo 02 (direct) via minimax. Fixed text-only contract; paid generation, output validation, independent pricing and signed worker admission required before routing."
+  },
+  "direct/bfl/flux-2-max": {
+    "kind": "image",
+    "mime": "image/png",
+    "duration": null,
+    "resolution": "1024px",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "codecs": [
+      "png"
+    ],
+    "deadlineMs": 480000,
+    "seed": true,
+    "audio": false,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "provider": "bfl",
+    "apiModel": "flux-2-max",
+    "name": "FLUX.2 Max (direct)",
+    "vendor": "Black Forest Labs",
+    "family": "FLUX",
+    "params": {
+      "width": 1024,
+      "height": 1024,
+      "output_format": "png",
+      "safety_tolerance": 2,
+      "disable_pup": true
+    },
+    "schemaUrl": "https://api.bfl.ai/openapi.json",
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-10-22",
+    "validationStatus": "documentation-reviewed",
+    "description": "FLUX.2 Max (direct) via bfl. Fixed text-only contract; paid generation, output validation, independent pricing and signed worker admission required before routing."
+  },
+  "direct/bfl/flux-2-flex": {
+    "kind": "image",
+    "mime": "image/png",
+    "duration": null,
+    "resolution": "1024px",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "codecs": [
+      "png"
+    ],
+    "deadlineMs": 480000,
+    "seed": true,
+    "audio": false,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "provider": "bfl",
+    "apiModel": "flux-2-flex",
+    "name": "FLUX.2 Flex (direct)",
+    "vendor": "Black Forest Labs",
+    "family": "FLUX",
+    "params": {
+      "width": 1024,
+      "height": 1024,
+      "output_format": "png",
+      "safety_tolerance": 2,
+      "prompt_upsampling": false,
+      "steps": 50,
+      "guidance": 5
+    },
+    "schemaUrl": "https://api.bfl.ai/openapi.json",
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-10-22",
+    "validationStatus": "documentation-reviewed",
+    "description": "FLUX.2 Flex (direct) via bfl. Fixed text-only contract; paid generation, output validation, independent pricing and signed worker admission required before routing."
+  },
+  "direct/bfl/flux-2-klein-4b": {
+    "kind": "image",
+    "mime": "image/png",
+    "duration": null,
+    "resolution": "1024px",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "codecs": [
+      "png"
+    ],
+    "deadlineMs": 480000,
+    "seed": true,
+    "audio": false,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "provider": "bfl",
+    "apiModel": "flux-2-klein-4b",
+    "name": "FLUX.2 Klein 4B (direct)",
+    "vendor": "Black Forest Labs",
+    "family": "FLUX",
+    "params": {
+      "width": 1024,
+      "height": 1024,
+      "output_format": "png",
+      "safety_tolerance": 2
+    },
+    "schemaUrl": "https://api.bfl.ai/openapi.json",
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-10-22",
+    "validationStatus": "documentation-reviewed",
+    "description": "FLUX.2 Klein 4B (direct) via bfl. Fixed text-only contract; paid generation, output validation, independent pricing and signed worker admission required before routing."
+  },
+  "direct/bfl/flux-2-klein-9b": {
+    "kind": "image",
+    "mime": "image/png",
+    "duration": null,
+    "resolution": "1024px",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "codecs": [
+      "png"
+    ],
+    "deadlineMs": 480000,
+    "seed": true,
+    "audio": false,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "provider": "bfl",
+    "apiModel": "flux-2-klein-9b",
+    "name": "FLUX.2 Klein 9B (direct)",
+    "vendor": "Black Forest Labs",
+    "family": "FLUX",
+    "params": {
+      "width": 1024,
+      "height": 1024,
+      "output_format": "png",
+      "safety_tolerance": 2
+    },
+    "schemaUrl": "https://api.bfl.ai/openapi.json",
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-10-22",
+    "validationStatus": "documentation-reviewed",
+    "description": "FLUX.2 Klein 9B (direct) via bfl. Fixed text-only contract; paid generation, output validation, independent pricing and signed worker admission required before routing."
+  },
+  "direct/replicate/flux-2-pro": {
+    "kind": "image",
+    "mime": "image/png",
+    "duration": null,
+    "resolution": "1024px",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "codecs": [
+      "png"
+    ],
+    "deadlineMs": 480000,
+    "seed": true,
+    "audio": false,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "provider": "replicate",
+    "apiModel": "black-forest-labs/flux-2-pro",
+    "name": "FLUX.2 Pro (Replicate)",
+    "vendor": "Black Forest Labs",
+    "family": "FLUX",
+    "params": {
+      "aspect_ratio": "custom",
+      "width": 1024,
+      "height": 1024,
+      "output_format": "png",
+      "safety_tolerance": 2,
+      "input_images": []
+    },
+    "schemaUrl": "https://replicate.com/black-forest-labs/flux-2-pro/api/schema",
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-10-22",
+    "validationStatus": "documentation-reviewed",
+    "description": "FLUX.2 Pro (Replicate) via replicate. Fixed text-only contract; paid generation, output validation, independent pricing and signed worker admission required before routing."
+  },
+  "direct/runway/veo-3.1": {
+    "kind": "video",
+    "mime": "video/mp4",
+    "duration": 4,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "deadlineMs": 480000,
+    "seed": true,
+    "audio": true,
+    "maxPrompt": 1000,
+    "feeMultiplier": 1,
+    "provider": "runway",
+    "apiModel": "veo3.1",
+    "name": "Veo 3.1 (Runway)",
+    "vendor": "Google",
+    "family": "Veo",
+    "params": {
+      "duration": 4,
+      "ratio": "1280:720",
+      "audio": true
+    },
+    "schemaUrl": "https://raw.githubusercontent.com/runwayml/sdk-node/main/src/resources/text-to-video.ts",
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-10-22",
+    "validationStatus": "documentation-reviewed",
+    "description": "Veo 3.1 (Runway) via runway. Fixed text-only contract; paid generation, output validation, independent pricing and signed worker admission required before routing."
+  },
+  "direct/runway/veo-3.1-fast": {
+    "kind": "video",
+    "mime": "video/mp4",
+    "duration": 4,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "deadlineMs": 480000,
+    "seed": true,
+    "audio": true,
+    "maxPrompt": 1000,
+    "feeMultiplier": 1,
+    "provider": "runway",
+    "apiModel": "veo3.1_fast",
+    "name": "Veo 3.1 Fast (Runway)",
+    "vendor": "Google",
+    "family": "Veo",
+    "params": {
+      "duration": 4,
+      "ratio": "1280:720",
+      "audio": true
+    },
+    "schemaUrl": "https://raw.githubusercontent.com/runwayml/sdk-node/main/src/resources/text-to-video.ts",
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-10-22",
+    "validationStatus": "documentation-reviewed",
+    "description": "Veo 3.1 Fast (Runway) via runway. Fixed text-only contract; paid generation, output validation, independent pricing and signed worker admission required before routing."
+  },
+  "direct/luma/ray-flash-2": {
+    "kind": "video",
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "deadlineMs": 480000,
+    "seed": false,
+    "audio": false,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "provider": "luma",
+    "apiModel": "ray-flash-2",
+    "name": "Ray 2 Flash (Luma)",
+    "vendor": "Luma",
+    "family": "Ray",
+    "params": {
+      "duration": "5s",
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "loop": false
+    },
+    "schemaUrl": "https://docs.lumalabs.ai/docs/video-generation",
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-10-22",
+    "validationStatus": "documentation-reviewed",
+    "description": "Ray 2 Flash (Luma) via luma. Fixed text-only contract; paid generation, output validation, independent pricing and signed worker admission required before routing."
+  },
+  "direct/elevenlabs/v4-rachel": {
+    "kind": "audio",
+    "mime": "audio/mpeg",
+    "duration": null,
+    "resolution": null,
+    "aspect": null,
+    "dimensions": [],
+    "codecs": [
+      "mp3"
+    ],
+    "deadlineMs": 120000,
+    "seed": false,
+    "audio": true,
+    "maxPrompt": 500,
+    "feeMultiplier": 1,
+    "provider": "elevenlabs",
+    "apiModel": "eleven_v4",
+    "name": "Eleven v4 · Rachel",
+    "vendor": "ElevenLabs",
+    "family": "Speech",
+    "params": {
+      "voice_id": "21m00Tcm4TlvDq8ikWAM",
+      "output_format": "mp3_44100_128"
+    },
+    "schemaUrl": "https://elevenlabs.io/docs/overview/models",
+    "sampleRate": 44100,
+    "maxDurationMs": 120000,
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-10-22",
+    "validationStatus": "documentation-reviewed",
+    "description": "Eleven v4 · Rachel via elevenlabs. Fixed text-only contract; paid generation, output validation, independent pricing and signed worker admission required before routing."
+  },
+  "direct/elevenlabs/v4-turbo-rachel": {
+    "kind": "audio",
+    "mime": "audio/mpeg",
+    "duration": null,
+    "resolution": null,
+    "aspect": null,
+    "dimensions": [],
+    "codecs": [
+      "mp3"
+    ],
+    "deadlineMs": 120000,
+    "seed": false,
+    "audio": true,
+    "maxPrompt": 500,
+    "feeMultiplier": 1,
+    "provider": "elevenlabs",
+    "apiModel": "eleven_v4_turbo",
+    "name": "Eleven v4 Turbo · Rachel",
+    "vendor": "ElevenLabs",
+    "family": "Speech",
+    "params": {
+      "voice_id": "21m00Tcm4TlvDq8ikWAM",
+      "output_format": "mp3_44100_128"
+    },
+    "schemaUrl": "https://elevenlabs.io/docs/overview/models",
+    "sampleRate": 44100,
+    "maxDurationMs": 120000,
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-10-22",
+    "validationStatus": "documentation-reviewed",
+    "description": "Eleven v4 Turbo · Rachel via elevenlabs. Fixed text-only contract; paid generation, output validation, independent pricing and signed worker admission required before routing."
+  },
+  "direct/elevenlabs/v3-rachel": {
+    "kind": "audio",
+    "mime": "audio/mpeg",
+    "duration": null,
+    "resolution": null,
+    "aspect": null,
+    "dimensions": [],
+    "codecs": [
+      "mp3"
+    ],
+    "deadlineMs": 120000,
+    "seed": false,
+    "audio": true,
+    "maxPrompt": 500,
+    "feeMultiplier": 1,
+    "provider": "elevenlabs",
+    "apiModel": "eleven_v3",
+    "name": "Eleven v3 · Rachel",
+    "vendor": "ElevenLabs",
+    "family": "Speech",
+    "params": {
+      "voice_id": "21m00Tcm4TlvDq8ikWAM",
+      "output_format": "mp3_44100_128"
+    },
+    "schemaUrl": "https://elevenlabs.io/docs/overview/models",
+    "sampleRate": 44100,
+    "maxDurationMs": 120000,
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-10-22",
+    "validationStatus": "documentation-reviewed",
+    "description": "Eleven v3 · Rachel via elevenlabs. Fixed text-only contract; paid generation, output validation, independent pricing and signed worker admission required before routing."
+  },
+  "direct/elevenlabs/flash-v2.5-rachel": {
+    "kind": "audio",
+    "mime": "audio/mpeg",
+    "duration": null,
+    "resolution": null,
+    "aspect": null,
+    "dimensions": [],
+    "codecs": [
+      "mp3"
+    ],
+    "deadlineMs": 120000,
+    "seed": false,
+    "audio": true,
+    "maxPrompt": 500,
+    "feeMultiplier": 1,
+    "provider": "elevenlabs",
+    "apiModel": "eleven_flash_v2_5",
+    "name": "Eleven Flash v2.5 · Rachel",
+    "vendor": "ElevenLabs",
+    "family": "Speech",
+    "params": {
+      "voice_id": "21m00Tcm4TlvDq8ikWAM",
+      "output_format": "mp3_44100_128"
+    },
+    "schemaUrl": "https://elevenlabs.io/docs/overview/models",
+    "sampleRate": 44100,
+    "maxDurationMs": 120000,
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-10-22",
+    "validationStatus": "documentation-reviewed",
+    "description": "Eleven Flash v2.5 · Rachel via elevenlabs. Fixed text-only contract; paid generation, output validation, independent pricing and signed worker admission required before routing."
+  },
+  "direct/openrouter/veo-3.1-fast": {
+    "kind": "video",
+    "mime": "video/mp4",
+    "duration": 4,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "deadlineMs": 480000,
+    "seed": false,
+    "audio": true,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "provider": "openrouter",
+    "apiModel": "google/veo-3.1-fast",
+    "name": "Veo 3.1 Fast (OpenRouter)",
+    "vendor": "Google",
+    "family": "Veo",
+    "params": {
+      "duration": 4,
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "generate_audio": true
+    },
+    "schemaUrl": "https://openrouter.ai/docs/guides/overview/multimodal/video-generation",
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-10-22",
+    "validationStatus": "documentation-reviewed",
+    "description": "Veo 3.1 Fast (OpenRouter) via openrouter. Fixed text-only contract; paid generation, output validation, independent pricing and signed worker admission required before routing."
+  },
+  "direct/openrouter/veo-3.1-lite": {
+    "kind": "video",
+    "mime": "video/mp4",
+    "duration": 4,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "deadlineMs": 480000,
+    "seed": false,
+    "audio": true,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "provider": "openrouter",
+    "apiModel": "google/veo-3.1-lite",
+    "name": "Veo 3.1 Lite (OpenRouter)",
+    "vendor": "Google",
+    "family": "Veo",
+    "params": {
+      "duration": 4,
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "generate_audio": true
+    },
+    "schemaUrl": "https://openrouter.ai/docs/guides/overview/multimodal/video-generation",
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-10-22",
+    "validationStatus": "documentation-reviewed",
+    "description": "Veo 3.1 Lite (OpenRouter) via openrouter. Fixed text-only contract; paid generation, output validation, independent pricing and signed worker admission required before routing."
+  }
+}
