@@ -1,6 +1,20 @@
 # Compatibility
 
-## v0.6.3 offline automatic updates (release candidate)
+## v0.7.0 offline automatic updates and Kling
+
+The CLI ships these implementations; signed bootstrap deployment and direct
+Kling mining activation remain pending. Publishing the CLI does not enable them.
+
+Adds optional `KLING_API_KEY` and `direct/kling/kling-3.0`, without changing
+existing model hashes. Kling requires matching coordinator contract/duration
+support, a signed environment allowlist, independent pricing and exact-artifact
+live admission. No existing Fal Kling contract is renamed or repriced. CLI
+key storage cannot widen the signed deployment's permissions. Its balance
+telemetry reports unsupported USD; delayed package units do not gate routing.
+
+The real updater canary in `REAL-MINER-TEST-v0.6.3.md` is historical evidence
+for those pinned artifacts, not a live test of this new Kling build. Rebuilds
+must pass exact-artifact admission again before signing the v0.7.0 release.
 
 Requires the matching coordinator's signed recovery, capsule-bound enrollment,
 bounded single-flight lease and explicitly exposed updater routes. A one-container

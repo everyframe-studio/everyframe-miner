@@ -12,6 +12,36 @@ macro_rules! reasons {
 }
 reasons![
     (
+        "kling_auth_rejected",
+        "Kling rejected the developer API key or its permissions.",
+        "Use everycli set-api-keys --provider kling with a current Kling developer API key, not a legacy access/secret pair."
+    ),
+    (
+        "kling_billing_required",
+        "Kling reports arrears or an exhausted or expired API resource pack.",
+        "Review the Kling developer billing page. A website subscription does not fund these API jobs."
+    ),
+    (
+        "kling_capacity_limited",
+        "Kling's account concurrency or request limit was reached.",
+        "Wait for running tasks to finish. Do not resubmit a task whose acceptance is uncertain."
+    ),
+    (
+        "kling_content_rejected",
+        "Kling rejected the request under its content policy.",
+        "Review the request. It will not be retried on another miner to bypass moderation."
+    ),
+    (
+        "kling_invalid_parameters",
+        "Kling rejected the request parameters or access configuration.",
+        "Check the supported model settings and developer console IP restrictions."
+    ),
+    (
+        "kling_unavailable",
+        "Kling could not complete the API request.",
+        "Check task status before retrying. A lost submission response does not prove that no charge occurred."
+    ),
+    (
         "worker_recovery_unavailable",
         "The previous worker is no longer authorized for automatic recovery.",
         "Keep the VM paused and preserve its journal. Review the expired or revoked recovery with support; do not bypass attestation."

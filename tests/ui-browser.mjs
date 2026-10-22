@@ -66,6 +66,16 @@ try {
   });
   assert.equal(await page.getByText('Setup complete', { exact: true }).count(), 0, 'failed health cannot retain readiness');
 
+  // Direct Kling is a separate key, not a re-labeled Fal credential.
+  await page.evaluate(() => {
+    S.overview.keys = [{ provider: 'kling', kind: 'generation', saved: false }];
+    history.replaceState(null, '', '#/keys'); render();
+  });
+  assert.equal(await page.getByText('Kling (direct)', { exact: true }).count(), 1);
+  assert.equal(await page.getByText(/Kling developer API key, not a Fal key/).count(), 1);
+  assert.equal(await page.locator('input[type="password"]').count(), 1);
+  await page.evaluate(() => { S.overview.keys = []; });
+
   for (const phase of ['stopping', 'starting', 'provisioned', 'updating']) {
     await page.evaluate(phase => { S.overview.deployment.phase = phase; S.overview.deployment.needsReconcile = true; history.replaceState(null, '', '#/worker'); render(); }, phase);
     assert.equal(await page.getByRole('button', { name: 'Re-sync operation', exact: true }).isEnabled(), true, phase);

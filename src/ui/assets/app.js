@@ -240,6 +240,7 @@ const PROVIDERS = {
   phala: ["Phala Cloud", "Hosting. Your worker runs in a sealed (TEE) machine billed to your Phala account."],
   fal: ["fal", "Most video, image and audio models on the network (for example H3 Max, Seedance 2.5, Flux 3)."],
   vivix: ["Vivix", "Vivix W1 world video. Needs Vivix W credits (a W credit pack); A credits do not work."],
+  kling: ["Kling (direct)", "Kling developer API key, not a Fal key or legacy access/secret pair. API resource packs are separate from the web subscription. Model availability requires a signed worker release and pricing."],
   openrouter: ["OpenRouter", "Seedance and image models served through OpenRouter."],
   minimax: ["MiniMax (direct)", "MiniMax models served by MiniMax's own API."],
   bfl: ["Black Forest Labs", "FLUX image models from BFL's own API."],

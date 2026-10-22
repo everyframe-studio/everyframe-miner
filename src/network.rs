@@ -305,7 +305,10 @@ impl Http for PublicHttp {
                         .map_err(|_| Error("response_read_failed"))?;
                     return Err(batch_offer_error(status, &bytes));
                 }
-                if matches!(u.host_str(), Some("api.vivix.ai" | "queue.fal.run")) {
+                if matches!(
+                    u.host_str(),
+                    Some("api.vivix.ai" | "queue.fal.run" | "api-singapore.klingai.com")
+                ) {
                     let status = response.status().as_u16();
                     let mut bytes = Vec::new();
                     response
@@ -314,6 +317,8 @@ impl Http for PublicHttp {
                         .map_err(|_| Error("response_read_failed"))?;
                     return Err(if u.host_str() == Some("queue.fal.run") {
                         crate::submission::fal_http_error(status, &bytes)
+                    } else if u.host_str() == Some("api-singapore.klingai.com") {
+                        crate::submission::kling_http_error(status, &bytes)
                     } else {
                         crate::submission::vivix_http_error(status, &bytes)
                     });

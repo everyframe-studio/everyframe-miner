@@ -1,4 +1,17 @@
 {
+  "direct/kling/kling-3.0": {
+    "kind": "video", "mime": "video/mp4", "duration": 5,
+    "resolution": "720p", "aspect": "16:9", "dimensions": [[1280, 720]],
+    "codecs": ["h264", "hevc"], "deadlineMs": 480000, "seed": false,
+    "audio": false, "maxPrompt": 3072, "feeMultiplier": 1,
+    "provider": "kling", "apiModel": "kling-3.0", "name": "Kling 3.0 (direct)",
+    "vendor": "Kling", "family": "Kling",
+    "params": {"duration": 5, "resolution": "720p", "aspect_ratio": "16:9", "audio": "off", "multi_shot": false},
+    "schemaUrl": "https://kling.ai/document-api/apiReference/model/textToVideo",
+    "schemaCheckedAt": null, "documentationCheckedAt": "2026-10-21",
+    "validationStatus": "documentation-reviewed",
+    "description": "Kling 3.0 direct API. Text-to-video, whole seconds 3-15, 720p landscape, silent single shot. Candidate; live/TEE verification and independent pricing required."
+  },
   "minimax/h3-max-turbo/text-to-video": {
     "provider": "fal",
     "kind": "video",

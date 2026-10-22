@@ -108,3 +108,7 @@ tests, with one live hotkey probe intentionally ignored.
 This is not certification of an official downloadable binary. Public distribution
 still requires native release CI, signed bootstrap publication and CLI release.
 Existing miners have not been opted in automatically.
+
+The v0.7.0 candidate additionally introduces Kling direct API support. The live
+test above remains evidence for its pinned v0.6.3 images only. Any rebuilt worker
+or supervisor requires new exact-artifact admission before production signing.

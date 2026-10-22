@@ -1,23 +1,29 @@
 //! Fixed, non-secret diagnostics; never infer rejection from a lost response.
 pub fn rejected(code: &str) -> Option<&'static str> {
     match code {
-        "http_401" | "vivix_auth_rejected" => Some("provider_auth_rejected"),
-        "http_402" | "vivix_billing_required" | "fal_billing_required" => {
-            Some("provider_billing_required")
+        "http_401" | "vivix_auth_rejected" | "kling_auth_rejected" => {
+            Some("provider_auth_rejected")
         }
+        "http_402"
+        | "vivix_billing_required"
+        | "fal_billing_required"
+        | "kling_billing_required" => Some("provider_billing_required"),
         "submission_deadline_elapsed" => Some("provider_invalid_request"),
-        "http_429" | "vivix_capacity_limited" => Some("provider_capacity_limited"),
+        "http_429" | "vivix_capacity_limited" | "kling_capacity_limited" => {
+            Some("provider_capacity_limited")
+        }
         "provider_key_required" => Some("provider_key_required"),
         // Catalog refusal happens before any paid provider request.
         "provider_model_unavailable" => Some("provider_model_unavailable"),
-        "vivix_content_rejected" => Some("provider_content_rejected"),
+        "vivix_content_rejected" | "kling_content_rejected" => Some("provider_content_rejected"),
         // Generic 403 may be moderation. It must never cause cross-miner retry.
         "http_400"
         | "http_403"
         | "http_404"
         | "http_405"
         | "http_422"
-        | "vivix_invalid_parameters" => Some("provider_invalid_request"),
+        | "vivix_invalid_parameters"
+        | "kling_invalid_parameters" => Some("provider_invalid_request"),
         _ => None,
     }
 }
@@ -50,8 +56,34 @@ pub fn transient_poll(code: &str) -> bool {
             | "http_503"
             | "http_504"
             | "vivix_unavailable"
+            | "kling_unavailable"
+            | "kling_capacity_limited"
             | "provider_not_complete"
     )
+}
+/// Fixed codes from Kling's current API. Never expose upstream message text.
+pub fn kling_error(code: i64) -> crate::Error {
+    crate::Error(match code {
+        1000..=1004 | 1103 => "kling_auth_rejected",
+        1101 | 1102 => "kling_billing_required",
+        1302 | 1303 => "kling_capacity_limited",
+        1300 | 1301 => "kling_content_rejected",
+        1200..=1203 | 1304 => "kling_invalid_parameters",
+        5000..=5002 => "kling_unavailable",
+        _ => "provider_rejected",
+    })
+}
+pub fn kling_http_error(status: u16, bytes: &[u8]) -> crate::Error {
+    // Contradictory bodies cannot turn ambiguous server failures into safe retries.
+    if (400..500).contains(&status)
+        && status != 408
+        && bytes.len() <= 64000
+        && let Ok(v) = serde_json::from_slice::<serde_json::Value>(bytes)
+        && let Some(code) = v["code"].as_i64().filter(|code| *code != 0)
+    {
+        return kling_error(code);
+    }
+    crate::diagnostics::http_error(status)
 }
 pub fn uncertain(code: &str) -> &'static str {
     match code {

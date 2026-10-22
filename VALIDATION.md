@@ -1,5 +1,24 @@
 # Validation
 
+## v0.7.0 Kling direct API candidate — 21 October 2026
+
+- Rust: 295 passed, one explicitly opt-in live hotkey probe ignored.
+- Coordinator: 298 passed, including embedded worker contract parity, candidate
+  pricing/admission gates, optional signed Kling key upgrades and unknown-balance
+  handling. Run with `EVERYFRAME_MINER_ROOT` pointing at this checkout.
+- Formatting, strict all-target Clippy and `git diff --check` passed.
+- Desktop/mobile Playwright regressions passed, including the distinct Kling
+  credential field and setup explanation. Browser checks use isolated profiles
+  and mocked external command results, not real cloud mutations.
+- Free live `/account/costs` check accepted the configured Kling key: HTTP 200,
+  outer code 0, inner code 0. The response omitted the resource-pack list; this
+  does not prove positive funds or model generation access. Regression coverage
+  accepts that shape without inventing a balance.
+- No paid Kling generation or v0.7.0 Phala artifact test was performed. The
+  historical v0.6.3 updater canary below remains tied to its recorded image pins.
+  New artifact admission, reviewed direct pricing, native release CI and public
+  publication remain required. See `PUBLISH-READINESS-v0.7.0.md`.
+
 ## v0.6.3 offline updater candidate — 21 October 2026
 
 - Final local Linux Rust suite: 290 passed, with one live hotkey probe deliberately

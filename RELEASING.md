@@ -15,8 +15,8 @@ After reviewing and committing the release changes, the maintainer can publish
 the corrected version (these commands create an external release when pushed):
 
 ```sh
-git tag v0.6.3
-git push origin v0.6.3
+git tag v0.7.0
+git push origin v0.7.0
 ```
 
 For subsequent releases, bump Cargo.toml and Cargo.lock first, then tag the
@@ -139,7 +139,7 @@ native executable and the chosen base runtime—no Node.js or Python is added.
 Publishing a CLI does not change the worker selected by an existing signed
 deployment. Worker admission and automatic-update opt-in are separate operations.
 
-## v0.6.3 offline updater publication gates
+## v0.7.0 offline updater publication gates
 
 1. Merge the reviewed miner branch and the matching coordinator changes. Run
    native CI for all four release platforms; do not infer macOS/ARM success from
@@ -150,8 +150,8 @@ deployment. Worker admission and automatic-update opt-in are separate operations
    supervisor's digest must remain unchanged during ordinary automatic updates.
 4. Validate the exact final supervisor artifact and signed bootstrap against the
    approved Phala OS/KMS policy in a separately budget-approved canary. The prior
-   live upgrade/rollback experiment predates final hardening and does not certify
-   these final artifacts. Delete its VM and storage and retain sanitized proof.
+   live upgrade/rollback experiment verified the recorded v0.6.3 artifacts, not
+   the new v0.7.0 Kling build. Delete the new canary VM/storage and retain proof.
 5. Publish the signed two-container bootstrap, then publish the CLI downloads.
    Recheck anonymous installer access, checksums, discovery and opt-in messaging.
    Keep existing miners opted out; no bulk enrollment or provider jobs are part
