@@ -22,6 +22,13 @@ Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
 
+### v0.7.3 — Ideogram Vector
+
+Generate editable SVG logos, icons and illustrations through Fal, with three
+quality levels and up to five reference images. Update the worker, then select
+**Ideogram Vector** in All models and set its discount. See the
+[v0.7.3 release notes](RELEASE-NOTES-v0.7.3.md).
+
 ### v0.7.2 — Offline worker updates
 
 The signed worker bootstrap adds an isolated update supervisor inside the

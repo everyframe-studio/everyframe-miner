@@ -226,6 +226,24 @@ pub fn check(spec: &Value) -> Result<()> {
             refs.iter().all(|a| a["role"] == "image"),
             "invalid_reference_role",
         )?;
+        if p["outputMime"] == "image/svg+xml" {
+            need(
+                ["16:9", "9:16", "1:1", "4:5", "4:3", "3:4"].contains(&s(&v["aspect"])?),
+                "invalid_vector_aspect",
+            )?;
+            let negative = s(&v["parameters"]["negative"])?.trim();
+            let text = if negative.is_empty() {
+                prompt.trim().to_string()
+            } else {
+                format!("{}\n\nAvoid: {}.", prompt.trim(), negative)
+            };
+            need(text.encode_utf16().count() <= 9500, "invalid_vector_prompt")?;
+            need(
+                refs.iter()
+                    .all(|r| r["bytes"].as_u64().is_some_and(|n| n <= 10 * 1024 * 1024)),
+                "vector_reference_too_large",
+            )?;
+        }
         let mask = n(&v["parameters"]["maskIndex"])?;
         let precise = v["parameters"]["editPrecision"] == "high";
         need(
@@ -237,7 +255,9 @@ pub fn check(spec: &Value) -> Result<()> {
             "invalid_image_precision",
         )?;
         need(
-            p["apiModel"] == "fal-ai/ideogram/v4.5" || v["parameters"]["quality"] == "medium",
+            ["fal-ai/ideogram/v4.5", "ideogram/vector/text-to-vector"]
+                .contains(&s(&p["apiModel"])?)
+                || v["parameters"]["quality"] == "medium",
             "invalid_image_quality",
         )?;
     } else {
@@ -378,6 +398,16 @@ pub fn body(spec: &Value, urls: &[String]) -> Result<(String, Value)> {
     let mut b = json!({"prompt":prompt});
     let path = s(&p["path"])?;
     let edit = !images.is_empty();
+    if model == "ideogram/vector/text-to-vector" {
+        b["quality"] = par["quality"].clone();
+        b["num_images"] = json!(1);
+        b["seed"] = v["seed"].clone();
+        b["aspect_ratio"] = json!(aspect);
+        if !images.is_empty() {
+            b["image_urls"] = json!(images);
+        }
+        return Ok((format!("/{path}"), b));
+    }
     if model == "fal-ai/ideogram/v4.5" {
         b["quality"] = par["quality"].clone();
         b["num_images"] = json!(1);
@@ -464,7 +494,7 @@ pub fn model_registry() -> Value {
             .collect::<Vec<_>>()
             .join("/");
         result.insert(id.clone(),json!({"provider":p["provider"],"apiModel":p["apiModel"],"app":app,"name":p["name"],"family":if kind=="video"{"H3"}else{"Studio Media"},"kind":kind,
-   "mime":match kind{"video"=>"video/mp4","image"=>"image/png",_=>"audio/mpeg"},"params":{},"seed":true,"duration":if kind=="video"{5}else{1},"resolution":if kind=="video"{"480p"}else if kind=="image"{"1k"}else{"audio"},"aspect":if kind=="audio"{"none"}else{"16:9"},"dimensions":[],"codecs":["h264","hevc"],"deadlineMs":p["deadlineMs"],"maxPrompt":50000}));
+   "mime":p["outputMime"].as_str().unwrap_or(match kind{"video"=>"video/mp4","image"=>"image/png",_=>"audio/mpeg"}),"params":{},"seed":true,"duration":if kind=="video"{5}else{1},"resolution":if kind=="video"{"480p"}else if kind=="image"{"1k"}else{"audio"},"aspect":if kind=="audio"{"none"}else{"16:9"},"dimensions":[],"codecs":["h264","hevc"],"deadlineMs":p["deadlineMs"],"maxPrompt":p["maxPrompt"].as_u64().unwrap_or(50000)}));
     }
     Value::Object(result)
 }
