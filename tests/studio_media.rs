@@ -220,3 +220,22 @@ fn no_unverified_frame_count_can_reach_provider() {
     );
     assert!(api.calls.borrow().is_empty());
 }
+
+#[test]
+fn ideogram_vector_preserves_svg_contract_and_native_inputs() {
+    let model = "studio/media/fal/ideogram/vector/text-to-vector";
+    let mut spec = json!({"model":model,"input":{"prompt":"A logo","seed":7,"duration":1,"resolution":"1k","aspect":"1:1","references":[],"promptExpansion":"balanced","parameters":{"negative":"","quality":"high","editPrecision":"none","maskIndex":-1}}});
+    models::check(&spec).unwrap();
+    let (path, body) = studio_media::body(&spec, &[]).unwrap();
+    assert_eq!(path, "ideogram/vector/text-to-vector");
+    assert_eq!(
+        body,
+        json!({"prompt":"A logo","seed":7,"num_images":1,"aspect_ratio":"1:1","quality":"high"})
+    );
+    assert_eq!(models::info(model).unwrap()["mime"], "image/svg+xml");
+    spec["input"]["aspect"] = json!("21:9");
+    assert!(models::check(&spec).is_err());
+    spec["input"]["aspect"] = json!("1:1");
+    spec["input"]["prompt"] = json!("x".repeat(9501));
+    assert!(models::check(&spec).is_err());
+}
