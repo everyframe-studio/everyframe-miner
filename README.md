@@ -15,9 +15,9 @@ New to mining? Run `everycli ui` for a guided setup page and status dashboard
 in your browser (see [Set up in your browser](#set-up-in-your-browser-everycli-ui)).
 
 This source tree includes the worker, the CLI with built-in updates, 62 base
-contracts (including 15 new provider-model candidates), flexible Studio video
+contracts, flexible Studio video
 and media contracts, and eleven provider adapters. See the
-[provider expansion and activation requirements](PROVIDER-EXPANSION.md).
+[additional provider models](PROVIDER-EXPANSION.md).
 Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
@@ -30,17 +30,14 @@ signed worker updates can run while your management computer is offline.
 Existing miners remain opted out. See [offline worker updates](#offline-worker-updates-opt-in)
 and [v0.7.2 release notes](RELEASE-NOTES-v0.7.2.md).
 
-The 15 provider-model candidates below remain gated: this release does not
-enable unverified generation contracts or change your model bids.
+The coordinator now supports 14 additional direct-provider contracts: MiniMax
+Hailuo 02; BFL FLUX.2 Max, Flex, Klein 4B and Klein 9B; Replicate FLUX.2 Pro;
+Runway Veo 3.1 and Fast; OpenRouter Veo 3.1 Fast and Lite; and four ElevenLabs
+speech models. See [formats and setup](PROVIDER-EXPANSION.md).
 
-### v0.7.1 — More provider-model candidates
-
-Adds 15 fixed contracts across existing MiniMax, BFL, Replicate, Runway, Luma,
-ElevenLabs and OpenRouter adapters, plus OpenRouter failure handling and Luma
-download compatibility fixes. **These new models are not enabled for live mining
-by this CLI release.** Pricing, funded provider tests and signed worker admission
-are separate gates. Existing workers, offers and automatic-update preferences
-remain unchanged. See [v0.7.1 release notes](RELEASE-NOTES-v0.7.1.md).
+Install the compatible worker update, configure the corresponding provider key,
+then select the models and set their discounts in **All models**. Existing bids
+are preserved; each new model needs its own offer.
 
 ### v0.6.2 — FLUX 3 Max
 

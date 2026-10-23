@@ -36,12 +36,18 @@ re-enrollment; the offline supervisor cannot read new keys from your laptop.
 
 ## Model availability
 
-The 15 new provider-model candidates from v0.7.1 remain gated pending funded
-provider validation and pricing approval. No missing provider accounts are
-required for this update, and existing offers are not changed by installation.
-CLI version, signed worker release and live model readiness are separate states.
-The coordinator recognizes candidate IDs in worker capability reports without
-granting model permissions or enabling unpriced bids.
+The coordinator supports 14 additional direct-provider models:
+
+- **MiniMax:** Hailuo 02.
+- **BFL:** FLUX.2 Max, Flex, Klein 4B and Klein 9B.
+- **Replicate:** FLUX.2 Pro.
+- **Runway:** Veo 3.1 and Veo 3.1 Fast.
+- **OpenRouter:** Veo 3.1 Fast and Veo 3.1 Lite.
+- **ElevenLabs:** v4, v4 Turbo, v3 and Flash v2.5 with Rachel.
+
+See [formats and setup](PROVIDER-EXPANSION.md). Configure the corresponding
+provider key, install the compatible signed worker update, and set a discount
+for each model you want to serve. Existing bids are preserved.
 
 ## Routing compatibility
 
@@ -54,5 +60,6 @@ deployed worker's routing version. Existing in-flight jobs are not canceled.
 
 See [the exact-artifact test scope](REAL-MINER-TEST-v0.7.2.md) and the release's
 `canary-validation.json` attachment for cloud recovery and cleanup evidence.
-The canary submits no provider generations; it does not certify the 15 gated
-model candidates as production-ready.
+The bootstrap canary covered automatic updates and recovery without submitting
+provider generations. The subsequent coordinator model activation passed 322
+tests, including per-request speech pricing and safe failover.
