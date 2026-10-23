@@ -406,7 +406,7 @@ pub fn body(spec: &Value, urls: &[String]) -> Result<(String, Value)> {
         if !images.is_empty() {
             b["image_urls"] = json!(images);
         }
-        return Ok((path.into(), b));
+        return Ok((format!("/{path}"), b));
     }
     if model == "fal-ai/ideogram/v4.5" {
         b["quality"] = par["quality"].clone();

@@ -110,6 +110,7 @@ struct Api {
 }
 impl Http for Api {
     fn bytes(&self, r: Request) -> Result<Vec<u8>> {
+        everyframe_miner::network::safe_url(&r.url, &r.hosts)?;
         let u = r.url.clone();
         self.calls.borrow_mut().push(r.clone());
         if u.contains("/attachment/") {
@@ -227,7 +228,7 @@ fn ideogram_vector_preserves_svg_contract_and_native_inputs() {
     let mut spec = json!({"model":model,"input":{"prompt":"A logo","seed":7,"duration":1,"resolution":"1k","aspect":"1:1","references":[],"promptExpansion":"balanced","parameters":{"negative":"","quality":"high","editPrecision":"none","maskIndex":-1}}});
     models::check(&spec).unwrap();
     let (path, body) = studio_media::body(&spec, &[]).unwrap();
-    assert_eq!(path, "ideogram/vector/text-to-vector");
+    assert_eq!(path, "/ideogram/vector/text-to-vector");
     assert_eq!(
         body,
         json!({"prompt":"A logo","seed":7,"num_images":1,"aspect_ratio":"1:1","quality":"high"})
@@ -238,4 +239,32 @@ fn ideogram_vector_preserves_svg_contract_and_native_inputs() {
     spec["input"]["aspect"] = json!("1:1");
     spec["input"]["prompt"] = json!("x".repeat(9501));
     assert!(models::check(&spec).is_err());
+}
+
+#[test]
+fn vector_router_uses_the_allowed_queue_origin_and_poll_root() {
+    let model = "studio/media/fal/ideogram/vector/text-to-vector";
+    let mut spec = media_spec(
+        model,
+        json!({"negative":"","quality":"medium","editPrecision":"none","maskIndex":-1}),
+    );
+    spec["input"]["duration"] = json!(1);
+    spec["input"]["resolution"] = json!("1k");
+    let api = Api {
+        calls: RefCell::default(),
+        kind: "image",
+        bad: false,
+    };
+    let mut router = Router::new(&api, json!({"FAL_KEY":"private-test-key"}));
+    let id = router.submit(&spec).unwrap();
+    assert_eq!(
+        api.calls.borrow()[0].url,
+        "https://queue.fal.run/ideogram/vector/text-to-vector"
+    );
+    assert_eq!(router.poll(&id, &spec).unwrap(), "COMPLETED");
+    assert_eq!(
+        api.calls.borrow()[1].url,
+        "https://queue.fal.run/ideogram/vector/requests/fixture-job/status"
+    );
+    assert_eq!(router.result(&id, &spec).unwrap().media, b"output bytes");
 }
