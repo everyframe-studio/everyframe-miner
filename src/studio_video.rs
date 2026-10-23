@@ -59,7 +59,12 @@ pub fn check(spec: &Value) -> Result<()> {
     let refs = v["references"]
         .as_array()
         .ok_or(Error("invalid_studio_references"))?;
-    need(refs.len() <= 14, "invalid_studio_references")?;
+    need(
+        refs.len() <= p["maxReferences"].as_u64().unwrap_or(14) as usize,
+        "invalid_studio_references",
+    )?;
+    let kling = p["apiModel"] == "kling/v4/text-to-video";
+    let reference_duration = p["referenceDurationMs"].as_i64().unwrap_or(15000);
     let mut counts = [0i64; 5];
     let mut durations = [0i64; 5];
     let mut bytes = 0i64;
@@ -143,10 +148,44 @@ pub fn check(spec: &Value) -> Result<()> {
             "invalid_reference_metadata",
         )?;
         need(
-            (0..=15000).contains(&duration),
+            (0..=reference_duration).contains(&duration),
             "invalid_reference_metadata",
         )?;
+        if p["requiresVisual"] == true && kind == 2 {
+            need(
+                mime == "audio/mpeg" && duration >= 3000,
+                "invalid_vidu_audio_reference",
+            )?;
+        }
+        if kling {
+            let width = n(&a["width"])?;
+            let height = n(&a["height"])?;
+            let min = if kind == 1 { 700 } else { 300 };
+            need(
+                width >= min
+                    && height >= min
+                    && width * 10 >= height * 4
+                    && width * 10 <= height * 25,
+                "invalid_kling_reference_dimensions",
+            )?;
+            if kind == 1 {
+                need(
+                    width <= 4553 && height <= 4553 && duration >= 3000,
+                    "invalid_kling_reference_video",
+                )?;
+            }
+        }
         durations[index] += duration;
+    }
+    if kling {
+        need(counts[0] + counts[3] <= 10, "kling_image_reference_limit")?;
+        need(
+            counts[4] == 0 || counts[0] + counts[1] == 0,
+            "kling_end_frame_with_references",
+        )?;
+    }
+    if p["requiresVisual"] == true {
+        need(counts[0] + counts[3] > 0, "visual_reference_required")?;
     }
     need(bytes <= 128 * 1024 * 1024, "reference_set_too_large")?;
     need(
@@ -169,8 +208,11 @@ pub fn check(spec: &Value) -> Result<()> {
     if p["provider"] == "fal" && counts[2] > 0 {
         need(counts[0] + counts[1] > 0, "audio_needs_visual_reference")?;
     }
+    let total_duration = p["referenceTotalDurationMs"]
+        .as_i64()
+        .unwrap_or(reference_duration);
     need(
-        durations[1] <= 15000 && durations[2] <= 15000,
+        durations[1] <= total_duration && durations[2] <= total_duration,
         "reference_duration_exceeded",
     )?;
     Ok(())
@@ -284,9 +326,92 @@ pub fn body(spec: &Value, urls: &[String]) -> Result<(String, Value)> {
         }
         return Ok(("/api/v1/videos".into(), b));
     }
+    let omni = model == "google/gemini-omni-flash/v1.1/text-to-video";
+    let heygen = model == "heygen/heygen-video/text-to-video";
+    let vidu = model == "fal-ai/vidu/q4/image-to-video";
+    if omni || heygen || vidu {
+        let app = if vidu {
+            "fal-ai/vidu/q4"
+        } else {
+            model.strip_suffix("/text-to-video").unwrap()
+        };
+        if omni {
+            b.as_object_mut().unwrap().remove("seed");
+        }
+        if heygen || vidu {
+            b["enable_safety_checker"] = json!(true);
+        }
+        if heygen {
+            b["prompt_enhancement"] = json!(if v["promptExpansion"] == "disabled" {
+                "disabled"
+            } else {
+                "turbo"
+            });
+        }
+        if let Some(url) = first {
+            b["image_url"] = json!(url);
+            if !omni {
+                b.as_object_mut().unwrap().remove("aspect_ratio");
+            }
+        }
+        if let Some(url) = last {
+            b["end_image_url"] = json!(url);
+        }
+        if !images.is_empty() {
+            b[if omni {
+                "image_urls"
+            } else {
+                "reference_image_urls"
+            }] = json!(images);
+        }
+        if !videos.is_empty() {
+            b["reference_video_urls"] = json!(videos);
+        }
+        if !audio.is_empty() {
+            b["reference_audio_urls"] = json!(audio);
+        }
+        if vidu && has_refs {
+            b["audio"] = json!(true);
+        }
+        let endpoint = if has_refs {
+            "reference-to-video"
+        } else if first.is_some() {
+            "image-to-video"
+        } else {
+            "text-to-video"
+        };
+        return Ok((format!("/{app}/{endpoint}"), b));
+    }
     let app = model
         .strip_suffix("/text-to-video")
         .ok_or(Error("unsupported_studio_endpoint"))?;
+    if app == "kling/v4" {
+        b.as_object_mut().unwrap().remove("seed");
+        if let Some(url) = first {
+            b["start_image_url"] = json!(url);
+        }
+        if let Some(url) = last {
+            b["end_image_url"] = json!(url);
+        }
+        if !images.is_empty() {
+            b["image_urls"] = json!(images);
+        }
+        if !videos.is_empty() {
+            b["video_urls"] = json!(videos);
+        }
+        // I2V follows the source frame; it has no aspect_ratio parameter.
+        if first.is_some() && !has_refs {
+            b.as_object_mut().unwrap().remove("aspect_ratio");
+        }
+        let endpoint = if has_refs {
+            "reference-to-video"
+        } else if first.is_some() {
+            "image-to-video"
+        } else {
+            "text-to-video"
+        };
+        return Ok((format!("/{app}/{endpoint}"), b));
+    }
     let h3 = app.starts_with("minimax/h3-max");
     let wan = app == "alibaba/wan-3.0";
     let seedance = app == "bytedance/seedance-2.5";
@@ -373,7 +498,7 @@ pub fn model_registry() -> Value {
     for (id, p) in POLICIES.as_object().unwrap() {
         let model = p["apiModel"].as_str().unwrap();
         let app = model.split('/').take(2).collect::<Vec<_>>().join("/");
-        result.insert(id.clone(),json!({"provider":p["provider"],"apiModel":model,"app":app,"name":p["name"],"family":"Studio","kind":"video","mime":"video/mp4","params":{},"seed":true,"duration":5,"resolution":p["resolutions"][0],"aspect":"16:9","dimensions":[],"codecs":["h264","hevc"],"deadlineMs":480000,"maxPrompt":p["maxPrompt"]}));
+        result.insert(id.clone(),json!({"provider":p["provider"],"apiModel":model,"app":app,"name":p["name"],"family":"Studio","kind":"video","mime":"video/mp4","params":{},"seed":p["seed"].as_bool().unwrap_or(true),"duration":5,"resolution":p["resolutions"][0],"aspect":"16:9","dimensions":[],"codecs":["h264","hevc"],"deadlineMs":p["deadlineMs"].as_i64().unwrap_or(480000),"maxPrompt":p["maxPrompt"]}));
     }
     Value::Object(result)
 }
