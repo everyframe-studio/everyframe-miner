@@ -473,6 +473,8 @@ everycli worker-auto-update
 
 Wait for fresh worker admission before enrollment. If the worker update is still
 pending, follow its displayed recovery steps rather than redeploying a second VM.
+In `everycli ui`, open **Worker → Automatic worker updates** to check status,
+enable after confirmation, or disable future automatic stages.
 
 Unlike automatic CLI updates, it uses a separate, pinned supervisor inside the
 existing Phala VM, so the management computer can be offline. Enrollment needs

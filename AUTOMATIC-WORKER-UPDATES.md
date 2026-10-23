@@ -1,6 +1,10 @@
-# Automatic worker updates (implemented, unreleased)
+# Automatic worker updates (v0.7.2, opt-in)
 
-This feature is not released or enabled on production miners yet.
+The v0.7.2 rollout publishes a signed bootstrap with an isolated in-VM supervisor.
+Existing miners remain opted out. Install it with `everycli worker-update`, wait
+for fresh admission, then explicitly enroll with
+`everycli worker-auto-update --enable` (or the Worker page in `everycli ui`).
+See REAL-MINER-TEST-v0.7.2.md for the exact-artifact validation record.
 
 ## Offline operation
 
@@ -105,9 +109,9 @@ timed rollback. See REAL-MINER-TEST-v0.6.3.md for pins, live evidence, cleanup
 status and coverage limits. The final rerun passed 290 Rust and 294 coordinator
 tests, with one live hotkey probe intentionally ignored.
 
-This is not certification of an official downloadable binary. Public distribution
-still requires native release CI, signed bootstrap publication and CLI release.
-Existing miners have not been opted in automatically.
+The historical v0.6.3 test was not certification of an official downloadable
+binary. Its release gates were tracked separately, and no existing miner was
+opted in automatically.
 
 The v0.7.0 candidate additionally introduces Kling direct API support. The live
 test above remains evidence for its pinned v0.6.3 images only. Any rebuilt worker
