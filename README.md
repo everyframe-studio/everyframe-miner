@@ -22,6 +22,17 @@ Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
 
+### v0.7.2 — Offline worker updates
+
+The signed worker bootstrap adds an isolated update supervisor inside the
+existing Phala VM. After one manual bootstrap and explicit enrollment, compatible
+signed worker updates can run while your management computer is offline.
+Existing miners remain opted out. See [offline worker updates](#offline-worker-updates-opt-in)
+and [v0.7.2 release notes](RELEASE-NOTES-v0.7.2.md).
+
+The 15 provider-model candidates below remain gated: this release does not
+enable unverified generation contracts or change your model bids.
+
 ### v0.7.1 — More provider-model candidates
 
 Adds 15 fixed contracts across existing MiniMax, BFL, Replicate, Runway, Luma,
@@ -446,11 +457,24 @@ If you installed with `cargo install`, upgrade with `cargo install` again:
 `everycli update` and auto-update never replace a cargo build
 (`cargo_install_update_disabled`); `everycli update --check` still works.
 
-### Offline worker updates (bootstrap pending, opt-in)
+### Offline worker updates (opt-in)
 
-The v0.7.0 CLI includes the automatic-worker-update implementation. It is **not yet
-available in the public signed worker release**; existing miners remain on the
-manual `worker-update` path.
+Upgrade your CLI, then install the compatible signed bootstrap on your existing
+worker. Updating the CLI alone does not install the supervisor:
+
+```sh
+everycli update
+everycli worker-update --check
+everycli worker-update
+everycli doctor
+everycli worker-auto-update --enable
+everycli worker-auto-update
+```
+
+Wait for fresh worker admission before enrollment. If the worker update is still
+pending, follow its displayed recovery steps rather than redeploying a second VM.
+In `everycli ui`, open **Worker → Automatic worker updates** to check status,
+enable after confirmation, or disable future automatic stages.
 
 Unlike automatic CLI updates, it uses a separate, pinned supervisor inside the
 existing Phala VM, so the management computer can be offline. Enrollment needs
@@ -458,7 +482,7 @@ an approved bootstrap worker, fresh attestation and explicit consent to store
 the Phala management token and scoped credentials in the isolated supervisor.
 Use a dedicated Phala workspace. No wallet secret is transferred.
 
-Once that bootstrap is released, `everycli worker-auto-update --enable` opts in;
+`everycli worker-auto-update --enable` opts in after confirmation;
 `everycli worker-auto-update` reads remote status and `--disable` stops further
 automatic stages. Disabling does not stop hosting charges or erase an unfinished
 recovery journal. Signed updates drain jobs, preserve the previous accepting or
@@ -963,7 +987,7 @@ resources and ongoing charges. To restart the saved workload, use
 | `start` | Restart the saved stopped workload, with a reviewed hourly ceiling |
 | `update` | Upgrade the CLI executable only; `--check` checks without installing |
 | `worker-update` | Discover and install a signed update on the existing VM, then restore its accepting/paused state; `--check` is read-only; `--abort` cancels an unfinished update and keeps the running worker |
-| `worker-auto-update` | Unreleased opt-in supervisor: read remote status, `--enable` enrolls after consent, `--disable` stops automatic stages without stopping VM billing |
+| `worker-auto-update` | Opt-in offline supervisor: read remote status, `--enable` enrolls after consent, `--disable` stops automatic stages without stopping VM billing |
 | `reconcile` | Settle uncertain operations from observed cloud/coordinator state without replaying paid cloud mutations |
 
 Mainnet SN117 is the default. Use `--network testnet` for SN566. Default state
