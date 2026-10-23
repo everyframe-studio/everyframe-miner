@@ -710,3 +710,13 @@ fn account_refusals_during_poll_and_result_pause_the_provider_with_the_correct_r
         }
     }
 }
+
+#[test]
+fn claim_renews_a_session_that_cannot_cover_a_long_studio_job() {
+    let (mut worker, f) = fixture(Options::default(), json!({}));
+    worker.enroll().unwrap();
+    worker.session["expires"] = json!(f.clock.get() + 13 * 60 * 1000);
+    worker.claim().unwrap();
+    assert_eq!(worker.session["expires"], 9999999);
+    assert_eq!(f.submits.get(), 0);
+}

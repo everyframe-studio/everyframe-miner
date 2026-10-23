@@ -412,3 +412,11 @@ fn heygen_omni_vidu_match_their_own_schemas() {
         assert!(studio_video::check(&bad).is_err());
     }
 }
+
+#[test]
+fn renewal_budget_includes_long_studio_jobs() {
+    assert_eq!(models::max_job_ms(), 1_200_000);
+    for m in models::STUDIO_MODELS.as_object().unwrap().values() {
+        assert!(models::max_job_ms() >= m["deadlineMs"].as_i64().unwrap());
+    }
+}
