@@ -1,4 +1,124 @@
 {
+  "studio/fal/heygen/heygen-video/text-to-video": {
+    "provider": "fal",
+    "apiModel": "heygen/heygen-video/text-to-video",
+    "name": "HeyGen Video",
+    "aspects": [
+      "21:9",
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+    ],
+    "min": 5,
+    "max": 15,
+    "resolutions": [
+      "480p",
+      "768p",
+      "1080p"
+    ],
+    "refs": {
+      "image": 9,
+      "video": 3,
+      "audio": 3
+    },
+    "frames": 1,
+    "mixed": false,
+    "maxPrompt": 32000,
+    "maxReferences": 15,
+    "deadlineMs": 1200000
+  },
+  "studio/fal/google/gemini-omni-flash/v1.1/text-to-video": {
+    "provider": "fal",
+    "apiModel": "google/gemini-omni-flash/v1.1/text-to-video",
+    "name": "Gemini Omni Flash 1.1",
+    "aspects": [
+      "16:9",
+      "9:16"
+    ],
+    "min": 3,
+    "max": 10,
+    "resolutions": [
+      "360p",
+      "720p",
+      "1080p",
+      "4k"
+    ],
+    "refs": {
+      "image": 10,
+      "video": 3,
+      "audio": 0
+    },
+    "frames": 2,
+    "mixed": false,
+    "maxPrompt": 20000,
+    "maxReferences": 13,
+    "referenceDurationMs": 10000,
+    "referenceTotalDurationMs": 30000,
+    "seed": false,
+    "deadlineMs": 1200000
+  },
+  "studio/fal/fal-ai/vidu/q4/image-to-video": {
+    "provider": "fal",
+    "apiModel": "fal-ai/vidu/q4/image-to-video",
+    "name": "Vidu Q4 Preview",
+    "aspects": [
+      "16:9",
+      "9:16",
+      "4:3",
+      "3:4",
+      "1:1"
+    ],
+    "min": 3,
+    "max": 16,
+    "resolutions": [
+      "540p",
+      "720p",
+      "1080p"
+    ],
+    "refs": {
+      "image": 12,
+      "video": 0,
+      "audio": 3
+    },
+    "frames": 1,
+    "mixed": false,
+    "maxPrompt": 5000,
+    "maxReferences": 15,
+    "referenceDurationMs": 12000,
+    "referenceTotalDurationMs": 36000,
+    "requiresVisual": true,
+    "deadlineMs": 1200000
+  },
+  "studio/fal/kling/v4/text-to-video": {
+    "provider": "fal",
+    "apiModel": "kling/v4/text-to-video",
+    "name": "Kling 4.0",
+    "aspects": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "21:9"
+    ],
+    "min": 3,
+    "max": 30,
+    "resolutions": [
+      "720p",
+      "1080p"
+    ],
+    "refs": {
+      "image": 10,
+      "video": 5,
+      "audio": 0
+    },
+    "frames": 2,
+    "mixed": true,
+    "maxPrompt": 26000,
+    "maxReferences": 15,
+    "referenceDurationMs": 30000,
+    "deadlineMs": 1200000
+  },
   "studio/fal/blackforestlabs/flux-3-max/text-to-video": {
     "provider": "fal",
     "apiModel": "blackforestlabs/flux-3-max/text-to-video",

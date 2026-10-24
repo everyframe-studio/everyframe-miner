@@ -22,6 +22,12 @@ Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
 
+### Kling 4.0 through Fal
+
+The Kling 4.0 worker contract supports 3–30-second videos at 720p or 1080p,
+first/last frames, and image/video references using your Fal key. See
+[formats, pricing and worker setup](KLING4.md).
+
 ### v0.7.3 — Ideogram Vector
 
 Generate editable SVG logos, icons and illustrations through Fal, with three
@@ -1233,3 +1239,7 @@ and private state out of Git. See [SECURITY.md](SECURITY.md) for security guidan
 
 Licensed under the [Apache License, Version 2.0](LICENSE).
 See [LICENSE-NOTICE.md](LICENSE-NOTICE.md) for third-party licensing guidance.
+
+### More video models
+
+HeyGen Video, Gemini Omni Flash 1.1, and Vidu Q4 Preview use the Fal worker adapter. See [supported inputs and setup](VIDEO-MODELS-v0.7.4.md).

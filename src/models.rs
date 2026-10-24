@@ -146,6 +146,7 @@ fn model_max_job_ms() -> i64 {
         .as_object()
         .unwrap()
         .values()
+        .chain(STUDIO_MODELS.as_object().unwrap().values())
         .filter_map(|m| m["deadlineMs"].as_i64())
         .max()
         .unwrap_or(480000)

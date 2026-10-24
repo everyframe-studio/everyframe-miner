@@ -78,8 +78,14 @@ fn studio_contracts_validate_every_resolution_aspect_and_duration() {
                     s["input"]["aspect"] = aspect.clone();
                     s["input"]["resolution"] = resolution.clone();
                     s["input"]["duration"] = json!(duration);
+                    let urls = if p["requiresVisual"] == true {
+                        s["input"]["references"] = json!([asset("first")]);
+                        vec!["first".into()]
+                    } else {
+                        vec![]
+                    };
                     models::check(&s).unwrap();
-                    studio_video::body(&s, &[]).unwrap();
+                    studio_video::body(&s, &urls).unwrap();
                 }
             }
         }
@@ -202,5 +208,215 @@ fn reference_hash_is_verified_before_upload_or_paid_submit() {
             assert_eq!(result.unwrap(), "vivix_job_fixture");
             assert_eq!(api.calls.borrow().len(), 3);
         }
+    }
+}
+
+#[test]
+fn kling4_maps_text_frames_and_references_without_other_models_fields() {
+    let mut s = spec("fal", "kling/v4/text-to-video");
+    s["input"]["duration"] = json!(3);
+    let (path, b) = studio_video::body(&s, &[]).unwrap();
+    assert_eq!(path, "/kling/v4/text-to-video");
+    assert_eq!(
+        b,
+        json!({"prompt":"A cinematic product shot","duration":3,"resolution":"720p","aspect_ratio":"9:16"})
+    );
+    s["input"]["references"] = json!([asset("first"), asset("last")]);
+    let (path, b) = studio_video::body(&s, &["first".into(), "last".into()]).unwrap();
+    assert_eq!(path, "/kling/v4/image-to-video");
+    assert_eq!(b["start_image_url"], "first");
+    assert_eq!(b["end_image_url"], "last");
+    assert!(b.get("aspect_ratio").is_none());
+    let mut video = asset("video");
+    video["mime"] = json!("video/mp4");
+    video["durationMs"] = json!(30000);
+    s["input"]["references"] = json!([asset("first"), asset("image"), video]);
+    let (path, b) =
+        studio_video::body(&s, &["first".into(), "image".into(), "video".into()]).unwrap();
+    assert_eq!(path, "/kling/v4/reference-to-video");
+    assert_eq!(b["start_image_url"], "first");
+    assert_eq!(b["image_urls"], json!(["image"]));
+    assert_eq!(b["video_urls"], json!(["video"]));
+    assert_eq!(b["aspect_ratio"], "9:16");
+    for field in [
+        "seed",
+        "image_url",
+        "reference_image_urls",
+        "generate_audio",
+        "prompt_expansion_mode",
+    ] {
+        assert!(b.get(field).is_none());
+    }
+    assert_eq!(
+        models::info(s["model"].as_str().unwrap()).unwrap()["deadlineMs"],
+        1200000
+    );
+}
+
+#[test]
+fn kling4_rejects_bad_references_before_paid_submission() {
+    let base = spec("fal", "kling/v4/text-to-video");
+    for patch in [
+        json!({"width":299}),
+        json!({"height":299}),
+        json!({"width":4000,"height":720}),
+    ] {
+        let mut s = base.clone();
+        let mut a = asset("image");
+        for (k, v) in patch.as_object().unwrap() {
+            a[k] = v.clone();
+        }
+        s["input"]["references"] = json!([a]);
+        assert!(studio_video::check(&s).is_err());
+    }
+    let mut s = base.clone();
+    s["input"]["references"] = json!([asset("first"), asset("last"), asset("image")]);
+    assert_eq!(
+        studio_video::check(&s).unwrap_err().0,
+        "kling_end_frame_with_references"
+    );
+    let mut refs = vec![asset("image"); 10];
+    refs.push(asset("first"));
+    s["input"]["references"] = json!(refs);
+    assert_eq!(
+        studio_video::check(&s).unwrap_err().0,
+        "kling_image_reference_limit"
+    );
+    for duration in [2999, 30001] {
+        let mut a = asset("video");
+        a["mime"] = json!("video/mp4");
+        a["durationMs"] = json!(duration);
+        s["input"]["references"] = json!([a]);
+        assert!(studio_video::check(&s).is_err());
+    }
+    let mut refs = vec![asset("image"); 10];
+    for _ in 0..5 {
+        let mut a = asset("video");
+        a["mime"] = json!("video/mp4");
+        a["durationMs"] = json!(6000);
+        refs.push(a);
+    }
+    s["input"]["references"] = json!(refs);
+    studio_video::check(&s).unwrap();
+    s["input"]["references"][10]["durationMs"] = json!(6001);
+    assert_eq!(
+        studio_video::check(&s).unwrap_err().0,
+        "reference_duration_exceeded"
+    );
+}
+
+#[test]
+fn kling4_uses_fal_queue_and_downloads_without_credentials() {
+    struct Fal {
+        calls: RefCell<Vec<Request>>,
+    }
+    impl Http for Fal {
+        fn bytes(&self, r: Request) -> Result<Vec<u8>> {
+            everyframe_miner::network::safe_url(&r.url, &r.hosts)?;
+            let response = match (r.method.as_str(), r.url.as_str()) {
+                ("POST", "https://queue.fal.run/kling/v4/text-to-video") => {
+                    let b: Value = serde_json::from_slice(r.body.as_ref().unwrap()).unwrap();
+                    assert_eq!(b["duration"], 5);
+                    assert!(b.get("seed").is_none());
+                    json!({"request_id":"kling4-fixture"})
+                }
+                ("GET", "https://queue.fal.run/kling/v4/requests/kling4-fixture/status") => {
+                    json!({"status":"COMPLETED"})
+                }
+                ("GET", "https://queue.fal.run/kling/v4/requests/kling4-fixture") => {
+                    json!({"video":{"url":"https://v3b.fal.media/files/kling4.mp4"}})
+                }
+                ("GET", "https://v3b.fal.media/files/kling4.mp4") => {
+                    assert!(r.headers.is_empty());
+                    self.calls.borrow_mut().push(r);
+                    return Ok(b"fixture-video".to_vec());
+                }
+                _ => panic!("Unexpected request: {} {}", r.method, r.url),
+            };
+            assert!(
+                r.headers
+                    .iter()
+                    .any(|(k, _)| k.eq_ignore_ascii_case("authorization"))
+            );
+            self.calls.borrow_mut().push(r);
+            Ok(serde_json::to_vec(&response).unwrap())
+        }
+    }
+    let http = Fal {
+        calls: RefCell::new(vec![]),
+    };
+    let mut router = Router::new(&http, json!({"FAL_KEY":"fixture-key"}));
+    let s = spec("fal", "kling/v4/text-to-video");
+    let id = router.submit(&s).unwrap();
+    assert_eq!(router.poll(&id, &s).unwrap(), "COMPLETED");
+    assert_eq!(router.result(&id, &s).unwrap().media, b"fixture-video");
+    assert_eq!(http.calls.borrow().len(), 4);
+}
+
+#[test]
+fn heygen_omni_vidu_match_their_own_schemas() {
+    let mut h = spec("fal", "heygen/heygen-video/text-to-video");
+    let (_, b) = studio_video::body(&h, &[]).unwrap();
+    assert_eq!(b["prompt_enhancement"], "turbo");
+    assert_eq!(b["enable_safety_checker"], true);
+    h["input"]["references"] = json!([asset("first")]);
+    h["input"]["promptExpansion"] = json!("disabled");
+    let (path, b) = studio_video::body(&h, &["first".into()]).unwrap();
+    assert_eq!(path, "/heygen/heygen-video/image-to-video");
+    assert!(b.get("aspect_ratio").is_none());
+    assert_eq!(b["prompt_enhancement"], "disabled");
+    h["input"]["references"] = json!([asset("last"), asset("first")]);
+    assert!(studio_video::check(&h).is_err());
+
+    let mut g = spec("fal", "google/gemini-omni-flash/v1.1/text-to-video");
+    g["input"]["references"] = json!([asset("first"), asset("last")]);
+    let (path, b) = studio_video::body(&g, &["first".into(), "last".into()]).unwrap();
+    assert_eq!(path, "/google/gemini-omni-flash/v1.1/image-to-video");
+    assert_eq!(b["end_image_url"], "last");
+    assert_eq!(b["aspect_ratio"], "9:16");
+    assert!(b.get("seed").is_none());
+    let mut video = asset("video");
+    video["mime"] = json!("video/mp4");
+    video["durationMs"] = json!(10000);
+    g["input"]["references"] = json!([asset("image"), video.clone(), video.clone(), video.clone()]);
+    let (path, b) =
+        studio_video::body(&g, &["image".into(), "v1".into(), "v2".into(), "v3".into()]).unwrap();
+    assert_eq!(path, "/google/gemini-omni-flash/v1.1/reference-to-video");
+    assert_eq!(b["image_urls"], json!(["image"]));
+    assert_eq!(b["reference_video_urls"].as_array().unwrap().len(), 3);
+    g["input"]["references"][1]["durationMs"] = json!(10001);
+    assert!(studio_video::check(&g).is_err());
+
+    let mut v = spec("fal", "fal-ai/vidu/q4/image-to-video");
+    assert_eq!(
+        studio_video::check(&v).unwrap_err().0,
+        "visual_reference_required"
+    );
+    v["input"]["references"] = json!([asset("first")]);
+    let (path, b) = studio_video::body(&v, &["first".into()]).unwrap();
+    assert_eq!(path, "/fal-ai/vidu/q4/image-to-video");
+    assert!(b.get("aspect_ratio").is_none());
+    assert!(b.get("audio").is_none());
+    let mut audio = asset("audio");
+    audio["mime"] = json!("audio/mpeg");
+    audio["durationMs"] = json!(12000);
+    v["input"]["references"] = json!([asset("image"), audio.clone(), audio.clone(), audio]);
+    let (path, b) =
+        studio_video::body(&v, &["image".into(), "a1".into(), "a2".into(), "a3".into()]).unwrap();
+    assert_eq!(path, "/fal-ai/vidu/q4/reference-to-video");
+    assert_eq!(b["audio"], true);
+    assert_eq!(b["reference_image_urls"], json!(["image"]));
+    for (key, value) in [("durationMs", json!(2999)), ("mime", json!("audio/wav"))] {
+        let mut bad = v.clone();
+        bad["input"]["references"][1][key] = value;
+        assert!(studio_video::check(&bad).is_err());
+    }
+}
+
+#[test]
+fn renewal_budget_includes_long_studio_jobs() {
+    assert_eq!(models::max_job_ms(), 1_200_000);
+    for m in models::STUDIO_MODELS.as_object().unwrap().values() {
+        assert!(models::max_job_ms() >= m["deadlineMs"].as_i64().unwrap());
     }
 }
