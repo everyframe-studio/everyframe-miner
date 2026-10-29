@@ -1,0 +1,1029 @@
+[
+  {
+    "spec": {
+      "model": "studio/tool/fal/kling/v4/video-to-video/edit",
+      "input": {
+        "prompt": "A creative scene",
+        "seed": 42,
+        "duration": 5,
+        "resolution": "720p",
+        "aspect": "source",
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_video0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "video/mp4",
+            "role": "video",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 5000,
+            "frameCount": 120,
+            "fpsMilli": 24000,
+            "hasAudio": true
+          }
+        ],
+        "promptExpansion": "disabled",
+        "parameters": {}
+      }
+    },
+    "urls": [
+      "https://files.fal.media/reference0"
+    ],
+    "path": "/kling/v4/video-to-video/edit",
+    "body": {
+      "prompt": "A creative scene",
+      "video_url": "https://files.fal.media/reference0",
+      "resolution": "720p",
+      "duration": 5
+    }
+  },
+  {
+    "spec": {
+      "model": "studio/tool/fal/kling/v4/video-to-video/edit",
+      "input": {
+        "prompt": "A creative scene",
+        "seed": 42,
+        "duration": 5,
+        "resolution": "1080p",
+        "aspect": "source",
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_video0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "video/mp4",
+            "role": "video",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 5000,
+            "frameCount": 120,
+            "fpsMilli": 24000,
+            "hasAudio": true
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_image0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": 0,
+            "frameCount": 0,
+            "fpsMilli": 0,
+            "hasAudio": false
+          }
+        ],
+        "promptExpansion": "balanced",
+        "parameters": {}
+      }
+    },
+    "urls": [
+      "https://files.fal.media/reference0",
+      "https://files.fal.media/reference1"
+    ],
+    "path": "/kling/v4/video-to-video/edit",
+    "body": {
+      "prompt": "A creative scene",
+      "video_url": "https://files.fal.media/reference0",
+      "resolution": "1080p",
+      "duration": 5,
+      "image_urls": [
+        "https://files.fal.media/reference1"
+      ]
+    }
+  },
+  {
+    "spec": {
+      "model": "studio/tool/fal/minimax/h3-max/recast",
+      "input": {
+        "prompt": "A creative scene",
+        "seed": 42,
+        "duration": 5,
+        "resolution": "768p",
+        "aspect": "source",
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_video0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "video/mp4",
+            "role": "video",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 5000,
+            "frameCount": 120,
+            "fpsMilli": 24000,
+            "hasAudio": true
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_image0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": 0,
+            "frameCount": 0,
+            "fpsMilli": 0,
+            "hasAudio": false
+          }
+        ],
+        "promptExpansion": "disabled",
+        "parameters": {
+          "enhanceRealism": false
+        }
+      }
+    },
+    "urls": [
+      "https://files.fal.media/reference0",
+      "https://files.fal.media/reference1"
+    ],
+    "path": "/minimax/h3-max/recast",
+    "body": {
+      "video_url": "https://files.fal.media/reference0",
+      "reference_image_urls": [
+        "https://files.fal.media/reference1"
+      ],
+      "resolution": "768P",
+      "seed": 42,
+      "enhance_realism": false,
+      "enable_safety_checker": true,
+      "prompt": "A creative scene"
+    }
+  },
+  {
+    "spec": {
+      "model": "studio/tool/fal/minimax/h3-max/recast",
+      "input": {
+        "prompt": "A creative scene",
+        "seed": 42,
+        "duration": 5,
+        "resolution": "1080p",
+        "aspect": "source",
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_video0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "video/mp4",
+            "role": "video",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 5000,
+            "frameCount": 120,
+            "fpsMilli": 24000,
+            "hasAudio": true
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_image0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": 0,
+            "frameCount": 0,
+            "fpsMilli": 0,
+            "hasAudio": false
+          }
+        ],
+        "promptExpansion": "balanced",
+        "parameters": {
+          "enhanceRealism": true
+        }
+      }
+    },
+    "urls": [
+      "https://files.fal.media/reference0",
+      "https://files.fal.media/reference1"
+    ],
+    "path": "/minimax/h3-max/recast",
+    "body": {
+      "video_url": "https://files.fal.media/reference0",
+      "reference_image_urls": [
+        "https://files.fal.media/reference1"
+      ],
+      "resolution": "1080P",
+      "seed": 42,
+      "enhance_realism": true,
+      "enable_safety_checker": true,
+      "prompt": "A creative scene"
+    }
+  },
+  {
+    "spec": {
+      "model": "studio/tool/fal/minimax/h3-max/relight",
+      "input": {
+        "prompt": "A creative scene",
+        "seed": 42,
+        "duration": 5,
+        "resolution": "480p",
+        "aspect": "source",
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_video0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "video/mp4",
+            "role": "video",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 5000,
+            "frameCount": 120,
+            "fpsMilli": 24000,
+            "hasAudio": true
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_image0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": 0,
+            "frameCount": 0,
+            "fpsMilli": 0,
+            "hasAudio": false
+          }
+        ],
+        "promptExpansion": "disabled",
+        "parameters": {}
+      }
+    },
+    "urls": [
+      "https://files.fal.media/reference0",
+      "https://files.fal.media/reference1"
+    ],
+    "path": "/minimax/h3-max/relight",
+    "body": {
+      "video_url": "https://files.fal.media/reference0",
+      "reference_image_url": "https://files.fal.media/reference1",
+      "resolution": "480P",
+      "aspect_ratio": "16:9",
+      "seed": 42,
+      "enable_safety_checker": true
+    }
+  },
+  {
+    "spec": {
+      "model": "studio/tool/fal/minimax/h3-max/relight",
+      "input": {
+        "prompt": "A creative scene",
+        "seed": 42,
+        "duration": 5,
+        "resolution": "2k",
+        "aspect": "source",
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_video0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "video/mp4",
+            "role": "video",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 5000,
+            "frameCount": 120,
+            "fpsMilli": 24000,
+            "hasAudio": true
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_image0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": 0,
+            "frameCount": 0,
+            "fpsMilli": 0,
+            "hasAudio": false
+          }
+        ],
+        "promptExpansion": "balanced",
+        "parameters": {}
+      }
+    },
+    "urls": [
+      "https://files.fal.media/reference0",
+      "https://files.fal.media/reference1"
+    ],
+    "path": "/minimax/h3-max/relight",
+    "body": {
+      "video_url": "https://files.fal.media/reference0",
+      "reference_image_url": "https://files.fal.media/reference1",
+      "resolution": "2K",
+      "aspect_ratio": "16:9",
+      "seed": 42,
+      "enable_safety_checker": true
+    }
+  },
+  {
+    "spec": {
+      "model": "studio/tool/fal/veed/dubbing",
+      "input": {
+        "prompt": "A creative scene",
+        "seed": 42,
+        "duration": 5,
+        "resolution": "source",
+        "aspect": "source",
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_video0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "video/mp4",
+            "role": "video",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 5000,
+            "frameCount": 120,
+            "fpsMilli": 24000,
+            "hasAudio": true
+          }
+        ],
+        "promptExpansion": "disabled",
+        "parameters": {
+          "targetLanguage": "af",
+          "sourceLanguage": "auto",
+          "keyterms": []
+        }
+      }
+    },
+    "urls": [
+      "https://files.fal.media/reference0"
+    ],
+    "path": "/veed/dubbing",
+    "body": {
+      "video_url": "https://files.fal.media/reference0",
+      "target_language": "af",
+      "source_language": "auto",
+      "keyterms": []
+    }
+  },
+  {
+    "spec": {
+      "model": "studio/tool/fal/veed/dubbing",
+      "input": {
+        "prompt": "A creative scene",
+        "seed": 42,
+        "duration": 5,
+        "resolution": "source",
+        "aspect": "source",
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_video0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "video/mp4",
+            "role": "video",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 5000,
+            "frameCount": 120,
+            "fpsMilli": 24000,
+            "hasAudio": true
+          }
+        ],
+        "promptExpansion": "balanced",
+        "parameters": {
+          "targetLanguage": "zh",
+          "sourceLanguage": "zh",
+          "keyterms": []
+        }
+      }
+    },
+    "urls": [
+      "https://files.fal.media/reference0"
+    ],
+    "path": "/veed/dubbing",
+    "body": {
+      "video_url": "https://files.fal.media/reference0",
+      "target_language": "zh",
+      "source_language": "zh",
+      "keyterms": []
+    }
+  },
+  {
+    "spec": {
+      "model": "studio/tool/fal/veed/dubbing/pro",
+      "input": {
+        "prompt": "A creative scene",
+        "seed": 42,
+        "duration": 5,
+        "resolution": "source",
+        "aspect": "source",
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_video0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "video/mp4",
+            "role": "video",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 5000,
+            "frameCount": 120,
+            "fpsMilli": 24000,
+            "hasAudio": true
+          }
+        ],
+        "promptExpansion": "disabled",
+        "parameters": {
+          "targetLanguage": "af",
+          "sourceLanguage": "auto",
+          "keyterms": [],
+          "voiceStrength": 0
+        }
+      }
+    },
+    "urls": [
+      "https://files.fal.media/reference0"
+    ],
+    "path": "/veed/dubbing/pro",
+    "body": {
+      "video_url": "https://files.fal.media/reference0",
+      "target_language": "af",
+      "source_language": "auto",
+      "keyterms": [],
+      "voice_cloning_strength": 0
+    }
+  },
+  {
+    "spec": {
+      "model": "studio/tool/fal/veed/dubbing/pro",
+      "input": {
+        "prompt": "A creative scene",
+        "seed": 42,
+        "duration": 5,
+        "resolution": "source",
+        "aspect": "source",
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_video0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "video/mp4",
+            "role": "video",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 5000,
+            "frameCount": 120,
+            "fpsMilli": 24000,
+            "hasAudio": true
+          }
+        ],
+        "promptExpansion": "balanced",
+        "parameters": {
+          "targetLanguage": "zu",
+          "sourceLanguage": "zu",
+          "keyterms": [],
+          "voiceStrength": 10
+        }
+      }
+    },
+    "urls": [
+      "https://files.fal.media/reference0"
+    ],
+    "path": "/veed/dubbing/pro",
+    "body": {
+      "video_url": "https://files.fal.media/reference0",
+      "target_language": "zu",
+      "source_language": "zu",
+      "keyterms": [],
+      "voice_cloning_strength": 10
+    }
+  },
+  {
+    "spec": {
+      "model": "studio/tool/fal/heygen/heygen-voice",
+      "input": {
+        "prompt": "A creative scene",
+        "seed": 42,
+        "duration": 1,
+        "resolution": "audio",
+        "aspect": "none",
+        "references": [],
+        "promptExpansion": "disabled",
+        "parameters": {
+          "voice": "Jonah",
+          "language": "auto",
+          "expressiveness": 0
+        }
+      }
+    },
+    "urls": [],
+    "path": "/heygen/heygen-voice",
+    "body": {
+      "text": "A creative scene",
+      "voice": "Jonah",
+      "expressiveness_boost": 0,
+      "enable_safety_checker": true
+    }
+  },
+  {
+    "spec": {
+      "model": "studio/tool/fal/heygen/heygen-voice",
+      "input": {
+        "prompt": "A creative scene",
+        "seed": 42,
+        "duration": 1,
+        "resolution": "audio",
+        "aspect": "none",
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_audio0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "audio/wav",
+            "role": "audio",
+            "width": 0,
+            "height": 0,
+            "durationMs": 5000,
+            "frameCount": 0,
+            "fpsMilli": 0,
+            "hasAudio": true
+          }
+        ],
+        "promptExpansion": "balanced",
+        "parameters": {
+          "voice": "Sabrina",
+          "language": "zh",
+          "expressiveness": 100
+        }
+      }
+    },
+    "urls": [
+      "https://files.fal.media/reference0"
+    ],
+    "path": "/heygen/heygen-voice",
+    "body": {
+      "text": "A creative scene",
+      "voice": "Sabrina",
+      "expressiveness_boost": 1,
+      "enable_safety_checker": true,
+      "language": "zh",
+      "reference_audio_url": "https://files.fal.media/reference0"
+    }
+  },
+  {
+    "spec": {
+      "model": "studio/tool/fal/heygen/heygen-voice/turbo",
+      "input": {
+        "prompt": "A creative scene",
+        "seed": 42,
+        "duration": 1,
+        "resolution": "audio",
+        "aspect": "none",
+        "references": [],
+        "promptExpansion": "disabled",
+        "parameters": {
+          "voice": "Jonah",
+          "language": "auto",
+          "expressiveness": 0
+        }
+      }
+    },
+    "urls": [],
+    "path": "/heygen/heygen-voice/turbo",
+    "body": {
+      "text": "A creative scene",
+      "voice": "Jonah",
+      "expressiveness_boost": 0,
+      "enable_safety_checker": true
+    }
+  },
+  {
+    "spec": {
+      "model": "studio/tool/fal/heygen/heygen-voice/turbo",
+      "input": {
+        "prompt": "A creative scene",
+        "seed": 42,
+        "duration": 1,
+        "resolution": "audio",
+        "aspect": "none",
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_audio0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "audio/wav",
+            "role": "audio",
+            "width": 0,
+            "height": 0,
+            "durationMs": 5000,
+            "frameCount": 0,
+            "fpsMilli": 0,
+            "hasAudio": true
+          }
+        ],
+        "promptExpansion": "balanced",
+        "parameters": {
+          "voice": "Sabrina",
+          "language": "zh",
+          "expressiveness": 100
+        }
+      }
+    },
+    "urls": [
+      "https://files.fal.media/reference0"
+    ],
+    "path": "/heygen/heygen-voice/turbo",
+    "body": {
+      "text": "A creative scene",
+      "voice": "Sabrina",
+      "expressiveness_boost": 1,
+      "enable_safety_checker": true,
+      "language": "zh",
+      "reference_audio_url": "https://files.fal.media/reference0"
+    }
+  },
+  {
+    "spec": {
+      "model": "studio/tool/fal/blackforestlabs/flux-3/klein/text-to-image/lora",
+      "input": {
+        "prompt": "A creative scene",
+        "seed": 42,
+        "duration": 1,
+        "resolution": "1k",
+        "aspect": "16:9",
+        "references": [],
+        "promptExpansion": "disabled",
+        "parameters": {
+          "loraScales": []
+        }
+      }
+    },
+    "urls": [],
+    "path": "/blackforestlabs/flux-3/klein/text-to-image/lora",
+    "body": {
+      "prompt": "A creative scene",
+      "seed": 42,
+      "image_size": {
+        "width": 1376,
+        "height": 768
+      },
+      "num_images": 1,
+      "output_format": "png",
+      "enable_safety_checker": true,
+      "enable_prompt_expansion": false,
+      "sync_mode": false,
+      "loras": []
+    }
+  },
+  {
+    "spec": {
+      "model": "studio/tool/fal/blackforestlabs/flux-3/klein/text-to-image/lora",
+      "input": {
+        "prompt": "A creative scene",
+        "seed": 42,
+        "duration": 1,
+        "resolution": "1k",
+        "aspect": "3:4",
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/tool-asset/ast_lora0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "application/x-safetensors",
+            "role": "lora",
+            "width": 0,
+            "height": 0,
+            "durationMs": 0,
+            "frameCount": 0,
+            "fpsMilli": 0,
+            "hasAudio": false
+          }
+        ],
+        "promptExpansion": "balanced",
+        "parameters": {
+          "loraScales": [
+            140
+          ]
+        }
+      }
+    },
+    "urls": [
+      "https://files.fal.media/reference0"
+    ],
+    "path": "/blackforestlabs/flux-3/klein/text-to-image/lora",
+    "body": {
+      "prompt": "A creative scene",
+      "seed": 42,
+      "image_size": {
+        "width": 864,
+        "height": 1152
+      },
+      "num_images": 1,
+      "output_format": "png",
+      "enable_safety_checker": true,
+      "enable_prompt_expansion": true,
+      "sync_mode": false,
+      "loras": [
+        {
+          "path": "https://files.fal.media/reference0",
+          "scale": 1.4
+        }
+      ]
+    }
+  },
+  {
+    "spec": {
+      "model": "studio/tool/fal/blackforestlabs/flux-3/klein/edit-image/lora",
+      "input": {
+        "prompt": "A creative scene",
+        "seed": 42,
+        "duration": 1,
+        "resolution": "1k",
+        "aspect": "16:9",
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_image0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": 0,
+            "frameCount": 0,
+            "fpsMilli": 0,
+            "hasAudio": false
+          }
+        ],
+        "promptExpansion": "disabled",
+        "parameters": {
+          "loraScales": []
+        }
+      }
+    },
+    "urls": [
+      "https://files.fal.media/reference0"
+    ],
+    "path": "/blackforestlabs/flux-3/klein/edit-image/lora",
+    "body": {
+      "prompt": "A creative scene",
+      "seed": 42,
+      "image_size": {
+        "width": 1376,
+        "height": 768
+      },
+      "num_images": 1,
+      "output_format": "png",
+      "enable_safety_checker": true,
+      "enable_prompt_expansion": false,
+      "sync_mode": false,
+      "loras": [],
+      "image_urls": [
+        "https://files.fal.media/reference0"
+      ]
+    }
+  },
+  {
+    "spec": {
+      "model": "studio/tool/fal/blackforestlabs/flux-3/klein/edit-image/lora",
+      "input": {
+        "prompt": "A creative scene",
+        "seed": 42,
+        "duration": 1,
+        "resolution": "1k",
+        "aspect": "3:4",
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_image0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": 0,
+            "frameCount": 0,
+            "fpsMilli": 0,
+            "hasAudio": false
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/tool-asset/ast_lora0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "application/x-safetensors",
+            "role": "lora",
+            "width": 0,
+            "height": 0,
+            "durationMs": 0,
+            "frameCount": 0,
+            "fpsMilli": 0,
+            "hasAudio": false
+          }
+        ],
+        "promptExpansion": "balanced",
+        "parameters": {
+          "loraScales": [
+            140
+          ]
+        }
+      }
+    },
+    "urls": [
+      "https://files.fal.media/reference0",
+      "https://files.fal.media/reference1"
+    ],
+    "path": "/blackforestlabs/flux-3/klein/edit-image/lora",
+    "body": {
+      "prompt": "A creative scene",
+      "seed": 42,
+      "image_size": {
+        "width": 864,
+        "height": 1152
+      },
+      "num_images": 1,
+      "output_format": "png",
+      "enable_safety_checker": true,
+      "enable_prompt_expansion": true,
+      "sync_mode": false,
+      "loras": [
+        {
+          "path": "https://files.fal.media/reference1",
+          "scale": 1.4
+        }
+      ],
+      "image_urls": [
+        "https://files.fal.media/reference0"
+      ]
+    }
+  },
+  {
+    "spec": {
+      "model": "studio/tool/fal/fal-ai/motion-to-code/gsap",
+      "input": {
+        "prompt": "A creative scene",
+        "seed": 42,
+        "duration": 1,
+        "resolution": "720p",
+        "aspect": "16:9",
+        "references": [],
+        "promptExpansion": "disabled",
+        "parameters": {
+          "refineRounds": 0
+        }
+      }
+    },
+    "urls": [],
+    "path": "/fal-ai/motion-to-code/gsap",
+    "body": {
+      "prompt": "A creative scene",
+      "duration": 1,
+      "aspect_ratio": "16:9",
+      "refine_rounds": 0,
+      "enable_safety_checker": true
+    }
+  },
+  {
+    "spec": {
+      "model": "studio/tool/fal/fal-ai/motion-to-code/gsap",
+      "input": {
+        "prompt": "A creative scene",
+        "seed": 42,
+        "duration": 5,
+        "resolution": "720p",
+        "aspect": "1:1",
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_video0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "video/mp4",
+            "role": "video",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 5000,
+            "frameCount": 120,
+            "fpsMilli": 24000,
+            "hasAudio": true
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_audio0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "audio/wav",
+            "role": "audio",
+            "width": 0,
+            "height": 0,
+            "durationMs": 5000,
+            "frameCount": 0,
+            "fpsMilli": 0,
+            "hasAudio": true
+          }
+        ],
+        "promptExpansion": "balanced",
+        "parameters": {
+          "refineRounds": 1
+        }
+      }
+    },
+    "urls": [
+      "https://files.fal.media/reference0",
+      "https://files.fal.media/reference1"
+    ],
+    "path": "/fal-ai/motion-to-code/gsap",
+    "body": {
+      "prompt": "A creative scene",
+      "duration": 5,
+      "aspect_ratio": "1:1",
+      "refine_rounds": 1,
+      "enable_safety_checker": true,
+      "video_url": "https://files.fal.media/reference0",
+      "audio_url": "https://files.fal.media/reference1"
+    }
+  },
+  {
+    "spec": {
+      "model": "studio/tool/fal/fal-ai/motion-to-code/glsl",
+      "input": {
+        "prompt": "A creative scene",
+        "seed": 42,
+        "duration": 1,
+        "resolution": "720p",
+        "aspect": "16:9",
+        "references": [],
+        "promptExpansion": "disabled",
+        "parameters": {
+          "refineRounds": 0
+        }
+      }
+    },
+    "urls": [],
+    "path": "/fal-ai/motion-to-code/glsl",
+    "body": {
+      "prompt": "A creative scene",
+      "duration": 1,
+      "aspect_ratio": "16:9",
+      "refine_rounds": 0,
+      "enable_safety_checker": true
+    }
+  },
+  {
+    "spec": {
+      "model": "studio/tool/fal/fal-ai/motion-to-code/glsl",
+      "input": {
+        "prompt": "A creative scene",
+        "seed": 42,
+        "duration": 5,
+        "resolution": "720p",
+        "aspect": "1:1",
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_video0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "video/mp4",
+            "role": "video",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 5000,
+            "frameCount": 120,
+            "fpsMilli": 24000,
+            "hasAudio": true
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_audio0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "audio/wav",
+            "role": "audio",
+            "width": 0,
+            "height": 0,
+            "durationMs": 5000,
+            "frameCount": 0,
+            "fpsMilli": 0,
+            "hasAudio": true
+          }
+        ],
+        "promptExpansion": "balanced",
+        "parameters": {
+          "refineRounds": 1
+        }
+      }
+    },
+    "urls": [
+      "https://files.fal.media/reference0",
+      "https://files.fal.media/reference1"
+    ],
+    "path": "/fal-ai/motion-to-code/glsl",
+    "body": {
+      "prompt": "A creative scene",
+      "duration": 5,
+      "aspect_ratio": "1:1",
+      "refine_rounds": 1,
+      "enable_safety_checker": true,
+      "video_url": "https://files.fal.media/reference0",
+      "audio_url": "https://files.fal.media/reference1"
+    }
+  }
+]

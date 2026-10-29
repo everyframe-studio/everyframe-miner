@@ -125,6 +125,13 @@ impl<'a> Router<'a> {
         let mut req = Request::get(format!("{origin}{path}"), &[host]);
         req.headers = self.auth(p)?;
         req.timeout = 30;
+        if p == "fal"
+            && body.is_none()
+            && path.starts_with("/fal-ai/motion-to-code/requests/")
+            && !path.ends_with("/status")
+        {
+            req.limit = 16 * 1024 * 1024;
+        }
         if let Some(b) = body {
             req = req.json("POST", b);
             self.guard_submission(&mut req)?;
@@ -568,6 +575,11 @@ impl Provider for Router<'_> {
             self.catalog.allows(s(&spec["model"])?),
             "provider_model_unavailable",
         )?;
+        if s(&spec["model"])?.starts_with("studio/tool/") {
+            let urls = crate::studio_tools::references(self.http, spec)?;
+            let (path, body) = crate::studio_tools::body(spec, &urls)?;
+            return reference(&self.api(&p, &path, Some(&body))?["request_id"]);
+        }
         if s(&spec["model"])?.starts_with("studio/media/") {
             return self.media_submit(spec, &p);
         }
@@ -768,6 +780,11 @@ impl Provider for Router<'_> {
                     .ok_or(Error("provider_no_media"))?,
             };
             let media = self.download(url, &["*.fal.media"], None, &[])?;
+            let media = if m["mime"] == "application/vnd.everyframe.motion+json" {
+                crate::studio_tools::motion_bundle(s(&spec["model"])?, &data, &media)?
+            } else {
+                media
+            };
             return Ok(Output {
                 media,
                 response_hash: sha(data.to_string()),
