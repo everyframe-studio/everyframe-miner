@@ -144,7 +144,45 @@ fn fal_batches_public_checks_and_vivix_checks_actual_workspace() {
         json!({"FAL_KEY":"synthetic-secret","VIVIX_API_KEY":"synthetic-secret"}),
     );
     r.refresh_availability(1_000_000);
-    assert_eq!(api.calls.borrow().len(), 2);
+    let calls = api.calls.borrow();
+    assert_eq!(
+        calls
+            .iter()
+            .filter(|r| r.url.contains("api.vivix.ai"))
+            .count(),
+        1
+    );
+    let fal_calls: Vec<_> = calls
+        .iter()
+        .filter(|r| r.url.contains("api.fal.ai"))
+        .collect();
+    assert!(!fal_calls.is_empty());
+    let ids: Vec<String> = fal_calls
+        .iter()
+        .flat_map(|r| {
+            url::Url::parse(&r.url)
+                .unwrap()
+                .query_pairs()
+                .filter(|(k, _)| k == "endpoint_id")
+                .map(|(_, v)| v.to_string())
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    assert!(fal_calls.iter().all(|r| {
+        url::Url::parse(&r.url)
+            .unwrap()
+            .query_pairs()
+            .filter(|(k, _)| k == "endpoint_id")
+            .count()
+            <= 50
+    }));
+    for policy in everyframe_miner::studio_tools::POLICIES
+        .as_object()
+        .unwrap()
+        .values()
+    {
+        assert!(ids.contains(&policy["apiModel"].as_str().unwrap().to_string()));
+    }
     assert!(!r.models().contains(&"fal-ai/sora-2/text-to-video".into()));
     assert!(!r.models().contains(&"fal-ai/veo2".into()));
     assert!(r.models().contains(&"studio/vivix/vivix-w1".into()));

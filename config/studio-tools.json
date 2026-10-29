@@ -1,0 +1,927 @@
+{
+  "studio/tool/fal/kling/v4/video-to-video/edit": {
+    "provider": "fal",
+    "apiModel": "kling/v4/video-to-video/edit",
+    "name": "Kling 4.0 Video Editing",
+    "kind": "video",
+    "mode": "edit",
+    "min": 3,
+    "max": 30,
+    "resolutions": [
+      "720p",
+      "1080p"
+    ],
+    "aspects": [
+      "source"
+    ],
+    "references": {
+      "video": [
+        1,
+        1
+      ],
+      "image": [
+        0,
+        10
+      ]
+    },
+    "parameters": {},
+    "maxPrompt": 26000,
+    "deadlineMs": 1200000,
+    "maxOutputBytes": 67108864
+  },
+  "studio/tool/fal/minimax/h3-max/recast": {
+    "provider": "fal",
+    "apiModel": "minimax/h3-max/recast",
+    "name": "H3 Max Recast",
+    "kind": "video",
+    "mode": "recast",
+    "min": 5,
+    "max": 15,
+    "resolutions": [
+      "768p",
+      "1080p"
+    ],
+    "aspects": [
+      "source"
+    ],
+    "references": {
+      "video": [
+        1,
+        1
+      ],
+      "image": [
+        1,
+        4
+      ]
+    },
+    "parameters": {
+      "enhanceRealism": {
+        "type": "boolean"
+      }
+    },
+    "maxPrompt": 2000,
+    "deadlineMs": 1200000,
+    "maxOutputBytes": 67108864
+  },
+  "studio/tool/fal/minimax/h3-max/relight": {
+    "provider": "fal",
+    "apiModel": "minimax/h3-max/relight",
+    "name": "H3 Max Relight",
+    "kind": "video",
+    "mode": "relight",
+    "min": 3,
+    "max": 15,
+    "resolutions": [
+      "480p",
+      "768p",
+      "1080p",
+      "2k"
+    ],
+    "aspects": [
+      "source"
+    ],
+    "references": {
+      "video": [
+        1,
+        1
+      ],
+      "image": [
+        1,
+        1
+      ]
+    },
+    "parameters": {},
+    "maxPrompt": 4000,
+    "deadlineMs": 1200000,
+    "maxOutputBytes": 67108864
+  },
+  "studio/tool/fal/veed/dubbing": {
+    "provider": "fal",
+    "apiModel": "veed/dubbing",
+    "name": "VEED Dubbing",
+    "kind": "video",
+    "mode": "dub",
+    "min": 1,
+    "max": 600,
+    "resolutions": [
+      "source"
+    ],
+    "aspects": [
+      "source"
+    ],
+    "references": {
+      "video": [
+        1,
+        1
+      ]
+    },
+    "parameters": {
+      "targetLanguage": {
+        "enum": [
+          "af",
+          "ar",
+          "as",
+          "ast",
+          "az",
+          "be",
+          "bg",
+          "bn",
+          "bs",
+          "ca",
+          "ceb",
+          "cs",
+          "cy",
+          "da",
+          "de",
+          "el",
+          "en",
+          "es",
+          "et",
+          "fa",
+          "fi",
+          "fil",
+          "fr",
+          "ga",
+          "gl",
+          "gu",
+          "ha",
+          "he",
+          "hi",
+          "hr",
+          "hu",
+          "hy",
+          "id",
+          "is",
+          "it",
+          "ja",
+          "jv",
+          "ka",
+          "kk",
+          "kn",
+          "ko",
+          "ky",
+          "lb",
+          "ln",
+          "lt",
+          "lv",
+          "mi",
+          "mk",
+          "ml",
+          "mn",
+          "mr",
+          "ms",
+          "mt",
+          "my",
+          "ne",
+          "nl",
+          "no",
+          "ny",
+          "oc",
+          "or",
+          "pa",
+          "pl",
+          "ps",
+          "pt",
+          "ro",
+          "ru",
+          "sd",
+          "sk",
+          "sl",
+          "so",
+          "sr",
+          "sv",
+          "sw",
+          "ta",
+          "te",
+          "tg",
+          "th",
+          "tl",
+          "tr",
+          "uk",
+          "ur",
+          "uz",
+          "vi",
+          "yo",
+          "yue",
+          "zh"
+        ]
+      },
+      "sourceLanguage": {
+        "enum": [
+          "auto",
+          "af",
+          "ar",
+          "as",
+          "ast",
+          "az",
+          "be",
+          "bg",
+          "bn",
+          "bs",
+          "ca",
+          "ceb",
+          "cs",
+          "cy",
+          "da",
+          "de",
+          "el",
+          "en",
+          "es",
+          "et",
+          "fa",
+          "fi",
+          "fil",
+          "fr",
+          "ga",
+          "gl",
+          "gu",
+          "ha",
+          "he",
+          "hi",
+          "hr",
+          "hu",
+          "hy",
+          "id",
+          "is",
+          "it",
+          "ja",
+          "jv",
+          "ka",
+          "kk",
+          "kn",
+          "ko",
+          "ky",
+          "lb",
+          "ln",
+          "lt",
+          "lv",
+          "mi",
+          "mk",
+          "ml",
+          "mn",
+          "mr",
+          "ms",
+          "mt",
+          "my",
+          "ne",
+          "nl",
+          "no",
+          "ny",
+          "oc",
+          "or",
+          "pa",
+          "pl",
+          "ps",
+          "pt",
+          "ro",
+          "ru",
+          "sd",
+          "sk",
+          "sl",
+          "so",
+          "sr",
+          "sv",
+          "sw",
+          "ta",
+          "te",
+          "tg",
+          "th",
+          "tl",
+          "tr",
+          "uk",
+          "ur",
+          "uz",
+          "vi",
+          "yo",
+          "yue",
+          "zh"
+        ]
+      },
+      "keyterms": {
+        "type": "strings",
+        "maxItems": 100,
+        "maxLength": 100
+      }
+    },
+    "maxPrompt": 4000,
+    "deadlineMs": 1200000,
+    "maxOutputBytes": 67108864
+  },
+  "studio/tool/fal/veed/dubbing/pro": {
+    "provider": "fal",
+    "apiModel": "veed/dubbing/pro",
+    "name": "VEED Dubbing Pro",
+    "kind": "video",
+    "mode": "dub-pro",
+    "min": 1,
+    "max": 600,
+    "resolutions": [
+      "source"
+    ],
+    "aspects": [
+      "source"
+    ],
+    "references": {
+      "video": [
+        1,
+        1
+      ]
+    },
+    "parameters": {
+      "targetLanguage": {
+        "enum": [
+          "af",
+          "ak",
+          "am",
+          "ar",
+          "ar-EG",
+          "as",
+          "az",
+          "be",
+          "bg",
+          "bo",
+          "bs",
+          "ca",
+          "ceb",
+          "cmn",
+          "cs",
+          "cy",
+          "da",
+          "de",
+          "dgo",
+          "el",
+          "en",
+          "en-AU",
+          "en-CA",
+          "en-GB",
+          "en-US",
+          "es",
+          "es-AR",
+          "es-CL",
+          "es-ES",
+          "es-MX",
+          "et",
+          "eu",
+          "fa",
+          "fi",
+          "fil",
+          "fr",
+          "fr-CA",
+          "fr-FR",
+          "gl",
+          "gu",
+          "ha",
+          "he",
+          "hi",
+          "hr",
+          "hu",
+          "hy",
+          "id",
+          "is",
+          "it",
+          "ja",
+          "jv",
+          "ka",
+          "ki",
+          "kk",
+          "kn",
+          "ko",
+          "ky",
+          "lg",
+          "lt",
+          "lv",
+          "mk",
+          "ml",
+          "mn",
+          "mr",
+          "ms",
+          "my",
+          "ne",
+          "nl",
+          "no",
+          "nso",
+          "pa",
+          "pl",
+          "pt",
+          "pt-BR",
+          "pt-PT",
+          "rn",
+          "ro",
+          "ru",
+          "rw",
+          "sd",
+          "sk",
+          "sl",
+          "sq",
+          "ss",
+          "st",
+          "su",
+          "sv",
+          "sw",
+          "ta",
+          "te",
+          "tg",
+          "th",
+          "tn",
+          "tr",
+          "ts",
+          "ug",
+          "uk",
+          "ur",
+          "uz",
+          "ve",
+          "vi",
+          "war",
+          "wo",
+          "yo",
+          "yue",
+          "zh",
+          "zh-TW",
+          "zu"
+        ]
+      },
+      "sourceLanguage": {
+        "enum": [
+          "auto",
+          "af",
+          "ak",
+          "am",
+          "ar",
+          "as",
+          "az",
+          "be",
+          "bg",
+          "bo",
+          "bs",
+          "ca",
+          "ceb",
+          "cmn",
+          "cs",
+          "cy",
+          "da",
+          "de",
+          "dgo",
+          "el",
+          "en",
+          "es",
+          "et",
+          "eu",
+          "fa",
+          "fi",
+          "fil",
+          "fr",
+          "gl",
+          "gu",
+          "ha",
+          "he",
+          "hi",
+          "hr",
+          "hu",
+          "hy",
+          "id",
+          "is",
+          "it",
+          "ja",
+          "jv",
+          "ka",
+          "ki",
+          "kk",
+          "kn",
+          "ko",
+          "ky",
+          "lg",
+          "lt",
+          "lv",
+          "mk",
+          "ml",
+          "mn",
+          "mr",
+          "ms",
+          "my",
+          "ne",
+          "nl",
+          "no",
+          "nso",
+          "pa",
+          "pl",
+          "pt",
+          "rn",
+          "ro",
+          "ru",
+          "rw",
+          "sd",
+          "sk",
+          "sl",
+          "sq",
+          "ss",
+          "st",
+          "su",
+          "sv",
+          "sw",
+          "ta",
+          "te",
+          "tg",
+          "th",
+          "tn",
+          "tr",
+          "ts",
+          "ug",
+          "uk",
+          "ur",
+          "uz",
+          "ve",
+          "vi",
+          "war",
+          "wo",
+          "yo",
+          "yue",
+          "zh",
+          "zu"
+        ]
+      },
+      "keyterms": {
+        "type": "strings",
+        "maxItems": 100,
+        "maxLength": 100
+      },
+      "voiceStrength": {
+        "type": "integer",
+        "min": 0,
+        "max": 10
+      }
+    },
+    "maxPrompt": 4000,
+    "deadlineMs": 1200000,
+    "maxOutputBytes": 67108864
+  },
+  "studio/tool/fal/heygen/heygen-voice": {
+    "provider": "fal",
+    "apiModel": "heygen/heygen-voice",
+    "name": "HeyGen Voice",
+    "kind": "audio",
+    "mode": "voice",
+    "min": 1,
+    "max": 600,
+    "resolutions": [
+      "audio"
+    ],
+    "aspects": [
+      "none"
+    ],
+    "references": {
+      "audio": [
+        0,
+        1
+      ]
+    },
+    "parameters": {
+      "voice": {
+        "enum": [
+          "Jonah",
+          "Nadine",
+          "Tabitha",
+          "Soren",
+          "Elowen",
+          "Vincent",
+          "Jocelyn",
+          "Marielle",
+          "Corinne",
+          "Lucian",
+          "Kieran",
+          "Hugh",
+          "Noelle",
+          "Bram",
+          "Ewan",
+          "Iona",
+          "Cecily",
+          "Simon",
+          "Weston",
+          "Felicity",
+          "Gareth",
+          "Rory",
+          "Meredith",
+          "Sabrina"
+        ]
+      },
+      "language": {
+        "enum": [
+          "auto",
+          "ar",
+          "be",
+          "bg",
+          "ca",
+          "cs",
+          "da",
+          "de",
+          "el",
+          "en",
+          "es",
+          "fa",
+          "fi",
+          "fr",
+          "he",
+          "hi",
+          "hr",
+          "hu",
+          "id",
+          "it",
+          "ja",
+          "ko",
+          "mk",
+          "ms",
+          "nl",
+          "pl",
+          "pt",
+          "ro",
+          "ru",
+          "sk",
+          "sl",
+          "sr",
+          "sv",
+          "ta",
+          "th",
+          "tl",
+          "tr",
+          "uk",
+          "vi",
+          "zh"
+        ]
+      },
+      "expressiveness": {
+        "type": "integer",
+        "min": 0,
+        "max": 100
+      }
+    },
+    "maxPrompt": 5000,
+    "deadlineMs": 1200000,
+    "maxOutputBytes": 67108864
+  },
+  "studio/tool/fal/heygen/heygen-voice/turbo": {
+    "provider": "fal",
+    "apiModel": "heygen/heygen-voice/turbo",
+    "name": "HeyGen Voice Turbo",
+    "kind": "audio",
+    "mode": "voice",
+    "min": 1,
+    "max": 600,
+    "resolutions": [
+      "audio"
+    ],
+    "aspects": [
+      "none"
+    ],
+    "references": {
+      "audio": [
+        0,
+        1
+      ]
+    },
+    "parameters": {
+      "voice": {
+        "enum": [
+          "Jonah",
+          "Nadine",
+          "Tabitha",
+          "Soren",
+          "Elowen",
+          "Vincent",
+          "Jocelyn",
+          "Marielle",
+          "Corinne",
+          "Lucian",
+          "Kieran",
+          "Hugh",
+          "Noelle",
+          "Bram",
+          "Ewan",
+          "Iona",
+          "Cecily",
+          "Simon",
+          "Weston",
+          "Felicity",
+          "Gareth",
+          "Rory",
+          "Meredith",
+          "Sabrina"
+        ]
+      },
+      "language": {
+        "enum": [
+          "auto",
+          "ar",
+          "be",
+          "bg",
+          "ca",
+          "cs",
+          "da",
+          "de",
+          "el",
+          "en",
+          "es",
+          "fa",
+          "fi",
+          "fr",
+          "he",
+          "hi",
+          "hr",
+          "hu",
+          "id",
+          "it",
+          "ja",
+          "ko",
+          "mk",
+          "ms",
+          "nl",
+          "pl",
+          "pt",
+          "ro",
+          "ru",
+          "sk",
+          "sl",
+          "sr",
+          "sv",
+          "ta",
+          "th",
+          "tl",
+          "tr",
+          "uk",
+          "vi",
+          "zh"
+        ]
+      },
+      "expressiveness": {
+        "type": "integer",
+        "min": 0,
+        "max": 100
+      }
+    },
+    "maxPrompt": 5000,
+    "deadlineMs": 1200000,
+    "maxOutputBytes": 67108864
+  },
+  "studio/tool/fal/blackforestlabs/flux-3/klein/text-to-image/lora": {
+    "provider": "fal",
+    "apiModel": "blackforestlabs/flux-3/klein/text-to-image/lora",
+    "name": "FLUX 3 Klein LoRA",
+    "kind": "image",
+    "mode": "lora",
+    "min": 1,
+    "max": 1,
+    "resolutions": [
+      "1k"
+    ],
+    "aspects": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:3",
+      "3:4"
+    ],
+    "references": {
+      "image": [
+        0,
+        0
+      ],
+      "lora": [
+        0,
+        3
+      ]
+    },
+    "parameters": {
+      "loraScales": {
+        "type": "integers",
+        "min": 0,
+        "max": 400,
+        "maxItems": 3
+      }
+    },
+    "maxPrompt": 10000,
+    "deadlineMs": 1200000,
+    "maxOutputBytes": 67108864
+  },
+  "studio/tool/fal/blackforestlabs/flux-3/klein/edit-image/lora": {
+    "provider": "fal",
+    "apiModel": "blackforestlabs/flux-3/klein/edit-image/lora",
+    "name": "FLUX 3 Klein LoRA Edit",
+    "kind": "image",
+    "mode": "lora-edit",
+    "min": 1,
+    "max": 1,
+    "resolutions": [
+      "1k"
+    ],
+    "aspects": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:3",
+      "3:4"
+    ],
+    "references": {
+      "image": [
+        1,
+        10
+      ],
+      "lora": [
+        0,
+        3
+      ]
+    },
+    "parameters": {
+      "loraScales": {
+        "type": "integers",
+        "min": 0,
+        "max": 400,
+        "maxItems": 3
+      }
+    },
+    "maxPrompt": 10000,
+    "deadlineMs": 1200000,
+    "maxOutputBytes": 67108864
+  },
+  "studio/tool/fal/fal-ai/motion-to-code/gsap": {
+    "provider": "fal",
+    "apiModel": "fal-ai/motion-to-code/gsap",
+    "name": "Motion-to-Code GSAP",
+    "kind": "video",
+    "mode": "gsap",
+    "min": 1,
+    "max": 15,
+    "resolutions": [
+      "720p"
+    ],
+    "aspects": [
+      "16:9",
+      "9:16",
+      "1:1"
+    ],
+    "references": {
+      "video": [
+        0,
+        1
+      ],
+      "image": [
+        0,
+        1
+      ],
+      "audio": [
+        0,
+        1
+      ]
+    },
+    "parameters": {
+      "refineRounds": {
+        "type": "integer",
+        "min": 0,
+        "max": 1
+      }
+    },
+    "maxPrompt": 4000,
+    "deadlineMs": 1200000,
+    "maxOutputBytes": 67108864,
+    "outputMime": "application/vnd.everyframe.motion+json"
+  },
+  "studio/tool/fal/fal-ai/motion-to-code/glsl": {
+    "provider": "fal",
+    "apiModel": "fal-ai/motion-to-code/glsl",
+    "name": "Motion-to-Code GLSL",
+    "kind": "video",
+    "mode": "glsl",
+    "min": 1,
+    "max": 15,
+    "resolutions": [
+      "720p"
+    ],
+    "aspects": [
+      "16:9",
+      "9:16",
+      "1:1"
+    ],
+    "references": {
+      "video": [
+        0,
+        1
+      ],
+      "image": [
+        0,
+        1
+      ],
+      "audio": [
+        0,
+        1
+      ]
+    },
+    "parameters": {
+      "refineRounds": {
+        "type": "integer",
+        "min": 0,
+        "max": 1
+      }
+    },
+    "maxPrompt": 4000,
+    "deadlineMs": 1200000,
+    "maxOutputBytes": 67108864,
+    "outputMime": "application/vnd.everyframe.motion+json"
+  }
+}

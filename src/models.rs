@@ -32,6 +32,12 @@ pub static STUDIO_MODELS: LazyLock<Value> = LazyLock::new(|| {
             .unwrap()
             .clone(),
     );
+    models.as_object_mut().unwrap().extend(
+        crate::studio_tools::model_registry()
+            .as_object()
+            .unwrap()
+            .clone(),
+    );
     models
 });
 pub fn info(id: &str) -> Result<&'static Value> {
@@ -60,7 +66,9 @@ pub fn spec(v: &Value) -> Result<Value> {
             .ok_or(Error("invalid_fields"))?
             .remove("model");
         let value = json!({"model":model,"input":input});
-        if model.starts_with("studio/media/") {
+        if model.starts_with("studio/tool/") {
+            crate::studio_tools::check(&value)?;
+        } else if model.starts_with("studio/media/") {
             crate::studio_media::check(&value)?;
         } else {
             crate::studio_video::check(&value)?;
@@ -112,6 +120,9 @@ pub fn spec(v: &Value) -> Result<Value> {
 }
 pub fn check(v: &Value) -> Result<()> {
     let model = s(&v["model"])?;
+    if model.starts_with("studio/tool/") {
+        return crate::studio_tools::check(v);
+    }
     if model.starts_with("studio/media/") {
         return crate::studio_media::check(v);
     }
