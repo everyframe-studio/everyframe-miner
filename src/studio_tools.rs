@@ -362,6 +362,26 @@ pub fn references(http: &dyn Http, spec: &Value) -> Result<Vec<String>> {
     }
     Ok(urls)
 }
+fn relight_aspect(source: &Value) -> Result<&'static str> {
+    let ratio = n(&source["width"])? as f64 / n(&source["height"])? as f64;
+    [
+        ("21:9", 21.0 / 9.0),
+        ("16:9", 16.0 / 9.0),
+        ("4:3", 4.0 / 3.0),
+        ("1:1", 1.0),
+        ("3:4", 3.0 / 4.0),
+        ("9:16", 9.0 / 16.0),
+    ]
+    .into_iter()
+    .min_by(|a, b| {
+        (ratio / a.1)
+            .ln()
+            .abs()
+            .total_cmp(&(ratio / b.1).ln().abs())
+    })
+    .map(|p| p.0)
+    .ok_or(Error("invalid_reference_metadata"))
+}
 pub fn body(spec: &Value, urls: &[String]) -> Result<(String, Value)> {
     check(spec)?;
     let v = &spec["input"];
@@ -388,7 +408,7 @@ pub fn body(spec: &Value, urls: &[String]) -> Result<(String, Value)> {
             json!({"video_url":videos[0],"reference_image_urls":images,"resolution":s(&v["resolution"])?.to_uppercase(),"seed":v["seed"],"enhance_realism":par["enhanceRealism"],"enable_safety_checker":true})
         }
         "relight" => {
-            json!({"video_url":videos[0],"reference_image_url":images[0],"resolution":s(&v["resolution"])?.to_uppercase(),"aspect_ratio":"adaptive","seed":v["seed"],"enable_safety_checker":true})
+            json!({"video_url":videos[0],"reference_image_url":images[0],"resolution":s(&v["resolution"])?.to_uppercase(),"aspect_ratio":relight_aspect(refs.iter().find(|a|a["role"]=="video").ok_or(Error("invalid_video_reference"))?)?,"seed":v["seed"],"enable_safety_checker":true})
         }
         "dub" | "dub-pro" => {
             json!({"video_url":videos[0],"target_language":par["targetLanguage"],"source_language":par["sourceLanguage"],"keyterms":par["keyterms"]})

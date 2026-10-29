@@ -82,3 +82,42 @@ fn director_worker_registry_matches_coordinator() {
         serde_json::from_str(include_str!("fixtures/director-tool-registry.json")).unwrap();
     assert_eq!(studio_tools::model_registry(), expected);
 }
+
+#[test]
+fn relight_pins_the_closest_source_aspect_instead_of_adaptive() {
+    let fixtures: Vec<Value> =
+        serde_json::from_str(include_str!("fixtures/director-tools.json")).unwrap();
+    let mut spec = fixtures
+        .into_iter()
+        .find(|f| f["spec"]["model"] == "studio/tool/fal/minimax/h3-max/relight")
+        .unwrap()["spec"]
+        .clone();
+    let urls = vec![
+        "https://files.fal.media/test-video".to_string(),
+        "https://files.fal.media/test-image".to_string(),
+    ];
+    let video = spec["input"]["references"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|r| r["role"] == "video")
+        .unwrap();
+    video["width"] = json!(720);
+    video["height"] = json!(1280);
+    assert_eq!(
+        studio_tools::body(&spec, &urls).unwrap().1["aspect_ratio"],
+        "9:16"
+    );
+    let video = spec["input"]["references"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|r| r["role"] == "video")
+        .unwrap();
+    video["width"] = json!(1280);
+    video["height"] = json!(720);
+    assert_eq!(
+        studio_tools::body(&spec, &urls).unwrap().1["aspect_ratio"],
+        "16:9"
+    );
+}

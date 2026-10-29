@@ -264,7 +264,7 @@
       "video_url": "https://files.fal.media/reference0",
       "reference_image_url": "https://files.fal.media/reference1",
       "resolution": "480P",
-      "aspect_ratio": "adaptive",
+      "aspect_ratio": "16:9",
       "seed": 42,
       "enable_safety_checker": true
     }
@@ -319,7 +319,7 @@
       "video_url": "https://files.fal.media/reference0",
       "reference_image_url": "https://files.fal.media/reference1",
       "resolution": "2K",
-      "aspect_ratio": "adaptive",
+      "aspect_ratio": "16:9",
       "seed": 42,
       "enable_safety_checker": true
     }
