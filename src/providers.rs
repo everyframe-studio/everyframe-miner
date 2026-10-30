@@ -18,6 +18,8 @@ pub trait Provider {
     fn refresh_availability(&mut self, _now: i64) -> Option<Value> {
         None
     }
+    /// The coordinator's signed list of retired provider models (narrowing only).
+    fn set_retirements(&mut self, _retired: &Value) {}
     fn submit(&mut self, spec: &Value) -> Result<String>;
     fn submit_before(&mut self, spec: &Value, _deadline: i64) -> Result<String> {
         self.submit(spec)
@@ -537,6 +539,9 @@ impl<'a> Router<'a> {
 impl Provider for Router<'_> {
     fn refresh_availability(&mut self, now: i64) -> Option<Value> {
         Some(self.catalog.refresh(self.http, &self.credentials, now))
+    }
+    fn set_retirements(&mut self, retired: &Value) {
+        self.catalog.set_server_retirements(retired);
     }
     fn submit_before(&mut self, spec: &Value, deadline: i64) -> Result<String> {
         let (_, provider) = self.context(spec)?;
