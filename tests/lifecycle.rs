@@ -2395,8 +2395,25 @@ fn doctor_explains_automatic_attestation_and_current_readiness() {
         .iter()
         .find(|v| v["name"] == "Workload attestation")
         .unwrap();
+    assert_eq!(
+        check["ok"], true,
+        "a current admitted session remains valid past the old quote-age cutoff"
+    );
+    r.status.borrow_mut()["sessionExpires"] = json!(now() - 1);
+    let expired = r.miner().doctor().unwrap();
+    let check = expired["checks"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|v| v["name"] == "Workload attestation")
+        .unwrap();
     assert_eq!(check["ok"], false);
-    assert!(check["detail"].as_str().unwrap().contains("too old"));
+    assert!(
+        check["detail"]
+            .as_str()
+            .unwrap()
+            .contains("verified workload session")
+    );
 }
 
 #[test]
@@ -3435,4 +3452,54 @@ fn a_live_session_cannot_hide_a_stale_heartbeat() {
             .0,
         "worker_offline"
     );
+}
+
+#[test]
+fn externally_stopped_vm_is_reconciled_without_a_cloud_mutation() {
+    let r = Rig::new();
+    r.deploy().unwrap();
+    let mut d = r.state().read("deployment", false).unwrap();
+    d["phase"] = json!("running");
+    r.state().write("deployment", &d).unwrap();
+    r.info.borrow_mut()["status"] = json!("stopped");
+    r.calls.borrow_mut().clear();
+    assert_eq!(r.miner().reconcile().unwrap()["phase"], "stopped");
+    assert!(r.mutations().is_empty());
+}
+#[test]
+fn externally_stopped_vm_can_start_without_redeploying_or_ignoring_confirmation() {
+    let r = Rig::new();
+    r.deploy().unwrap();
+    let mut d = r.state().read("deployment", false).unwrap();
+    d["phase"] = json!("running");
+    r.state().write("deployment", &d).unwrap();
+    r.info.borrow_mut()["status"] = json!("stopped");
+    r.calls.borrow_mut().clear();
+    let out = r.miner().start(0.06, &|_| Ok(())).unwrap();
+    assert_eq!(out["phase"], "starting");
+    let mutations = r.mutations();
+    assert_eq!(mutations.len(), 1);
+    assert!(mutations[0].ends_with("/start"));
+}
+#[test]
+fn resume_reports_the_stopped_vm_before_an_old_attestation() {
+    let r = Rig::new();
+    r.deploy().unwrap();
+    r.state()
+        .write(
+            "deployment",
+            &json!({"phase":"running","appId":"1".repeat(40)}),
+        )
+        .unwrap();
+    r.info.borrow_mut()["status"] = json!("stopped");
+    r.status.borrow_mut()["attestation"]["at"] = json!(now() - 3600000);
+    r.calls.borrow_mut().clear();
+    assert_eq!(
+        r.miner()
+            .resume(&|_| panic!("no confirmation for stopped VM"))
+            .unwrap_err()
+            .0,
+        "worker_not_running"
+    );
+    assert!(r.mutations().is_empty());
 }

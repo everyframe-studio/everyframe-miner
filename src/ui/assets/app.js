@@ -1098,7 +1098,7 @@ function pageWorker() {
       button("Check status", async () => { await run("worker-auto-status"); }),
       button("Enable…", async () => { await run("worker-auto-enable"); await refreshAll(); }, "primary"),
       button("Disable", async () => { await run("worker-auto-disable"); await refreshAll(); }))));
-  const ph = d.phase || "not_deployed", deployed = !!d.appId && !["stopped", "stopping"].includes(ph);
+  const ph = d.phase || "not_deployed", cloudStopped = ["stopped", "exited"].includes(value(S.health)?.cloudStatus), deployed = !!d.appId && !["stopped", "stopping"].includes(ph) && !cloudStopped;
   const accepting = findCheck("Accepting new work");
   const when = (ok, el, why) => { if (!ok) { el.disabled = true; el.title = why; } return el; };
   const startLimit = h("input", { type: "number", min: "0.01", step: "0.01", value: "10", class: "narrow", "aria-label": "Maximum compute USD per hour" });
@@ -1107,7 +1107,7 @@ function pageWorker() {
     ["Re-sync state", "Confirm completed starts, shutdowns or interrupted operations on this same VM.",
       when(!!d.appId, button("Re-sync state", async () => { await run("reconcile"); await refreshAll(); }), "No deployment recorded.")],
     ["Start accepting work", "Lets the network route paid jobs to this worker again.",
-      when(["awaiting_readmission", "drained"].includes(ph) || (ph === "running" && accepting && !accepting.ok),
+      when(!cloudStopped && (["awaiting_readmission", "drained"].includes(ph) || (ph === "running" && accepting && !accepting.ok)),
         button("Resume", async () => { await run("resume"); await refreshAll(); }, "primary"), "Already accepting work, or the worker isn't ready.")],
     ["Pause new work", "Finishes current jobs, then stops taking new ones. The machine keeps running and billing.",
       when(ph === "running", button("Pause", async () => { await run("stop", { drainOnly: true }); await refreshAll(); }), "Only a running worker can be paused.")],
@@ -1125,7 +1125,7 @@ function pageWorker() {
     ["Redeploy", "Deletes this worker, waits until Phala removes it, then deploys a fresh one at up to the price below.",
       when(!!d.appId && !["deleted", "deleting", "delete_intent"].includes(ph), button("Delete and deploy again", async () => { await removeWorker(d.appId, true, startLimit.value); }, "danger"), "No worker recorded on this computer.")],
     ["Start a stopped worker", "Starts the same machine again at up to this compute price.", h("div", { class: "row" }, startLimit, h("span", { class: "small muted" }, "USD/h max"),
-      when(ph === "stopped", button("Start", async () => { await run("start", { maxHourlyUsd: startLimit.value }); await refreshAll(); }), "Only a stopped worker can be started."))],
+      when(ph === "stopped" || cloudStopped, button("Start", async () => { await run("start", { maxHourlyUsd: startLimit.value }); await refreshAll(); }), "Only a stopped worker can be started."))],
   ];
   root.append(card("Actions", null, h("ul", { class: "checks" }, actions.map(([t, desc, ctl]) => h("li", { class: "action-row" },
     h("span"), h("div", { class: "row" }, h("div", { class: "grow" }, h("div", { class: "name" }, t), h("div", { class: "detail" }, desc)), ctl))))));

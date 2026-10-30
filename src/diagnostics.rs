@@ -187,6 +187,11 @@ reasons![
         "Finish the other management command, then retry from the same profile."
     ),
     (
+        "worker_not_running",
+        "The existing Phala VM is not running, so it cannot accept jobs.",
+        "Run everycli status. If Phala reports stopped, use everycli start --max-hourly-usd 10 and review the hosting quote. Keep the existing VM; do not redeploy."
+    ),
+    (
         "coordinator_auth_rejected",
         "The coordinator rejected this profile's miner authorization. This is not a Phala API key error.",
         "Check that your computer's clock is correct. Run everycli reconnect with the same hotkey to refresh the signed profile. No VM is created and saved API keys are kept."

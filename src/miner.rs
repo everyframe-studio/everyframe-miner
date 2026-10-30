@@ -689,6 +689,11 @@ impl Miner<'_> {
             Err(e) => add("Coordinator", false, e.0),
         };
         let workload = self.target(&c, false);
+        let cloud_status = workload
+            .as_ref()
+            .ok()
+            .and_then(|v| v["status"].as_str())
+            .map(str::to_string);
         let workload_reason = workload
             .as_ref()
             .err()
@@ -697,7 +702,11 @@ impl Miner<'_> {
             Ok(v) => add(
                 "Phala workload",
                 v["status"] == "running",
-                "Pinned app/name/compose checked.",
+                if v["status"] == "running" {
+                    "Pinned app/name/compose checked; VM is running."
+                } else {
+                    "The verified VM is not running. Use everycli start for this same VM if it is stopped; do not deploy another worker."
+                },
             ),
             Err(e) => add(
                 "Phala workload",
@@ -723,11 +732,13 @@ impl Miner<'_> {
             Ok(json!({
                 "ok":checks.iter().all(|c|c["ok"]==true),"checks":checks,
                 "minerId":inv["minerId"],"network":inv["network"],"netuid":inv["netuid"],
-                "checkedAt":now(),"activity":crate::health::activity(&snapshot),
+                "checkedAt":now(),"cloudStatus":cloud_status,"activity":crate::health::activity(&snapshot),
                 "generationSubmitted":false,"label":self.state.read("label",true)?["name"]
             }))
         } else {
-            Ok(json!({"ok":checks.iter().all(|c|c["ok"]==true),"checks":checks}))
+            Ok(
+                json!({"ok":checks.iter().all(|c|c["ok"]==true),"checks":checks,"cloudStatus":cloud_status}),
+            )
         }
     }
     pub fn providers(&self) -> Result<Value> {
@@ -1377,6 +1388,10 @@ impl Miner<'_> {
             "resume_not_ready",
         )?;
         let status = self.api(&c, "status", json!({}))?;
+        need(
+            self.target(&c, false)?["status"] == "running",
+            "worker_not_running",
+        )?;
         self.ensure_ready(&c, &status)?;
         if phase == "awaiting_readmission" {
             need(
@@ -1386,10 +1401,6 @@ impl Miner<'_> {
                 "post_restart_attestation_required",
             )?
         };
-        need(
-            self.target(&c, false)?["status"] == "running",
-            "worker_not_running",
-        )?;
         confirm(
             "Accept paid provider work when routing is enabled? Your provider account pays for assignments.",
         )?;
@@ -1695,7 +1706,18 @@ impl Miner<'_> {
     pub fn start(&self, limit: f64, confirm: &dyn Fn(&str) -> Result<()>) -> Result<Value> {
         let _lock = self.state.lock()?;
         let c = self.load(true)?;
-        need(c.deployment["phase"] == "stopped", "start_not_ready")?;
+        need(
+            [
+                "stopped",
+                "running",
+                "drained",
+                "awaiting_attestation",
+                "awaiting_readmission",
+            ]
+            .iter()
+            .any(|phase| c.deployment["phase"] == *phase),
+            "start_not_ready",
+        )?;
         let info = self.target(&c, false)?;
         need(
             ["stopped", "exited"].contains(&s(&info["status"])?),
@@ -2114,7 +2136,16 @@ impl Miner<'_> {
             self.bind_public_app(&c, &c.deployment)?;
         }
         let mut d = c.deployment.clone();
-        let next = if ["stop_intent", "stopping", "stopped"].contains(&phase)
+        let next = if [
+            "stop_intent",
+            "stopping",
+            "stopped",
+            "running",
+            "drained",
+            "awaiting_attestation",
+            "awaiting_readmission",
+        ]
+        .contains(&phase)
             && ["stopped", "exited"].contains(&status)
         {
             Some("stopped")

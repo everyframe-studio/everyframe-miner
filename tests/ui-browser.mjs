@@ -81,6 +81,10 @@ try {
     assert.equal(await page.getByRole('button', { name: 'Re-sync operation', exact: true }).isEnabled(), true, phase);
     assert.equal(await page.getByRole('button', { name: 'Re-sync state', exact: true }).isEnabled(), true, phase);
   }
+  await page.evaluate(()=>{S.overview.deployment.phase='running';S.health={result:{value:{cloudStatus:'stopped',checks:[]}}};render();});
+  assert.equal(await page.getByRole('button',{name:'Start',exact:true}).isEnabled(),true);
+  assert.equal(await page.getByRole('button',{name:'Resume',exact:true}).isEnabled(),false);
+  await page.evaluate(()=>{S.health=null;});
   await page.evaluate(() => { S.overview.deployment.phase = 'stopped'; S.overview.deployment.needsReconcile = false; render(); });
   assert.equal(await page.getByRole('button', { name: 'Start', exact: true }).isEnabled(), true);
   await page.evaluate(() => { S.overview.deployment.phase = 'awaiting_readmission'; render(); });
