@@ -84,6 +84,10 @@ try {
   await page.evaluate(()=>{S.overview.deployment.phase='running';S.health={result:{value:{cloudStatus:'stopped',checks:[]}}};render();});
   assert.equal(await page.getByRole('button',{name:'Start',exact:true}).isEnabled(),true);
   assert.equal(await page.getByRole('button',{name:'Resume',exact:true}).isEnabled(),false);
+  for (const phase of ['start_intent','starting']) {
+    await page.evaluate(phase=>{S.overview.deployment.phase=phase;render();},phase);
+    assert.equal(await page.getByRole('button',{name:'Start',exact:true}).isEnabled(),false,phase);
+  }
   await page.evaluate(()=>{S.health=null;});
   await page.evaluate(() => { S.overview.deployment.phase = 'stopped'; S.overview.deployment.needsReconcile = false; render(); });
   assert.equal(await page.getByRole('button', { name: 'Start', exact: true }).isEnabled(), true);

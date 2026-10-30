@@ -24,6 +24,7 @@ aes-gcm = "0.10"
 base64 = "0.22"
 blake2 = "0.10"
 bs58 = "0.5"
+chrono = { version = "0.4.45", default-features = false, features = ["std"] }
 ed25519-dalek = { version = "2.2", features = ["rand_core"] }
 hex = "0.4"
 hkdf = "0.12"

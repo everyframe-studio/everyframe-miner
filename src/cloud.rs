@@ -12,6 +12,20 @@ use aes_gcm::{Aes256Gcm, KeyInit, Nonce, aead::Aead};
 use rand::rngs::OsRng;
 use serde_json::{Value, json};
 use x25519_dalek::{PublicKey, StaticSecret};
+
+/// Phala operation history uses UTC, sometimes without the RFC3339 suffix.
+pub(crate) fn operation_time(value: &Value) -> Option<i64> {
+    let raw = value.as_str().filter(|s| s.len() <= 64)?;
+    chrono::DateTime::parse_from_rfc3339(raw)
+        .map(|d| d.timestamp_millis())
+        .ok()
+        .or_else(|| {
+            chrono::NaiveDateTime::parse_from_str(raw, "%Y-%m-%dT%H:%M:%S%.f")
+                .ok()
+                .map(|d| d.and_utc().timestamp_millis())
+        })
+}
+
 pub fn environment(inv: &Value, credentials: &Value, provider: bool) -> Result<Value> {
     need(
         valid_environment(&inv["request"]["compose_file"]["allowed_envs"]),

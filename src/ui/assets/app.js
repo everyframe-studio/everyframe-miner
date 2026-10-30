@@ -1125,7 +1125,7 @@ function pageWorker() {
     ["Redeploy", "Deletes this worker, waits until Phala removes it, then deploys a fresh one at up to the price below.",
       when(!!d.appId && !["deleted", "deleting", "delete_intent"].includes(ph), button("Delete and deploy again", async () => { await removeWorker(d.appId, true, startLimit.value); }, "danger"), "No worker recorded on this computer.")],
     ["Start a stopped worker", "Starts the same machine again at up to this compute price.", h("div", { class: "row" }, startLimit, h("span", { class: "small muted" }, "USD/h max"),
-      when(ph === "stopped" || cloudStopped, button("Start", async () => { await run("start", { maxHourlyUsd: startLimit.value }); await refreshAll(); }), "Only a stopped worker can be started."))],
+      when(ph === "stopped" || (cloudStopped && ["running", "drained", "awaiting_attestation", "awaiting_readmission"].includes(ph)), button("Start", async () => { await run("start", { maxHourlyUsd: startLimit.value }); await refreshAll(); }), "Only a stopped worker without an unresolved start can be started."))],
   ];
   root.append(card("Actions", null, h("ul", { class: "checks" }, actions.map(([t, desc, ctl]) => h("li", { class: "action-row" },
     h("span"), h("div", { class: "row" }, h("div", { class: "grow" }, h("div", { class: "name" }, t), h("div", { class: "detail" }, desc)), ctl))))));
