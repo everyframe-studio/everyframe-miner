@@ -32,14 +32,63 @@ pub fn label(status: &str) -> &'static str {
         _ => "Account access not checked",
     }
 }
+/// Most provider entries a coordinator retirement list may name.
+const MAX_SERVER_RETIREMENTS: usize = 512;
 #[derive(Default)]
 pub struct CatalogCache {
     next_check: i64,
     rows: Vec<Value>,
+    // Provider API ids the coordinator reports as retired. Narrowing only: an
+    // entry can stop this worker offering a model, never enable or reprice one.
+    server_retired: BTreeMap<String, BTreeSet<String>>,
 }
 impl CatalogCache {
+    /// Adopt the coordinator's signed retirement list from a claim reply.
+    /// Invalid lists are ignored whole; a change forces the next catalog check.
+    pub fn set_server_retirements(&mut self, v: &Value) -> bool {
+        let Some(map) = v.as_object() else {
+            return false;
+        };
+        let mut next: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+        let mut total = 0;
+        for (provider, ids) in map {
+            let Some(ids) = ids.as_array() else {
+                return false;
+            };
+            if !PROVIDERS.iter().any(|(p, _)| *p == provider.as_str()) {
+                continue; // Unknown providers cannot affect this worker.
+            }
+            for id in ids {
+                let Some(id) = id.as_str() else {
+                    return false;
+                };
+                total += 1;
+                if total > MAX_SERVER_RETIREMENTS || id.is_empty() || id.len() > 200 {
+                    return false;
+                }
+                next.entry(provider.clone())
+                    .or_default()
+                    .insert(id.to_string());
+            }
+        }
+        if next == self.server_retired {
+            return false;
+        }
+        self.server_retired = next;
+        self.next_check = 0;
+        true
+    }
+    fn retired_status(&self, id: &str) -> Option<&'static str> {
+        retired(id).or_else(|| {
+            let m = models::info(id).ok()?;
+            self.server_retired
+                .get(m["provider"].as_str()?)?
+                .contains(api_id(id, m))
+                .then_some("removed")
+        })
+    }
     pub fn allows(&self, id: &str) -> bool {
-        retired(id).is_none()
+        self.retired_status(id).is_none()
             && self
                 .rows
                 .iter()
@@ -64,12 +113,12 @@ impl CatalogCache {
                 .collect();
             let ids: BTreeSet<_> = contracts
                 .iter()
-                .filter(|(id, _)| retired(id).is_none())
+                .filter(|(id, _)| self.retired_status(id).is_none())
                 .map(|(id, m)| api_id(id, m).to_string())
                 .collect();
             let checked = check_provider(http, provider, s(&credentials[key]).unwrap_or(""), &ids);
             for (id, m) in contracts {
-                let status = retired(id).unwrap_or_else(|| match &checked {
+                let status = self.retired_status(id).unwrap_or_else(|| match &checked {
                     Ok(Some(found)) => found
                         .get(api_id(id, m))
                         .copied()
@@ -202,8 +251,21 @@ fn check_provider(
         "fal" => {
             let mut found = BTreeMap::new();
             let mut requests = 0;
+            let mut stopped = false;
             for chunk in ids.iter().cloned().collect::<Vec<_>>().chunks(50) {
-                fal(http, chunk, &mut found, &mut requests)?;
+                if !stopped && let Err(e) = fal(http, chunk, &mut found, &mut requests) {
+                    // A rejected key still marks the whole provider.
+                    if matches!(e.0, "http_401" | "http_403") {
+                        return Err(e);
+                    }
+                    // Rate limits, outages and the request cap leave only the
+                    // unresolved models temporarily unavailable; confirmed
+                    // results stand. Stop asking until the next check.
+                    stopped = true;
+                }
+            }
+            for id in ids {
+                found.entry(id.clone()).or_insert("temporarily_unavailable");
             }
             Ok(Some(found))
         }
