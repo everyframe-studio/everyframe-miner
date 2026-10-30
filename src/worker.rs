@@ -145,6 +145,10 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
             capabilities["balancePolicy"] = json!(1);
         }
         let (result, nonce) = self.call("claim", capabilities)?;
+        // Signed with the reply; it can only stop this worker offering models.
+        if let Some(retired) = result.get("retiredModels") {
+            self.provider.set_retirements(retired);
+        }
         if self.runtime.balances_enabled() {
             self.runtime.balance_session(&self.session, &self.keys);
         }

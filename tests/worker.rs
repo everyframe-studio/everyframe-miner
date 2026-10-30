@@ -30,6 +30,7 @@ struct Options {
     bad_chain: bool,
     threaded_heartbeat: bool,
     blocking_ms: u64,
+    retired_models: Option<Value>,
 }
 struct Fixture {
     key: Keys,
@@ -45,6 +46,7 @@ struct Fixture {
     reports: Cell<u32>,
     complete: Cell<u32>,
     claim_models: RefCell<Vec<Value>>,
+    retirements: RefCell<Vec<Value>>,
     heartbeats: std::sync::Arc<std::sync::atomic::AtomicUsize>,
     options: Options,
 }
@@ -111,7 +113,11 @@ impl Runtime for Handle {
                         self.claim_models
                             .borrow_mut()
                             .push(request["payload"]["models"].clone());
-                        json!({"work":protocol::seal(&self.work,&self.encryption_key.borrow(),&format!("session:{}",request["nonce"].as_str().unwrap()))?})
+                        let mut reply = json!({"work":protocol::seal(&self.work,&self.encryption_key.borrow(),&format!("session:{}",request["nonce"].as_str().unwrap()))?});
+                        if let Some(retired) = &self.options.retired_models {
+                            reply["retiredModels"] = retired.clone();
+                        }
+                        reply
                     }
                     "start" => {
                         json!({"permitted":!self.options.denied,"attemptId":self.work["attemptId"],"inputHash":if self.options.bad_grant {json!("wrong")} else {self.work["inputHash"].clone()},"grantNonce":"grant"})
@@ -174,6 +180,9 @@ impl Runtime for Handle {
 impl Provider for Handle {
     fn models(&self) -> Vec<String> {
         vec![models::DEFAULT_MODEL.into()]
+    }
+    fn set_retirements(&mut self, retired: &Value) {
+        self.retirements.borrow_mut().push(retired.clone());
     }
     fn submit(&mut self, _: &Value) -> Result<String> {
         std::thread::sleep(std::time::Duration::from_millis(self.options.blocking_ms));
@@ -262,6 +271,7 @@ fn fixture(options: Options, patch: Value) -> (Worker<Handle, Handle>, Rc<Fixtur
         reports: Cell::new(0),
         complete: Cell::new(0),
         claim_models: RefCell::default(),
+        retirements: RefCell::default(),
         heartbeats: Default::default(),
         options,
     });
@@ -360,6 +370,25 @@ fn terminal_provider_aliases_reach_signed_reports() {
             assert_eq!(f.submits.get(), 1);
         }
     }
+}
+#[test]
+fn signed_claim_reply_passes_coordinator_retirements_to_the_provider() {
+    let (mut w, f) = fixture(Options::default(), json!({}));
+    w.step().unwrap();
+    assert!(
+        f.retirements.borrow().is_empty(),
+        "older coordinators send none"
+    );
+    let list = json!({"fal":["fal-ai/ltx-2/text-to-video"]});
+    let (mut w, f) = fixture(
+        Options {
+            retired_models: Some(list.clone()),
+            ..Options::default()
+        },
+        json!({}),
+    );
+    assert_eq!(w.step().unwrap()["state"], "accepted");
+    assert_eq!(*f.retirements.borrow(), vec![list]);
 }
 #[test]
 fn completes_with_bound_signed_receipt() {
