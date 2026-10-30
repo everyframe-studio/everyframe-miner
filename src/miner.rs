@@ -22,10 +22,21 @@ fn attestation_ready(status: &Value, at: i64) -> Result<()> {
         _ => return Err(Error("attestation_unavailable")),
     }
     let verified_at = n(&a["at"]).map_err(|_| Error("attestation_timestamp_invalid"))?;
+    need(verified_at > 0, "attestation_timestamp_invalid")?;
     need(verified_at <= at + 30000, "attestation_clock_skew")?;
-    need(verified_at > at - 600000, "attestation_stale")?;
-    need(status["attested"] == true, "attestation_session_not_ready")?;
-    need(status["online"] == true, "worker_offline")
+    // The coordinator's admitted session is authoritative. A fixed quote-age
+    // limit can expire before a healthy worker's normal session renewal.
+    let expires =
+        n(&status["sessionExpires"]).map_err(|_| Error("attestation_session_not_ready"))?;
+    need(
+        status["attested"] == true && expires > at && expires > verified_at,
+        "attestation_session_not_ready",
+    )?;
+    let last_seen = n(&status["lastSeen"]).map_err(|_| Error("worker_offline"))?;
+    need(
+        status["online"] == true && last_seen > at - 30000 && last_seen <= at + 30000,
+        "worker_offline",
+    )
 }
 
 /// A Phala hourly rate (string or number) as a dollar amount: "$0.05".

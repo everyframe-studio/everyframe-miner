@@ -869,7 +869,7 @@ impl Rig {
         let compose = json!({"name":"everyframe-test-miner","docker_compose_file":format!("services:\n  worker:\n    image: ghcr.io/everyframebuilder/worker@sha256:{}\n","a".repeat(64)),"pre_launch_script":invitation::PUBLIC_SCRIPT,"allowed_envs":["MINER_ID","MINER_TOKEN","FAL_KEY"],"kms_enabled":true,"gateway_enabled":false,"public_logs":false,"public_sysinfo":false,"public_tcbinfo":true});
         let inv = json!({"network":trust["network"],"netuid":trust["netuid"],"coordinatorUrl":trust["coordinatorUrl"],"genesis":trust["genesis"],"kind":"everyframe-miner-invitation-v1","issuedAt":now()-1000,"expiresAt":now()+86400000,"minerId":"test-miner","tokenHash":protocol::sha(format!("Bearer {}",credentials["MINER_TOKEN"].as_str().unwrap())),"hotkey":"5C899MixYEUvgfLhKrCMiCUj4i2gZefTTj1d4fsWS2Bc2wP6","ownershipVerifiedByOperator":true,"release":"test-release-1","appId":null,"previousComposeHash":null,"osImageHash":"c".repeat(64),"composeHash":cloud::compose_hash(&compose).unwrap(),"request":{"name":compose["name"],"instance_type":"tdx.small","disk_size":20,"image":"dstack-0.5.9","kms":"PHALA","listed":false,"compose_file":compose}});
         let info = json!({"app_id":"1".repeat(40),"name":compose["name"],"compose_hash":inv["composeHash"],"status":"running"});
-        let status = json!({"minerId":"test-miner","activeJobs":0,"draining":true,"enabled":true,"online":true,"attested":true,"attestation":{"state":"accepted","at":now()},"appId":info["app_id"],"composeHash":inv["composeHash"],"routingEnabled":false,"earnings":{"fees":[],"payoutsImplemented":false},"routingPolicy":"discount-lottery-v1","offers":[{"model":"fixture/video","revision":0,"pricingHash":"d".repeat(64),"baseMinerRewardMicrousd":123456,"discountBp":null,"offered":false,"pricingCurrent":true}]});
+        let status = json!({"minerId":"test-miner","activeJobs":0,"draining":true,"enabled":true,"online":true,"attested":true,"lastSeen":now(),"sessionExpires":now()+1500000,"attestation":{"state":"accepted","at":now()},"appId":info["app_id"],"composeHash":inv["composeHash"],"routingEnabled":false,"earnings":{"fees":[],"payoutsImplemented":false},"routingPolicy":"discount-lottery-v1","offers":[{"model":"fixture/video","revision":0,"pricingHash":"d".repeat(64),"baseMinerRewardMicrousd":123456,"discountBp":null,"offered":false,"pricingCurrent":true}]});
         let r = Self {
             dir,
             key,
@@ -2300,7 +2300,13 @@ fn activation_reports_each_readiness_failure_without_releasing_keys() {
             "attestation_timestamp_invalid",
         ),
         ("/attestation/at", json!(120000), "attestation_clock_skew"),
-        ("/attestation/at", json!(-600001), "attestation_stale"),
+        ("/sessionExpires", json!(0), "attestation_session_not_ready"),
+        (
+            "/sessionExpires",
+            Value::Null,
+            "attestation_session_not_ready",
+        ),
+        ("/lastSeen", Value::Null, "worker_offline"),
         ("/attested", json!(false), "attestation_session_not_ready"),
         ("/online", json!(false), "worker_offline"),
     ];
@@ -3388,5 +3394,45 @@ fn balances_work_for_saved_keys_before_hotkey_initialization() {
     assert_eq!(
         r.miner().balances(true).err().unwrap().0,
         "profile_not_initialized"
+    );
+}
+
+#[test]
+fn valid_session_with_attestation_older_than_ten_minutes_can_resume() {
+    let r = Rig::new();
+    r.deploy().unwrap();
+    let at = now();
+    {
+        let mut status = r.status.borrow_mut();
+        status["attestation"]["at"] = json!(at - 12 * 60 * 1000);
+        status["sessionExpires"] = json!(at + 13 * 60 * 1000);
+        status["lastSeen"] = json!(at);
+    }
+    let context = r.miner().load(false).unwrap();
+    r.miner()
+        .ensure_ready(&context, &r.status.borrow())
+        .unwrap();
+    r.state()
+        .write(
+            "deployment",
+            &json!({"phase":"drained","appId":"1".repeat(40)}),
+        )
+        .unwrap();
+    r.miner().resume(&|_| Ok(())).unwrap();
+    assert_eq!(r.status.borrow()["draining"], false);
+}
+#[test]
+fn a_live_session_cannot_hide_a_stale_heartbeat() {
+    let r = Rig::new();
+    r.deploy().unwrap();
+    r.status.borrow_mut()["lastSeen"] = json!(now() - 60001);
+    let context = r.miner().load(false).unwrap();
+    assert_eq!(
+        r.miner()
+            .ensure_ready(&context, &r.status.borrow())
+            .err()
+            .unwrap()
+            .0,
+        "worker_offline"
     );
 }
