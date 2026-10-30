@@ -181,6 +181,8 @@ struct Rig {
     envs: RefCell<Vec<Value>>,
     cvms: RefCell<Vec<Value>>,
     recovered: RefCell<Option<Value>>,
+    operation_status: RefCell<Value>,
+    operation_history: RefCell<Value>,
 }
 
 fn abandoned_preparation() -> Rig {
@@ -869,7 +871,7 @@ impl Rig {
         let compose = json!({"name":"everyframe-test-miner","docker_compose_file":format!("services:\n  worker:\n    image: ghcr.io/everyframebuilder/worker@sha256:{}\n","a".repeat(64)),"pre_launch_script":invitation::PUBLIC_SCRIPT,"allowed_envs":["MINER_ID","MINER_TOKEN","FAL_KEY"],"kms_enabled":true,"gateway_enabled":false,"public_logs":false,"public_sysinfo":false,"public_tcbinfo":true});
         let inv = json!({"network":trust["network"],"netuid":trust["netuid"],"coordinatorUrl":trust["coordinatorUrl"],"genesis":trust["genesis"],"kind":"everyframe-miner-invitation-v1","issuedAt":now()-1000,"expiresAt":now()+86400000,"minerId":"test-miner","tokenHash":protocol::sha(format!("Bearer {}",credentials["MINER_TOKEN"].as_str().unwrap())),"hotkey":"5C899MixYEUvgfLhKrCMiCUj4i2gZefTTj1d4fsWS2Bc2wP6","ownershipVerifiedByOperator":true,"release":"test-release-1","appId":null,"previousComposeHash":null,"osImageHash":"c".repeat(64),"composeHash":cloud::compose_hash(&compose).unwrap(),"request":{"name":compose["name"],"instance_type":"tdx.small","disk_size":20,"image":"dstack-0.5.9","kms":"PHALA","listed":false,"compose_file":compose}});
         let info = json!({"app_id":"1".repeat(40),"name":compose["name"],"compose_hash":inv["composeHash"],"status":"running"});
-        let status = json!({"minerId":"test-miner","activeJobs":0,"draining":true,"enabled":true,"online":true,"attested":true,"attestation":{"state":"accepted","at":now()},"appId":info["app_id"],"composeHash":inv["composeHash"],"routingEnabled":false,"earnings":{"fees":[],"payoutsImplemented":false},"routingPolicy":"discount-lottery-v1","offers":[{"model":"fixture/video","revision":0,"pricingHash":"d".repeat(64),"baseMinerRewardMicrousd":123456,"discountBp":null,"offered":false,"pricingCurrent":true}]});
+        let status = json!({"minerId":"test-miner","activeJobs":0,"draining":true,"enabled":true,"online":true,"attested":true,"lastSeen":now(),"sessionExpires":now()+1500000,"attestation":{"state":"accepted","at":now()},"appId":info["app_id"],"composeHash":inv["composeHash"],"routingEnabled":false,"earnings":{"fees":[],"payoutsImplemented":false},"routingPolicy":"discount-lottery-v1","offers":[{"model":"fixture/video","revision":0,"pricingHash":"d".repeat(64),"baseMinerRewardMicrousd":123456,"discountBp":null,"offered":false,"pricingCurrent":true}]});
         let r = Self {
             dir,
             key,
@@ -883,6 +885,8 @@ impl Rig {
             envs: RefCell::default(),
             cvms: RefCell::default(),
             recovered: RefCell::default(),
+            operation_status: RefCell::new(json!({"status":"idle","operation":null})),
+            operation_history: RefCell::new(json!({"items":[]})),
         };
         r.miner().init(&r.sign(&r.inv), &r.credentials).unwrap();
         r
@@ -2128,6 +2132,12 @@ impl Http for Rig {
                 assert_eq!(self.phase(), "commit_intent");
                 self.info.borrow().clone()
             }
+        } else if path.ends_with("/operation-status") {
+            assert_eq!(r.method, "GET");
+            self.operation_status.borrow().clone()
+        } else if path.ends_with("/operations") {
+            assert_eq!(r.method, "GET");
+            self.operation_history.borrow().clone()
         } else if path.ends_with("/shutdown") {
             assert_eq!(self.phase(), "stop_intent");
             json!({})
@@ -2300,7 +2310,13 @@ fn activation_reports_each_readiness_failure_without_releasing_keys() {
             "attestation_timestamp_invalid",
         ),
         ("/attestation/at", json!(120000), "attestation_clock_skew"),
-        ("/attestation/at", json!(-600001), "attestation_stale"),
+        ("/sessionExpires", json!(0), "attestation_session_not_ready"),
+        (
+            "/sessionExpires",
+            Value::Null,
+            "attestation_session_not_ready",
+        ),
+        ("/lastSeen", Value::Null, "worker_offline"),
         ("/attested", json!(false), "attestation_session_not_ready"),
         ("/online", json!(false), "worker_offline"),
     ];
@@ -2389,8 +2405,25 @@ fn doctor_explains_automatic_attestation_and_current_readiness() {
         .iter()
         .find(|v| v["name"] == "Workload attestation")
         .unwrap();
+    assert_eq!(
+        check["ok"], true,
+        "a current admitted session remains valid past the old quote-age cutoff"
+    );
+    r.status.borrow_mut()["sessionExpires"] = json!(now() - 1);
+    let expired = r.miner().doctor().unwrap();
+    let check = expired["checks"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|v| v["name"] == "Workload attestation")
+        .unwrap();
     assert_eq!(check["ok"], false);
-    assert!(check["detail"].as_str().unwrap().contains("too old"));
+    assert!(
+        check["detail"]
+            .as_str()
+            .unwrap()
+            .contains("verified workload session")
+    );
 }
 
 #[test]
@@ -3389,4 +3422,286 @@ fn balances_work_for_saved_keys_before_hotkey_initialization() {
         r.miner().balances(true).err().unwrap().0,
         "profile_not_initialized"
     );
+}
+
+#[test]
+fn valid_session_with_attestation_older_than_ten_minutes_can_resume() {
+    let r = Rig::new();
+    r.deploy().unwrap();
+    let at = now();
+    {
+        let mut status = r.status.borrow_mut();
+        status["attestation"]["at"] = json!(at - 12 * 60 * 1000);
+        status["sessionExpires"] = json!(at + 13 * 60 * 1000);
+        status["lastSeen"] = json!(at);
+    }
+    let context = r.miner().load(false).unwrap();
+    r.miner()
+        .ensure_ready(&context, &r.status.borrow())
+        .unwrap();
+    r.state()
+        .write(
+            "deployment",
+            &json!({"phase":"drained","appId":"1".repeat(40)}),
+        )
+        .unwrap();
+    r.miner().resume(&|_| Ok(())).unwrap();
+    assert_eq!(r.status.borrow()["draining"], false);
+}
+#[test]
+fn a_live_session_cannot_hide_a_stale_heartbeat() {
+    let r = Rig::new();
+    r.deploy().unwrap();
+    r.status.borrow_mut()["lastSeen"] = json!(now() - 60001);
+    let context = r.miner().load(false).unwrap();
+    assert_eq!(
+        r.miner()
+            .ensure_ready(&context, &r.status.borrow())
+            .err()
+            .unwrap()
+            .0,
+        "worker_offline"
+    );
+}
+
+#[test]
+fn externally_stopped_vm_is_reconciled_without_a_cloud_mutation() {
+    let r = Rig::new();
+    r.deploy().unwrap();
+    let mut d = r.state().read("deployment", false).unwrap();
+    d["phase"] = json!("running");
+    r.state().write("deployment", &d).unwrap();
+    r.info.borrow_mut()["status"] = json!("stopped");
+    r.calls.borrow_mut().clear();
+    assert_eq!(r.miner().reconcile().unwrap()["phase"], "stopped");
+    assert!(r.mutations().is_empty());
+}
+#[test]
+fn externally_stopped_vm_can_start_without_redeploying_or_ignoring_confirmation() {
+    let r = Rig::new();
+    r.deploy().unwrap();
+    let mut d = r.state().read("deployment", false).unwrap();
+    d["phase"] = json!("running");
+    r.state().write("deployment", &d).unwrap();
+    r.info.borrow_mut()["status"] = json!("stopped");
+    r.calls.borrow_mut().clear();
+    let out = r.miner().start(0.06, &|_| Ok(())).unwrap();
+    assert_eq!(out["phase"], "starting");
+    let mutations = r.mutations();
+    assert_eq!(mutations.len(), 1);
+    assert!(mutations[0].ends_with("/start"));
+}
+#[test]
+fn resume_reports_the_stopped_vm_before_an_old_attestation() {
+    let r = Rig::new();
+    r.deploy().unwrap();
+    r.state()
+        .write(
+            "deployment",
+            &json!({"phase":"running","appId":"1".repeat(40)}),
+        )
+        .unwrap();
+    r.info.borrow_mut()["status"] = json!("stopped");
+    r.status.borrow_mut()["attestation"]["at"] = json!(now() - 3600000);
+    r.calls.borrow_mut().clear();
+    assert_eq!(
+        r.miner()
+            .resume(&|_| panic!("no confirmation for stopped VM"))
+            .unwrap_err()
+            .0,
+        "worker_not_running"
+    );
+    assert!(r.mutations().is_empty());
+}
+
+fn interrupted_start(phase: &str) -> Rig {
+    let r = Rig::new();
+    r.deploy().unwrap();
+    let mut d = r.state().read("deployment", false).unwrap();
+    d["phase"] = json!(phase);
+    d["providerConfigured"] = json!(true);
+    d["operationAt"] = json!(now() - 60000);
+    r.state().write("deployment", &d).unwrap();
+    r.info.borrow_mut()["status"] = json!("stopped");
+    r.info.borrow_mut()["in_progress"] = json!(false);
+    r.calls.borrow_mut().clear();
+    r
+}
+
+fn failed_start_record(at: i64, naive_utc: bool) -> Value {
+    let timestamp = |t| {
+        let date = chrono::DateTime::from_timestamp_millis(t).unwrap();
+        if naive_utc {
+            date.format("%Y-%m-%dT%H:%M:%S%.6f").to_string()
+        } else {
+            date.to_rfc3339()
+        }
+    };
+    json!({"operation_type":"power_on","target_state":"running","status":"failed",
+        "started_at":timestamp(at + 1000),"completed_at":timestamp(at + 2000),
+        "error_message":"synthetic-secret-never-display","triggered_by_email":"private@example.test"})
+}
+
+#[test]
+fn rejected_start_is_recorded_without_leaving_a_pending_intent() {
+    let r = interrupted_start("stopped");
+    *r.fail.borrow_mut() = "reject:/start".into();
+    assert_eq!(
+        r.miner().start(0.06, &|_| Ok(())).unwrap_err().0,
+        "phala_http_422"
+    );
+    assert_eq!(r.phase(), "stopped");
+    assert_eq!(
+        r.state().read("deployment", false).unwrap()["startRejected"]["code"],
+        "phala_http_422"
+    );
+    *r.fail.borrow_mut() = String::new();
+    r.calls.borrow_mut().clear();
+    assert_eq!(
+        r.miner()
+            .start(0.06, &|_| Err(Error("cancelled")))
+            .unwrap_err()
+            .0,
+        "cancelled"
+    );
+    assert!(r.mutations().is_empty());
+    assert_eq!(
+        r.miner().start(0.06, &|_| Ok(())).unwrap()["phase"],
+        "starting"
+    );
+    assert_eq!(r.mutations().len(), 1);
+    assert!(r.state().read("deployment", false).unwrap()["startRejected"].is_null());
+}
+
+#[test]
+fn uncertain_start_is_preserved_and_a_second_start_is_not_sent() {
+    let r = interrupted_start("stopped");
+    *r.fail.borrow_mut() = "/start".into();
+    assert!(r.miner().start(0.06, &|_| Ok(())).is_err());
+    assert_eq!(r.phase(), "start_intent");
+    *r.fail.borrow_mut() = String::new();
+    r.calls.borrow_mut().clear();
+    assert_eq!(
+        r.miner().start(0.06, &|_| panic!()).unwrap_err().0,
+        "start_pending_reconciliation"
+    );
+    let report = r.miner().reconcile().unwrap();
+    assert_eq!(report["resolved"], false);
+    assert_eq!(r.phase(), "start_intent");
+    assert_eq!(report["diagnostic"]["code"], "start_pending_reconciliation");
+    assert!(r.mutations().is_empty());
+}
+
+#[test]
+fn provider_confirmed_failed_start_restores_stopped_without_repeating_cloud_mutation() {
+    for phase in ["start_intent", "starting"] {
+        for naive in [false, true] {
+            let r = interrupted_start(phase);
+            let at = r.state().read("deployment", false).unwrap()["operationAt"]
+                .as_i64()
+                .unwrap();
+            *r.operation_history.borrow_mut() = json!({"items":[failed_start_record(at, naive)]});
+            let report = r.miner().reconcile().unwrap();
+            assert_eq!(report["resolved"], true);
+            assert_eq!(report["cloudChanged"], false);
+            assert_eq!(report["diagnostic"]["code"], "cloud_start_failed");
+            assert_eq!(r.phase(), "stopped");
+            assert!(!report.to_string().contains("synthetic-secret"));
+            assert!(!report.to_string().contains("private@example"));
+            assert!(r.mutations().is_empty());
+        }
+    }
+}
+
+#[test]
+fn reconcile_cannot_clear_a_start_from_stopped_status_or_unrelated_history() {
+    for mode in [
+        "empty",
+        "old",
+        "unrelated",
+        "completed",
+        "future",
+        "malformed",
+        "pending",
+        "cloud_busy",
+        "read_failure",
+    ] {
+        let r = interrupted_start("start_intent");
+        let at = r.state().read("deployment", false).unwrap()["operationAt"]
+            .as_i64()
+            .unwrap();
+        let mut row = failed_start_record(at, false);
+        match mode {
+            "empty" => {}
+            "old" => row = failed_start_record(at - 10000, false),
+            "unrelated" => row["operation_type"] = json!("compose_update"),
+            "completed" => row["status"] = json!("completed"),
+            "future" => row["completed_at"] = json!("2999-01-01T00:00:00Z"),
+            "malformed" => row["started_at"] = json!("not-a-time"),
+            "pending" => {
+                *r.operation_status.borrow_mut() =
+                    json!({"status":"in_progress","operation":{"type":"power_on"}})
+            }
+            "cloud_busy" => r.info.borrow_mut()["in_progress"] = json!(true),
+            "read_failure" => *r.fail.borrow_mut() = "/operation-status".into(),
+            _ => unreachable!(),
+        }
+        if mode != "empty" {
+            *r.operation_history.borrow_mut() = json!({"items":[row]});
+        }
+        let out = r.miner().reconcile();
+        if mode == "read_failure" {
+            assert!(out.is_err());
+        } else {
+            assert_eq!(out.unwrap()["resolved"], false, "{mode}");
+        }
+        assert_eq!(r.phase(), "start_intent", "{mode}");
+        assert!(r.mutations().is_empty(), "{mode}");
+    }
+}
+
+#[test]
+fn a_later_unrelated_operation_cannot_be_hidden_by_a_failed_start() {
+    let r = interrupted_start("start_intent");
+    let at = r.state().read("deployment", false).unwrap()["operationAt"]
+        .as_i64()
+        .unwrap();
+    let failed = failed_start_record(at, true);
+    let mut later = failed_start_record(at + 1000, true);
+    later["operation_type"] = json!("resize");
+    *r.operation_history.borrow_mut() = json!({"items":[later,failed]});
+    assert_eq!(r.miner().reconcile().unwrap()["resolved"], false);
+    assert_eq!(r.phase(), "start_intent");
+    assert!(r.mutations().is_empty());
+}
+
+#[test]
+fn start_waits_for_existing_phala_operation_before_confirmation_or_cloud_mutation() {
+    let r = interrupted_start("stopped");
+    r.info.borrow_mut()["in_progress"] = json!(true);
+    assert_eq!(
+        r.miner().start(0.06, &|_| panic!()).unwrap_err().0,
+        "cloud_operation_in_progress"
+    );
+    assert_eq!(r.phase(), "stopped");
+    assert!(r.mutations().is_empty());
+}
+
+#[test]
+fn manually_started_vm_reconciles_the_old_intent_and_still_requires_fresh_attestation() {
+    let r = interrupted_start("start_intent");
+    r.info.borrow_mut()["status"] = json!("running");
+    assert_eq!(
+        r.miner().reconcile().unwrap()["phase"],
+        "awaiting_readmission"
+    );
+    let at = r.state().read("deployment", false).unwrap()["operationAt"]
+        .as_i64()
+        .unwrap();
+    r.status.borrow_mut()["attestation"]["at"] = json!(at - 1000);
+    assert_eq!(
+        r.miner().resume(&|_| panic!()).unwrap_err().0,
+        "post_restart_attestation_required"
+    );
+    assert!(r.mutations().is_empty());
 }

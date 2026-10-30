@@ -187,6 +187,26 @@ reasons![
         "Finish the other management command, then retry from the same profile."
     ),
     (
+        "worker_not_running",
+        "The existing Phala VM is not running, so it cannot accept jobs.",
+        "Run everycli status. If Phala reports stopped, use everycli start --max-hourly-usd 10 and review the hosting quote. Keep the existing VM; do not redeploy."
+    ),
+    (
+        "start_pending_reconciliation",
+        "An earlier start is still recorded. No new start request was sent.",
+        "Run everycli reconcile. If it remains unresolved, inspect this existing VM's Operations in Phala. Once Phala reports running, reconcile again, then check everycli doctor. Keep the VM and profile; do not redeploy."
+    ),
+    (
+        "cloud_start_failed",
+        "Phala confirmed that the start operation failed; the existing VM is still stopped.",
+        "Review the failure in this VM's Phala Operations, correct the cause, then use everycli start --max-hourly-usd 10. No start request was repeated by reconciliation."
+    ),
+    (
+        "cloud_operation_in_progress",
+        "Phala reports an operation already in progress on this VM. No new start was sent.",
+        "Wait for the operation to finish, then run everycli reconcile and everycli status. Inspect the existing VM's Phala Operations if it stays pending."
+    ),
+    (
         "coordinator_auth_rejected",
         "The coordinator rejected this profile's miner authorization. This is not a Phala API key error.",
         "Check that your computer's clock is correct. Run everycli reconnect with the same hotkey to refresh the signed profile. No VM is created and saved API keys are kept."

@@ -22,10 +22,21 @@ fn attestation_ready(status: &Value, at: i64) -> Result<()> {
         _ => return Err(Error("attestation_unavailable")),
     }
     let verified_at = n(&a["at"]).map_err(|_| Error("attestation_timestamp_invalid"))?;
+    need(verified_at > 0, "attestation_timestamp_invalid")?;
     need(verified_at <= at + 30000, "attestation_clock_skew")?;
-    need(verified_at > at - 600000, "attestation_stale")?;
-    need(status["attested"] == true, "attestation_session_not_ready")?;
-    need(status["online"] == true, "worker_offline")
+    // The coordinator's admitted session is authoritative. A fixed quote-age
+    // limit can expire before a healthy worker's normal session renewal.
+    let expires =
+        n(&status["sessionExpires"]).map_err(|_| Error("attestation_session_not_ready"))?;
+    need(
+        status["attested"] == true && expires > at && expires > verified_at,
+        "attestation_session_not_ready",
+    )?;
+    let last_seen = n(&status["lastSeen"]).map_err(|_| Error("worker_offline"))?;
+    need(
+        status["online"] == true && last_seen > at - 30000 && last_seen <= at + 30000,
+        "worker_offline",
+    )
 }
 
 /// A Phala hourly rate (string or number) as a dollar amount: "$0.05".
@@ -678,6 +689,11 @@ impl Miner<'_> {
             Err(e) => add("Coordinator", false, e.0),
         };
         let workload = self.target(&c, false);
+        let cloud_status = workload
+            .as_ref()
+            .ok()
+            .and_then(|v| v["status"].as_str())
+            .map(str::to_string);
         let workload_reason = workload
             .as_ref()
             .err()
@@ -686,7 +702,11 @@ impl Miner<'_> {
             Ok(v) => add(
                 "Phala workload",
                 v["status"] == "running",
-                "Pinned app/name/compose checked.",
+                if v["status"] == "running" {
+                    "Pinned app/name/compose checked; VM is running."
+                } else {
+                    "The verified VM is not running. Use everycli start for this same VM if it is stopped; do not deploy another worker."
+                },
             ),
             Err(e) => add(
                 "Phala workload",
@@ -712,11 +732,13 @@ impl Miner<'_> {
             Ok(json!({
                 "ok":checks.iter().all(|c|c["ok"]==true),"checks":checks,
                 "minerId":inv["minerId"],"network":inv["network"],"netuid":inv["netuid"],
-                "checkedAt":now(),"activity":crate::health::activity(&snapshot),
+                "checkedAt":now(),"cloudStatus":cloud_status,"activity":crate::health::activity(&snapshot),
                 "generationSubmitted":false,"label":self.state.read("label",true)?["name"]
             }))
         } else {
-            Ok(json!({"ok":checks.iter().all(|c|c["ok"]==true),"checks":checks}))
+            Ok(
+                json!({"ok":checks.iter().all(|c|c["ok"]==true),"checks":checks,"cloudStatus":cloud_status}),
+            )
         }
     }
     pub fn providers(&self) -> Result<Value> {
@@ -1366,6 +1388,10 @@ impl Miner<'_> {
             "resume_not_ready",
         )?;
         let status = self.api(&c, "status", json!({}))?;
+        need(
+            self.target(&c, false)?["status"] == "running",
+            "worker_not_running",
+        )?;
         self.ensure_ready(&c, &status)?;
         if phase == "awaiting_readmission" {
             need(
@@ -1375,10 +1401,6 @@ impl Miner<'_> {
                 "post_restart_attestation_required",
             )?
         };
-        need(
-            self.target(&c, false)?["status"] == "running",
-            "worker_not_running",
-        )?;
         confirm(
             "Accept paid provider work when routing is enabled? Your provider account pays for assignments.",
         )?;
@@ -1684,12 +1706,28 @@ impl Miner<'_> {
     pub fn start(&self, limit: f64, confirm: &dyn Fn(&str) -> Result<()>) -> Result<Value> {
         let _lock = self.state.lock()?;
         let c = self.load(true)?;
-        need(c.deployment["phase"] == "stopped", "start_not_ready")?;
+        need(
+            !["start_intent", "starting"].contains(&c.deployment["phase"].as_str().unwrap_or("")),
+            "start_pending_reconciliation",
+        )?;
+        need(
+            [
+                "stopped",
+                "running",
+                "drained",
+                "awaiting_attestation",
+                "awaiting_readmission",
+            ]
+            .iter()
+            .any(|phase| c.deployment["phase"] == *phase),
+            "start_not_ready",
+        )?;
         let info = self.target(&c, false)?;
         need(
             ["stopped", "exited"].contains(&s(&info["status"])?),
             "cloud_not_stopped",
         )?;
+        need(info["in_progress"] != true, "cloud_operation_in_progress")?;
         let rate = self.hosting(&c, limit)?;
         confirm(&format!(
             "Start the existing VM: compute {}/hour plus storage? No new VM; fresh admission required.",
@@ -1698,15 +1736,28 @@ impl Miner<'_> {
         self.drain(&c)?;
         let cloud = self.cloud(&c)?;
         let mut state = c.deployment.clone();
+        state.as_object_mut().unwrap().remove("startRejected");
+        state.as_object_mut().unwrap().remove("startFailure");
         state["phase"] = json!("start_intent");
         state["operationAt"] = json!(now());
         self.state.write("deployment", &state)?;
-        cloud.mutate(
+        if let Err(e) = cloud.mutate(
             &format!("{}/start", Cloud::app_path(s(&state["appId"])?)?),
             "POST",
             &json!({}),
             true,
-        )?;
+        ) {
+            if definitive_rejection(e.0) {
+                // The request was rejected, so a new cloud operation was not
+                // accepted. Keep the reason, but do not strand a stopped VM
+                // in an uncertain-intent phase after a conclusive 4xx.
+                state["phase"] = json!("stopped");
+                state["startRejected"] =
+                    json!({"code":crate::diagnostics::safe_code(e.0),"at":now()});
+                self.state.write("deployment", &state)?;
+            }
+            return Err(e);
+        }
         state["phase"] = json!("starting");
         self.state.write("deployment", &state)?;
         Ok(
@@ -2005,6 +2056,64 @@ impl Miner<'_> {
             "next":format!("{what} Local state was restored to {phase}; no cloud request was repeated. {}", Self::phase_next(phase))}),
         )
     }
+    fn reconcile_stopped_start(&self, c: &Context, info: &Value) -> Result<Value> {
+        let cloud = self.cloud(c)?;
+        let path = Cloud::app_path(s(&c.deployment["appId"])?)?;
+        let operation = cloud.get(&format!("{path}/operation-status"))?;
+        let pending = |detail: &str| {
+            json!({"phase":c.deployment["phase"],"cloudStatus":info["status"],"resolved":false,
+                "cloudOperation":detail,"cloudChanged":false,
+                "diagnostic":crate::diagnostics::value("start_pending_reconciliation"),
+                "next":"The earlier start has not been conclusively resolved. Check the existing VM's Phala Operations. No start request was repeated. Once cloud reports running, reconcile again."})
+        };
+        if info["in_progress"] == true
+            || operation["status"] != "idle"
+            || operation.get("operation") != Some(&Value::Null)
+        {
+            return Ok(pending("pending_or_unknown"));
+        }
+        let history = cloud.get(&format!("{path}/operations?limit=50"))?;
+        let Some(rows) = history["items"].as_array().filter(|r| r.len() <= 50) else {
+            return Ok(pending("history_unverified"));
+        };
+        let Some(after) = c.deployment["operationAt"].as_i64().filter(|v| *v > 0) else {
+            return Ok(pending("intent_timestamp_unavailable"));
+        };
+        let at = now();
+        let mut latest = None;
+        for row in rows {
+            let Some(started) = crate::cloud::operation_time(&row["started_at"]) else {
+                return Ok(pending("history_unverified"));
+            };
+            if started >= after && latest.is_none_or(|(last, _)| started >= last) {
+                latest = Some((started, row));
+            }
+        }
+        let Some((started, row)) = latest else {
+            return Ok(pending("no_matching_terminal_operation"));
+        };
+        let complete = crate::cloud::operation_time(&row["completed_at"]);
+        if !["power_on", "start"].contains(&row["operation_type"].as_str().unwrap_or(""))
+            || row["target_state"] != "running"
+            || row["status"] != "failed"
+            || !complete.is_some_and(|t| t >= started && t <= at)
+        {
+            return Ok(pending("no_matching_failed_start"));
+        }
+        // Idle + stopped + the latest terminal failed start after our intent
+        // is conclusive. A stopped status or elapsed time alone is not.
+        let mut state = c.deployment.clone();
+        state["phase"] = json!("stopped");
+        state["startFailure"] =
+            json!({"code":"cloud_start_failed","at":at,"startedAt":started,"completedAt":complete});
+        self.state.write("deployment", &state)?;
+        Ok(
+            json!({"phase":"stopped","cloudStatus":info["status"],"resolved":true,
+            "cloudChanged":false,"diagnostic":crate::diagnostics::value("cloud_start_failed"),
+            "next":"Phala confirmed the earlier start failed. Local state now matches the stopped VM; no cloud mutation was repeated. Review its Phala Operations before starting again."}),
+        )
+    }
+
     pub fn reconcile(&self) -> Result<Value> {
         let _lock = self.state.lock()?;
         self.reconcile_locked()
@@ -2026,6 +2135,10 @@ impl Miner<'_> {
         let info = self.target(&c, true)?;
         let phase = s(&c.deployment["phase"])?;
         let status = s(&info["status"])?;
+        if ["start_intent", "starting"].contains(&phase) && ["stopped", "exited"].contains(&status)
+        {
+            return self.reconcile_stopped_start(&c, &info);
+        }
         if phase == "activate_intent" {
             return self.reconcile_activation(&c, &info);
         }
@@ -2103,7 +2216,16 @@ impl Miner<'_> {
             self.bind_public_app(&c, &c.deployment)?;
         }
         let mut d = c.deployment.clone();
-        let next = if ["stop_intent", "stopping", "stopped"].contains(&phase)
+        let next = if [
+            "stop_intent",
+            "stopping",
+            "stopped",
+            "running",
+            "drained",
+            "awaiting_attestation",
+            "awaiting_readmission",
+        ]
+        .contains(&phase)
             && ["stopped", "exited"].contains(&status)
         {
             Some("stopped")
