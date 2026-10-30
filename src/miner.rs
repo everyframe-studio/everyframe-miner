@@ -243,15 +243,43 @@ impl Miner<'_> {
                 e
             }
         })?;
-        let invitation = self.validate(&config["invitation"], !current)?;
+        let invitation = self.validate(&config["invitation"], true)?;
         Self::token(&credentials, &invitation)?;
         let d = self.state.read("deployment", true)?;
-        Ok(Context {
+        let mut context = Context {
             config,
             credentials,
             invitation,
             deployment: if d.is_null() { json!({}) } else { d },
-        })
+        };
+        if current && n(&context.invitation["expiresAt"])? <= now() {
+            need(
+                context.invitation["hotkeyDelegationVersion"] == 2
+                    && context.credentials["CONSOLE_AUTH"]["certificate"]["value"]["kind"]
+                        == "everyframe-hotkey-delegation-v2",
+                "invitation_expired",
+            )?;
+            let response = self.api(&context, "configuration", json!({}))?;
+            let fresh = self.validate(&response["configuration"], false)?;
+            let mut before = context.invitation.clone();
+            let mut after = fresh.clone();
+            for value in [&mut before, &mut after] {
+                value.as_object_mut().unwrap().remove("issuedAt");
+                value.as_object_mut().unwrap().remove("expiresAt");
+            }
+            need(
+                canonical(&before)? == canonical(&after)?,
+                "configuration_refresh_changed_profile",
+            )?;
+            need(
+                self.state.read("config", false)? == context.config,
+                "configuration_refresh_profile_race",
+            )?;
+            context.config["invitation"] = response["configuration"].clone();
+            self.state.write("config", &context.config)?;
+            context.invitation = fresh;
+        }
+        Ok(context)
     }
     pub fn api(&self, c: &Context, action: &str, mut payload: Value) -> Result<Value> {
         let action = if ["drain", "resume"].contains(&action)
@@ -278,6 +306,7 @@ impl Miner<'_> {
         need(
             [
                 "status",
+                "configuration",
                 "drain",
                 "resume",
                 "offer",
@@ -307,7 +336,15 @@ impl Miner<'_> {
         // Keep a hard bound shared with public discovery, never unbounded reads.
         r.limit = 1000000;
         let mut auth_body = Value::Null;
-        if ["status", "worker-update", "jobs", "worker-auto-update"].contains(&action) {
+        if [
+            "status",
+            "configuration",
+            "worker-update",
+            "jobs",
+            "worker-auto-update",
+        ]
+        .contains(&action)
+        {
             let mut url =
                 url::Url::parse(&r.url).map_err(|_| Error("invalid_coordinator_response"))?;
             url.query_pairs_mut().append_pair("nonce", &nonce);
@@ -446,7 +483,7 @@ impl Miner<'_> {
         out["signedVmName"] = inv["request"]["name"].clone();
         let auth = &c.credentials["WORKER_AUTH"]["certificate"]["value"];
         if !auth.is_null() {
-            out["authorization"] = json!({"expiresAt":auth["expiresAt"],"nonExpiring":auth["kind"]=="everyframe-hotkey-delegation-v2","remainingDays":auth["expiresAt"].as_i64().map(|x|(x-now()).max(0)/86400000),"migration":"Legacy expiring delegates require everycli init with the hotkey, then everycli apply-api-keys to install the newly signed worker authorization."});
+            out["authorization"] = json!({"expiresAt":auth["expiresAt"],"nonExpiring":auth["kind"]=="everyframe-hotkey-delegation-v2","remainingDays":auth["expiresAt"].as_i64().map(|x|(x-now()).max(0)/86400000),"migration":"For a legacy authorization, run everycli reconnect with the same hotkey, then everycli apply-api-keys once. New authorizations do not expire."});
         }
         match self.api(&c, "status", json!({})) {
             Ok(v) => out["coordinator"] = v,
@@ -531,8 +568,14 @@ impl Miner<'_> {
         );
         add(
             "Deployment configuration",
-            n(&inv["expiresAt"])? > now(),
-            "Expired configurations permit diagnosis/stop only; renew with everycli init.",
+            n(&inv["expiresAt"])? > now()
+                || c.credentials["CONSOLE_AUTH"]["certificate"]["value"]["kind"]
+                    == "everyframe-hotkey-delegation-v2",
+            if n(&inv["expiresAt"])? > now() {
+                "Signed setup configuration is current. Miner authorization has its own lifetime."
+            } else {
+                "Setup configuration refreshes automatically before management changes. Non-expiring miner authorization remains valid; the running worker is unaffected."
+            },
         );
         add(
             "Phala credential",
@@ -690,6 +733,19 @@ impl Miner<'_> {
         )
     }
     pub fn balances(&self, publish: bool) -> Result<Value> {
+        if self.state.read("config", true)?.is_null() {
+            need(!publish, "profile_not_initialized")?;
+            let credentials = self.state.read("credentials", true)?;
+            let rows = crate::balances::merge(
+                &Value::Null,
+                crate::balances::collect(self.http, &credentials),
+                now(),
+            );
+            return Ok(
+                json!({"minerId":null,"balances":rows,"published":false,"publishRequested":false,"localOnly":true,
+                "note":"Account balances for keys saved on this computer. Shared balances must not be added across miners."}),
+            );
+        }
         let c = self.load(false)?;
         let local = crate::balances::collect(self.http, &c.credentials);
         let remote_result = if publish {

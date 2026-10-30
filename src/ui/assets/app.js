@@ -265,7 +265,11 @@ async function loadHealth(quiet = true) {
   S.health = await run("health", {}, { quiet });
   S.healthAt = Date.now();
 }
-async function loadBalances() { if (S.overview?.initialized) S.balances = await run("balances", {}, { quiet: true }); }
+async function loadBalances() {
+  S.balances = await run("balances", {}, { quiet: true });
+  if (currentRoute() === "keys") renderBalancePanel();
+}
+function renderBalancePanel() { $("#provider-balances")?.replaceWith(balancesCard()); }
 async function loadEarnings() {
   if (!S.overview?.initialized || S.earningsBusy) return;
   S.earningsBusy = true;
@@ -494,7 +498,7 @@ function balanceAmount(r) {
 }
 function balancesCard() {
   const v = value(S.balances), rows = v?.balances || [];
-  return card("Provider balances", [button("Refresh", async () => { S.balances = await run("balances"); render(); })],
+  const panel = card("Provider balances", [button("Refresh", async () => { await loadBalances(); if (currentRoute() !== "keys") renderBalancePanel(); })],
     !S.balances ? h("p", { class: "muted" }, "Loading…") : errorOf(S.balances) ? errorView(errorOf(S.balances)) : rows.length
       ? h("div", { class: "table-wrap" }, h("table", null, h("thead", null, h("tr", null, h("th", null, "Provider"), h("th", null, "Remaining"), h("th", null, "Status"), h("th", null, "Checked"))),
         h("tbody", null, rows.map((r) => h("tr", null, h("td", null, providerName(r.provider)),
@@ -502,8 +506,10 @@ function balancesCard() {
           h("td", null, h("span", { class: "badge " + (r.status === "ok" && !r.stale ? "ok" : "warn") }, r.status || "—"), r.stale ? h("span", { class: "small muted" }, " stale") : null,
             r.diagnostic ? errorView(r.diagnostic) : null),
           h("td", null, r.checkedAt ? ago(r.checkedAt) : "—"))))))
-      : h("p", { class: "empty" }, "No balances available. Add billing keys on the API keys page to see fal or OpenRouter balances."),
+      : h("p", { class: "empty" }, "Save a provider key to check its balance. Some providers need a separate billing key."),
     v?.note ? h("p", { class: "small muted" }, v.note) : null);
+  panel.id = "provider-balances";
+  return panel;
 }
 function earningsCard() {
   const v = value(S.earnings);
@@ -876,6 +882,7 @@ function keyForm(provider, after, stayOn) {
   const finish = async () => {
     if (stayOn) S.openStep = stayOn;
     await loadOverview();
+    if (currentRoute() === "keys") { S.balances = null; await loadBalances(); }
     if (after) await after(); else render();
   };
   const save = button(saved ? "Replace" : "Save", async () => {
@@ -916,12 +923,13 @@ function pageKeys() {
   if (deployed) root.append(notice("", "Changed a generation key?", h("div", null,
     h("p", null, "Your running worker keeps its current keys until you apply new ones. Applying pauses new work, restarts the worker with the new keys and waits for fresh attestation."),
     button("Apply keys to worker", async () => { await run("apply-api-keys"); await refreshAll(); }))));
+  root.append(balancesCard());
   for (const [kind, title] of groups) {
     const rows = keys.filter((k) => k.kind === kind);
     root.append(card(title, null, h("ul", { class: "keylist" }, rows.map((k) => h("li", null,
       h("div", null, h("b", null, providerName(k.provider)), h("div", { class: "small muted" }, (PROVIDERS[k.provider] || [, ""])[1])),
       h("div", { class: "row" }, keyForm(k.provider),
-        k.saved ? button("Remove", async () => { await run("remove-api-key", { provider: k.provider }); await loadOverview(); render(); }, "small danger") : null))))));
+        k.saved ? button("Remove", async () => { await run("remove-api-key", { provider: k.provider }); await loadOverview(); S.balances = null; await loadBalances(); render(); }, "small danger") : null))))));
   }
   return root;
 }
@@ -1192,6 +1200,7 @@ async function boot() {
     await Promise.all([loadHealth(), loadBalances(), loadEarnings(), loadOffers()]);
     if (["overview", "earnings"].includes(currentRoute()) && !S.renaming) render(); else { renderMeta(); renderNav(); }
   }
+  if (!S.overview?.initialized && currentRoute() === "keys") loadBalances();
   run("cli-update-check", {}, { quiet: true }).then((j) => { S.cliUpdate = j; renderMeta(); });
   let tick = 0;
   setInterval(async () => {
@@ -1216,5 +1225,6 @@ window.addEventListener("hashchange", () => {
   if (location.hash.includes("pair=")) return;
   S.navigationEpoch++; clearBatchReport();
   S.openStep = null; S.renaming = false; render(); window.scrollTo(0, 0); $("#main").focus({ preventScroll: true });
+  if (currentRoute() === "keys") loadBalances();
 });
 boot();

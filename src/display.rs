@@ -414,13 +414,19 @@ fn status_table(value: &Value) -> String {
     if remote["appId"].is_string() {
         identity.push(vec!["Coordinator app".into(), text(&remote["appId"])]);
     }
-    let mut checks = vec![bool_check(
-        "Deployment configuration",
-        &value["invitationExpired"],
-        false,
-        "Signed configuration is current.",
-        "Signed configuration expired; renew with everycli init.",
-    )];
+    let mut checks = vec![if value["invitationExpired"] == true
+        && value["authorization"]["nonExpiring"] == true
+    {
+        serde_json::json!({"name":"Setup configuration","state":"WARN","detail":"Refreshes automatically before management changes. Miner authorization does not expire."})
+    } else {
+        bool_check(
+            "Deployment configuration",
+            &value["invitationExpired"],
+            false,
+            "Signed configuration is current.",
+            "Signed setup configuration needs reconnecting. This is separate from worker readiness.",
+        )
+    }];
     let coordinator_ok = remote.is_object() && value["coordinatorError"].is_null();
     checks.push(serde_json::json!({"name":"Coordinator","state":if coordinator_ok {"PASS"} else {"WARN"},
         "detail":if coordinator_ok {"Signed response verified.".into()} else {format!("Unavailable: {}. Run everycli doctor.", text(&value["coordinatorError"]["code"]))}}));

@@ -107,6 +107,20 @@ try {
   assert.equal(await page.evaluate(() => balanceAmount({ provider: 'vivix', nativeBalance: { unit: 'W_CREDITS', remainingMicrounits: 0 } })), '0 W credits');
   assert.equal(await page.evaluate(() => balanceAmount({ provider: 'vivix', status: 'unavailable' })), '—');
 
+  await page.evaluate(() => {
+    window.balanceTestOriginalRun=run;
+    S.overview.keys=[{provider:'fal',kind:'generation',saved:true}];
+    history.replaceState(null,'','#/keys');render();
+    run=async(command,...args)=>command==='balances'?{result:{value:{balances:[{provider:'fal',status:'ok',remainingUsd:42.5,checkedAt:Date.now()}]}}}:window.balanceTestOriginalRun(command,...args);
+  });
+  assert.equal(await page.getByRole('heading',{name:'Provider balances',exact:true}).count(),1);
+  const keyDraft=page.locator('input[type="password"]').first();
+  await keyDraft.fill('unsaved-provider-key-draft');
+  await page.locator('#provider-balances').getByRole('button',{name:'Refresh',exact:true}).click();
+  assert.equal(await keyDraft.inputValue(),'unsaved-provider-key-draft','refreshing balances must preserve API-key input');
+  assert.match(await page.locator('#provider-balances').innerText(),/42\.50/);
+  await page.evaluate(()=>{run=window.balanceTestOriginalRun;delete window.balanceTestOriginalRun;S.overview.keys=[];history.replaceState(null,'','#/overview');render();});
+
   const summary = page.getByLabel('Miner overview summary', { exact: true });
   assert.deepEqual(await summary.locator('.label').allTextContents(), ['Worker', 'Status', 'Active offers', 'Jobs']);
   assert.equal(await summary.locator('.stat').count(), 4);
