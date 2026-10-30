@@ -1978,16 +1978,23 @@ impl Http for Rig {
                 );
             }
             let action = path.rsplit('/').next().unwrap();
-            let nonce =
-                if ["status", "worker-update", "jobs", "worker-auto-update"].contains(&action) {
-                    u.query_pairs()
-                        .find(|(k, _)| k == "nonce")
-                        .unwrap()
-                        .1
-                        .to_string()
-                } else {
-                    body["nonce"].as_str().unwrap().into()
-                };
+            let nonce = if [
+                "status",
+                "configuration",
+                "worker-update",
+                "jobs",
+                "worker-auto-update",
+            ]
+            .contains(&action)
+            {
+                u.query_pairs()
+                    .find(|(k, _)| k == "nonce")
+                    .unwrap()
+                    .1
+                    .to_string()
+            } else {
+                body["nonce"].as_str().unwrap().into()
+            };
             let mut status = self.status.borrow_mut();
             if action == "worker-update-prepare" {
                 let mut back = self.inv.clone();
@@ -2049,6 +2056,14 @@ impl Http for Rig {
                 }
             }
             let mut out = status.clone();
+            if action == "configuration" {
+                let fresh = self
+                    .recovered
+                    .borrow()
+                    .clone()
+                    .unwrap_or_else(|| self.inv.clone());
+                out["configuration"] = self.sign(&fresh);
+            }
             out["protocol"] = json!(1);
             out["nonce"] = json!(nonce);
             out["action"] = json!(action);
@@ -3275,4 +3290,103 @@ fn expired_release_mid_update_stops_with_recovery_steps() {
         })
         .unwrap();
     assert_eq!(out["state"], "complete");
+}
+
+fn non_expiring_profile() -> Rig {
+    use everyframe_miner::hotkey;
+    use schnorrkel::{ExpansionMode, MiniSecretKey};
+    use std::os::unix::fs::PermissionsExt;
+    let mut r = Rig::new();
+    r.dir = common::tempdir();
+    let seed = [7u8; 32];
+    let pair = MiniSecretKey::from_bytes(&seed)
+        .unwrap()
+        .expand_to_keypair(ExpansionMode::Ed25519);
+    let address = hotkey::address(&pair.public.to_bytes());
+    let path = r.dir.path().join("hotkey");
+    std::fs::write(
+        &path,
+        json!({"secretSeed":hex::encode(seed),"ss58Address":address}).to_string(),
+    )
+    .unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+    r.inv["kind"] = json!("everyframe-miner-deployment-v2");
+    r.inv["authMode"] = json!("hotkey-v1");
+    r.inv["publicOnboarding"] = json!(true);
+    r.inv["hotkeyDelegationVersion"] = json!(2);
+    r.inv["keyVersion"] = json!(1);
+    r.inv["hotkey"] = json!(address);
+    r.inv.as_object_mut().unwrap().remove("tokenHash");
+    r.inv["request"]["compose_file"]["allowed_envs"] = json!(["MINER_ID", "MINER_AUTH", "FAL_KEY"]);
+    r.inv["composeHash"] = json!(cloud::compose_hash(&r.inv["request"]["compose_file"]).unwrap());
+    r.credentials.as_object_mut().unwrap().remove("MINER_TOKEN");
+    r.credentials["CONSOLE_AUTH"] = hotkey::create(&path, &r.inv, "console").unwrap();
+    r.credentials["WORKER_AUTH"] = hotkey::create(&path, &r.inv, "worker").unwrap();
+    r.miner().init(&r.sign(&r.inv), &r.credentials).unwrap();
+    let mut old = r.inv.clone();
+    old["issuedAt"] = json!(now() - 60 * 86400000);
+    old["expiresAt"] = json!(now() - 1);
+    let mut config = r.state().read("config", false).unwrap();
+    config["invitation"] = r.sign(&old);
+    r.state().write("config", &config).unwrap();
+    std::fs::remove_file(path).unwrap();
+    r.calls.borrow_mut().clear();
+    r
+}
+#[test]
+fn non_expiring_miner_refreshes_only_setup_dates_without_hotkey_or_cloud_mutation() {
+    let r = non_expiring_profile();
+    let old = r.state().read("credentials", false).unwrap();
+    assert!(r.miner().load(false).is_ok());
+    assert!(r.calls.borrow().is_empty());
+    let context = r.miner().load(true).unwrap();
+    assert!(context.invitation["expiresAt"].as_i64().unwrap() > now());
+    assert_eq!(r.state().read("credentials", false).unwrap(), old);
+    assert_eq!(r.calls.borrow().len(), 1);
+    assert!(r.calls.borrow()[0].0.ends_with("/v1/miner/configuration"));
+}
+#[test]
+fn setup_refresh_rejects_changed_workload_and_leaves_the_profile_intact() {
+    let r = non_expiring_profile();
+    let original = r.state().read("config", false).unwrap();
+    let mut changed = r.inv.clone();
+    changed["release"] = json!("unrequested-new-release");
+    *r.recovered.borrow_mut() = Some(changed);
+    assert_eq!(
+        r.miner().load(true).err().unwrap().0,
+        "configuration_refresh_changed_profile"
+    );
+    assert_eq!(r.state().read("config", false).unwrap(), original);
+    assert_eq!(r.calls.borrow().len(), 1);
+}
+#[test]
+fn failed_setup_refresh_keeps_status_and_billing_stop_available() {
+    let r = non_expiring_profile();
+    let original = r.state().read("config", false).unwrap();
+    *r.fail.borrow_mut() = "/v1/miner/configuration".into();
+    assert!(r.miner().load(true).is_err());
+    assert_eq!(r.state().read("config", false).unwrap(), original);
+    assert!(r.miner().load(false).is_ok());
+    assert_eq!(r.calls.borrow().len(), 1);
+}
+
+#[test]
+fn balances_work_for_saved_keys_before_hotkey_initialization() {
+    let r = Rig::new();
+    std::fs::remove_file(r.path().join("config.json")).unwrap();
+    r.calls.borrow_mut().clear();
+    let out = r.miner().balances(false).unwrap();
+    assert_eq!(out["localOnly"], true);
+    assert!(out["minerId"].is_null());
+    assert!(!out["balances"].as_array().unwrap().is_empty());
+    assert!(
+        r.calls
+            .borrow()
+            .iter()
+            .all(|(path, _)| !path.contains("/v1/miner/"))
+    );
+    assert_eq!(
+        r.miner().balances(true).err().unwrap().0,
+        "profile_not_initialized"
+    );
 }

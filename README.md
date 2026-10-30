@@ -258,6 +258,12 @@ deletes, starts or updates a VM or resumes jobs. Interrupted local commits can b
 finished by rerunning reconnect; unresolved cloud operations must be reconciled
 first. A deleted worker remains deleted until you deliberately deploy again.
 
+Current miner authorizations do not expire. The separate signed setup configuration
+refreshes automatically before management changes; that refresh changes only its
+dates and preserves the workload. For a legacy authorization, reconnect with the
+same hotkey and run `everycli apply-api-keys` once to install the non-expiring
+worker authorization. Revocation remains enforced.
+
 CLI updates do not silently reconnect or redeploy. Eligible native installations
 also check for CLI updates when the UI starts (at most once per six hours); reopen
 the UI to run the installed version. Source builds remain opt-in. See the
@@ -407,6 +413,10 @@ It opens a local page with:
 - a step-by-step **setup guide** (hotkey check, Phala token, provider keys, profile, deploy, activate, models, resume)
 - a live **status dashboard** (health checks, jobs, balances and earnings)
 - **model offers**, checked **API keys** and **worker actions** (pause, resume, update, apply keys, shut down, delete and replace)
+
+The **API keys** page shows provider balances, status and check times. Its Refresh
+button preserves any key you are typing. Saved-key balances can be checked before
+hotkey initialization; Vivix balances are shown in W credits.
 
 Every action runs the same everycli command and asks the same questions. Anything
 that costs money shows the live price and needs you to type `yes`, as in the

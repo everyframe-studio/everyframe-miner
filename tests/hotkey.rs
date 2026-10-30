@@ -175,3 +175,29 @@ fn public_enrollment_signs_only_fresh_pinned_offchain_challenges() {
         .is_err()
     );
 }
+
+#[test]
+fn non_expiring_authorization_survives_old_setup_dates_and_years_of_operation() {
+    let (d, mut inv) = fixture();
+    inv["hotkeyDelegationVersion"] = json!(2);
+    let mut auth = hotkey::create(&d.path().join("hotkey"), &inv, "worker").unwrap();
+    let value = &mut auth["certificate"]["value"];
+    value["issuedAt"] = json!(now() - 730 * 86400000);
+    let pair = MiniSecretKey::from_bytes(&[7u8; 32])
+        .unwrap()
+        .expand_to_keypair(ExpansionMode::Ed25519);
+    auth["certificate"]["signature"] = json!(hex::encode(
+        pair.sign_simple(b"substrate", protocol::canonical(value).unwrap().as_bytes())
+            .to_bytes()
+    ));
+    inv["expiresAt"] = json!(now() - 365 * 86400000);
+    hotkey::validate(&auth, &inv, "worker").unwrap();
+    let mut request = Request::get(
+        "https://subnet.everyframe.studio/mainnet/v1/heartbeat",
+        &["subnet.everyframe.studio"],
+    )
+    .json("POST", &json!({}));
+    hotkey::authorize(&mut request, &auth, &json!({})).unwrap();
+    inv["keyVersion"] = json!(2);
+    assert!(hotkey::validate(&auth, &inv, "worker").is_err());
+}

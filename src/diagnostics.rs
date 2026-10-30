@@ -177,6 +177,16 @@ reasons![
         "Update everycli and run reconcile in the original profile. If unresolved, contact support with your public miner ID and sanitized status; do not delete the journal or repeat deployment."
     ),
     (
+        "configuration_refresh_changed_profile",
+        "The coordinator's setup profile differs from the workload managed here. Local files and the VM were not changed.",
+        "Run everycli reconnect with the same hotkey to synchronize the profile. Do not redeploy an existing worker."
+    ),
+    (
+        "configuration_refresh_profile_race",
+        "The local setup profile changed while it was being refreshed; it was not overwritten.",
+        "Finish the other management command, then retry from the same profile."
+    ),
+    (
         "coordinator_auth_rejected",
         "The coordinator rejected this profile's miner authorization. This is not a Phala API key error.",
         "Check that your computer's clock is correct. Run everycli reconnect with the same hotkey to refresh the signed profile. No VM is created and saved API keys are kept."
