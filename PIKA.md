@@ -42,5 +42,5 @@ Pricing references:
 and the free `/catalog/apis/{api_id}/quote` endpoint. Reference mode charges for
 output seconds plus reference-video seconds. Quotes are estimates; terminal
 job billing fields report the provider's settled charge.
-The coordinator includes a one-second output allowance for frame alignment:
-Pika can return and bill a slightly longer clip than the requested duration.
+The coordinator accounts for Pika's documented frame alignment (17n+5 frames
+at 24 fps): a five-second request produces about 5.17 seconds of billable output.
