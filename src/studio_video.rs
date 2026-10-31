@@ -64,6 +64,7 @@ pub fn check(spec: &Value) -> Result<()> {
         "invalid_studio_references",
     )?;
     let kling = p["apiModel"] == "kling/v4/text-to-video";
+    let pika = p["provider"] == "pika";
     let reference_duration = p["referenceDurationMs"].as_i64().unwrap_or(15000);
     let mut counts = [0i64; 5];
     let mut durations = [0i64; 5];
@@ -117,6 +118,8 @@ pub fn check(spec: &Value) -> Result<()> {
         need(allowed.contains(&mime), "invalid_reference_mime")?;
         let max = if p["provider"] == "vivix" {
             10
+        } else if pika {
+            24
         } else {
             match kind {
                 1 => 64,
@@ -135,6 +138,14 @@ pub fn check(spec: &Value) -> Result<()> {
             )?;
         }
         let duration = n(&a["durationMs"])?;
+        if pika {
+            let pixels = n(&a["width"])? * n(&a["height"])?;
+            need(
+                kind == 2 || pixels <= if kind == 1 { 16_000_000 } else { 40_000_000 },
+                "invalid_reference_metadata",
+            )?;
+            need(kind == 0 || duration >= 2000, "invalid_reference_metadata")?;
+        }
         need(
             kind == 2 || n(&a["width"])? > 0 && n(&a["height"])? > 0,
             "invalid_reference_metadata",
@@ -187,7 +198,10 @@ pub fn check(spec: &Value) -> Result<()> {
     if p["requiresVisual"] == true {
         need(counts[0] + counts[3] > 0, "visual_reference_required")?;
     }
-    need(bytes <= 128 * 1024 * 1024, "reference_set_too_large")?;
+    need(
+        bytes <= if pika { 48 } else { 128 } * 1024 * 1024,
+        "reference_set_too_large",
+    )?;
     need(
         counts[3] <= 1
             && counts[4] <= 1
@@ -205,7 +219,7 @@ pub fn check(spec: &Value) -> Result<()> {
         p["mixed"] == true || counts[..3].iter().sum::<i64>() == 0 || counts[3] + counts[4] == 0,
         "reference_modes_conflict",
     )?;
-    if p["provider"] == "fal" && counts[2] > 0 {
+    if (p["provider"] == "fal" || pika) && counts[2] > 0 {
         need(counts[0] + counts[1] > 0, "audio_needs_visual_reference")?;
     }
     let total_duration = p["referenceTotalDurationMs"]
@@ -297,6 +311,30 @@ pub fn body(spec: &Value, urls: &[String]) -> Result<(String, Value)> {
         ));
     }
     b["resolution"] = v["resolution"].clone();
+    if p["provider"] == "pika" {
+        b["rewrite"] = json!(v["promptExpansion"] == "balanced");
+        b["output_mode"] = json!("video");
+        let mode = if has_refs {
+            b["references"] = json!(
+                refs.iter()
+                    .zip(urls)
+                    .map(|(a, url)| json!({"type":a["role"],"url":url}))
+                    .collect::<Vec<_>>()
+            );
+            "reference-to-video"
+        } else if first.is_some() || last.is_some() {
+            if let Some(url) = first {
+                b["image"] = json!(url);
+            }
+            if let Some(url) = last {
+                b["last_frame_image"] = json!(url);
+            }
+            "image-to-video"
+        } else {
+            "text-to-video"
+        };
+        return Ok((format!("/v1/media/pika/pika-h3-flex/{mode}"), b));
+    }
     if p["provider"] == "openrouter" {
         b["model"] = json!(model);
         if has_refs {

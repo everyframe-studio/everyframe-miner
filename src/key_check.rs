@@ -72,6 +72,11 @@ fn probe(provider: &str, key: &str) -> Option<Probe> {
             "api.minimax.io",
             bearer(),
         ),
+        "pika" => (
+            "https://api.dev.pika.art/billing/balance".into(),
+            "api.dev.pika.art",
+            vec![("X-API-Key".into(), key.into())],
+        ),
         "bfl" => (
             "https://api.bfl.ai/v1/credits".into(),
             "api.bfl.ai",
@@ -162,6 +167,7 @@ pub fn check(http: &dyn Http, provider: &str, key: &str) -> (Verdict, &'static s
                 };
             }
             let recognized = match provider {
+                "pika" => crate::balances::pika_remaining(&v).is_ok(),
                 "vivix" => v["code"] == 0 && v["data"]["balances"].is_array(),
                 "openrouter" => v["data"]["label"].is_string(),
                 "openrouter-billing" => v["data"]["total_credits"].is_number(),

@@ -7,7 +7,7 @@ use serde_json::{Value, json};
 pub const DISABLED: &str = "DISABLED_PENDING_OPERATOR_ATTESTATION";
 pub const PUBLIC_SCRIPT: &str =
     "#!/bin/sh\nset -eu\n# Public image: anonymous pull; no registry credentials.\n";
-pub const PROVIDERS: [(&str, &str); 11] = [
+pub const PROVIDERS: [(&str, &str); 12] = [
     ("fal", "FAL_KEY"),
     ("minimax", "MINIMAX_API_KEY"),
     ("openrouter", "OPENROUTER_API_KEY"),
@@ -19,6 +19,7 @@ pub const PROVIDERS: [(&str, &str); 11] = [
     ("elevenlabs", "ELEVENLABS_API_KEY"),
     ("vivix", "VIVIX_API_KEY"),
     ("kling", "KLING_API_KEY"),
+    ("pika", "PIKA_API_KEY"),
 ];
 const REGISTRY: [&str; 3] = [
     "DSTACK_DOCKER_USERNAME",

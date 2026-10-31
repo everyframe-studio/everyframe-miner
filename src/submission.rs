@@ -7,15 +7,19 @@ pub fn rejected(code: &str) -> Option<&'static str> {
         "http_402"
         | "vivix_billing_required"
         | "fal_billing_required"
-        | "kling_billing_required" => Some("provider_billing_required"),
+        | "kling_billing_required"
+        | "pika_billing_required" => Some("provider_billing_required"),
         "submission_deadline_elapsed" => Some("provider_invalid_request"),
-        "http_429" | "vivix_capacity_limited" | "kling_capacity_limited" => {
-            Some("provider_capacity_limited")
-        }
+        "http_429"
+        | "vivix_capacity_limited"
+        | "kling_capacity_limited"
+        | "pika_capacity_limited" => Some("provider_capacity_limited"),
         "provider_key_required" => Some("provider_key_required"),
         // Catalog refusal happens before any paid provider request.
         "provider_model_unavailable" => Some("provider_model_unavailable"),
-        "vivix_content_rejected" | "kling_content_rejected" => Some("provider_content_rejected"),
+        "vivix_content_rejected" | "kling_content_rejected" | "pika_content_rejected" => {
+            Some("provider_content_rejected")
+        }
         // Generic 403 may be moderation. It must never cause cross-miner retry.
         "http_400"
         | "http_403"
@@ -23,9 +27,40 @@ pub fn rejected(code: &str) -> Option<&'static str> {
         | "http_405"
         | "http_422"
         | "vivix_invalid_parameters"
-        | "kling_invalid_parameters" => Some("provider_invalid_request"),
+        | "kling_invalid_parameters"
+        | "pika_invalid_parameters" => Some("provider_invalid_request"),
         _ => None,
     }
+}
+
+/// Stable Pika job codes only; never retain the upstream message.
+pub fn pika_error(code: &str) -> crate::Error {
+    crate::Error(match code {
+        "insufficient_balance"
+        | "membership_required"
+        | "cycle_limit_exceeded"
+        | "admission_suspended"
+        | "usage_limit_exceeded" => "pika_billing_required",
+        "rate_limited" => "pika_capacity_limited",
+        "content_moderation" => "pika_content_rejected",
+        "invalid_input" => "pika_invalid_parameters",
+        "provider_unavailable" => "pika_unavailable",
+        _ => "pika_generation_failed",
+    })
+}
+pub fn pika_http_error(status: u16, bytes: &[u8]) -> crate::Error {
+    // A lost response or server error does not prove that submission was free.
+    if (400..500).contains(&status)
+        && status != 408
+        && bytes.len() <= 64000
+        && let Ok(v) = serde_json::from_slice::<serde_json::Value>(bytes)
+        && v["status"] == "failed"
+        && v["id"].is_string()
+        && let Some(code) = v["error"]["code"].as_str()
+    {
+        return pika_error(code);
+    }
+    crate::diagnostics::http_error(status)
 }
 /// Only the documented account-lock billing response is safe to fail over.
 /// Generic 403 (including moderation) and 5xx are deliberately not reclassified.

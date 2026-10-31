@@ -307,7 +307,12 @@ impl Http for PublicHttp {
                 }
                 if matches!(
                     u.host_str(),
-                    Some("api.vivix.ai" | "queue.fal.run" | "api-singapore.klingai.com")
+                    Some(
+                        "api.vivix.ai"
+                            | "queue.fal.run"
+                            | "api-singapore.klingai.com"
+                            | "api.dev.pika.art"
+                    )
                 ) {
                     let status = response.status().as_u16();
                     let mut bytes = Vec::new();
@@ -319,6 +324,8 @@ impl Http for PublicHttp {
                         crate::submission::fal_http_error(status, &bytes)
                     } else if u.host_str() == Some("api-singapore.klingai.com") {
                         crate::submission::kling_http_error(status, &bytes)
+                    } else if u.host_str() == Some("api.dev.pika.art") {
+                        crate::submission::pika_http_error(status, &bytes)
                     } else {
                         crate::submission::vivix_http_error(status, &bytes)
                     });

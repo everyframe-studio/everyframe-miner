@@ -26,6 +26,34 @@ pub fn row(provider: &str, status: &str, remaining: Option<f64>, at: i64) -> Val
         "status":status,"checkedAt":at})
 }
 
+/// Pika reports integer microdollars. An active postpaid account spends against
+/// its current cycle; a scheduled but inactive plan still uses prepaid funds.
+pub fn pika_remaining(v: &Value) -> Result<i64> {
+    crate::need(
+        v["unit"] == "micro_usd" && v["currency"] == "usd",
+        "invalid_balance",
+    )?;
+    let balance = v["balance_micro_usd"]
+        .as_i64()
+        .ok_or(Error("invalid_balance"))?;
+    let remaining = if v["postpaid"].is_null() {
+        balance
+    } else {
+        match v["postpaid"]["active"].as_bool() {
+            Some(true) => v["postpaid"]["cycle"]["remaining_micro_usd"]
+                .as_i64()
+                .ok_or(Error("invalid_balance"))?,
+            Some(false) => balance,
+            None => return Err(Error("invalid_balance")),
+        }
+    };
+    crate::need(
+        remaining.unsigned_abs() <= 1_000_000_000_000_000,
+        "invalid_balance",
+    )?;
+    Ok(remaining)
+}
+
 // The signed protocol permits integers only. Never sign floating-point dollars.
 pub fn reports(rows: &[Value]) -> Vec<Value> {
     rows.iter()
@@ -119,6 +147,12 @@ fn fal_user_balance(http: &dyn Http, key: &str) -> Result<f64> {
 fn fetch(http: &dyn Http, provider: &str, key: &str) -> Result<f64> {
     let (url, host, header, value) = match provider {
         "fal-user" => return fal_user_balance(http, key),
+        "pika" => (
+            "https://api.dev.pika.art/billing/balance",
+            "api.dev.pika.art",
+            "X-API-Key",
+            key.into(),
+        ),
         "bfl" => (
             "https://api.bfl.ai/v1/credits",
             "api.bfl.ai",
@@ -165,6 +199,7 @@ fn fetch(http: &dyn Http, provider: &str, key: &str) -> Result<f64> {
     }
     let v = http.json(req)?;
     let n = match provider {
+        "pika" => pika_remaining(&v)? as f64 / 1_000_000.0,
         "fal" => {
             if !v["credits"]["currency"].is_string() {
                 return Err(Error("invalid_balance"));
