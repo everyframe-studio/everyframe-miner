@@ -9,11 +9,16 @@ The CLI tests the key with `GET /billing/balance` before saving it. `everycli
 balances` and the UI show spendable API funds; active postpaid accounts show
 their remaining cycle allowance. These checks do not generate media.
 
+For an existing worker, update everycli to v0.8.3 or later and run
+`everycli worker-update` after saving the Pika key. If worker automation is
+enabled, disable it before this manual setup and re-enable it after fresh
+attestation to enroll the new controller and keys. See the
+[v0.8.3 upgrade steps](RELEASE-NOTES-v0.8.3.md).
+
 `studio/pika/pika-h3-flex` accepts whole-second durations from 5 to 15, a prompt
 up to 8,000 UTF-16 units, a seed, an aspect ratio, and 480p, 768p, 1080p, 2K or
 4K output. 480p and 768p are native; higher resolutions are upscaled from 768p.
-The output is one MP4 with native audio. The existing worker artifact-size and
-job-deadline limits also apply. Audio stems and webhooks are separate from this
+The output is one MP4 with native audio. Pika outputs are bounded to 128 MiB; job deadlines also apply. Audio stems and webhooks are separate from this
 single-video contract.
 
 | Mode | Pika endpoint | Inputs |

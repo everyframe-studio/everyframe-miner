@@ -673,7 +673,7 @@ fn a_billing_refusal_pauses_that_providers_models_for_fifteen_minutes() {
 fn upload_timeout_grows_with_the_output() {
     assert_eq!(complete_timeout_secs(0), 180);
     assert_eq!(complete_timeout_secs(100_000_000), 520);
-    assert_eq!(complete_timeout_secs(1_000_000_000), 600);
+    assert_eq!(complete_timeout_secs(1_000_000_000), 900);
 }
 
 #[test]

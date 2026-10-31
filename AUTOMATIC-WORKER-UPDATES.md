@@ -53,6 +53,13 @@ controller recover even if the replacement generation container cannot start.
 
 ## Credentials and manual control
 
+v0.8.3 introduces Pika's credential field. Existing automatic controllers keep
+their compatible provider environment while taking ordinary worker updates.
+Adding Pika uses the current management CLI and a signed manual controller
+migration: disable worker automation, save the Pika key, run `everycli
+worker-update`, wait for fresh attestation, then enable worker automation again
+to enroll the updated credentials. The same VM and wallet identity are retained.
+
 Manual pause/resume disables automatic updates so automation cannot undo the
 operator's choice. Re-enabling an unchanged enrollment does not restart the VM.
 Each encrypted credential enrollment has a coordinator-selected ID. Old capsules

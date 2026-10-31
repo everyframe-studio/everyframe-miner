@@ -338,3 +338,41 @@ fn only_definitive_client_rejection_is_safe_to_fail_over() {
         None
     );
 }
+
+#[test]
+fn large_pika_videos_have_a_bounded_download_without_raising_other_provider_limits() {
+    struct Large;
+    impl Http for Large {
+        fn bytes(&self, r: Request) -> Result<Vec<u8>> {
+            safe_url(&r.url, &r.hosts)?;
+            if r.url.contains("cdn.pika.art") || r.url.contains("v3.fal.media") {
+                assert!(r.headers.is_empty());
+                let size = 65 * 1024 * 1024;
+                if r.limit < size {
+                    return Err(everyframe_miner::Error("response_too_large"));
+                }
+                assert_eq!(r.limit, 128 * 1024 * 1024);
+                return Ok(vec![0; size]);
+            }
+            let reply = if r.url.contains("api.dev.pika.art") {
+                json!({"id":"media_job123","status":"completed","model_id":"pika/pika-h3-flex/text-to-video","output":{"media_type":"video","video":{"url":"https://cdn.pika.art/out.mp4"}}})
+            } else {
+                json!({"video":{"url":"https://v3.fal.media/out.mp4"}})
+            };
+            Ok(reply.to_string().into_bytes())
+        }
+    }
+    let out = Router::new(&Large, keys())
+        .result("pika_media_job123", &spec())
+        .unwrap();
+    assert_eq!(out.media.len(), 65 * 1024 * 1024);
+    let fal = models::spec(&json!({"prompt":"A boat","seed":1})).unwrap();
+    assert_eq!(
+        Router::new(&Large, json!({"FAL_KEY":"fal-fixture-secret"}))
+            .result("job123", &fal)
+            .err()
+            .unwrap()
+            .0,
+        "response_too_large"
+    );
+}

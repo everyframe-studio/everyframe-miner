@@ -36,7 +36,7 @@
     "referenceDurationMs": 15000,
     "referenceTotalDurationMs": 15000,
     "maxPrompt": 8000,
-    "deadlineMs": 720000
+    "deadlineMs": 1200000
   },
   "studio/fal/heygen/heygen-video/text-to-video": {
     "provider": "fal",

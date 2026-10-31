@@ -359,6 +359,10 @@ impl Miner<'_> {
             let mut url =
                 url::Url::parse(&r.url).map_err(|_| Error("invalid_coordinator_response"))?;
             url.query_pairs_mut().append_pair("nonce", &nonce);
+            if action == "worker-update" && payload["providerEnvironment"] == "pika-v1" {
+                url.query_pairs_mut()
+                    .append_pair("providerEnvironment", "pika-v1");
+            }
             if action == "jobs" {
                 crate::job_history::validate_query(&payload)?;
                 for (key, value) in payload.as_object().ok_or(Error("invalid_history_query"))? {

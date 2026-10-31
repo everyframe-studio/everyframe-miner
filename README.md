@@ -16,11 +16,18 @@ in your browser (see [Set up in your browser](#set-up-in-your-browser-everycli-u
 
 This source tree includes the worker, the CLI with built-in updates, 62 base
 contracts, flexible Studio video
-and media contracts, and eleven provider adapters. See the
+and media contracts, and twelve provider adapters. See the
 [additional provider models](PROVIDER-EXPANSION.md).
 Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
+
+### v0.8.3 — Pika H3 Flex
+
+Use your Pika API key for text, first/last-frame and reference video generation,
+with native audio and native 480p/768p or upscaled 1080p/2K/4K output. The CLI and
+browser UI validate the key and show its spendable API balance. See the
+[v0.8.3 upgrade steps](RELEASE-NOTES-v0.8.3.md) and [Pika guide](PIKA.md).
 
 ### Kling 4.0 through Fal
 
