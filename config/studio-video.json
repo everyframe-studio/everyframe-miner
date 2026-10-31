@@ -1,4 +1,43 @@
 {
+  "studio/pika/pika-h3-flex": {
+    "provider": "pika",
+    "apiModel": "pika/pika-h3-flex/text-to-video",
+    "name": "Pika H3 Flex",
+    "aspects": [
+      "21:9",
+      "16:9",
+      "3:2",
+      "4:3",
+      "5:4",
+      "1:1",
+      "4:5",
+      "3:4",
+      "2:3",
+      "9:16",
+      "9:21"
+    ],
+    "min": 5,
+    "max": 15,
+    "resolutions": [
+      "480p",
+      "768p",
+      "1080p",
+      "2k",
+      "4k"
+    ],
+    "refs": {
+      "image": 9,
+      "video": 3,
+      "audio": 3
+    },
+    "frames": 2,
+    "mixed": false,
+    "maxReferences": 12,
+    "referenceDurationMs": 15000,
+    "referenceTotalDurationMs": 15000,
+    "maxPrompt": 8000,
+    "deadlineMs": 720000
+  },
   "studio/fal/heygen/heygen-video/text-to-video": {
     "provider": "fal",
     "apiModel": "heygen/heygen-video/text-to-video",

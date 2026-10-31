@@ -51,6 +51,7 @@ fn prefix(p: &str) -> &str {
         "elevenlabs" => "https://api.elevenlabs.io",
         "vivix" => "https://api.vivix.ai",
         "kling" => "https://api-singapore.klingai.com",
+        "pika" => "https://api.dev.pika.art",
         _ => "",
     }
 }
@@ -113,6 +114,7 @@ impl<'a> Router<'a> {
             "bfl" => vec![("x-key".into(), key.into())],
             "google" => vec![("x-goog-api-key".into(), key.into())],
             "elevenlabs" => vec![("xi-api-key".into(), key.into())],
+            "pika" => vec![("X-API-Key".into(), key.into())],
             _ => vec![("authorization".into(), format!("Bearer {key}"))],
         };
         if p == "runway" {
@@ -139,6 +141,20 @@ impl<'a> Router<'a> {
             self.guard_submission(&mut req)?;
         };
         let data = self.http.json(req)?;
+        if p == "pika" && body.is_some() {
+            if data["status"] == "failed" {
+                return Err(crate::submission::pika_error(
+                    data["error"]["code"].as_str().unwrap_or(""),
+                ));
+            }
+            need(
+                matches!(
+                    data["status"].as_str(),
+                    Some("queued" | "running" | "completed")
+                ),
+                "invalid_provider_response",
+            )?;
+        }
         if p == "kling" {
             let code = data["code"]
                 .as_i64()
@@ -246,6 +262,7 @@ impl<'a> Router<'a> {
         let r = match p {
             "fal" => reference(&result["request_id"])?,
             "openrouter" => reference(&result["id"])?,
+            "pika" => reference(&result["id"])?,
             "vivix" => {
                 need(
                     result["results"].as_array().is_some_and(|a| a.len() == 1),
@@ -370,6 +387,27 @@ impl<'a> Router<'a> {
                 need(d["id"] == r, "provider_id_mismatch")?;
                 need(
                     d["model"].is_null() || d["model"] == model,
+                    "provider_model_mismatch",
+                )?;
+                d
+            }
+            "pika" => {
+                let d = self.api(p, &format!("/v1/media/jobs/{r}"), None)?;
+                need(d["id"] == r, "provider_id_mismatch")?;
+                // Pika uses the selected route as model_id. Bind it whenever
+                // returned, including the keyframe/reference variant.
+                let (path, _) = crate::studio_video::body(
+                    spec,
+                    &spec["input"]["references"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .map(|a| a["url"].as_str().unwrap().to_string())
+                        .collect::<Vec<_>>(),
+                )?;
+                need(
+                    d["model_id"].is_null()
+                        || d["model_id"] == path.trim_start_matches("/v1/media/"),
                     "provider_model_mismatch",
                 )?;
                 d
@@ -502,6 +540,7 @@ impl<'a> Router<'a> {
             "luma" => (&["queued"], &["dreaming"], &["completed"], &["failed"]),
             "vivix" => (&["queued"], &["processing"], &["succeeded"], &["failed"]),
             "kling" => (&["submitted"], &["processing"], &["succeeded"], &["failed"]),
+            "pika" => (&["queued"], &["running"], &["completed"], &["failed"]),
             _ => return Err(Error("unsupported_provider")),
         };
         if queue.contains(&st) {
@@ -802,6 +841,20 @@ impl Provider for Router<'_> {
         )?;
         let mut metadata = data.clone();
         let media = match p.as_str() {
+            "pika" => {
+                need(
+                    data["deleted_at"].is_null()
+                        && data["error"].is_null()
+                        && data["output"]["media_type"] == "video",
+                    "provider_no_media",
+                )?;
+                self.download(
+                    s(&data["output"]["video"]["url"])?,
+                    &["cdn.pika.art"],
+                    None,
+                    &[],
+                )?
+            }
             "kling" => {
                 let outputs = data["outputs"]
                     .as_array()
@@ -933,6 +986,17 @@ impl Provider for Router<'_> {
 /// Classifies a provider's failure payload into one of the categories the
 /// coordinator accepts. Only the category is reported, never provider text.
 pub fn failure_category(provider: &str, data: &Value) -> &'static str {
+    if provider == "pika" {
+        // Only documented machine codes classify Pika errors. Prompt-influenced
+        // message prose must not change moderation or failover decisions.
+        return match crate::submission::pika_error(data["error"]["code"].as_str().unwrap_or("")).0 {
+            "pika_billing_required" => "provider_billing_required",
+            "pika_capacity_limited" => "provider_capacity_limited",
+            "pika_content_rejected" => "provider_content_rejected",
+            "pika_invalid_parameters" => "provider_invalid_request",
+            _ => "provider_generation_failed",
+        };
+    }
     let status = data["status"].as_str().unwrap_or_default();
     if provider == "bfl" && (status == "Request Moderated" || status == "Content Moderated") {
         return "provider_content_rejected";

@@ -1046,6 +1046,7 @@ separate steps. The CLI does not initiate payouts.
 | ElevenLabs | `elevenlabs` | `ELEVENLABS_API_KEY` |
 | Vivix (direct API) | `vivix` | `VIVIX_API_KEY` |
 | Kling (direct API) | `kling` | `KLING_API_KEY` |
+| Pika H3 Flex | `pika` | `PIKA_API_KEY` |
 
 Use the key for the provider serving the contract, not just the model's brand.
 For example, a MiniMax model served through Fal uses `FAL_KEY`; the direct
@@ -1064,7 +1065,29 @@ everycli providers  # Reports key presence and permissions, never key values
 everycli offers
 ```
 
-### Kling direct API (v0.7.0; mining activation pending)
+### Pika H3 Flex
+
+Create a key in the [Pika developer console](https://dev.pika.art/), then add it
+from the API keys page in `everycli ui`, or run:
+
+```sh
+everycli set-api-keys --provider pika
+everycli balances
+everycli offers
+```
+
+Pika key validation and balance checks are read-only and do not generate media.
+The balance shows prepaid API funds, or the remaining cycle allowance when
+postpaid billing is active. Account balances may be shared by multiple workers.
+
+The `studio/pika/pika-h3-flex` contract supports 5–15 seconds, native audio,
+first/last frames, and image/video/audio references. 480p and 768p are native;
+1080p, 2K and 4K are upscaled outputs. Reference mode requires an image or video,
+and uses its own output and input-video rates. See [Pika H3 Flex](PIKA.md) for
+reference limits and API details. A worker must run a signed release containing
+this adapter before it can advertise the contract.
+
+### Kling direct API
 
 Use a current **Kling developer API key**, not a Fal key or legacy access-key /
 secret-key pair. Create it in the [Kling developer console](https://kling.ai/dev/api-key).

@@ -12,6 +12,36 @@ macro_rules! reasons {
 }
 reasons![
     (
+        "pika_billing_required",
+        "Pika's API balance or account spending limit does not permit this job.",
+        "Check the Pika API billing balance, membership and spending limits; a website subscription may use a different balance."
+    ),
+    (
+        "pika_capacity_limited",
+        "Pika's request or concurrency limit was reached.",
+        "Let current jobs finish before trying again. Do not repeat an uncertain paid submission."
+    ),
+    (
+        "pika_content_rejected",
+        "Pika rejected the request under its content policy.",
+        "Review the prompt and references. This request will not be retried elsewhere to bypass moderation."
+    ),
+    (
+        "pika_invalid_parameters",
+        "Pika rejected the generation settings or references.",
+        "Review H3 Flex duration, resolution and reference limits with everycli offers."
+    ),
+    (
+        "pika_unavailable",
+        "Pika could not accept or complete the API request.",
+        "Check the existing job before retrying; a lost response does not prove that no charge occurred."
+    ),
+    (
+        "pika_generation_failed",
+        "The Pika generation failed.",
+        "Review the job in the Pika developer console. Provider messages and credentials are not retained."
+    ),
+    (
         "kling_auth_rejected",
         "Kling rejected the developer API key or its permissions.",
         "Use everycli set-api-keys --provider kling with a current Kling developer API key, not a legacy access/secret pair."

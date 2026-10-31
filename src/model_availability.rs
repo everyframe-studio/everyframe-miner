@@ -179,6 +179,42 @@ fn check_provider(
         return Ok(Some(BTreeMap::new()));
     }
     match p {
+        "pika" => {
+            let data = get(
+                http,
+                "https://api.dev.pika.art/catalog/apis",
+                "api.dev.pika.art",
+                None,
+            )?;
+            let entries = data["apis"]
+                .as_array()
+                .ok_or(Error("incomplete_provider_catalog"))?;
+            need(!entries.is_empty(), "incomplete_provider_catalog")?;
+            let available: BTreeSet<_> = entries
+                .iter()
+                .filter_map(|r| {
+                    let id = r["api_id"].as_str()?;
+                    (r["call"]["method"] == "POST"
+                        && r["call"]["path"] == format!("/v1/media/{id}"))
+                    .then_some(id.to_string())
+                })
+                .collect();
+            // Public catalog presence is availability, not account entitlement.
+            Ok(Some(
+                ids.iter()
+                    .map(|id| {
+                        (
+                            id.clone(),
+                            if available.contains(id) {
+                                "available"
+                            } else {
+                                "removed"
+                            },
+                        )
+                    })
+                    .collect(),
+            ))
+        }
         "openrouter" => {
             let public = list_ids(&get(
                 http,
