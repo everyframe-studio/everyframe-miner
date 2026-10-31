@@ -178,6 +178,7 @@ struct Rig {
     info: RefCell<Value>,
     fail: RefCell<String>,
     calls: RefCell<Vec<(String, String)>>,
+    provider_environments: RefCell<Vec<Option<String>>>,
     envs: RefCell<Vec<Value>>,
     cvms: RefCell<Vec<Value>>,
     recovered: RefCell<Option<Value>>,
@@ -854,6 +855,7 @@ impl Rig {
             "attesting" | "readmitting" | "activating" => {
                 let mut status = self.status.borrow_mut();
                 status["composeHash"] = envelope["value"]["composeHash"].clone();
+                status["lastSeen"] = json!(now());
                 status["attestation"]["at"] =
                     json!(now().max(status["attestation"]["at"].as_i64().unwrap()) + 2);
                 status["sessionExpires"] = json!(now() + 60000);
@@ -882,6 +884,7 @@ impl Rig {
             info: RefCell::new(info),
             fail: RefCell::new(String::new()),
             calls: RefCell::default(),
+            provider_environments: RefCell::default(),
             envs: RefCell::default(),
             cvms: RefCell::default(),
             recovered: RefCell::default(),
@@ -1009,6 +1012,7 @@ fn unattended_update_drains_and_restores_with_recovery_prepared_before_cloud_cha
         .unwrap();
     assert!(prepare < drain);
     assert_eq!(calls.iter().filter(|(p, _)| p == "POST /cvms").count(), 0);
+    assert!(r.provider_environments.borrow().iter().all(Option::is_none));
 }
 
 #[test]
@@ -1860,6 +1864,13 @@ impl Http for Rig {
             return Ok(b"raw do-not-print\n{\"event\":\"worker_cycle_failed\",\"reason\":\"http_403\",\"secret\":\"do-not-print\"}\n".to_vec());
         }
         let path = u.path();
+        if path.ends_with("/v1/miner/worker-update") {
+            self.provider_environments.borrow_mut().push(
+                u.query_pairs()
+                    .find(|(k, _)| k == "providerEnvironment")
+                    .map(|(_, v)| v.into_owned()),
+            );
+        }
         let body: Value = r
             .body
             .as_ref()
@@ -3704,4 +3715,65 @@ fn manually_started_vm_reconciles_the_old_intent_and_still_requires_fresh_attest
         "post_restart_attestation_required"
     );
     assert!(r.mutations().is_empty());
+}
+
+#[test]
+fn manual_worker_update_requests_reviewed_pika_environment_without_cloud_mutation_on_check() {
+    let r = Rig::new();
+    r.staged_update(true, true);
+    r.calls.borrow_mut().clear();
+    let out = r
+        .miner()
+        .worker_update_with_wait(
+            true,
+            &|_| panic!("check must not confirm"),
+            &|_| {},
+            &|_| panic!(),
+        )
+        .unwrap();
+    assert_eq!(out["state"], "available");
+    assert_eq!(
+        *r.provider_environments.borrow(),
+        vec![Some("pika-v1".into())]
+    );
+    assert!(r.calls.borrow().iter().all(|(p, _)| p.starts_with("GET ")));
+}
+
+#[test]
+fn manual_controller_migration_requires_explicit_consent_before_any_mutation() {
+    let r = Rig::new();
+    let next = r.staged_update(true, true);
+    let mut v = next["value"].clone();
+    let c = &mut v["request"]["compose_file"];
+    c["allowed_envs"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!("EVERYFRAME_UPDATER_SEED"));
+    c["docker_compose_file"] = json!(format!(
+        "{}{}",
+        c["docker_compose_file"].as_str().unwrap(),
+        everyframe_miner::updater_vm::suffix(&format!(
+            "ghcr.io/example/updater@sha256:{}",
+            "6".repeat(64)
+        ))
+    ));
+    v["composeHash"] = json!(cloud::compose_hash(&v["request"]["compose_file"]).unwrap());
+    r.status.borrow_mut()["update"]["release"] = r.sign(&v);
+    let before = r.state().read("deployment", false).unwrap();
+    r.calls.borrow_mut().clear();
+    let error = r
+        .miner()
+        .worker_update_with_wait(
+            false,
+            &|q| {
+                assert!(q.contains("controller"));
+                Err(Error("declined"))
+            },
+            &|_| {},
+            &|_| panic!(),
+        )
+        .unwrap_err();
+    assert_eq!(error.0, "declined");
+    assert_eq!(r.state().read("deployment", false).unwrap(), before);
+    assert!(r.calls.borrow().iter().all(|(p, _)| p.starts_with("GET ")));
 }

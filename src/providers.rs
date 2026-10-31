@@ -562,16 +562,26 @@ impl<'a> Router<'a> {
         auth: Option<&str>,
         redirects: &[&str],
     ) -> Result<Vec<u8>> {
+        self.download_bounded(url, hosts, auth, redirects, MAX_MEDIA)
+    }
+    fn download_bounded(
+        &self,
+        url: &str,
+        hosts: &[&str],
+        auth: Option<&str>,
+        redirects: &[&str],
+        limit: usize,
+    ) -> Result<Vec<u8>> {
         let mut r = Request::get(url, hosts);
         safe_url(url, &r.hosts)?;
-        r.limit = MAX_MEDIA;
+        r.limit = limit;
         r.timeout = 180;
         r.redirect_hosts = redirects.iter().map(|s| s.to_string()).collect();
         if let Some(p) = auth {
             r.headers = self.auth(p)?
         };
         let b = self.http.bytes(r)?;
-        need(!b.is_empty() && b.len() <= MAX_MEDIA, "invalid_media_size")?;
+        need(!b.is_empty() && b.len() <= limit, "invalid_media_size")?;
         Ok(b)
     }
 }
@@ -848,11 +858,12 @@ impl Provider for Router<'_> {
                         && data["output"]["media_type"] == "video",
                     "provider_no_media",
                 )?;
-                self.download(
+                self.download_bounded(
                     s(&data["output"]["video"]["url"])?,
                     &["cdn.pika.art"],
                     None,
                     &[],
+                    128 * 1024 * 1024,
                 )?
             }
             "kling" => {

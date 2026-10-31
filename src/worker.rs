@@ -52,10 +52,15 @@ pub struct Worker<R, P> {
     pub provider_pause: std::collections::HashMap<String, i64>,
 }
 /// Upload time for the finished output: three minutes, plus a second per
-/// 250 KB above that (assumes at least 2 Mbit/s up), capped at ten minutes.
+/// 250 KB above that (assumes at least 2 Mbit/s up), capped at ten minutes (fifteen for larger Pika uploads).
 /// A fixed 180 s timed out on long 1080p clips after the provider was paid.
 pub fn complete_timeout_secs(encoded_bytes: usize) -> u64 {
-    (120 + encoded_bytes as u64 / 250_000).clamp(180, 600)
+    let cap = if encoded_bytes > 64 * 1024 * 1024 * 4 / 3 + 20000 {
+        900
+    } else {
+        600
+    };
+    (120 + encoded_bytes as u64 / 250_000).clamp(180, cap)
 }
 /// How long a billing or credential refusal keeps a provider's models off the claim.
 pub const PROVIDER_PAUSE_MS: i64 = 15 * 60 * 1000;

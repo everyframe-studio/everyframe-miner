@@ -366,7 +366,17 @@ impl Miner<'_> {
                 )?;
             }
             progress("Checking for a compatible signed worker update…");
-            let discovery = self.api(&c, "worker-update", json!({}))?;
+            // Older offline controllers keep a compatible environment. A
+            // reviewed manual update can add Pika and migrate its controller.
+            let discovery = self.api(
+                &c,
+                "worker-update",
+                if automatic {
+                    json!({})
+                } else {
+                    json!({"providerEnvironment":"pika-v1"})
+                },
+            )?;
             let update = &discovery["update"];
             if update["state"] == "unavailable" {
                 return Ok(
@@ -442,6 +452,23 @@ impl Miner<'_> {
                     json!({"ok":true,"state":"available","release":inv["release"],"appId":inv["appId"],
                     "next":"Run everycli worker-update to install on this VM and restore its previous accepting/paused state. No changes made."}),
                 );
+            }
+            let controller = |compose: &Value| -> Result<Option<String>> {
+                if compose["allowed_envs"]
+                    .as_array()
+                    .is_some_and(|a| a.iter().any(|v| v == "EVERYFRAME_UPDATER_SEED"))
+                {
+                    crate::updater_vm::image(compose).map(Some)
+                } else {
+                    Ok(None)
+                }
+            };
+            if controller(&c.invitation["request"]["compose_file"])?
+                != controller(&inv["request"]["compose_file"])?
+            {
+                confirm(
+                    "This signed release upgrades the isolated automatic-update controller on the same VM. Its persistent state may contain the management credentials you previously enrolled. Review this controller migration before continuing.",
+                )?;
             }
             confirm(
                 "Update this existing VM, wait for attestation, reactivate previously enabled provider keys and restore its accepting/paused state? The VM may restart; active jobs drain first. Offers and discounts stay unchanged. Resumed work can incur provider charges.",
