@@ -103,6 +103,84 @@ fn unsettled(phase: &str) -> bool {
 }
 
 impl Miner<'_> {
+    /// Adopt only a freshly signed replacement for a pending update whose
+    /// environment allow-list was reordered by Phala. No cloud mutation or
+    /// credential release occurs here, and no unsigned hash is accepted.
+    pub(crate) fn reconcile_environment_order(&self, c: &mut Context) -> Result<Value> {
+        need(
+            ["update_commit_intent", "updating"]
+                .contains(&c.deployment["phase"].as_str().unwrap_or("")),
+            "unapproved_running_compose",
+        )?;
+        let pending = self.validate(&c.deployment["pendingInvitation"], true)?;
+        compatible(c, &pending, &c.invitation["composeHash"])?;
+        let mut flow = self.state.read("worker-update", false)?;
+        need(
+            flow["version"] == 1
+                && flow["stage"] == "applying"
+                && flow["minerId"] == c.invitation["minerId"]
+                && flow["appId"] == c.deployment["appId"]
+                && flow["fromComposeHash"] == c.invitation["composeHash"],
+            "unapproved_running_compose",
+        )?;
+        let info = self.cloud(c)?.info(s(&c.deployment["appId"])?)?;
+        need(
+            info["app_id"] == c.deployment["appId"]
+                && info["name"] == c.invitation["request"]["name"]
+                && info["status"] == "running",
+            "unapproved_running_compose",
+        )?;
+        let response = self.api(c, "worker-update", json!({"providerEnvironment":"pika-v1"}))?;
+        need(
+            ["available", "current"].contains(&response["update"]["state"].as_str().unwrap_or("")),
+            "unapproved_running_compose",
+        )?;
+        let envelope = &response["update"]["release"];
+        let corrected = self.validate(envelope, false)?;
+        compatible(c, &corrected, &c.invitation["composeHash"])?;
+        let mut request = pending["request"].clone();
+        let before = &request["compose_file"]["allowed_envs"];
+        let after = &corrected["request"]["compose_file"]["allowed_envs"];
+        let names = |v: &Value| -> Result<std::collections::BTreeSet<String>> {
+            let values = v.as_array().ok_or(Error("unapproved_running_compose"))?;
+            let set: std::collections::BTreeSet<String> = values
+                .iter()
+                .map(|v| {
+                    v.as_str()
+                        .map(str::to_string)
+                        .ok_or(Error("unapproved_running_compose"))
+                })
+                .collect::<Result<_>>()?;
+            need(set.len() == values.len(), "unapproved_running_compose")?;
+            Ok(set)
+        };
+        need(
+            names(before)? == names(after)?,
+            "unapproved_running_compose",
+        )?;
+        request["compose_file"]["allowed_envs"] = after.clone();
+        need(
+            request == corrected["request"]
+                && pending["models"] == corrected["models"]
+                && pending["release"] == corrected["release"]
+                && corrected["composeHash"] == info["compose_hash"],
+            "unapproved_running_compose",
+        )?;
+        let prior = self.validate(&flow["release"], true)?;
+        need(
+            prior["composeHash"] == pending["composeHash"]
+                || prior["composeHash"] == corrected["composeHash"],
+            "unapproved_running_compose",
+        )?;
+        flow["release"] = envelope.clone();
+        flow["environmentOrderReconciledAt"] = json!(now());
+        self.state.write("worker-update", &flow)?;
+        c.deployment["pendingInvitation"] = envelope.clone();
+        c.deployment["environmentOrderReconciledAt"] = json!(now());
+        self.state.write("deployment", &c.deployment)?;
+        Ok(info)
+    }
+
     pub fn worker_update(
         &self,
         check: bool,

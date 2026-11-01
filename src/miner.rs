@@ -405,7 +405,7 @@ impl Miner<'_> {
         )?;
         Ok(out)
     }
-    fn cloud<'a>(&'a self, c: &Context) -> Result<Cloud<'a>> {
+    pub(crate) fn cloud<'a>(&'a self, c: &Context) -> Result<Cloud<'a>> {
         Cloud::new(self.http, &c.credentials)
     }
     pub fn init(&self, envelope: &Value, creds: &Value) -> Result<Value> {
@@ -2123,7 +2123,7 @@ impl Miner<'_> {
         self.reconcile_locked()
     }
     pub(crate) fn reconcile_locked(&self) -> Result<Value> {
-        let c = self.load(false)?;
+        let mut c = self.load(false)?;
         if c.deployment["phase"] == "provision_intent" && c.deployment["appId"].is_null() {
             return self.reconcile_preparation(&c);
         }
@@ -2136,7 +2136,12 @@ impl Miner<'_> {
             c.deployment["appId"].is_string(),
             "manual_reconciliation_required",
         )?;
-        let info = self.target(&c, true)?;
+        let info = match self.target(&c, true) {
+            Err(e) if e.0 == "unapproved_running_compose" => {
+                self.reconcile_environment_order(&mut c)?
+            }
+            other => other?,
+        };
         let phase = s(&c.deployment["phase"])?;
         let status = s(&info["status"])?;
         if ["start_intent", "starting"].contains(&phase) && ["stopped", "exited"].contains(&status)
