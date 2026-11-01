@@ -62,6 +62,14 @@ try {
   await page.evaluate(() => { S.health.result.value.ok = true; S.health.result.value.checks[1].ok = true; render(); });
   assert.equal(await page.getByText('Setup complete', { exact: true }).count(), 1);
   await page.evaluate(() => {
+    S.health.result.value.ok=false;
+    S.health.result.value.checks.push({name:'Model: expired-offer',ok:false,detail:'Offer pricing needs attention.'});
+    render();
+  });
+  assert.equal(await page.locator('[data-setup-progress]').innerText(),'8 of 8 steps done','one model warning cannot undo confirmed routing');
+  assert.equal(await page.getByText('Setup complete',{exact:true}).count(),1);
+  assert.match(await page.locator('#setup-complete').innerText(),/Some health checks still need attention/);
+  await page.evaluate(() => {
     S.health = { state: 'failed', result: { error: { message: 'Offline' } } }; render();
   });
   assert.equal(await page.getByText('Setup complete', { exact: true }).count(), 0, 'failed health cannot retain readiness');
@@ -610,6 +618,45 @@ try {
   assert.match(await page.locator('#worker-auto-status').innerText(),/Automatic \(in VM\)/);
   assert(await page.getByRole('button',{name:'Enable…',exact:true}).isDisabled());
   assert(await page.getByRole('button',{name:'Disable',exact:true}).isEnabled());
+
+  const workerUpdate=await page.evaluate(async()=>{
+    const originals={run,refreshAll};const calls=[];
+    try{
+      S.workerAuto={state:'done',result:{value:{automaticUpdates:{enabled:false}}}};
+      S.workerUpdate=null;S.workerUpdateAt=0;
+      S.overview.deployment={phase:'running',appId:'1'.repeat(40)};
+      refreshAll=async()=>{};
+      run=async(action)=>{calls.push(action);return {state:'done',result:{value:action==='worker-update-check'
+        ?{state:'available',release:'signed-test-release'}:action==='worker-update-abort'
+        ?{state:'aborted'}:{state:'complete',release:'signed-test-release'}}};};
+      await checkWorkerUpdate(true);render();
+      const before=document.querySelector('#worker-software').innerText;
+      await changeWorkerUpdate();const after=document.querySelector('#worker-software').innerText;
+      S.workerUpdate={state:'attention',result:{value:{state:'waiting',reason:'Waiting for current jobs'}}};patchWorkerUpdate();
+      const canContinue=!Array.from(document.querySelectorAll('#worker-software button')).find(b=>b.textContent==='Continue worker update').disabled;
+      await changeWorkerUpdate(true);
+      return {calls,before,after,canContinue};
+    }finally{run=originals.run;refreshAll=originals.refreshAll;}
+  });
+  assert.match(workerUpdate.before,/Worker update available/);
+  assert.match(workerUpdate.after,/Worker update complete/);
+  assert.equal(workerUpdate.canContinue,true);
+  assert.deepEqual(workerUpdate.calls,['worker-update-check','worker-update','worker-update-abort']);
+  const reasons=await page.evaluate(()=>({
+    stale:readiness({providerAvailability:{status:'temporarily_unavailable',checkedAt:Date.now()-7200000}})[0],
+    offline:readiness({providerAvailability:{status:'temporarily_unavailable',checkedAt:Date.now()-7200000},blockers:['worker_offline']})[0],
+    key:readiness({workerAvailability:{status:'access_denied'}})[0]
+  }));
+  assert.equal(reasons.stale,'Provider catalog check is stale');
+  assert.equal(reasons.offline,'Worker offline');
+  assert.equal(reasons.key,'Provider access unavailable for worker key');
+
+  await page.evaluate(()=>{
+    S.workerUpdate={state:'done',result:{value:{state:'available',release:'signed-test-release'}}};
+    S.pendingOperations.set('a'.repeat(32),{id:'a'.repeat(32),action:'worker-update',unconfirmed:true});render();
+  });
+  assert(await page.getByRole('button',{name:'Update worker',exact:true}).isDisabled(),'unknown operation cannot be repeated');
+  await page.evaluate(()=>{S.pendingOperations.clear();savePendingOperations();});
 
   for (const width of [1440,390]) {
     await page.setViewportSize({width,height:900});

@@ -3739,6 +3739,135 @@ fn manual_worker_update_requests_reviewed_pika_environment_without_cloud_mutatio
     assert!(r.calls.borrow().iter().all(|(p, _)| p.starts_with("GET ")));
 }
 
+fn reordered_update() -> (Rig, Value) {
+    let r = Rig::new();
+    let pending = r.staged_update(true, true);
+    let mut corrected = pending["value"].clone();
+    corrected["request"]["compose_file"]["allowed_envs"]
+        .as_array_mut()
+        .unwrap()
+        .reverse();
+    corrected["composeHash"] =
+        json!(cloud::compose_hash(&corrected["request"]["compose_file"]).unwrap());
+    let corrected = r.sign(&corrected);
+    let mut d = r.state().read("deployment", false).unwrap();
+    d["phase"] = json!("updating");
+    d["pendingInvitation"] = pending.clone();
+    r.state().write("deployment", &d).unwrap();
+    r.state()
+        .write(
+            "worker-update",
+            &json!({"version":1,"stage":"applying",
+        "minerId":r.inv["minerId"],"appId":d["appId"],"fromComposeHash":r.inv["composeHash"],
+        "release":pending,"restoreAccepting":true,"reactivate":true}),
+        )
+        .unwrap();
+    r.info.borrow_mut()["compose_hash"] = corrected["value"]["composeHash"].clone();
+    r.status.borrow_mut()["update"] = json!({"state":"available","release":corrected});
+    r.calls.borrow_mut().clear();
+    (r, corrected)
+}
+
+#[test]
+fn reordered_environment_recovers_only_from_a_fresh_signed_exact_release() {
+    for interrupted_local_write in [false, true] {
+        let (r, corrected) = reordered_update();
+        if interrupted_local_write {
+            let mut flow = r.state().read("worker-update", false).unwrap();
+            flow["release"] = corrected.clone();
+            r.state().write("worker-update", &flow).unwrap();
+        }
+        let credentials = r.state().read("credentials", false).unwrap();
+        let out = r.miner().reconcile().unwrap();
+        assert_eq!(out["phase"], "awaiting_attestation");
+        assert_eq!(
+            r.state().read("config", false).unwrap()["invitation"],
+            corrected
+        );
+        assert_eq!(
+            r.state().read("worker-update", false).unwrap()["release"],
+            corrected
+        );
+        assert_eq!(r.state().read("credentials", false).unwrap(), credentials);
+        assert!(
+            r.calls
+                .borrow()
+                .iter()
+                .all(|(path, _)| path.starts_with("GET "))
+        );
+    }
+}
+
+#[test]
+fn reordered_environment_rejects_other_changes_without_writing_or_cloud_mutation() {
+    for alteration in [
+        "image",
+        "extra-key",
+        "duplicate-key",
+        "wrong-hash",
+        "signature",
+        "phase",
+    ] {
+        let (r, original) = reordered_update();
+        let mut v = original["value"].clone();
+        match alteration {
+            "image" => {
+                v["request"]["compose_file"]["docker_compose_file"] = json!(
+                    v["request"]["compose_file"]["docker_compose_file"]
+                        .as_str()
+                        .unwrap()
+                        .replace(&"b".repeat(64), &"c".repeat(64))
+                );
+            }
+            "extra-key" => v["request"]["compose_file"]["allowed_envs"]
+                .as_array_mut()
+                .unwrap()
+                .push(json!("OPENROUTER_API_KEY")),
+            "duplicate-key" => v["request"]["compose_file"]["allowed_envs"]
+                .as_array_mut()
+                .unwrap()
+                .push(json!("FAL_KEY")),
+            "phase" => {
+                let mut d = r.state().read("deployment", false).unwrap();
+                d["phase"] = json!("running");
+                r.state().write("deployment", &d).unwrap();
+            }
+            _ => {}
+        }
+        v["composeHash"] = json!(cloud::compose_hash(&v["request"]["compose_file"]).unwrap());
+        let mut envelope = r.sign(&v);
+        if alteration == "signature" {
+            envelope["signature"] = json!("invalid");
+        }
+        if alteration != "wrong-hash" {
+            r.info.borrow_mut()["compose_hash"] = v["composeHash"].clone();
+        } else {
+            r.info.borrow_mut()["compose_hash"] = json!("f".repeat(64));
+        }
+        r.status.borrow_mut()["update"] = json!({"state":"available","release":envelope});
+        let before = r.state().read("deployment", false).unwrap();
+        let flow = r.state().read("worker-update", false).unwrap();
+        assert!(r.miner().reconcile().is_err(), "{alteration}");
+        assert_eq!(
+            r.state().read("deployment", false).unwrap(),
+            before,
+            "{alteration}"
+        );
+        assert_eq!(
+            r.state().read("worker-update", false).unwrap(),
+            flow,
+            "{alteration}"
+        );
+        assert!(
+            r.calls
+                .borrow()
+                .iter()
+                .all(|(path, _)| path.starts_with("GET ")),
+            "{alteration}"
+        );
+    }
+}
+
 #[test]
 fn manual_controller_migration_requires_explicit_consent_before_any_mutation() {
     let r = Rig::new();

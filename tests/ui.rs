@@ -283,6 +283,9 @@ fn actions_go_through_the_cli_parser() {
     let (args, _) = ui::action_args(&sh, "worker-update-check", &json!({})).unwrap();
     assert_eq!(args.command, "update");
     assert!(args.flag("--check"));
+    let (args, changes) = ui::action_args(&sh, "worker-update-abort", &json!({})).unwrap();
+    assert_eq!(args.command, "update");
+    assert!(args.flag("--abort") && changes);
 }
 
 #[test]

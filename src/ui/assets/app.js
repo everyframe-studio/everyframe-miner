@@ -8,7 +8,7 @@ const S = {
   token: null, session: null, overview: null, wallets: null, help: null,
   health: null, healthAt: 0, offers: null, offersError: null, balances: null, earnings: null,
   history: null, historyBusy: false, historyRequest: 0, historyStatus: "all", historyModel: "", historyModelDraft: "", historyCursors: [null], historyPage: 0, openAttempt: null, earningsBusy: false,
-  cliUpdate: null, workerUpdate: null, hotkeySel: null, registration: null,
+  cliUpdate: null, workerUpdate: null, workerUpdateBusy: false, workerUpdateRunning: false, workerUpdateAt: 0, resumeResult: null, hotkeySel: null, registration: null,
   workerAuto: null, workerAutoBusy: false, pendingOperations: new Map(),
   offerDrafts: new Map(), modelQuery: "", modelProvider: "", modelKind: "", computeLimit: "10",
   selectedOffers: new Set(), batchDiscount: "0", batchBusy: false, batchReport: null,
@@ -75,6 +75,7 @@ const LABELS = {
   "offer-batch": "Update model offers", "jobs": "Job history",
   "apply-api-keys": "Apply keys to worker", "resume": "Start accepting work", "stop": "Stop worker",
   "worker-update": "Update worker", "reconcile": "Re-sync operation", "remove-api-key": "Remove key",
+  "worker-update-abort": "Cancel worker update",
   "balances-publish": "Publish balances",
   "label": "Save worker label", "logs": "Worker logs",
   "reconnect": "Reconnect miner profile",
@@ -83,7 +84,7 @@ const LABELS = {
 // Runs a CLI command. Questions come back to the browser; approving one re-runs
 // the command with that exact question allowed.
 async function run(action, params = {}, opts = {}) {
-  const changes = new Set(["register-hotkey", "init", "reconnect", "reconcile", "offer", "offer-batch", "deploy", "start", "activate", "apply-api-keys", "resume", "stop", "label", "delete", "worker-update", "worker-auto-enable", "worker-auto-disable", "remove-api-key", "balances-publish"]);
+  const changes = new Set(["register-hotkey", "init", "reconnect", "reconcile", "offer", "offer-batch", "deploy", "start", "activate", "apply-api-keys", "resume", "stop", "label", "delete", "worker-update", "worker-update-abort", "worker-auto-enable", "worker-auto-disable", "remove-api-key", "balances-publish"]);
   if (changes.has(action) && action !== "reconcile" && !(action === "stop" && params.force) && S.pendingOperations.size) {
     const job = { state: "unknown", result: { error: { code: "ui_operation_unconfirmed", message: "Check the existing operation before starting another change." } } };
     if (!opts.quiet) Activity.add(opts.label || LABELS[action] || action).finish(job);
@@ -730,12 +731,24 @@ const STEP_INFO = {
   offers: "Choose models to serve", resume: "Start accepting work",
 };
 function stepDone(st) {
-  if (st.id === "resume") return findCheck("Accepting new work")?.ok === true && value(S.health)?.ok === true;
+  if (st.id === "resume") return findCheck("Accepting new work")?.ok === true;
   if (st.id === "offers") {
     const bid = findCheck("Current model bid");
     return bid ? bid.ok : (value(S.health)?.checks || []).some((c) => (c.name || "").startsWith("Model: ") && checkState(c) === "PASS");
   }
   return !!st.done;
+}
+function setupCompleteNotice() {
+  const health = value(S.health), problems = (health?.checks || []).filter(c => checkState(c) !== "PASS");
+  return notice(health?.ok === true ? "ok" : "warn", "Setup complete", h("div", null,
+    h("p", null, health?.ok === true ? "Your worker is ready to accept work. Jobs depend on customer demand and your offers."
+      : "All setup steps are confirmed. Some health checks still need attention; completing setup does not mean every model is ready to serve."),
+    problems.length ? h("details", null, h("summary", null, "Review " + problems.length + " health checks"), checksList(problems)) : null,
+    h("a", { href: "#/overview" }, "View worker readiness")));
+}
+async function startAcceptingWork() {
+  S.resumeResult = await run("resume");
+  await refreshAll();
 }
 function pageSetup() {
   const o = S.overview, steps = o?.steps || [];
@@ -761,7 +774,7 @@ function pageSetup() {
   });
   root.id = "setup-guide";
   root.append(list);
-  if (steps.length && done === steps.length) { const n = notice("ok", "Setup complete", "Your worker accepts work. Keep an eye on the Overview page; jobs depend on customer demand and your offers."); n.id = "setup-complete"; root.append(n); }
+  if (steps.length && done === steps.length) { const n = setupCompleteNotice(); n.id = "setup-complete"; root.append(n); }
   return root;
 }
 function patchSetupProgress() {
@@ -780,7 +793,10 @@ function patchSetupProgress() {
   }
   const complete = steps.length > 0 && done === steps.length;
   if (!complete) $("#setup-complete")?.remove();
-  else if (!$("#setup-complete")) { const n = notice("ok", "Setup complete", "Your worker accepts work. Keep an eye on the Overview page; jobs depend on customer demand and your offers."); n.id = "setup-complete"; $("#setup-guide")?.append(n); }
+  else {
+    const n = setupCompleteNotice(); n.id = "setup-complete";
+    if ($("#setup-complete")) $("#setup-complete").replaceWith(n); else $("#setup-guide")?.append(n);
+  }
 }
 async function refreshAll() {
   await loadOverview();
@@ -830,7 +846,11 @@ function stepBody(id) {
       h("a", { class: "btn primary", href: "#/models" }, "Open Models"));
     case "resume": return h("div", null,
       h("p", null, "Resume lets the network route paid jobs to your worker. Your provider account pays for each generation; rewards are alpha emissions for accepted, verified work. Traffic isn't guaranteed."),
-      button("Start accepting work", async () => { await run("resume"); await refreshAll(); }, "primary"));
+      findCheck("Accepting new work")?.ok === true ? notice("ok", "Accepting work is enabled", "The coordinator confirmed that routing is enabled and this miner is not paused.")
+        : errorOf(S.resumeResult) ? errorView(errorOf(S.resumeResult))
+        : S.resumeResult?.state === "done" ? notice("warn", "Start request accepted", "The status check has not confirmed it yet. Refresh status to check without sending another start request.") : null,
+      h("div", { class: "row" }, button("Start accepting work", startAcceptingWork, "primary"),
+        button("Refresh status", async () => { await loadHealth(false); render(); }, "small")));
   }
   return null;
 }
@@ -1089,16 +1109,21 @@ function pageKeys() {
 
 // ---------- Models ----------
 function readiness(r) {
-  for (const status of [r.providerAvailability?.status, r.workerAvailability?.status]) {
-    const labels = {removed:"Removed by provider",deprecated:"Deprecated by provider",access_denied:"Provider access unavailable for this key",temporarily_unavailable:"Availability check temporarily unavailable"};
-    if (labels[status]) return [labels[status], status === "temporarily_unavailable" ? "warn" : "bad"];
-  }
+  const catalog = r.providerAvailability, worker = r.workerAvailability;
+  if (catalog?.status === "removed") return ["Removed by provider", "bad"];
+  if (catalog?.status === "deprecated") return ["Deprecated by provider", "bad"];
   const b = r.blockers || [];
   if (b.includes("pricing_required")) return ["Pricing required", "warn"];
   if (b.includes("worker_release_required")) return ["Worker update required", "warn"];
   if (b.includes("worker_offline")) return ["Worker offline", "bad"];
   if (b.includes("worker_capabilities_unknown")) return ["Worker check required", "warn"];
   if (b.includes("worker_provider_required")) return ["Add provider key to worker", "warn"];
+  if (worker?.status === "access_denied") return ["Provider access unavailable for worker key", "bad"];
+  if (worker?.status === "temporarily_unavailable") return ["Worker provider check needs refreshing", "warn"];
+  if (catalog?.status === "access_denied") return ["Provider catalog could not be read", "warn"];
+  if (catalog?.status === "temporarily_unavailable") return [
+    typeof catalog.checkedAt === "number" && Date.now() - catalog.checkedAt > 3600000
+      ? "Provider catalog check is stale" : "Provider catalog check temporarily unavailable", "warn"];
   if (r.workerAvailability?.status === "unchecked" && r.offerable === true) return ["Available · account access not checked", "warn"];
   if (!S.overview?.initialized && r.catalogGroup === "supported") return ["Listed · setup required", ""];
   if (r.offerable === true) return ["Available", "ok"];
@@ -1283,6 +1308,58 @@ function patchWorkerView() {
   for (const button of document.querySelectorAll("#main button")) {
     if (Object.hasOwn(enabled, button.textContent) && button.dataset.busy !== "true") button.disabled = !enabled[button.textContent];
   }
+  patchWorkerUpdate();
+}
+function patchWorkerUpdate() {
+  if (currentRoute() === "worker") $("#worker-software")?.replaceWith(workerUpdateCard());
+}
+async function checkWorkerUpdate(quiet = false) {
+  if (S.workerUpdateBusy || S.workerUpdateRunning || !managedHere()) return;
+  S.workerUpdateBusy = true; patchWorkerUpdate();
+  try { S.workerUpdate = await run("worker-update-check", {}, { quiet }); S.workerUpdateAt = Date.now(); }
+  finally { S.workerUpdateBusy = false; patchWorkerUpdate(); }
+}
+async function changeWorkerUpdate(abort = false) {
+  if (S.workerUpdateBusy || S.workerUpdateRunning) return;
+  S.workerUpdateRunning = true; patchWorkerUpdate();
+  try {
+    S.workerUpdate = await run(abort ? "worker-update-abort" : "worker-update");
+    S.workerUpdateAt = Date.now();
+    await refreshAll();
+  } finally { S.workerUpdateRunning = false; patchWorkerUpdate(); }
+}
+async function loadWorkerTools() {
+  await loadWorkerAuto();
+  if (!S.workerUpdate || Date.now() - S.workerUpdateAt > 60000) await checkWorkerUpdate(true);
+}
+function workerUpdateCard() {
+  const v = value(S.workerUpdate), phase = v?.state, controls = workerControls();
+  const busy = S.workerUpdateBusy || S.workerUpdateRunning, uncertain = S.pendingOperations.size > 0;
+  const waiting = phase === "waiting" || phase === "release_expired";
+  const check = button("Check for worker update", () => checkWorkerUpdate());
+  check.disabled = busy || !managedHere() || uncertain;
+  const update = button(phase === "waiting" ? "Continue worker update" : "Update worker", () => changeWorkerUpdate(), "primary");
+  update.disabled = busy || uncertain || !controls.exists || automaticMode() !== false
+    || !(phase === "available" && !controls.pending || phase === "waiting");
+  const cancel = waiting ? button("Cancel worker update", () => changeWorkerUpdate(true), "small") : null;
+  if (cancel) cancel.disabled = busy || uncertain || !controls.exists;
+  const labels = { available: "Worker update available", current: "Worker is up to date", complete: "Worker update complete", waiting: "Worker update needs to continue", release_expired: "Worker update needs attention", aborted: "Worker update cancelled", unavailable: "No compatible worker update" };
+  const panel = card("Worker software", null,
+    h("p", { class: "small muted" }, "Installed release: ", h("span", { class: "wrap mono" }, S.overview?.profile?.release || "Not reported")),
+    h("div", { class: "worker-update-result", "aria-live": "polite" },
+      busy ? h("p", null, S.workerUpdateRunning ? "Updating worker… Follow the progress and confirmations below." : "Checking for a compatible signed update…")
+        : S.workerUpdate?.state === "unknown" ? notice("warn", "Update result is unconfirmed", "Check the existing operation above before continuing.")
+        : errorOf(S.workerUpdate) ? errorView(errorOf(S.workerUpdate))
+        : h("div", { class: "stack" }, h("b", null, labels[phase] || "Check for a worker update"),
+          v?.release && phase === "available" ? h("p", { class: "small wrap mono" }, "Available: " + v.release) : null,
+          v?.reason ? h("p", { class: "small muted" }, v.reason) : null,
+          phase === "waiting" ? h("p", { class: "small muted" }, "Progress is saved. Continue this update on the same VM, or cancel after reviewing its current state.") : null)),
+    h("p", { class: "small muted" }, "Updates the existing VM, drains active jobs, waits for attestation and restores its previous accepting or paused state. You review the CLI's confirmations before anything changes."),
+    automaticMode() === true ? notice("", "Automatic updates are enabled", h("div", null,
+      "Turn off automatic updates below before starting a manual update or provider migration. ",
+      button("Turn off automatic updates", async () => { await run("worker-auto-disable"); await loadWorkerTools(); }, "small"))) : null,
+    h("div", { class: "row" }, check, update, cancel));
+  panel.id = "worker-software"; return panel;
 }
 async function loadWorkerAuto() {
   if (!S.overview?.initialized || S.workerAutoBusy) return;
@@ -1340,7 +1417,7 @@ function pageWorker() {
   if (d.needsReconcile) root.append(notice("warn", "Confirm worker state", h("div", null,
     h("p", null, "A lifecycle operation is pending. Re-sync checks its result at Phala and the coordinator without repeating the cloud operation."),
     button("Re-sync operation", async () => { await run("reconcile"); await refreshAll(); }, "primary"))));
-  root.append(workerAutoCard());
+  root.append(workerUpdateCard(), workerAutoCard());
   const ph = d.phase || "not_deployed", controls = workerControls();
   const when = (ok, el, why) => { if (!ok) { el.disabled = true; el.title = why; } return el; };
   const startLimit = computeLimitInput("Maximum compute USD per hour");
@@ -1350,12 +1427,9 @@ function pageWorker() {
       when(!!d.appId, button("Re-sync state", async () => { await run("reconcile"); await refreshAll(); }), "No deployment recorded.")],
     ["Start accepting work", "Lets the network route paid jobs to this worker again.",
       when(controls.resume,
-        button("Resume", async () => { await run("resume"); await refreshAll(); }, "primary"), "Already accepting work, or the worker isn't ready.")],
+        button("Resume", startAcceptingWork, "primary"), "Already accepting work, or the worker isn't ready.")],
     ["Pause new work", "Finishes current jobs, then stops taking new ones. The machine keeps running and billing.",
       when(controls.pause, button("Pause", async () => { await run("stop", { drainOnly: true }); await refreshAll(); }), "Only a running worker can be paused.")],
-    ["Update worker", "Checks for a newer signed worker release. Updating pauses work, updates the same machine, waits for attestation and restores the previous state.",
-      h("div", { class: "row" }, when(managedHere(), button("Check", async () => { S.workerUpdate = await run("worker-update-check"); render(); }), "No worker deployed from this computer."),
-        when(managedHere() && !controls.pending && automaticMode() !== true, button("Update", async () => { await run("worker-update"); await loadWorkerAuto(); await refreshAll(); }, "primary"), automaticMode() === true ? "Disable automatic worker updates before a manual provider migration." : "No worker ready for an update."))],
     ["Apply saved keys", "Pushes keys you changed on the API keys page to this worker (pauses, restarts, re-attests).",
       when(controls.apply, button("Apply keys", async () => { await run("apply-api-keys"); await refreshAll(); }), "No running worker.")],
     ["Shut down", "Drains work, then shuts the machine down. Storage may still be billed; nothing is deleted.",
@@ -1376,7 +1450,6 @@ function pageWorker() {
   root.append(h("details", { class: "card" }, h("summary", null, "Advanced · emergency shutdown, deletion and redeploy"), renderActions(actions.filter(([t]) => advanced.has(t)))));
   root.append(card("Worker logs", [button("Read logs", async () => { await run("logs"); })],
     h("p", { class: "small muted" }, "Read bounded, sanitized worker events. Private logs may require the Phala console.")));
-  if (S.workerUpdate) root.append(card("Worker update check", null, updateSummary(S.workerUpdate, true)));
   root.append(card("Profile", null, h("dl", { class: "kv" },
     h("dt", null, "Miner"), h("dd", { class: "mono" }, p.minerId || "—"),
     h("dt", null, "Hotkey"), h("dd", { class: "mono" }, p.hotkey || "—"),
@@ -1447,7 +1520,7 @@ async function boot() {
     if (["overview", "earnings"].includes(currentRoute()) && !S.renaming) render(); else { renderMeta(); renderNav(); patchSetupProgress(); patchWorkerView(); }
   }
   if (!S.overview?.initialized && currentRoute() === "keys") loadBalances();
-  if (S.overview?.initialized && currentRoute() === "worker") loadWorkerAuto();
+  if (S.overview?.initialized && currentRoute() === "worker") loadWorkerTools();
   run("cli-update-check", {}, { quiet: true }).then((j) => { S.cliUpdate = j; renderMeta(); });
   let tick = 0;
   setInterval(async () => {
@@ -1474,6 +1547,6 @@ window.addEventListener("hashchange", () => {
   S.navigationEpoch++; clearBatchReport();
   S.openStep = null; S.renaming = false; render(); window.scrollTo(0, 0); $("#main").focus({ preventScroll: true });
   if (currentRoute() === "keys") loadBalances();
-  if (currentRoute() === "worker") loadWorkerAuto();
+  if (currentRoute() === "worker") loadWorkerTools();
 });
 boot();

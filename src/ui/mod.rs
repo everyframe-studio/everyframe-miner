@@ -79,6 +79,12 @@ const ACTIONS: &[(&str, &[&str], &[&str], bool)] = &[
     ("delete", &["delete"], &[], true),
     ("logs", &["logs"], &[], false),
     ("worker-update", &["worker-update"], &[], true),
+    (
+        "worker-update-abort",
+        &["worker-update"],
+        &["--abort"],
+        true,
+    ),
     ("worker-auto-status", &["worker-auto-update"], &[], false),
     (
         "worker-auto-enable",
