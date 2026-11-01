@@ -81,7 +81,7 @@ try {
     assert.equal(await page.getByRole('button', { name: 'Re-sync operation', exact: true }).isEnabled(), true, phase);
     assert.equal(await page.getByRole('button', { name: 'Re-sync state', exact: true }).isEnabled(), true, phase);
   }
-  await page.evaluate(()=>{S.overview.deployment.phase='running';S.health={result:{value:{cloudStatus:'stopped',checks:[]}}};render();});
+  await page.evaluate(()=>{S.overview.deployment.phase='running';S.overview.deployment.needsReconcile=false;S.health={result:{value:{cloudStatus:'stopped',checks:[]}}};render();});
   assert.equal(await page.getByRole('button',{name:'Start',exact:true}).isEnabled(),true);
   assert.equal(await page.getByRole('button',{name:'Resume',exact:true}).isEnabled(),false);
   for (const phase of ['start_intent','starting']) {
@@ -92,7 +92,7 @@ try {
   await page.evaluate(() => { S.overview.deployment.phase = 'stopped'; S.overview.deployment.needsReconcile = false; render(); });
   assert.equal(await page.getByRole('button', { name: 'Start', exact: true }).isEnabled(), true);
   await page.evaluate(() => { S.overview.deployment.phase = 'awaiting_readmission'; render(); });
-  assert.equal(await page.getByRole('button', { name: 'Resume', exact: true }).isEnabled(), true);
+  assert.equal(await page.getByRole('button', { name: 'Resume', exact: true }).isEnabled(), false, 'resume waits for verified readiness');
   // Worker drafts survive background updates, including after the input blurs.
   await page.getByRole('button', { name: 'Rename', exact: true }).click();
   await page.getByRole('textbox', { name: 'Worker label' }).fill('unsaved-label');
@@ -312,7 +312,7 @@ try {
         {model:'retired/example',providerApiId:'vendor/old',name:'Retired fixture',offered:true,offerable:false,catalogGroup:'candidate',providerAvailability:{status:'deprecated'}},
         {model:'candidate/example',name:'Candidate fixture',offerable:false,catalogGroup:'candidate'},
       ]};
-      S.offerFilter='all';render();const all=document.querySelector('#main').innerText;
+      S.offerFilter='all';render();document.querySelectorAll('.model-details').forEach(d=>d.open=true);const all=document.querySelector('#main').innerText;
       S.offerFilter='candidate';render();const candidates=document.querySelector('#main').innerText;
       const canUpdate=[...document.querySelectorAll('button')].some(b=>b.textContent==='Update'&&!b.disabled);
       const canWithdraw=[...document.querySelectorAll('button')].some(b=>b.textContent==='Withdraw'&&!b.disabled);
@@ -326,7 +326,7 @@ try {
   assert.match(availabilityUI.candidates,/Deprecated by provider/);
   assert.equal(availabilityUI.canUpdate,false);
   assert.equal(availabilityUI.canWithdraw,true);
-  assert.match(availabilityUI.report[0].message,/No discounts were changed/);
+  assert.match(availabilityUI.report[0].message,/Skipped.*deprecated/);
 
   const approvalGuard = await page.evaluate(async () => {
     const originals = { api, poll, confirmDialog };
@@ -484,8 +484,143 @@ try {
   assert.equal(await page.getByRole('button',{name:'Enable…',exact:true}).count(),1);
   assert.equal(await page.getByRole('button',{name:'Check status',exact:true}).count(),1);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'offline update controls fit mobile');
+
+  // A blocked historical offer must not poison current offers. Transient
+  // worker checks do not remove the permission to declare a priced bid.
+  const mixed = await page.evaluate(async () => {
+    const original = {run, loadOffers, confirmDialog, offers:S.offers}; const calls=[];
+    try {
+      S.overview.initialized=true; S.offerFilter='all'; history.replaceState(null,'','#/models');
+      const rows=[
+        {model:'valid/a',name:'Valid',offered:true,authorized:true,pricingAvailable:true,offerable:true,localKeyConfigured:true,provider:'fal'},
+        {model:'expired/w1',name:'Expired W1',offered:true,authorized:true,pricingAvailable:false,offerable:false,catalogGroup:'candidate'},
+        {model:'transient/a',name:'Account check delayed',offered:true,authorized:true,pricingAvailable:true,offerable:false,workerAvailability:{status:'temporarily_unavailable'},localKeyConfigured:true}
+      ];
+      S.offers={offers:rows}; S.selectedOffers=new Set(rows.map(r=>r.model)); S.batchDiscount='5';
+      loadOffers=async()=>{};confirmDialog=async()=>true;
+      run=async(action,params,opts)=>{calls.push({action,params});return opts.prepareOnly?{state:'confirm',result:{question:'Review exact eligible models',hash:'reviewed'}}:{state:'done',result:{value:{}}};};
+      await batchOffers(rows,false); const report=[...S.batchReport]; const submitted=calls[1].params.models;
+      const canChangeTransient=canApplyOffer(rows[2]); calls.length=0;
+      S.selectedOffers=new Set(['expired/w1']); await batchOffers(rows,true);
+      return {report,submitted,canChangeTransient,withdraw: calls[1].params};
+    } finally {run=original.run;loadOffers=original.loadOffers;confirmDialog=original.confirmDialog;S.offers=original.offers;S.selectedOffers.clear();clearBatchReport();}
+  });
+  assert.equal(mixed.submitted,'valid/a,transient/a');
+  assert.equal(mixed.report.filter(r=>r.ok).length,2);
+  assert(mixed.report.some(r=>r.model==='Expired W1'&&r.skipped&&/current price/.test(r.message)));
+  assert.equal(mixed.canChangeTransient,true);
+  assert.equal(mixed.withdraw.models,'expired/w1');assert.equal(mixed.withdraw.withdraw,true);
+
+  await page.evaluate(()=>{
+    S.overview.initialized=true;S.overview.deployment={phase:'running',appId:'1'.repeat(40)};
+    S.health={state:'done',result:{value:{cloudStatus:'stopped',checks:[{name:'Accepting new work',ok:false}]}}};
+    history.replaceState(null,'','#/overview');render();
+  });
+  assert.match(await page.locator('#meta').innerText(),/Stopped/);
+  assert.doesNotMatch(await page.locator('#meta').innerText(),/Running/);
+  await page.evaluate(()=>{S.health={state:'done',result:{value:{checks:[]}}};render();});
+  assert.match(await page.locator('#meta').innerText(),/Checking state/);
+  await page.evaluate(()=>{S.overview.deployment.phase='deleted';S.health=null;history.replaceState(null,'','#/worker');render();});
+  assert(await page.getByRole('button',{name:'Apply keys',exact:true}).isDisabled());
+  assert(await page.getByRole('button',{name:'Shut down',exact:true}).isDisabled());
+
+  await page.evaluate(()=>{
+    window.reliabilityOriginals={loadOverview,loadBalances,api};
+    S.overview.keys=[{provider:'pika',kind:'generation',saved:false},{provider:'openrouter',kind:'generation',saved:true}];
+    S.overview.deployment={phase:'not_deployed'};
+    loadOverview=async()=>S.overview;loadBalances=async()=>{};
+    api=async(path)=>{if(path==='/api/keys'){S.overview.keys[0].saved=true;return {ok:true,data:{check:{result:'valid'}}};}return window.reliabilityOriginals.api(path);};
+    history.replaceState(null,'','#/keys');render();
+  });
+  await page.getByLabel('OpenRouter key',{exact:true}).fill('unsaved-fixture-draft');
+  await page.getByLabel('Pika key',{exact:true}).fill('pika-fixture-not-a-real-key');
+  await page.getByLabel('Pika key',{exact:true}).locator('..').getByRole('button',{name:'Save',exact:true}).click();
+  await page.waitForFunction(()=>S.keyStatus.pika?.kind==='ok');
+  assert.equal(await page.getByLabel('OpenRouter key',{exact:true}).inputValue(),'unsaved-fixture-draft');
+  await page.evaluate(()=>{({loadOverview,loadBalances,api}=window.reliabilityOriginals);});
+
+  await page.evaluate(()=>{
+    S.overview.initialized=false;S.health=null;S.overview.steps=['hotkey','phala','providers','init','deploy','activate','offers','resume'].map((id,i)=>({id,done:i<2}));
+    S.openStep='providers';history.replaceState(null,'','#/setup');render();
+  });
+  assert.equal(await page.getByLabel('Pika key',{exact:true}).count(),1);
+  assert.equal(await page.getByLabel('Kling (direct) key',{exact:true}).count(),1);
+  await page.getByLabel('Pika key',{exact:true}).fill('draft-kept-while-progress-changes');
+  await page.evaluate(()=>{S.overview.steps[2].done=true;patchSetupProgress();});
+  assert.equal(await page.locator('[data-setup-progress]').innerText(),'3 of 8 steps done');
+  assert.equal(await page.getByLabel('Pika key',{exact:true}).inputValue(),'draft-kept-while-progress-changes');
+
+  await page.evaluate(()=>{
+    S.overview.initialized=true;S.offerFilter='all';S.modelQuery='';S.modelProvider='';S.modelKind='';
+    S.offers={offers:[{model:'draft/a',name:'Draft A',provider:'fal',kind:'video',offered:true,discountBp:1000,offerable:true},{model:'draft/b',name:'Draft B',provider:'pika',kind:'image',offerable:true}]};
+    history.replaceState(null,'','#/models');render();
+  });
+  await page.getByLabel('Discount percent for Draft A',{exact:true}).fill('12.5');
+  await page.getByLabel('Select Draft B',{exact:true}).check();
+  assert.equal(await page.getByLabel('Discount percent for Draft A',{exact:true}).inputValue(),'12.5');
+  await page.getByLabel('Search models',{exact:true}).fill('Draft B');
+  assert.equal(await page.getByLabel('Select Draft A',{exact:true}).count(),0);
+  assert.equal(await page.getByLabel('Select Draft B',{exact:true}).count(),1);
+  await page.getByLabel('Search models',{exact:true}).fill('');
+  await page.getByLabel('Filter model provider',{exact:true}).selectOption('fal');
+  assert.equal(await page.getByLabel('Select Draft B',{exact:true}).count(),0);
+
+  const recovery=await page.evaluate(async()=>{
+    const original={api,refreshAll};let posts=0,gets=0;
+    try{
+      S.pendingOperations.clear();refreshAll=async()=>{};
+      api=async(path)=>{if(path==='/api/run'){posts++;return {ok:false,status:0,data:{}};}gets++;return {ok:true,data:{state:'done',result:{value:{phase:'running'}}}};};
+      const unknown=await run('worker-update',{}, {quiet:true});const id=unknown.operationId;
+      const saved=JSON.parse(sessionStorage.getItem('everycli-pending-operations'));
+      S.pendingOperations.clear();restorePendingOperations();const restored=S.pendingOperations.size;
+      await checkOperation(id);
+      return {state:unknown.state,id,posts,gets,restored,remaining:S.pendingOperations.size,savedFields:Object.keys(saved.operations[0]).sort()};
+    }finally{api=original.api;refreshAll=original.refreshAll;S.pendingOperations.clear();savePendingOperations();document.querySelector('#activity').replaceChildren();}
+  });
+  assert.equal(recovery.state,'unknown');assert.match(recovery.id,/^[a-f0-9]{32}$/);
+  assert.equal(recovery.posts,1,'recovery never resubmits the mutation');assert.equal(recovery.gets,1);
+  assert.equal(recovery.restored,1);assert.equal(recovery.remaining,0);
+  assert(!recovery.savedFields.includes('params')&&!recovery.savedFields.includes('approvals'));
+
+  const pollRecovery=await page.evaluate(async()=>{
+    const original={api,refreshAll};let posts=0,reads=0,recovered=false;
+    try{
+      refreshAll=async()=>{};
+      api=async(path,body)=>{
+        if(path==='/api/run'){posts++;return {ok:true,data:{job:body.requestId}};}
+        reads++;
+        return recovered?{ok:true,data:{state:'done',result:{value:{phase:'running'}}}}:{ok:false,status:0,data:{}};
+      };
+      const job=await run('start',{maxHourlyUsd:'10'});const id=job.operationId;
+      const banner=!!document.querySelector('#pending-operations');
+      recovered=true;await checkOperation(id);
+      return {state:job.state,posts,reads,banner,remaining:S.pendingOperations.size};
+    }finally{api=original.api;refreshAll=original.refreshAll;S.pendingOperations.clear();savePendingOperations();patchPendingBanner();document.querySelector('#activity').replaceChildren();}
+  });
+  assert.equal(pollRecovery.state,'unknown');assert.equal(pollRecovery.posts,1);
+  assert.equal(pollRecovery.reads,4,'retry reads before retaining an unconfirmed outcome');
+  assert.equal(pollRecovery.banner,true);assert.equal(pollRecovery.remaining,0);
+
+  await page.evaluate(async()=>{
+    const original=run;
+    try{S.overview.deployment={phase:'running',appId:'1'.repeat(40)};history.replaceState(null,'','#/worker');render();
+      run=async()=>({state:'done',result:{value:{enabled:true,automaticUpdates:{enabled:true,report:{state:'idle'}}}}});await loadWorkerAuto();
+    }finally{run=original;}
+  });
+  assert.match(await page.locator('#worker-auto-status').innerText(),/Automatic \(in VM\)/);
+  assert(await page.getByRole('button',{name:'Enable…',exact:true}).isDisabled());
+  assert(await page.getByRole('button',{name:'Disable',exact:true}).isEnabled());
+
+  for (const width of [1440,390]) {
+    await page.setViewportSize({width,height:900});
+    for (const route of ['models','worker']) {
+      await page.evaluate(route=>{history.replaceState(null,'','#/'+route);render();},route);
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,route+' fits '+width);
+      if(process.env.EVERYCLI_QA_DIR)await page.screenshot({path:join(process.env.EVERYCLI_QA_DIR,route+'-fixed-'+width+'.png'),fullPage:true});
+    }
+  }
   assert.deepEqual(errors, []);
-  console.log('UI browser regressions passed: pairing, drafts, lifecycle, readiness, W credits, diagnostics, history filters/pagination/details/races, earnings and mobile.');
+  console.log('UI browser regressions passed: pairing, drafts, lifecycle, readiness, W credits, diagnostics, history filters/pagination/details/races, earnings, mixed-offer batches, draft preservation, operation recovery and mobile.');
 } finally {
   if (browser) await browser.close();
   if (cli.exitCode === null) { const stopped = once(cli, 'exit'); cli.kill('SIGTERM'); await stopped; }

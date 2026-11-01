@@ -9,6 +9,8 @@ const S = {
   health: null, healthAt: 0, offers: null, offersError: null, balances: null, earnings: null,
   history: null, historyBusy: false, historyRequest: 0, historyStatus: "all", historyModel: "", historyModelDraft: "", historyCursors: [null], historyPage: 0, openAttempt: null, earningsBusy: false,
   cliUpdate: null, workerUpdate: null, hotkeySel: null, registration: null,
+  workerAuto: null, workerAutoBusy: false, pendingOperations: new Map(),
+  offerDrafts: new Map(), modelQuery: "", modelProvider: "", modelKind: "", computeLimit: "10",
   selectedOffers: new Set(), batchDiscount: "0", batchBusy: false, batchReport: null,
   batchReportTimer: null, navigationEpoch: 0, newModels: new Set(), modelSeen: new Map(),
   openStep: null, renaming: false, keyStatus: {}, workloads: null, removal: null, offerFilter: "ready", timers: [], refreshing: false,
@@ -53,9 +55,11 @@ async function api(path, body) {
   const opts = { method: body ? "POST" : "GET", headers: { "x-everycli-token": S.token || "" } };
   if (body) { opts.headers["content-type"] = "application/json"; opts.body = JSON.stringify(body); }
   let res;
+  const controller = new AbortController(); opts.signal = controller.signal;
+  const timeout = setTimeout(() => controller.abort(), path.startsWith("/api/keys") ? 45000 : 15000);
   try { res = await fetch(path, opts); } catch {
     return { ok: false, status: 0, data: { error: { code: "ui_offline", message: "The UI server is not reachable. Is everycli ui still running?" } } };
-  }
+  } finally { clearTimeout(timeout); }
   let data = {};
   try { data = await res.json(); } catch { /* empty */ }
   if (res.status === 401) { forgetToken(); renderUnpaired(); }
@@ -79,15 +83,31 @@ const LABELS = {
 // Runs a CLI command. Questions come back to the browser; approving one re-runs
 // the command with that exact question allowed.
 async function run(action, params = {}, opts = {}) {
+  const changes = new Set(["register-hotkey", "init", "reconnect", "reconcile", "offer", "offer-batch", "deploy", "start", "activate", "apply-api-keys", "resume", "stop", "label", "delete", "worker-update", "worker-auto-enable", "worker-auto-disable", "remove-api-key", "balances-publish"]);
+  if (changes.has(action) && action !== "reconcile" && !(action === "stop" && params.force) && S.pendingOperations.size) {
+    const job = { state: "unknown", result: { error: { code: "ui_operation_unconfirmed", message: "Check the existing operation before starting another change." } } };
+    if (!opts.quiet) Activity.add(opts.label || LABELS[action] || action).finish(job);
+    return job;
+  }
   const approvals = [...(opts.approvals || [])];
   const act = opts.quiet ? null : Activity.add(opts.label || LABELS[action] || action);
   for (;;) {
-    const r = await api("/api/run", { action, params, approvals });
+    const requestId = [...crypto.getRandomValues(new Uint8Array(16))].map(x => x.toString(16).padStart(2, "0")).join("");
+    const operation = { id: requestId, action, title: opts.label || LABELS[action] || action, started: Date.now() };
+    if (changes.has(action)) { S.pendingOperations.set(requestId, operation); savePendingOperations(); }
+    const r = await api("/api/run", { action, params, approvals, requestId });
     if (!r.ok) {
-      const job = { state: "failed", result: { error: r.data.error || { message: "Request failed." } } };
+      const uncertain = changes.has(action) && (r.status === 0 || r.status >= 500 || r.status === 408);
+      if (!uncertain) { S.pendingOperations.delete(requestId); savePendingOperations(); }
+      const job = uncertain ? unknownOperation(requestId) : { state: "failed", result: { error: r.data.error || { message: "Request failed." } } };
       act?.finish(job); return job;
     }
-    const job = await poll(r.data.job, act);
+    const jobId = typeof r.data.job === "string" ? r.data.job : requestId;
+    if (changes.has(action) && jobId !== requestId) {
+      S.pendingOperations.delete(requestId); S.pendingOperations.set(jobId, { ...operation, id: jobId }); savePendingOperations();
+    }
+    const job = await poll(jobId, act);
+    if (job.state !== "unknown") { S.pendingOperations.delete(jobId); savePendingOperations(); }
     if (job.state === "confirm") {
       // Batch review gathers exact CLI questions without approving anything.
       // If a quote changes after review, stop instead of silently authorizing it.
@@ -102,13 +122,61 @@ async function run(action, params = {}, opts = {}) {
   }
 }
 async function poll(id, act) {
+  let failures = 0;
   for (;;) {
     const r = await api("/api/jobs/" + id);
-    if (!r.ok) return { state: "failed", result: { error: r.data.error || { message: "Lost track of this operation." } } };
+    if (!r.ok) {
+      if ((r.status === 0 || r.status >= 500 || r.status === 429) && failures++ < 2) {
+        await new Promise(ok => setTimeout(ok, 500 * 2 ** failures)); continue;
+      }
+      return unknownOperation(id);
+    }
+    failures = 0;
     act?.log(r.data.log || []);
     if (r.data.state !== "running") return r.data;
     await new Promise((ok) => setTimeout(ok, 700));
   }
+}
+function unknownOperation(id) {
+  if (S.pendingOperations.has(id)) {
+    S.pendingOperations.get(id).unconfirmed = true;
+    savePendingOperations(); patchPendingBanner();
+  }
+  return { state: "unknown", operationId: id, result: { error: { code: "ui_operation_unconfirmed",
+    message: "Connection lost. The operation's outcome is not confirmed.",
+    next: "The worker operation may still be running. Check its result or re-sync the existing worker; do not repeat the change." } } };
+}
+function savePendingOperations() {
+  try { sessionStorage.setItem("everycli-pending-operations", JSON.stringify({ token: S.token, operations: [...S.pendingOperations.values()] })); } catch { /* memory remains authoritative */ }
+}
+function pendingBanner() {
+  const ops = [...S.pendingOperations.values()].filter(op => op.unconfirmed);
+  if (!ops.length) return null;
+  const banner = notice("warn", "An operation needs checking", ops.map(op => h("div", { class: "row" },
+    h("span", null, op.title || op.action), button("Check result", () => checkOperation(op.id, Activity.add(op.title || op.action)), "small"))));
+  banner.id = "pending-operations"; return banner;
+}
+function patchPendingBanner() {
+  $("#pending-operations")?.remove();
+  const banner = pendingBanner(); if (banner && S.token) $("#main").prepend(banner);
+}
+async function checkOperation(id, activity) {
+  const job = await poll(id, activity);
+  if (job.state !== "unknown") { S.pendingOperations.delete(id); savePendingOperations(); patchPendingBanner(); }
+  activity?.finish(job.state === "confirm" ? { state: "attention", result: { value: {
+    message: "Additional confirmation is required. Review the worker state and run the action again to continue." } } } : job);
+  if (job.state !== "unknown") await refreshAll();
+}
+function restorePendingOperations() {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem("everycli-pending-operations"));
+    if (saved?.token !== S.token || !Array.isArray(saved.operations)) return;
+    for (const op of saved.operations.slice(0, 20)) {
+      if (!/^[a-f0-9]{32}$/.test(op.id) || typeof op.action !== "string") continue;
+      S.pendingOperations.set(op.id, { ...op, unconfirmed: true });
+      Activity.add(op.title || op.action).finish(unknownOperation(op.id));
+    }
+  } catch { /* malformed or expired tab state */ }
 }
 const value = (job) => job && job.result && job.result.value;
 const errorOf = (job) => job && job.result && job.result.error;
@@ -125,12 +193,27 @@ const Activity = {
     $("#activity").prepend(box);
     while ($("#activity").children.length > 5) $("#activity").lastChild.remove();
     const setIcon = (cls, text) => icon.replaceWith(Object.assign(icon, { className: "badge " + cls, textContent: text }));
-    return {
+    const activity = {
       log(lines) { log.textContent = lines.join("\n"); },
       cancel() { setIcon("warn", "STOPPED"); msg.textContent = "Cancelled. Nothing was changed by this step."; setTimeout(() => box.remove(), 6000); },
       finish(job) {
         const err = errorOf(job), v = value(job);
-        if (job.state === "done") {
+        close.hidden = job.state === "unknown" && S.pendingOperations.has(job.operationId);
+        if (job.state === "unknown") {
+          if (S.pendingOperations.has(job.operationId)) {
+            S.pendingOperations.get(job.operationId).unconfirmed = true; savePendingOperations(); patchPendingBanner();
+          }
+          setIcon("warn", "UNCONFIRMED");
+          msg.replaceChildren(errorView(err));
+          if (job.operationId) msg.append(h("div", { class: "row" },
+            button("Check result", () => checkOperation(job.operationId, activity), "small"),
+            h("a", { class: "btn small", href: "#/worker" }, "Open Worker"),
+            button("Clear after checking", async () => {
+              if (await confirmDialog("Have you checked the existing worker and reconciled its state? This only clears the local notice; it does not stop or repeat the operation.", "Clear unconfirmed operation")) {
+                S.pendingOperations.delete(job.operationId); savePendingOperations(); patchPendingBanner(); box.remove();
+              }
+            }, "small")));
+        } else if (job.state === "done") {
           setIcon("ok", "DONE");
           msg.textContent = (v && typeof v.next === "string") ? v.next : "Finished.";
           setTimeout(() => { if (log.hidden) box.remove(); }, 9000);
@@ -146,6 +229,7 @@ const Activity = {
         }
       },
     };
+    return activity;
   },
 };
 function errorView(err) {
@@ -217,8 +301,8 @@ function healthList(checks) {
 function button(label, onclick, cls) {
   const b = h("button", { class: "btn " + (cls || "") }, label);
   b.addEventListener("click", async () => {
-    b.disabled = true;
-    try { await onclick(b); } finally { if (b.isConnected) b.disabled = false; }
+    b.disabled = true; b.dataset.busy = "true";
+    try { await onclick(b); } finally { delete b.dataset.busy; if (b.isConnected) b.disabled = false; }
   });
   return b;
 }
@@ -235,6 +319,31 @@ const PHASES = {
 };
 const phaseLabel = (p) => (PHASES[p] || [p || "Unknown", "warn"]);
 const findCheck = (name) => S.health && (value(S.health)?.checks || []).find((c) => c.name === name);
+function workerState() {
+  const d = S.overview?.deployment || {}, p = d.phase || "not_deployed";
+  if (["deleted", "not_deployed"].includes(p) || d.needsReconcile || /_intent$/.test(p)) return phaseLabel(p);
+  const cloud = value(S.health)?.cloudStatus;
+  if (["stopped", "exited"].includes(cloud)) return ["Stopped", "bad"];
+  if (["stopping", "starting"].includes(cloud)) return [cloud === "stopping" ? "Shutting down" : "Starting", "warn"];
+  if (p === "running" && (!S.health || errorOf(S.health) || !cloud || cloud === "unknown")) return ["Checking state", "warn"];
+  return phaseLabel(p);
+}
+function workerControls() {
+  const d = S.overview?.deployment || {}, p = d.phase || "not_deployed", h = value(S.health);
+  const exists = !!d.appId && !["deleted", "not_deployed"].includes(p);
+  const pending = !!d.needsReconcile || S.pendingOperations.size > 0 || /_intent$/.test(p) || ["starting", "stopping", "deleting", "updating"].includes(p);
+  const stopped = ["stopped", "exited"].includes(h?.cloudStatus) || p === "stopped";
+  const live = exists && !pending && !stopped;
+  const ready = h && !errorOf(S.health) && findCheck("Workload attestation")?.ok === true;
+  return {
+    exists, pending, stopped,
+    apply: live && ready && ["running", "drained", "awaiting_readmission"].includes(p),
+    shutdown: live && ["running", "drained", "draining", "awaiting_attestation", "awaiting_readmission"].includes(p),
+    pause: live && p === "running",
+    start: exists && !pending && stopped,
+    resume: live && ready && ["running", "drained", "awaiting_readmission"].includes(p) && findCheck("Accepting new work")?.ok === false,
+  };
+}
 
 const PROVIDERS = {
   phala: ["Phala Cloud", "Hosting. Your worker runs in a sealed (TEE) machine billed to your Phala account."],
@@ -327,7 +436,7 @@ function go(r) { location.hash = "#/" + r; }
 function renderMeta() {
   const s = S.session, o = S.overview;
   if (!s) return;
-  const [label, tone] = phaseLabel(o?.deployment?.phase);
+  const [label, tone] = workerState();
   $("#meta").replaceChildren(...[
     h("span", { class: "pill brand-pill" }, (s.network === "testnet" ? "Testnet · SN" : "Mainnet · SN") + s.netuid),
     o?.initialized ? h("span", { class: "pill " + tone }, h("span", { class: "dot" }), "Worker: " + label) : null,
@@ -348,6 +457,7 @@ function render() {
   const r = currentRoute();
   const page = { overview: pageOverview, setup: pageSetup, models: pageModels, jobs: pageJobs, earnings: pageEarnings, keys: pageKeys, worker: pageWorker, help: pageHelp }[r];
   $("#main").replaceChildren(page());
+  patchPendingBanner();
 }
 function renderUnpaired() {
   $("#meta").replaceChildren(); $("#nav").replaceChildren();
@@ -380,7 +490,7 @@ function renameForm() {
     const name = input.value.trim();
     if (!name) { status.textContent = "Type a name first."; return; }
     const job = await run("label", { name }, { quiet: true });
-    if (job.state === "failed") { status.replaceChildren(errorView(errorOf(job))); return; }
+    if (job.state !== "done") { status.replaceChildren(errorView(errorOf(job))); return; }
     S.renaming = false; await loadOverview(); render();
   };
   input.addEventListener("keydown", (e) => { if (e.key === "Enter") save(); if (e.key === "Escape") { S.renaming = false; render(); } });
@@ -462,7 +572,7 @@ function pageOverview() {
     root.append(notice("warn", "Reconnect your saved profile", h("div", null,
       h("p", null, "Refresh miner authorization using the same local hotkey. Your API keys and deployment history are kept; no VM is deployed automatically."), reconnectButton())));
   }
-  const [phase, tone] = phaseLabel(o.deployment.phase);
+  const [phase, tone] = workerState();
   const activity = health?.activity || {};
   const activeOffers = checks.filter((c) => (c.name || "").startsWith("Model: ")).length;
   root.append(h("div", { class: "grid overview-stats", "aria-label": "Miner overview summary" },
@@ -635,12 +745,12 @@ function pageSetup() {
   const root = h("div", null, h("h1", null, "Setup guide"),
     h("p", { class: "lede" }, "Set up at your pace. Review costs and confirm before deploying or accepting paid work."),
     bar((done / Math.max(1, steps.length)) * 100),
-    h("p", { class: "small muted" }, done + " of " + steps.length + " steps done"));
+    h("p", { class: "small muted", "data-setup-progress": "" }, done + " of " + steps.length + " steps done"));
   const list = h("ol", { class: "steps" });
   steps.forEach((st, i) => {
     const isDone = stepDone(st), isOpen = open === st.id;
     const body = isOpen ? h("div", { class: "body" }, stepBody(st.id)) : null;
-    list.append(h("li", { class: "step " + (isDone ? "done" : "") + (st.id === firstOpen ? " current" : "") },
+    list.append(h("li", { "data-step": st.id, class: "step " + (isDone ? "done" : "") + (st.id === firstOpen ? " current" : "") },
       h("div", { class: "num" }, isDone ? "✓" : String(i + 1)),
       h("div", { class: "box" },
         h("div", { class: "title", role: "button", tabindex: "0", onclick: () => { S.openStep = isOpen ? "__none" : st.id; render(); },
@@ -649,14 +759,34 @@ function pageSetup() {
           h("span", { class: "badge " + (isDone ? "ok" : st.id === firstOpen ? "info" : "") }, isDone ? "DONE" : st.id === firstOpen ? "NEXT" : "")),
         body)));
   });
+  root.id = "setup-guide";
   root.append(list);
-  if (steps.length && done === steps.length) root.append(notice("ok", "Setup complete", "Your worker accepts work. Keep an eye on the Overview page; jobs depend on customer demand and your offers."));
+  if (steps.length && done === steps.length) { const n = notice("ok", "Setup complete", "Your worker accepts work. Keep an eye on the Overview page; jobs depend on customer demand and your offers."); n.id = "setup-complete"; root.append(n); }
   return root;
+}
+function patchSetupProgress() {
+  if (currentRoute() !== "setup") return;
+  const steps = S.overview?.steps || [], done = steps.filter(stepDone).length, first = steps.find(st => !stepDone(st))?.id;
+  const counter = document.querySelector("[data-setup-progress]");
+  if (counter) counter.textContent = done + " of " + steps.length + " steps done";
+  const fill = document.querySelector("#main .progress span");
+  if (fill) fill.style.width = (100 * done / Math.max(1, steps.length)) + "%";
+  for (const st of steps) {
+    const row = document.querySelector('[data-step="' + st.id + '"]'); if (!row) continue;
+    const complete = stepDone(st);
+    row.classList.toggle("done", complete); row.classList.toggle("current", st.id === first);
+    row.querySelector(".num").textContent = complete ? "✓" : String(steps.indexOf(st) + 1);
+    const badge = row.querySelector(".title .badge"); badge.className = "badge " + (complete ? "ok" : st.id === first ? "info" : ""); badge.textContent = complete ? "DONE" : st.id === first ? "NEXT" : "";
+  }
+  const complete = steps.length > 0 && done === steps.length;
+  if (!complete) $("#setup-complete")?.remove();
+  else if (!$("#setup-complete")) { const n = notice("ok", "Setup complete", "Your worker accepts work. Keep an eye on the Overview page; jobs depend on customer demand and your offers."); n.id = "setup-complete"; $("#setup-guide")?.append(n); }
 }
 async function refreshAll() {
   await loadOverview();
   if (!managedHere() && !S.removal) await loadWorkloads();
   if (S.overview?.initialized) await loadHealth();
+  if (currentRoute() === "worker") await loadWorkerAuto();
   render();
 }
 function stepBody(id) {
@@ -673,9 +803,9 @@ function stepBody(id) {
       continueButton("phala"));
     case "providers": return h("div", null,
       h("p", null, "The worker generates with your own provider account, so each job is billed there. Add at least one key. You can add more later on the API keys page."),
-      ["fal", "vivix", "openrouter"].map((p) => keyRow(p, "providers")),
-      h("details", { open: ["minimax", "bfl", "replicate", "google", "runway", "luma", "elevenlabs"].some((p) => S.keyStatus[p]) },
-        h("summary", null, "Other providers"), ["minimax", "bfl", "replicate", "google", "runway", "luma", "elevenlabs"].map((p) => keyRow(p, "providers"))),
+      ["fal", "vivix", "openrouter", "pika"].map((p) => keyRow(p, "providers")),
+      h("details", { open: setupOtherProviders().some((p) => S.keyStatus[p]) },
+        h("summary", null, "Other providers"), setupOtherProviders().map((p) => keyRow(p, "providers"))),
       continueButton("providers"));
     case "init": return h("div", null,
       h("p", null, "everycli proves you own the hotkey by signing a challenge on this computer, then downloads your signed worker configuration. No machine is created and nothing is paid."),
@@ -767,7 +897,7 @@ function stepHotkey(o) {
 }
 function registrationView(job) {
   const v = value(job);
-  if (errorOf(job)) return notice("bad", "Check failed", errorView(errorOf(job)));
+  if (errorOf(job)) return notice(job.state === "unknown" ? "warn" : "bad", job.state === "unknown" ? "Check not confirmed" : "Check failed", errorView(errorOf(job)));
   if (!v) return null;
   if (v.registered === true) return notice("ok", "Registered on SN" + (v.netuid ?? ""), (v.hotkey || "") + (v.uid != null ? " · UID " + v.uid : ""));
   return notice("warn", "Not registered yet", h("div", null,
@@ -775,7 +905,7 @@ function registrationView(job) {
     v.registrationCommand ? copyBox(v.registrationCommand) : null));
 }
 function stepDeploy(o) {
-  const limit = h("input", { type: "number", min: "0.01", step: "0.01", value: "10", class: "narrow", "aria-label": "Maximum compute USD per hour" });
+  const limit = computeLimitInput("Maximum compute USD per hour");
   if (S.removal) return removalView();
   if (S.workloads?.length) return h("div", { class: "stack" }, workloadsNotice(limit),
     field("Maximum compute price for the new worker (USD per hour)", limit, "Used by \"Delete and deploy again\"."));
@@ -809,7 +939,7 @@ const shortId = (id) => id ? String(id).slice(0, 10) + "…" + String(id).slice(
 function workloadsNotice(limit) {
   const list = S.workloads || [];
   const ownLimit = !limit;
-  if (ownLimit) limit = h("input", { type: "number", min: "0.01", step: "0.01", value: "10", class: "narrow", "aria-label": "Maximum compute USD per hour for the new worker" });
+  if (ownLimit) limit = computeLimitInput("Maximum compute USD per hour for the new worker");
   return notice("warn", list.length === 1 ? "A worker for this miner already exists in your Phala account" : list.length + " workers for this miner already exist in your Phala account", h("div", { class: "stack" },
     h("p", null, "It was deployed from another computer or an earlier setup, so this computer can't manage it. Keep running it from where you set it up, or delete it here and deploy a new worker that this computer manages."),
     h("p", { class: "small" }, "Deleting is permanent: the VM and its storage are removed, its billing stops, and any job in progress is lost."),
@@ -824,22 +954,22 @@ function workloadsNotice(limit) {
 // Deletes a worker, waits until Phala has removed it, then optionally deploys a new one.
 async function removeWorker(appId, recorded, redeployLimit) {
   const job = await run("delete", { appId }, { label: redeployLimit ? "Delete and deploy again" : "Delete worker" });
-  if (job.state === "cancelled" || job.state === "failed") return;
+  if (job.state !== "done") return;
   S.removal = { appId, redeploy: redeployLimit, started: Date.now(), note: "Waiting for Phala to remove the VM…" };
   render();
-  let gone = false;
+  let gone = value(job)?.phase === "deleted";
   for (let i = 0; i < 60 && !gone; i++) {
     await new Promise((ok) => setTimeout(ok, 5000));
     const check = await run("delete", { appId }, { quiet: true });
     gone = value(check)?.phase === "deleted";
-    if (check.state === "failed" || check.state === "cancelled") break;
+    if (check.state !== "done") break;
     if (S.removal) { S.removal.note = "Waiting for Phala to remove the VM… (" + Math.round((Date.now() - S.removal.started) / 1000) + " s)"; renderRemoval(); }
   }
   const redeploy = S.removal?.redeploy;
   S.removal = null;
   await loadOverview();
   if (!gone) {
-    Activity.add("Delete worker").finish({ state: "attention", result: { value: { message: "Phala accepted the deletion but still lists the VM. Check again in a few minutes from the Worker page." } } });
+    Activity.add("Delete worker").finish({ state: "attention", result: { value: { message: "Deletion was requested, but its completion is not confirmed. Check again from the Worker page before deploying another VM." } } });
   } else if (redeploy) {
     const dep = await run("deploy", { maxHourlyUsd: redeploy });
     if (errorOf(dep)?.error === "existing_cloud_workload") await loadWorkloads();
@@ -884,9 +1014,20 @@ function keyForm(provider, after, stayOn) {
     if (stayOn) S.openStep = stayOn;
     await loadOverview();
     if (currentRoute() === "keys") { S.balances = null; await loadBalances(); }
-    if (after) await after(); else render();
+    if (after) await after();
+    else {
+      const row = form.closest("[data-provider-key]");
+      if (row?.tagName === "LI") row.replaceWith(providerKeyItem((S.overview?.keys || []).find(k => k.provider === provider)));
+      else if (row) row.replaceWith(keyRow(provider, stayOn));
+      else form.replaceWith(keyForm(provider, after, stayOn));
+      patchSetupProgress(); renderMeta(); renderNav();
+    }
   };
   const save = button(saved ? "Replace" : "Save", async () => {
+    if (S.pendingOperations.size) {
+      S.keyStatus[provider] = { kind: "warn", text: "Check the pending worker operation before changing keys." };
+      status.replaceChildren(keyStatusView(provider)); return;
+    }
     const key = input.value;
     if (!key.trim()) { S.keyStatus[provider] = { kind: "warn", text: "Paste a key first." }; return finish(); }
     input.value = "";
@@ -907,17 +1048,31 @@ function keyForm(provider, after, stayOn) {
   }, "small") : null;
   input.addEventListener("keydown", (e) => { if (e.key === "Enter") save.click(); });
   const status = h("div", { class: "key-status-wrap" }, keyStatusView(provider));
-  return h("div", { class: "keyform" },
+  const form = h("div", { class: "keyform" },
     h("div", { class: "row" }, h("span", { class: "badge " + (saved ? "ok" : "") }, saved ? "SAVED" : "NOT SAVED"), input, save, test),
     status);
+  return form;
 }
+function setupOtherProviders() { return Object.keys(PROVIDERS).filter(p => !["phala", "fal", "vivix", "openrouter", "pika"].includes(p) && !p.endsWith("-billing")); }
 function keyRow(provider, stayOn) {
   const [name, hint] = PROVIDERS[provider] || [provider, ""];
-  return h("div", { class: "card flat" }, h("h3", null, name), h("p", { class: "small muted" }, hint), keyForm(provider, null, stayOn));
+  return h("div", { class: "card flat", "data-provider-key": provider }, h("h3", null, name), h("p", { class: "small muted" }, hint), keyForm(provider, null, stayOn));
+}
+function providerKeyItem(k) {
+  if (!k) return h("li");
+  return h("li", { "data-provider-key": k.provider },
+    h("div", null, h("b", null, providerName(k.provider)), h("div", { class: "small muted" }, (PROVIDERS[k.provider] || [, ""])[1])),
+    h("div", { class: "row" }, keyForm(k.provider), k.saved ? button("Remove", async () => {
+      const job = await run("remove-api-key", { provider: k.provider });
+      if (job.state !== "done") return;
+      await loadOverview(); await loadBalances();
+      document.querySelector('[data-provider-key="' + k.provider + '"]')?.replaceWith(providerKeyItem((S.overview?.keys || []).find(row => row.provider === k.provider)));
+      patchSetupProgress();
+    }, "small danger") : null));
 }
 function pageKeys() {
   const o = S.overview, keys = o?.keys || [];
-  const deployed = !!o?.deployment?.appId;
+  const deployed = workerControls().apply;
   const groups = [["hosting", "Hosting"], ["generation", "Generation providers"], ["billing", "Balance checks (optional)"]];
   const root = h("div", null, h("h1", null, "API keys"),
     h("p", { class: "lede" }, "Keys are stored only on this computer, in an owner-only file, and sealed into your worker. This page never shows a saved key again. To revoke a leaked key, also revoke it at the provider."));
@@ -927,10 +1082,7 @@ function pageKeys() {
   root.append(balancesCard());
   for (const [kind, title] of groups) {
     const rows = keys.filter((k) => k.kind === kind);
-    root.append(card(title, null, h("ul", { class: "keylist" }, rows.map((k) => h("li", null,
-      h("div", null, h("b", null, providerName(k.provider)), h("div", { class: "small muted" }, (PROVIDERS[k.provider] || [, ""])[1])),
-      h("div", { class: "row" }, keyForm(k.provider),
-        k.saved ? button("Remove", async () => { await run("remove-api-key", { provider: k.provider }); await loadOverview(); S.balances = null; await loadBalances(); render(); }, "small danger") : null))))));
+    root.append(card(title, null, h("ul", { class: "keylist" }, rows.map(providerKeyItem))));
   }
   return root;
 }
@@ -958,45 +1110,77 @@ function pageModels() {
   const refresh = button("Refresh", async () => { await loadOffers(false); render(); });
   if (!S.offers && !S.offersError) { root.append(card("Offers", [refresh], h("p", { class: "muted" }, "Loading…"))); loadOffers().then(render); return root; }
   if (S.offersError) { root.append(card("Offers", [refresh], errorView(S.offersError))); return root; }
-  let rows = (S.offers.offers || []).filter(integratedModel);
   const filters = [["ready", "Ready for my keys"], ["active", "My active offers"], ["all", "All models"], ["candidate", "Candidates / retired"]];
   const seg = h("div", { class: "seg" }, filters.map(([f, label]) => h("button", { disabled: S.batchBusy, class: S.offerFilter === f ? "on" : "", onclick: () => { S.offerFilter = f; S.selectedOffers.clear(); clearBatchReport(); if (f === "all") acknowledgeModels(); render(); } }, label,
     f === "all" && S.newModels.size ? h("span", { class: "badge info", "aria-label": S.newModels.size + " new models" }, S.newModels.size + " new") : null)));
-  if (S.overview?.initialized && S.offerFilter === "active") rows = rows.filter((r) => r.offered);
-  if (S.overview?.initialized && S.offerFilter === "ready") rows = rows.filter((r) => canApplyOffer(r) && (r.offered || (readiness(r)[0].startsWith("Available") && r.localKeyConfigured !== false)));
-  if (S.offerFilter === "all") rows = rows.filter(r => r.catalogGroup !== "candidate" && r.providerAvailability?.status !== "removed");
-  if (!S.overview?.initialized && S.offerFilter === "ready") rows = rows.filter(r => r.catalogGroup !== "candidate");
-  if (S.offerFilter === "candidate") rows = rows.filter(r => r.catalogGroup === "candidate" || ["removed","deprecated"].includes(r.providerAvailability?.status));
-  if (S.offerFilter === "candidate") root.append(notice("", "Not available for new offers", "These contracts are unpriced, retired, or awaiting release. They are not confirmed mining opportunities. Existing offers can still be withdrawn."));
-  root.append(card("Offers", [seg, refresh], S.overview?.initialized ? batchToolbar(rows) : null,
-    S.batchReport ? batchReportView() : null,
-    rows.length ? h("div", { class: "table-wrap" }, h("table", { class: "cards-sm" },
-    h("thead", null, h("tr", null, h("th", null, "Model"), h("th", null, "Provider"), h("th", null, "Readiness"), h("th", null, "Your offer"), h("th", null, "Base reward"), h("th", null, "Change"))),
-    h("tbody", null, rows.map(offerRow)))) : h("p", { class: "empty" }, S.offerFilter === "ready" ? "No models are ready for your saved keys yet. Try \"All models\" to see what each one needs." : "Nothing to show."),
-    h("p", { class: "small muted" }, "Base reward is the reference value per job (five-second clip for video; studio jobs are repriced per settings). Offers never guarantee traffic or profit.")));
-  if (S.batchBusy) root.querySelectorAll("button, input").forEach(el => { el.disabled = true; });
+  const search = h("input", { type: "search", disabled: S.batchBusy, value: S.modelQuery, placeholder: "Search models", "aria-label": "Search models", oninput: e => { S.modelQuery = e.target.value; patchModels(); } });
+  const providers = [...new Set((S.offers.offers || []).map(r => r.provider).filter(Boolean))].sort();
+  const provider = h("select", { "aria-label": "Filter model provider", disabled: S.batchBusy, onchange: e => { S.modelProvider = e.target.value; patchModels(); } },
+    h("option", { value: "" }, "All providers"), providers.map(p => h("option", { value: p }, providerName(p)))); provider.value = S.modelProvider;
+  const kind = h("select", { "aria-label": "Filter model type", disabled: S.batchBusy, onchange: e => { S.modelKind = e.target.value; patchModels(); } },
+    h("option", { value: "" }, "All types"), ["video", "image", "audio"].map(v => h("option", { value: v }, v[0].toUpperCase() + v.slice(1)))); kind.value = S.modelKind;
+  if (S.offerFilter === "candidate") root.append(notice("", "Not available for new offers", "These contracts are unpriced or retired. Existing offers can still be withdrawn."));
+  const body = h("div", { id: "model-list" });
+  root.append(card("Offers", [seg, refresh], h("div", { class: "row model-filters" }, search, provider, kind), body));
+  fillModels(body);
   return root;
 }
-function selectableOffer(r) { return integratedModel(r) && (r.offered || (r.offerable === true && r.localKeyConfigured !== false)); }
-function canApplyOffer(r) {
-  return r.offerable !== false && r.pricingAvailable !== false && r.catalogGroup !== "candidate"
-    && ![r.providerAvailability?.status, r.workerAvailability?.status].some(s => ["removed","deprecated","access_denied","temporarily_unavailable"].includes(s));
+function visibleOffers() {
+  let rows = (S.offers?.offers || []).filter(integratedModel);
+  if (S.overview?.initialized && S.offerFilter === "active") rows = rows.filter(r => r.offered);
+  if (S.overview?.initialized && S.offerFilter === "ready") rows = rows.filter(r => canApplyOffer(r) && readiness(r)[0].startsWith("Available") && r.localKeyConfigured !== false);
+  if (S.offerFilter === "all" || (!S.overview?.initialized && S.offerFilter === "ready")) rows = rows.filter(r => r.catalogGroup !== "candidate" && r.providerAvailability?.status !== "removed");
+  if (S.offerFilter === "candidate") rows = rows.filter(r => r.catalogGroup === "candidate" || ["removed", "deprecated"].includes(r.providerAvailability?.status));
+  const q = S.modelQuery.trim().toLowerCase();
+  return rows.filter(r => (!S.modelProvider || r.provider === S.modelProvider) && (!S.modelKind || (r.kind || r.contract?.kind) === S.modelKind)
+    && (!q || [r.name, r.model, r.providerApiId, providerName(r.provider)].filter(Boolean).join(" ").toLowerCase().includes(q)));
 }
+function fillModels(body) {
+  const rows = visibleOffers();
+  body.replaceChildren(h("p", { class: "small muted" }, rows.length + " models shown"),
+    S.overview?.initialized ? batchToolbar(rows) : h("span"),
+    S.batchReport ? batchReportView() : h("span"),
+    rows.length ? h("div", { class: "table-wrap" }, h("table", { class: "cards-sm" },
+      h("thead", null, h("tr", null, ["Model", "Provider", "Readiness", "Your offer", "Base reward", "Change"].map(t => h("th", null, t)))),
+      h("tbody", null, rows.map(offerRow)))) : h("p", { class: "empty" }, "No models match these filters. Try All models or clear the search."),
+    h("p", { class: "small muted" }, "Base reward is a reference value per job; actual jobs are repriced for their settings. Offers do not guarantee traffic or profit."));
+  if (S.batchBusy) body.querySelectorAll("button, input").forEach(el => { el.disabled = true; });
+}
+function patchModels() { const body = $("#model-list"); if (body) fillModels(body); }
+function offerBlocker(r) {
+  if (!integratedModel(r)) return "This contract is not supported.";
+  const provider = r.providerAvailability?.status;
+  if (provider === "removed" || provider === "deprecated") return "This model was " + provider + " by the provider.";
+  if (r.authorized === false || (r.blockers || []).includes("worker_release_required")) return "Update the worker to enable this model.";
+  if (r.pricingAvailable === false || (r.blockers || []).includes("pricing_required") || r.catalogGroup === "candidate") return "There is no current price for this model.";
+  // Declaring a bid is different from being ready to execute a job. A worker
+  // can be offline, or its account check can be transiently unavailable, while
+  // the coordinator still authorizes a priced offer. The CLI rechecks the
+  // signed price/revision and the coordinator remains the authority.
+  if (r.authorized === true && r.pricingAvailable === true) return null;
+  return r.offerable === false ? "This model is not available for new offers." : null;
+}
+function canApplyOffer(r) { return offerBlocker(r) === null; }
+function selectableOffer(r) { return integratedModel(r) && (r.offered || (canApplyOffer(r) && r.localKeyConfigured !== false)); }
 function batchToolbar(rows) {
   const eligible = rows.filter(selectableOffer);
   const visible = new Set(eligible.map(r => r.model));
   for (const id of S.selectedOffers) if (!visible.has(id)) S.selectedOffers.delete(id);
   const count = S.selectedOffers.size;
   const select = h("input", { type: "checkbox", checked: count > 0 && count === eligible.length, disabled: S.batchBusy || !eligible.length,
-    "aria-label": "Select all editable models in this tab", onchange: e => { S.selectedOffers = new Set(e.target.checked ? eligible.map(r => r.model) : []); render(); } });
+    "aria-label": "Select all editable models in this tab", onchange: e => { S.selectedOffers = new Set(e.target.checked ? eligible.map(r => r.model) : []); patchModels(); } });
   select.indeterminate = count > 0 && count < eligible.length;
   const discount = h("input", { type: "number", min: "0", max: "99.9", step: "0.01", value: S.batchDiscount, class: "tiny", "aria-label": "Batch discount percent", oninput: e => { S.batchDiscount = e.target.value; } });
   const apply = button("Apply discount", () => batchOffers(rows, false), "primary small");
   const withdraw = button("Withdraw selected", () => batchOffers(rows, true), "small");
-  apply.disabled = withdraw.disabled = S.batchBusy || !count;
+  const selected = rows.filter(r => S.selectedOffers.has(r.model));
+  const applicable = selected.filter(canApplyOffer).length, withdrawable = selected.filter(r => r.offered).length;
+  apply.disabled = S.batchBusy || !applicable;
+  withdraw.disabled = S.batchBusy || !withdrawable;
   discount.disabled = S.batchBusy;
   return h("div", { class: "batch-toolbar stack" }, h("div", { class: "row" },
     h("label", { class: "row" }, select, "Select all in this tab"), h("b", null, count + " selected"),
+    count && applicable !== count ? h("span", { class: "small muted" }, applicable + " can receive a discount; " + (count - applicable) + " withdraw only") : null,
     discount, h("span", null, "% off"), apply, withdraw),
     h("p", { class: "small muted" }, S.batchBusy ? "Preparing or applying your batch…" : "Select models, review once, and apply together. If pricing changes, nothing is applied."));
 }
@@ -1019,19 +1203,21 @@ function batchReportView() {
 }
 async function batchOffers(rows, withdraw) {
   if (S.batchBusy) return;
-  const selected = rows.filter(r => S.selectedOffers.has(r.model) && selectableOffer(r));
+  const latest = new Map((S.offers?.offers || []).map(r => [r.model, r]));
+  const selected = rows.filter(r => S.selectedOffers.has(r.model)).map(r => latest.get(r.model) || r);
   if (!selected.length) return;
-  if (!withdraw && selected.some(r => !canApplyOffer(r))) {
-    showBatchReport([{model:"Batch",ok:false,message:"A selected model is unavailable for new offers. No discounts were changed. Refresh models and check its readiness."}]); render(); return;
-  }
   const discount = S.batchDiscount.trim();
   if (!withdraw && (!/^(?:0|[1-9]\d?)(?:\.\d{1,2})?$/.test(discount) || Number(discount) > 99.9)) {
     showBatchReport([{ model: "Discount", ok: false, message: "Enter 0–99.9%, with at most two decimal places." }]); render(); return;
   }
   const epoch = S.navigationEpoch;
   S.batchBusy = true; clearBatchReport(); render();
-  const report = [], changes = selected.filter(r => !withdraw || r.offered);
-  for (const row of selected) if (withdraw && !row.offered) report.push({ model: row.model, ok: true, message: "Already withdrawn; unchanged." });
+  const report = [], changes = selected.filter(r => withdraw ? r.offered : canApplyOffer(r));
+  for (const row of selected) {
+    if (withdraw && !row.offered) report.push({ model: row.name || row.model, ok: true, message: "Already withdrawn; unchanged." });
+    else if (!withdraw && !canApplyOffer(row)) report.push({ model: row.name || row.model, ok: false, skipped: true,
+      message: "Skipped: " + offerBlocker(row) + (row.offered ? " Your existing offer was not changed; it can still be withdrawn." : " No offer was created.") });
+  }
   try {
     if (changes.length) {
       const params = { models: changes.map(r => r.model).join(","), ...(withdraw ? { withdraw: true } : { discountPct: discount }) };
@@ -1048,7 +1234,7 @@ async function batchOffers(rows, withdraw) {
         : job.state === "confirm" ? "Quote changed; nothing applied. Review again."
         : job.state === "cancelled" ? "Cancelled; unchanged."
         : errorOf(job)?.message || "Result not confirmed. Refresh offers before retrying.";
-      for (const r of changes) { report.push({ model: r.model, ok, message }); if (ok) S.selectedOffers.delete(r.model); }
+      for (const r of changes) { report.push({ model: r.model, ok, message }); if (ok) { S.selectedOffers.delete(r.model); S.offerDrafts.delete(r.model); } }
     }
   } catch { report.push({ model: "Batch", ok: false, message: "Result not confirmed. Refresh offers before retrying." });
   } finally {
@@ -1059,14 +1245,14 @@ async function batchOffers(rows, withdraw) {
 }
 function offerRow(r) {
   const [ready, tone] = readiness(r);
-  const disc = h("input", { type: "number", min: "0", max: "99.9", step: "0.5", value: r.offered && r.discountBp != null ? String(r.discountBp / 100) : "0", class: "tiny", "aria-label": "Discount percent for " + (r.name || r.model) });
+  const disc = h("input", { type: "number", min: "0", max: "99.9", step: "0.01", value: S.offerDrafts.get(r.model) ?? (r.offered && r.discountBp != null ? String(r.discountBp / 100) : "0"), oninput: e => S.offerDrafts.set(r.model, e.target.value), class: "tiny", "aria-label": "Discount percent for " + (r.name || r.model) });
   const baseMicrousd = r.baseMinerRewardMicrousd ?? r.pricing?.minerRewardMicrousd;
   const base = typeof baseMicrousd === "number" ? baseMicrousd / 1e6 : null;
   const yours = r.offered ? (r.pricingCurrent ? "Active · " + ((r.discountBp || 0) / 100).toFixed(2) + "% off" : "Stale pricing") : "Not offered";
-  const apply = button(r.offered ? "Update" : "Offer", async () => { await run("offer", { model: r.model, discountPct: disc.value }); await loadOffers(); await loadHealth(); render(); }, "small primary");
+  const apply = button(r.offered ? "Update" : "Offer", async () => { const job = await run("offer", { model: r.model, discountPct: disc.value }); if (job.state === "done") S.offerDrafts.delete(r.model); await loadOffers(); await loadHealth(); render(); }, "small primary");
   apply.disabled = !canApplyOffer(r); disc.disabled = !canApplyOffer(r);
   return h("tr", null,
-    h("td", { "data-label": "Model" }, h("label", { class: "row" }, S.overview?.initialized ? h("input", { type: "checkbox", checked: S.selectedOffers.has(r.model), disabled: S.batchBusy || !selectableOffer(r), "aria-label": "Select " + (r.name || r.model), onchange: e => { if (e.target.checked) S.selectedOffers.add(r.model); else S.selectedOffers.delete(r.model); render(); } }) : null, h("b", null, r.name || r.model)), h("span", { class: "id" }, "Everyframe contract: " + r.model), h("span", { class: "id" }, "Provider API ID: " + (r.providerApiId || "Not reported"))),
+    h("td", { "data-label": "Model" }, h("label", { class: "row" }, S.overview?.initialized ? h("input", { type: "checkbox", checked: S.selectedOffers.has(r.model), disabled: S.batchBusy || !selectableOffer(r), "aria-label": "Select " + (r.name || r.model), onchange: e => { if (e.target.checked) S.selectedOffers.add(r.model); else S.selectedOffers.delete(r.model); patchModels(); } }) : null, h("b", null, r.name || r.model)), h("details", { class: "model-details" }, h("summary", null, "Model details"), h("span", { class: "id" }, "Everyframe contract: " + r.model), h("span", { class: "id" }, "Provider API ID: " + (r.providerApiId || "Not reported")))),
     h("td", { "data-label": "Provider" }, providerName(r.provider || ""), r.localKeyConfigured === false ? h("div", { class: "small muted" }, "No key saved") : null),
     h("td", { "data-label": "Readiness" }, h("span", { class: "badge " + tone }, ready)),
     h("td", { "data-label": "Your offer" }, h("span", { class: "badge " + (r.offered ? (r.pricingCurrent ? "ok" : "warn") : "") }, yours)),
@@ -1077,9 +1263,70 @@ function offerRow(r) {
 }
 
 // ---------- Worker ----------
+function computeLimitInput(label) {
+  return h("input", { type: "number", min: "0.01", step: "0.01", value: S.computeLimit, oninput: e => { S.computeLimit = e.target.value; }, class: "narrow", "aria-label": label });
+}
+function workerStateSummary() {
+  const [phase, tone] = workerState(), d = S.overview?.deployment || {};
+  const card = stat("State", phase, d.appId ? "App " + String(d.appId).slice(0, 10) + "…" : "", tone);
+  card.id = "worker-state-summary"; return card;
+}
+function patchWorkerView() {
+  if (currentRoute() !== "worker") return;
+  $("#worker-state-summary")?.replaceWith(workerStateSummary());
+  const c = workerControls(), enabled = {
+    "Apply keys": c.apply, "Shut down": c.shutdown, "Pause": c.pause, "Resume": c.resume, "Start": c.start,
+    "Emergency shutdown": c.exists, "Delete": c.exists, "Check deletion": c.exists,
+    "Delete and deploy again": c.exists && !c.pending, "Check": managedHere(),
+    "Update": managedHere() && !c.pending && automaticMode() !== true,
+  };
+  for (const button of document.querySelectorAll("#main button")) {
+    if (Object.hasOwn(enabled, button.textContent) && button.dataset.busy !== "true") button.disabled = !enabled[button.textContent];
+  }
+}
+async function loadWorkerAuto() {
+  if (!S.overview?.initialized || S.workerAutoBusy) return;
+  S.workerAutoBusy = true;
+  try { S.workerAuto = await run("worker-auto-status", {}, { quiet: true }); }
+  finally { S.workerAutoBusy = false; }
+  if (currentRoute() === "worker") {
+    $("#worker-auto-status")?.replaceWith(workerAutoCard());
+    patchWorkerView();
+  }
+}
+function automaticMode() {
+  const v = value(S.workerAuto);
+  return v ? (v.automaticUpdates?.enabled === true || v.enabled === true) : null;
+}
+function workerAutoCard() {
+  const v = value(S.workerAuto), a = v?.automaticUpdates || v, enabled = automaticMode();
+  const labels = { idle: "Idle", updated: "Updated", current: "Up to date", needs_attention: "Needs attention", failed: "Needs attention", updating: "Updating", enrolling: "Enrolling" };
+  const enable = button("Enable…", async () => { await run("worker-auto-enable"); await loadWorkerAuto(); await refreshAll(); }, "primary");
+  const disable = button("Disable", async () => { await run("worker-auto-disable"); await loadWorkerAuto(); await refreshAll(); });
+  enable.disabled = enabled !== false || !workerControls().exists; disable.disabled = enabled !== true;
+  const panel = card("Automatic worker updates", null,
+    errorOf(S.workerAuto) ? errorView(errorOf(S.workerAuto)) : h("dl", { class: "kv" },
+      h("dt", null, "Mode"), h("dd", null, enabled === null ? "Not checked" : enabled ? "Automatic (in VM)" : "Manual"),
+      h("dt", null, "Last result"), h("dd", null, labels[a?.report?.state || a?.state] || a?.report?.state || "Not reported"),
+      h("dt", null, "Installed release"), h("dd", null, S.overview?.profile?.release || "Not reported")),
+    h("p", { class: "small muted" }, "Manual updates remain the default. Automatic updates run in an isolated controller inside your VM, including while this computer is offline. Manual provider migrations require disabling automation first, then updating and re-enabling it."),
+    h("div", { class: "row" }, button("Check status", loadWorkerAuto), enable, disable));
+  panel.id = "worker-auto-status"; return panel;
+}
+function updateSummary(job, worker = false) {
+  if (errorOf(job)) return errorView(errorOf(job));
+  const v = value(job); if (!v) return h("p", { class: "muted" }, "Not checked");
+  const available = v.state === "available" || v.updateAvailable === true;
+  const current = v.state === "current" || v.updateAvailable === false;
+  const rows = worker ? [["Installed release", S.overview?.profile?.release], ["Available release", typeof v.release === "string" ? v.release : v.newRelease]]
+    : [["Installed version", v.installedVersion || v.currentVersion || S.session?.version], ["Latest version", v.latestVersion || v.latest]];
+  return h("div", { class: "stack" }, h("b", null, available ? "Update available" : current ? "Up to date" : v.state === "unavailable" ? "No compatible update" : "Update check finished"),
+    h("dl", { class: "kv" }, rows.filter(([,v]) => typeof v === "string").flatMap(([k,v]) => [h("dt", null, k), h("dd", { class: "wrap" }, v)])),
+    v.next ? h("p", { class: "small muted" }, v.next) : null);
+}
 function pageWorker() {
   const o = S.overview, d = o?.deployment || {}, p = o?.profile || {};
-  const [phase, tone] = phaseLabel(d.phase);
+  const [phase, tone] = workerState();
   const root = h("div", null, h("h1", null, "Worker"),
     h("p", { class: "lede" }, "Manage the machine that does the work. Every action shows what it will do and asks before anything changes or costs money. Closing this page never stops your worker."));
   if (!o?.initialized) { root.append(notice("warn", "No miner profile yet", "Finish the setup guide first.")); return root; }
@@ -1087,52 +1334,49 @@ function pageWorker() {
   else if (S.workloads?.length) root.append(workloadsNotice(null));
   else if (!managedHere()) root.append(notice("", "No worker deployed from this computer", h("div", null, "Deploy one from step 5 of the ", h("a", { href: "#/setup" }, "setup guide"), ".")));
   root.append(h("div", { class: "grid" },
-    stat("State", phase, d.appId ? "App " + String(d.appId).slice(0, 10) + "…" : "", tone),
+    workerStateSummary(),
     nameStat(),
     stat("Compute price", d.computeHourlyUsd ? "$" + d.computeHourlyUsd + "/h" : "—", "Storage extra")));
   if (d.needsReconcile) root.append(notice("warn", "Confirm worker state", h("div", null,
     h("p", null, "A lifecycle operation is pending. Re-sync checks its result at Phala and the coordinator without repeating the cloud operation."),
     button("Re-sync operation", async () => { await run("reconcile"); await refreshAll(); }, "primary"))));
-  root.append(card("Automatic worker updates", null,
-    h("p", { class: "small muted" }, "Opt in to an isolated updater inside your existing VM. It works while this computer is offline, drains jobs and verifies attestation before resuming. Manual updates remain the default."),
-    h("div", { class: "row" },
-      button("Check status", async () => { await run("worker-auto-status"); }),
-      button("Enable…", async () => { await run("worker-auto-enable"); await refreshAll(); }, "primary"),
-      button("Disable", async () => { await run("worker-auto-disable"); await refreshAll(); }))));
-  const ph = d.phase || "not_deployed", cloudStopped = ["stopped", "exited"].includes(value(S.health)?.cloudStatus), deployed = !!d.appId && !["stopped", "stopping"].includes(ph) && !cloudStopped;
-  const accepting = findCheck("Accepting new work");
+  root.append(workerAutoCard());
+  const ph = d.phase || "not_deployed", controls = workerControls();
   const when = (ok, el, why) => { if (!ok) { el.disabled = true; el.title = why; } return el; };
-  const startLimit = h("input", { type: "number", min: "0.01", step: "0.01", value: "10", class: "narrow", "aria-label": "Maximum compute USD per hour" });
+  const startLimit = computeLimitInput("Maximum compute USD per hour");
   const actions = [
     ["Reconnect profile", "Prove ownership with the same saved hotkey and refresh local authorization. Keeps keys and history; does not deploy or change the VM.", reconnectButton()],
     ["Re-sync state", "Confirm completed starts, shutdowns or interrupted operations on this same VM.",
       when(!!d.appId, button("Re-sync state", async () => { await run("reconcile"); await refreshAll(); }), "No deployment recorded.")],
     ["Start accepting work", "Lets the network route paid jobs to this worker again.",
-      when(!cloudStopped && (["awaiting_readmission", "drained"].includes(ph) || (ph === "running" && accepting && !accepting.ok)),
+      when(controls.resume,
         button("Resume", async () => { await run("resume"); await refreshAll(); }, "primary"), "Already accepting work, or the worker isn't ready.")],
     ["Pause new work", "Finishes current jobs, then stops taking new ones. The machine keeps running and billing.",
-      when(ph === "running", button("Pause", async () => { await run("stop", { drainOnly: true }); await refreshAll(); }), "Only a running worker can be paused.")],
+      when(controls.pause, button("Pause", async () => { await run("stop", { drainOnly: true }); await refreshAll(); }), "Only a running worker can be paused.")],
     ["Update worker", "Checks for a newer signed worker release. Updating pauses work, updates the same machine, waits for attestation and restores the previous state.",
       h("div", { class: "row" }, when(managedHere(), button("Check", async () => { S.workerUpdate = await run("worker-update-check"); render(); }), "No worker deployed from this computer."),
-        when(managedHere(), button("Update", async () => { await run("worker-update"); await refreshAll(); }, "primary"), "No worker deployed from this computer."))],
+        when(managedHere() && !controls.pending && automaticMode() !== true, button("Update", async () => { await run("worker-update"); await loadWorkerAuto(); await refreshAll(); }, "primary"), automaticMode() === true ? "Disable automatic worker updates before a manual provider migration." : "No worker ready for an update."))],
     ["Apply saved keys", "Pushes keys you changed on the API keys page to this worker (pauses, restarts, re-attests).",
-      when(deployed, button("Apply keys", async () => { await run("apply-api-keys"); await refreshAll(); }), "No running worker.")],
+      when(controls.apply, button("Apply keys", async () => { await run("apply-api-keys"); await refreshAll(); }), "No running worker.")],
     ["Shut down", "Drains work, then shuts the machine down. Storage may still be billed; nothing is deleted.",
-      when(deployed, button("Shut down", async () => { await run("stop"); await refreshAll(); }, "danger"), "No running worker.")],
+      when(controls.shutdown, button("Shut down", async () => { await run("stop"); await refreshAll(); }, "danger"), "No running worker.")],
     ["Emergency shutdown", "Use if the coordinator is unavailable. Can interrupt paid jobs; storage remains billable. The CLI still verifies the exact VM.",
-      when(!!d.appId && ph !== "deleted", button("Emergency shutdown", async () => { await run("stop", { force: true }); await refreshAll(); }, "danger"), "No deployment recorded.")],
+      when(controls.exists, button("Emergency shutdown", async () => { await run("stop", { force: true }); await refreshAll(); }, "danger"), "No deployment recorded.")],
     ["Delete worker", "Permanently deletes this VM and its storage. Billing for it stops; jobs in progress are lost. You can deploy a new worker afterwards.",
-      when(!!d.appId && !["deleted"].includes(ph), button(["deleting", "delete_intent"].includes(ph) ? "Check deletion" : "Delete", async () => { await removeWorker(d.appId, true, null); }, "danger"), "No worker recorded on this computer.")],
+      when(controls.exists, button(["deleting", "delete_intent"].includes(ph) ? "Check deletion" : "Delete", async () => { await removeWorker(d.appId, true, null); }, "danger"), "No worker recorded on this computer.")],
     ["Redeploy", "Deletes this worker, waits until Phala removes it, then deploys a fresh one at up to the price below.",
-      when(!!d.appId && !["deleted", "deleting", "delete_intent"].includes(ph), button("Delete and deploy again", async () => { await removeWorker(d.appId, true, startLimit.value); }, "danger"), "No worker recorded on this computer.")],
+      when(controls.exists && !controls.pending, button("Delete and deploy again", async () => { await removeWorker(d.appId, true, startLimit.value); }, "danger"), "No worker recorded on this computer.")],
     ["Start a stopped worker", "Starts the same machine again at up to this compute price.", h("div", { class: "row" }, startLimit, h("span", { class: "small muted" }, "USD/h max"),
-      when(ph === "stopped" || (cloudStopped && ["running", "drained", "awaiting_attestation", "awaiting_readmission"].includes(ph)), button("Start", async () => { await run("start", { maxHourlyUsd: startLimit.value }); await refreshAll(); }), "Only a stopped worker without an unresolved start can be started."))],
+      when(controls.start, button("Start", async () => { await run("start", { maxHourlyUsd: startLimit.value }); await refreshAll(); }), "Only a stopped worker without an unresolved start can be started."))],
   ];
-  root.append(card("Actions", null, h("ul", { class: "checks" }, actions.map(([t, desc, ctl]) => h("li", { class: "action-row" },
-    h("span"), h("div", { class: "row" }, h("div", { class: "grow" }, h("div", { class: "name" }, t), h("div", { class: "detail" }, desc)), ctl))))));
+  const renderActions = rows => h("ul", { class: "checks" }, rows.map(([t, desc, ctl]) => h("li", { class: "action-row" },
+    h("span"), h("div", { class: "row" }, h("div", { class: "grow" }, h("div", { class: "name" }, t), h("div", { class: "detail" }, desc)), ctl))));
+  const advanced = new Set(["Emergency shutdown", "Delete worker", "Redeploy"]);
+  root.append(card("Actions", null, renderActions(actions.filter(([t]) => !advanced.has(t)))));
+  root.append(h("details", { class: "card" }, h("summary", null, "Advanced · emergency shutdown, deletion and redeploy"), renderActions(actions.filter(([t]) => advanced.has(t)))));
   root.append(card("Worker logs", [button("Read logs", async () => { await run("logs"); })],
     h("p", { class: "small muted" }, "Read bounded, sanitized worker events. Private logs may require the Phala console.")));
-  if (S.workerUpdate) root.append(card("Worker update check", null, value(S.workerUpdate) ? h("pre", { class: "out" }, S.workerUpdate.result.text) : errorView(errorOf(S.workerUpdate))));
+  if (S.workerUpdate) root.append(card("Worker update check", null, updateSummary(S.workerUpdate, true)));
   root.append(card("Profile", null, h("dl", { class: "kv" },
     h("dt", null, "Miner"), h("dd", { class: "mono" }, p.minerId || "—"),
     h("dt", null, "Hotkey"), h("dd", { class: "mono" }, p.hotkey || "—"),
@@ -1141,7 +1385,7 @@ function pageWorker() {
     h("dt", null, "Profile folder"), h("dd", { class: "mono wrap" }, S.session?.stateDir || "—"))));
   root.append(card("everycli", [button("Check for update", async () => { S.cliUpdate = await run("cli-update-check"); render(); })],
     h("p", null, "Installed: everycli " + (S.session?.version || "")),
-    S.cliUpdate ? (value(S.cliUpdate) ? h("pre", { class: "out" }, S.cliUpdate.result.text) : errorView(errorOf(S.cliUpdate))) : null,
+    S.cliUpdate ? updateSummary(S.cliUpdate) : null,
     h("p", { class: "small muted" }, "Install CLI updates in your terminal with everycli update, then restart everycli ui. CLI updates never change your worker.")));
   return root;
 }
@@ -1193,15 +1437,17 @@ async function boot() {
   const s = await api("/api/session");
   if (!s.ok) return;
   S.session = s.data;
+  restorePendingOperations();
   await loadOverview();
   const w = await api("/api/wallets"); if (w.ok) S.wallets = w.data;
   render();
   if (!managedHere()) { await loadWorkloads(); if (currentRoute() === "overview" && !S.renaming) render(); }
   if (S.overview?.initialized) {
     await Promise.all([loadHealth(), loadBalances(), loadEarnings(), loadOffers()]);
-    if (["overview", "earnings"].includes(currentRoute()) && !S.renaming) render(); else { renderMeta(); renderNav(); }
+    if (["overview", "earnings"].includes(currentRoute()) && !S.renaming) render(); else { renderMeta(); renderNav(); patchSetupProgress(); patchWorkerView(); }
   }
   if (!S.overview?.initialized && currentRoute() === "keys") loadBalances();
+  if (S.overview?.initialized && currentRoute() === "worker") loadWorkerAuto();
   run("cli-update-check", {}, { quiet: true }).then((j) => { S.cliUpdate = j; renderMeta(); });
   let tick = 0;
   setInterval(async () => {
@@ -1214,11 +1460,12 @@ async function boot() {
       await loadHealth();
       if (tick % 4 === 0) await Promise.all([loadBalances(), loadEarnings()]);
       if (tick % 2 === 0 && !S.batchBusy) await loadOffers();
+      if (tick % 2 === 0 && currentRoute() === "worker") await loadWorkerAuto();
     }
     // Only redraw pages without typing in progress.
     // Forms keep their DOM and drafts during background polling, even if a
     // field lost focus. Explicit actions/navigation are the only form redraws.
-    if (["overview", "earnings"].includes(currentRoute()) && !S.renaming) render(); else { renderMeta(); renderNav(); }
+    if (["overview", "earnings"].includes(currentRoute()) && !S.renaming) render(); else { renderMeta(); renderNav(); patchSetupProgress(); patchWorkerView(); }
     } finally { S.refreshing = false; }
   }, 30000);
 }
@@ -1227,5 +1474,6 @@ window.addEventListener("hashchange", () => {
   S.navigationEpoch++; clearBatchReport();
   S.openStep = null; S.renaming = false; render(); window.scrollTo(0, 0); $("#main").focus({ preventScroll: true });
   if (currentRoute() === "keys") loadBalances();
+  if (currentRoute() === "worker") loadWorkerAuto();
 });
 boot();

@@ -22,6 +22,16 @@ Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
 
+### v0.8.4 — UI reliability and model offers
+
+Batch discounts keep eligible models moving and explain skipped ones. Guided
+setup includes all generation providers, drafts survive unrelated edits, and interrupted
+operations can be checked without resubmitting them. The dashboard adds model
+search, clearer worker state, and automatic-update status.
+
+Run `everycli update`, then restart `everycli ui`. A worker update is not required
+for these CLI/UI fixes. See [v0.8.4 release notes](RELEASE-NOTES-v0.8.4.md).
+
 ### v0.8.3 — Pika H3 Flex
 
 Use your Pika API key for text, first/last-frame and reference video generation,

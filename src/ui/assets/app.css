@@ -231,3 +231,12 @@ input.tiny { width: 72px; }
   .job-kv dd { margin-bottom: 6px; }
   .history-filters input, .history-filters select { width: 100%; max-width: none; flex-basis: 100%; }
 }
+
+.model-filters { margin: 4px 0 16px; }
+.model-filters input { flex: 1 1 200px; min-width: 0; padding: 8px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-2); }
+.model-filters select { flex: 0 1 180px; max-width: 100%; }
+.model-details { margin-top: 4px; font-size: 12px; color: var(--muted); }
+.model-details summary { cursor: pointer; }
+.card > summary { cursor: pointer; font-weight: 600; }
+.card > summary + .checks { margin-top: 14px; }
+@media (max-width: 600px) { .model-filters input, .model-filters select { flex: 1 1 100%; width: 100%; } }

@@ -97,6 +97,45 @@ const POST: &[(&str, &str)] = &[
     ("origin", "http://127.0.0.1:47117"),
     ("content-type", "application/json"),
 ];
+
+#[test]
+fn browser_operation_ids_are_recoverable_and_never_reexecute_a_duplicate() {
+    let dir = common::tempdir();
+    let sh = shared(dir.path());
+    let token = pair(&sh);
+    let id = "f1".repeat(16);
+    let body = json!({"action":"status","params":{},"approvals":[],"requestId":id});
+    let first = call(&sh, "POST", "/api/run", &token, body.clone());
+    assert_eq!(first.status, 202);
+    assert_eq!(json_of(&first)["job"], id);
+    let duplicate = call(&sh, "POST", "/api/run", &token, body);
+    assert_eq!(duplicate.status, 202);
+    assert_eq!(json_of(&duplicate)["job"], id);
+    let recovered = call(&sh, "GET", &format!("/api/jobs/{id}"), &token, Value::Null);
+    assert_eq!(recovered.status, 200);
+    assert_eq!(json_of(&recovered)["action"], "status");
+    let conflicting = call(
+        &sh,
+        "POST",
+        "/api/run",
+        &token,
+        json!({"action":"doctor","params":{},"approvals":[],"requestId":id}),
+    );
+    assert_eq!(conflicting.status, 409);
+    assert_eq!(
+        json_of(&conflicting)["error"]["code"],
+        "ui_request_id_conflict"
+    );
+    let invalid = call(
+        &sh,
+        "POST",
+        "/api/run",
+        &token,
+        json!({"action":"status","params":{},"requestId":"not-an-operation-id"}),
+    );
+    assert_eq!(invalid.status, 400);
+    assert_eq!(json_of(&invalid)["error"]["code"], "ui_invalid_request_id");
+}
 fn pair(sh: &Arc<Shared>) -> String {
     let code = sh.pairing_code_for_tests();
     let r = ui::handle(
