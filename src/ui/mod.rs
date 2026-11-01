@@ -122,6 +122,7 @@ const FLAG_PARAMS: &[(&str, &str)] = &[
 
 struct Job {
     action: String,
+    request_hash: String,
     state: &'static str,
     log: Vec<String>,
     result: Value,
@@ -607,6 +608,32 @@ fn run(sh: &Arc<Shared>, body: &Value) -> Response {
         .filter_map(|v| v.as_str().map(str::to_string))
         .take(8)
         .collect();
+    // A browser chooses its operation ID before submission, so a lost HTTP
+    // response can be reconciled using GET without resubmitting a mutation.
+    let id = match body.get("requestId") {
+        Some(Value::String(id)) if id.len() == 32 && id.bytes().all(|b| b.is_ascii_hexdigit()) => {
+            id.clone()
+        }
+        Some(_) => return error(400, "ui_invalid_request_id", "Invalid operation ID."),
+        None => hex_id::<16>(),
+    };
+    let request_hash = hex::encode(Sha256::digest(
+        json!({"action": action, "params": body["params"], "approvals": approvals})
+            .to_string()
+            .as_bytes(),
+    ));
+    let mut jobs = sh.jobs.lock().unwrap();
+    if let Some(previous) = jobs.get(&id) {
+        return if previous.request_hash == request_hash {
+            reply(202, json!({"job":id}))
+        } else {
+            error(
+                409,
+                "ui_request_id_conflict",
+                "This operation ID was already used for a different request.",
+            )
+        };
+    }
     if changes {
         let mut busy = sh.busy.lock().unwrap();
         if let Some(running) = busy.as_ref() {
@@ -618,9 +645,7 @@ fn run(sh: &Arc<Shared>, body: &Value) -> Response {
         }
         *busy = Some(action.clone());
     }
-    let id = hex_id::<8>();
     {
-        let mut jobs = sh.jobs.lock().unwrap();
         if jobs.len() >= MAX_JOBS {
             let oldest: Vec<String> = {
                 let mut finished: Vec<_> = jobs
@@ -643,6 +668,7 @@ fn run(sh: &Arc<Shared>, body: &Value) -> Response {
             id.clone(),
             Job {
                 action: action.clone(),
+                request_hash,
                 state: "running",
                 log: vec![],
                 result: Value::Null,
@@ -650,6 +676,7 @@ fn run(sh: &Arc<Shared>, body: &Value) -> Response {
             },
         );
     }
+    drop(jobs);
     let shared = Arc::clone(sh);
     let job_id = id.clone();
     std::thread::spawn(move || {
