@@ -3769,6 +3769,44 @@ fn reordered_update() -> (Rig, Value) {
 }
 
 #[test]
+fn reordered_environment_continue_uses_reconciled_journal_without_repeating_update() {
+    for reconcile_first in [false, true] {
+        let (r, corrected) = reordered_update();
+        let mut flow = r.state().read("worker-update", false).unwrap();
+        flow["previousAttestationAt"] = json!(now() - 1000);
+        r.state().write("worker-update", &flow).unwrap();
+        let mut deployment = r.state().read("deployment", false).unwrap();
+        deployment["operationAt"] = json!(now() - 1000);
+        r.state().write("deployment", &deployment).unwrap();
+        r.status.borrow_mut()["draining"] = json!(true);
+        if reconcile_first {
+            r.miner().reconcile().unwrap();
+        }
+        let waits = Cell::new(0);
+        let out = r
+            .miner()
+            .worker_update_with_wait(false, &|_| Ok(()), &|_| {}, &|stage| {
+                waits.set(waits.get() + 1);
+                assert!(waits.get() < 10, "update did not advance: {stage}");
+                r.advance_update(stage, &corrected)
+            })
+            .unwrap();
+        assert_eq!(out["state"], "complete");
+        assert_eq!(r.phase(), "running");
+        assert_eq!(
+            r.state().read("worker-update", false).unwrap()["release"],
+            corrected
+        );
+        assert!(!r.status.borrow()["draining"].as_bool().unwrap());
+        assert!(
+            r.calls.borrow().iter().all(|(path, _)| {
+                !path.starts_with("PATCH ") || !path.ends_with("/compose_file")
+            })
+        );
+    }
+}
+
+#[test]
 fn reordered_environment_recovers_only_from_a_fresh_signed_exact_release() {
     for interrupted_local_write in [false, true] {
         let (r, corrected) = reordered_update();

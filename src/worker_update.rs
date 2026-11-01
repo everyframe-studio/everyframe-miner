@@ -688,7 +688,13 @@ impl Miner<'_> {
                             Ok(v) if v["update"] == "rolled_back" => {
                                 return self.close_rejected_update(&mut flow, &v);
                             }
-                            Ok(_) => {}
+                            Ok(_) => {
+                                // Reconciliation can replace a signed release when
+                                // Phala reordered its environment allow-list. Keep
+                                // that persisted journal instead of overwriting it
+                                // with the release loaded before reconciliation.
+                                flow = self.state.read("worker-update", false)?;
+                            }
                             Err(e) if e.0 == "update_not_observed" => {}
                             Err(e) => return Err(e),
                         }
