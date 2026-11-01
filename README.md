@@ -22,7 +22,7 @@ Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
 
-### v0.8.5 — Worker updates and setup progress
+### v0.8.6 — Worker updates and setup progress
 
 The Worker software panel provides update checks, installation, continuation and
 cancellation. Setup completion follows confirmed accepting-work status, with
@@ -30,7 +30,7 @@ model health warnings shown separately. Updates can recover a verified Phala
 environment-key ordering change without replacing the VM.
 
 Run `everycli update`, then restart `everycli ui`. See the
-[v0.8.5 release notes](RELEASE-NOTES-v0.8.5.md) for recovery instructions.
+[v0.8.6 release notes](RELEASE-NOTES-v0.8.6.md) for recovery instructions.
 
 ### v0.8.4 — UI reliability and model offers
 
