@@ -22,6 +22,15 @@ Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
 
+### v0.8.7 — Wait through temporary worker-status failures
+
+Worker updates keep waiting through temporary gateway errors and delayed worker
+status. The saved update continues after recovery, and completion is shown only
+after the worker's intended accepting/paused state is confirmed.
+
+Run `everycli update`, then restart `everycli ui`. These CLI changes do not need
+a new generation-worker image. See [v0.8.7 release notes](RELEASE-NOTES-v0.8.7.md).
+
 ### v0.8.6 — Worker updates and setup progress
 
 The Worker software panel provides update checks, installation, continuation and

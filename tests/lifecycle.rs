@@ -186,6 +186,315 @@ struct Rig {
     operation_history: RefCell<Value>,
 }
 
+struct UpdateFault<'a> {
+    rig: &'a Rig,
+    stage: &'a str,
+    suffix: &'a str,
+    method: &'a str,
+    code: &'static str,
+    remaining: Cell<usize>,
+    applied: bool,
+}
+
+impl Http for UpdateFault<'_> {
+    fn bytes(&self, request: Request) -> Result<Vec<u8>> {
+        let path = url::Url::parse(&request.url).unwrap().path().to_string();
+        let stage = self.rig.state().read("worker-update", true).unwrap();
+        if self.remaining.get() > 0
+            && stage["stage"] == self.stage
+            && request.method == self.method
+            && path.ends_with(self.suffix)
+        {
+            self.remaining.set(self.remaining.get() - 1);
+            if self.applied {
+                self.rig.bytes(request)?;
+            }
+            return Err(Error(self.code));
+        }
+        self.rig.bytes(request)
+    }
+}
+
+#[test]
+fn worker_update_waits_through_gateway_failure_with_one_confirmation() {
+    for (stage, method, suffix, code, applied) in [
+        ("attesting", "GET", "/status", "http_502", false),
+        ("activating", "GET", "/status", "http_503", false),
+        ("readmitting", "GET", "/status", "request_timeout", false),
+        ("restoring", "GET", "/status", "http_502", false),
+        (
+            "restoring",
+            "GET",
+            "/cvms/app_1111111111111111111111111111111111111111",
+            "phala_http_502",
+            false,
+        ),
+        ("restoring", "POST", "/resume", "http_502", false),
+        ("restoring", "POST", "/resume", "http_502", true),
+    ] {
+        let r = Rig::new();
+        let release = r.staged_update(true, true);
+        let fault = UpdateFault {
+            rig: &r,
+            stage,
+            method,
+            suffix,
+            code,
+            remaining: Cell::new(1),
+            applied,
+        };
+        let miner = Miner {
+            state: r.state(),
+            trust: r.trust.clone(),
+            http: &fault,
+        };
+        let confirmations = Cell::new(0);
+        let waits = Cell::new(0);
+        let progress = RefCell::new(Vec::new());
+        let out = miner
+            .worker_update_with_wait(
+                false,
+                &|_| {
+                    confirmations.set(confirmations.get() + 1);
+                    Ok(())
+                },
+                &|message| progress.borrow_mut().push(message.to_string()),
+                &|stage| {
+                    waits.set(waits.get() + 1);
+                    assert!(waits.get() < 12, "update did not finish: {stage}");
+                    if stage == "restoring" {
+                        true
+                    } else {
+                        r.advance_update(stage, &release)
+                    }
+                },
+            )
+            .unwrap();
+        assert_eq!(out["state"], "complete", "{method} {suffix}");
+        assert_eq!(confirmations.get(), 1);
+        assert_eq!(fault.remaining.get(), 0);
+        assert_eq!(r.phase(), "running");
+        assert_eq!(r.status.borrow()["draining"], false);
+        let calls = r.calls.borrow();
+        assert_eq!(
+            calls
+                .iter()
+                .filter(|(p, _)| p.starts_with("PATCH ") && p.ends_with("/compose_file"))
+                .count(),
+            1
+        );
+        assert_eq!(
+            calls
+                .iter()
+                .filter(|(p, _)| p.starts_with("PATCH ") && p.ends_with("/envs"))
+                .count(),
+            1
+        );
+        assert_eq!(
+            calls
+                .iter()
+                .filter(|(p, _)| p.starts_with("POST ") && p.ends_with("/resume"))
+                .count(),
+            1
+        );
+        assert!(progress.borrow().iter().any(|p| p.contains("retry")));
+    }
+}
+
+#[test]
+fn worker_update_wait_limit_preserves_the_last_stage_for_later_continuation() {
+    let r = Rig::new();
+    let release = r.staged_update(true, true);
+    let fault = UpdateFault {
+        rig: &r,
+        stage: "restoring",
+        suffix: "/status",
+        method: "GET",
+        code: "http_502",
+        remaining: Cell::new(100),
+        applied: false,
+    };
+    let miner = Miner {
+        state: r.state(),
+        trust: r.trust.clone(),
+        http: &fault,
+    };
+    let out = miner
+        .worker_update_with_wait(false, &|_| Ok(()), &|_| {}, &|stage| {
+            if stage == "restoring" {
+                false
+            } else {
+                r.advance_update(stage, &release)
+            }
+        })
+        .unwrap();
+    assert_eq!(out["state"], "waiting");
+    assert_eq!(out["stage"], "restoring");
+    assert_eq!(out["diagnostic"]["code"], "http_502");
+    assert_eq!(
+        r.state().read("worker-update", false).unwrap()["stage"],
+        "restoring"
+    );
+    assert_eq!(r.status.borrow()["draining"], true);
+    let previous_writes = r.envs.borrow().len();
+    fault.remaining.set(0);
+    let done = miner
+        .worker_update_with_wait(false, &|_| Ok(()), &|_| {}, &|_| panic!("no wait needed"))
+        .unwrap();
+    assert_eq!(done["state"], "complete");
+    assert_eq!(r.envs.borrow().len(), previous_writes);
+}
+
+#[test]
+fn worker_update_waits_for_fresh_readiness_before_restoring_work() {
+    for issue in [
+        "pending",
+        "offline",
+        "session",
+        "old-attestation",
+        "cloud-stopped",
+    ] {
+        let r = Rig::new();
+        let release = r.staged_update(true, true);
+        let confirmations = Cell::new(0);
+        let waited = Cell::new(false);
+        let out = r
+            .miner()
+            .worker_update_with_wait(
+                false,
+                &|_| {
+                    confirmations.set(confirmations.get() + 1);
+                    Ok(())
+                },
+                &|message| {
+                    if message == "Restoring the previous accepting/paused state…" {
+                        match issue {
+                            "pending" => {
+                                r.status.borrow_mut()["attestation"]["state"] = json!("pending")
+                            }
+                            "offline" => r.status.borrow_mut()["online"] = json!(false),
+                            "session" => r.status.borrow_mut()["sessionExpires"] = json!(now() - 1),
+                            "old-attestation" => {
+                                let operation =
+                                    r.state().read("deployment", false).unwrap()["operationAt"]
+                                        .as_i64()
+                                        .unwrap();
+                                r.status.borrow_mut()["attestation"]["at"] = json!(operation - 1);
+                            }
+                            "cloud-stopped" => r.info.borrow_mut()["status"] = json!("stopped"),
+                            _ => unreachable!(),
+                        }
+                    }
+                },
+                &|stage| {
+                    if stage != "restoring" {
+                        return r.advance_update(stage, &release);
+                    }
+                    assert!(!waited.replace(true), "readiness did not recover: {issue}");
+                    assert!(!r.calls.borrow().iter().any(|(p, _)| p.ends_with("/resume")));
+                    let prior =
+                        r.state().read("worker-update", false).unwrap()["previousAttestationAt"]
+                            .as_i64()
+                            .unwrap();
+                    let mut status = r.status.borrow_mut();
+                    status["attestation"] = json!({"state":"accepted","at":prior.max(now())+2});
+                    status["online"] = json!(true);
+                    status["lastSeen"] = json!(now());
+                    status["sessionExpires"] = json!(now() + 60000);
+                    r.info.borrow_mut()["status"] = json!("running");
+                    true
+                },
+            )
+            .unwrap();
+        assert_eq!(out["state"], "complete", "{issue}");
+        assert!(waited.get(), "{issue}");
+        assert_eq!(confirmations.get(), 1);
+    }
+}
+
+#[test]
+fn worker_update_does_not_retry_authorization_or_verification_errors() {
+    for code in [
+        "http_401",
+        "http_403",
+        "invalid_signature",
+        "deployment_app_mismatch",
+    ] {
+        let r = Rig::new();
+        let release = r.staged_update(true, true);
+        let fault = UpdateFault {
+            rig: &r,
+            stage: "restoring",
+            suffix: "/status",
+            method: "GET",
+            code,
+            remaining: Cell::new(1),
+            applied: false,
+        };
+        let miner = Miner {
+            state: r.state(),
+            trust: r.trust.clone(),
+            http: &fault,
+        };
+        let error = miner
+            .worker_update_with_wait(false, &|_| Ok(()), &|_| {}, &|stage| {
+                assert_ne!(stage, "restoring", "must not wait after {code}");
+                r.advance_update(stage, &release)
+            })
+            .unwrap_err();
+        assert_eq!(
+            error.0,
+            if code == "http_401" {
+                "coordinator_auth_rejected"
+            } else {
+                code
+            }
+        );
+        assert_eq!(r.status.borrow()["draining"], true);
+    }
+}
+
+#[test]
+fn worker_update_does_not_repeat_cloud_writes_after_gateway_failure() {
+    for (stage, suffix) in [("applying", "/compose_file"), ("activating", "/envs")] {
+        let r = Rig::new();
+        let release = r.staged_update(true, true);
+        let fault = UpdateFault {
+            rig: &r,
+            stage,
+            suffix,
+            method: "PATCH",
+            code: "phala_http_502",
+            remaining: Cell::new(1),
+            applied: true,
+        };
+        let miner = Miner {
+            state: r.state(),
+            trust: r.trust.clone(),
+            http: &fault,
+        };
+        let error = miner
+            .worker_update_with_wait(false, &|_| Ok(()), &|_| {}, &|current| {
+                r.advance_update(current, &release)
+            })
+            .unwrap_err();
+        assert_eq!(error.0, "phala_http_502");
+        assert_eq!(
+            r.calls
+                .borrow()
+                .iter()
+                .filter(|(p, _)| p.starts_with("PATCH ") && p.ends_with(suffix))
+                .count(),
+            1
+        );
+        assert!(r.phase().ends_with("_intent"));
+        assert_eq!(
+            r.state().read("worker-update", false).unwrap()["stage"],
+            stage
+        );
+    }
+}
+
 fn abandoned_preparation() -> Rig {
     let (mut r, _) = Rig::reconnect_fixture();
     r.inv["keyVersion"] = json!(1);

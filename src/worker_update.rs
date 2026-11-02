@@ -80,6 +80,30 @@ fn waiting(flow: &Value, reason: &'static str) -> Value {
         "next":"Rerun everycli worker-update using this same profile to continue, or run everycli worker-update --abort to cancel it and keep the current worker. Do not redeploy. No offers were changed."})
 }
 
+fn status_can_retry(error: &Error) -> bool {
+    matches!(
+        error.0.strip_prefix("phala_").unwrap_or(error.0),
+        "http_408"
+            | "http_429"
+            | "http_500"
+            | "http_502"
+            | "http_503"
+            | "http_504"
+            | "http_server_error"
+            | "request_timeout"
+            | "connection_failed"
+            | "dns_failed"
+            | "response_read_failed"
+            | "remote_request_failed"
+            | "attestation_pending"
+            | "attestation_unavailable"
+            | "attestation_session_not_ready"
+            | "post_restart_attestation_required"
+            | "worker_offline"
+            | "worker_not_running"
+    )
+}
+
 fn release_expired(flow: &Value, installed: bool) -> Value {
     let (reason, next) = if installed {
         (
@@ -597,16 +621,58 @@ impl Miner<'_> {
             )?;
         }
         let mut last_stage = String::new();
-        loop {
+        let mut last_retry = None;
+        'update: loop {
             if interrupted() {
                 return Ok(waiting(
                     &flow,
                     "Interrupted safely. Progress is saved; no uncertain cloud request will be repeated.",
                 ));
             }
+            let stage_owned = s(&flow["stage"])?.to_string();
+            let stage = stage_owned.as_str();
+            // Retry the saved stage, never the failed expression directly.
+            // The next pass reads status before deciding whether the scoped
+            // drain/resume transition is still needed. Uncertain VM writes
+            // still stop with their intent saved; they are never retried here.
+            macro_rules! observe {
+                ($operation:expr) => {
+                    match $operation {
+                        Ok(value) => value,
+                        Err(error) if status_can_retry(&error) => {
+                            let notice = (stage.to_string(), error.0);
+                            if last_retry.as_ref() != Some(&notice) {
+                                progress(&format!(
+                                    "Worker status is temporarily unavailable ({}); waiting and retrying status checks…",
+                                    error.0
+                                ));
+                                last_retry = Some(notice);
+                            }
+                            if interrupted() || !wait(stage) {
+                                let reason = if interrupted() {
+                                    "Interrupted safely. Progress is saved; no further update stage was started."
+                                } else {
+                                    "Worker status is not ready yet. Progress is saved; this update has not been marked complete."
+                                };
+                                let mut out = waiting(
+                                    &flow,
+                                    reason,
+                                );
+                                let detail = crate::cli_errors::diagnostic(&error, None);
+                                out["diagnostic"] = json!({"code":error.0,
+                                    "message":detail["message"],"next":detail["next"]});
+                                return Ok(out);
+                            }
+                            flow = self.state.read("worker-update", false)?;
+                            continue 'update;
+                        }
+                        Err(error) => return Err(error),
+                    }
+                };
+            }
             let c = self.load(false)?;
             if automatic {
-                let status = self.api(&c, "worker-auto-update", json!({}))?;
+                let status = observe!(self.api(&c, "worker-auto-update", json!({})));
                 need(
                     status["automaticUpdates"]["enabled"] == true
                         && status["automaticUpdates"]["capsuleId"] == settings["capsuleId"]
@@ -615,7 +681,7 @@ impl Miner<'_> {
                 )?;
             }
             if automatic {
-                let status = self.api(&c, "worker-auto-update", json!({}))?;
+                let status = observe!(self.api(&c, "worker-auto-update", json!({})));
                 need(
                     status["automaticUpdates"]["leaseHeld"] == true,
                     "worker_auto_update_lease_lost",
@@ -624,8 +690,6 @@ impl Miner<'_> {
             let inv = self.flow_release(&c, &flow)?;
             compatible(&c, &inv, &flow["fromComposeHash"])?;
             let phase = c.deployment["phase"].as_str().unwrap_or("");
-            let stage_owned = s(&flow["stage"])?.to_string();
-            let stage = stage_owned.as_str();
             if last_stage != stage {
                 progress(match stage {
                     "draining" => "Draining new work; waiting for current jobs to finish…",
@@ -650,7 +714,7 @@ impl Miner<'_> {
                         c.invitation["composeHash"] == flow["fromComposeHash"],
                         "update_target_mismatch",
                     )?;
-                    let mut status = self.api(&c, "status", json!({}))?;
+                    let mut status = observe!(self.api(&c, "status", json!({})));
                     need(
                         status["appId"] == flow["appId"]
                             && status["composeHash"] == flow["fromComposeHash"],
@@ -658,7 +722,7 @@ impl Miner<'_> {
                     )?;
                     need(status["enabled"] == true, "worker_update_miner_disabled")?;
                     if status["draining"] != true {
-                        status = self.api(&c, "drain", json!({}))?;
+                        status = observe!(self.api(&c, "drain", json!({})));
                     }
                     need(status["draining"] == true, "drain_not_confirmed")?;
                     if status["activeJobs"] != 0 {
@@ -674,13 +738,13 @@ impl Miner<'_> {
                 }
                 "applying" => {
                     if phase == "update_provision_intent" {
-                        self.reconcile_locked()?;
+                        observe!(self.reconcile_locked());
                         continue;
                     }
                     if phase == "activate_intent" {
                         // Settle from observed state (confirm or roll back);
                         // the env request itself is never replayed here.
-                        self.reconcile_locked()?;
+                        observe!(self.reconcile_locked());
                         continue;
                     }
                     if ["update_commit_intent", "updating"].contains(&phase) {
@@ -696,7 +760,9 @@ impl Miner<'_> {
                                 flow = self.state.read("worker-update", false)?;
                             }
                             Err(e) if e.0 == "update_not_observed" => {}
-                            Err(e) => return Err(e),
+                            Err(e) => {
+                                observe!(Err::<(), _>(e));
+                            }
                         }
                         let updated = self.load(false)?;
                         if updated.deployment["phase"] != "awaiting_attestation" {
@@ -739,7 +805,7 @@ impl Miner<'_> {
                                 },
                         "worker_update_state_changed",
                     )?;
-                    let status = self.api(&c, "status", json!({}))?;
+                    let status = observe!(self.api(&c, "status", json!({})));
                     // A disabled miner is never automatically re-enabled.
                     need(status["enabled"] == true, "worker_update_miner_disabled")?;
                     need(
@@ -755,7 +821,7 @@ impl Miner<'_> {
                         && self.ensure_ready(&c, &status).is_ok()
                         && at > after
                         && status["sessionExpires"].as_i64().is_some_and(|t| t > now())
-                        && self.target(&c, false)?["status"] == "running";
+                        && observe!(self.target(&c, false))["status"] == "running";
                     if !admitted {
                         if wait(stage) {
                             continue;
@@ -777,7 +843,7 @@ impl Miner<'_> {
                     if phase == "activate_intent" {
                         // A lost activation response: confirm it from the
                         // worker's own evidence or roll back, then continue.
-                        self.reconcile_locked()?;
+                        observe!(self.reconcile_locked());
                         continue;
                     }
                     if phase != "awaiting_readmission" {
@@ -785,7 +851,7 @@ impl Miner<'_> {
                             phase == "awaiting_attestation",
                             "worker_update_state_changed",
                         )?;
-                        let status = self.api(&c, "status", json!({}))?;
+                        let status = observe!(self.api(&c, "status", json!({})));
                         let fresh = self.ensure_ready(&c, &status).is_ok()
                             && status["attestation"]["at"].as_i64().unwrap_or(0)
                                 >= flow["previousAttestationAt"].as_i64().unwrap_or(i64::MAX)
@@ -803,7 +869,12 @@ impl Miner<'_> {
                                 "Fresh attestation is not ready for key activation. Work remains paused; no verification was bypassed.",
                             ));
                         }
-                        self.activate_keys_locked(&|_| Ok(()), false)?;
+                        if let Err(error) = self.activate_keys_locked(&|_| Ok(()), false) {
+                            if self.state.read("deployment", false)?["phase"] == "activate_intent" {
+                                return Err(error);
+                            }
+                            observe!(Err::<(), _>(error));
+                        }
                     }
                     flow["stage"] = json!("readmitting");
                 }
@@ -818,30 +889,30 @@ impl Miner<'_> {
                         .contains(&phase),
                         "worker_update_state_changed",
                     )?;
-                    let status = self.api(&c, "status", json!({}))?;
-                    self.ensure_ready(&c, &status)?;
-                    need(
+                    let status = observe!(self.api(&c, "status", json!({})));
+                    observe!(self.ensure_ready(&c, &status));
+                    observe!(need(
                         status["attestation"]["at"].as_i64().unwrap_or(0)
                             >= flow["previousAttestationAt"].as_i64().unwrap_or(i64::MAX),
                         "post_restart_attestation_required",
-                    )?;
-                    need(
+                    ));
+                    observe!(need(
                         status["sessionExpires"].as_i64().is_some_and(|t| t > now())
                             && status["attestation"]["at"].as_i64().unwrap_or(0)
                                 > c.deployment["operationAt"].as_i64().unwrap_or(i64::MAX),
                         "post_restart_attestation_required",
-                    )?;
-                    need(
-                        self.target(&c, false)?["status"] == "running",
+                    ));
+                    observe!(need(
+                        observe!(self.target(&c, false))["status"] == "running",
                         "worker_not_running",
-                    )?;
+                    ));
                     if flow["restoreAccepting"] == true {
                         need(
                             c.deployment["providerConfigured"] == true,
                             "worker_update_state_changed",
                         )?;
                         if status["draining"] == true {
-                            self.resume_locked(&|_| Ok(()))?;
+                            observe!(self.resume_locked(&|_| Ok(())));
                         }
                         // A lost resume response is resolved by the signed status;
                         // do not repeat a successful request just to rewrite the file.
