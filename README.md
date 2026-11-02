@@ -179,6 +179,12 @@ See [v0.5.8 release notes](RELEASE-NOTES-v0.5.8.md).
 
 ### v0.5.4 deleted-workload recovery
 
+If a deleted worker cannot be redeployed because its signed OS image was retired,
+run `everycli reconnect` in that same profile. It verifies the old VM is absent,
+asks before retiring its authorization, and fetches the current reviewed
+deployment. Then use **Deploy** again. Saved provider keys, offers, discounts
+and the deleted VM history are preserved. Reconnect creates no VM.
+
 Update with `everycli update`, then reopen `everycli ui`.
 
 - If you deleted a VM directly in Phala and have no local deployment record,
