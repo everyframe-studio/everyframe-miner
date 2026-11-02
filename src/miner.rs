@@ -1151,7 +1151,7 @@ impl Miner<'_> {
     pub fn deploy(&self, limit: f64, confirm: &dyn Fn(&str) -> Result<()>) -> Result<Value> {
         let _lock = self.state.lock()?;
         let mut c = self.load(true)?;
-        let replacing = c.deployment["phase"] == "deleted";
+        let mut replacing = c.deployment["phase"] == "deleted";
         need(
             c.deployment.as_object().is_some_and(|o| o.is_empty())
                 || c.deployment["phase"] == "deleted",
@@ -1171,6 +1171,17 @@ impl Miner<'_> {
         } else {
             None
         };
+        // `reconnect` retired the deleted VM's binding and fetched a fresh
+        // deployment: create a new VM, not a same-release replacement.
+        if replacing
+            && c.invitation["appId"].is_null()
+            && c.invitation["previousComposeHash"].is_null()
+            && status
+                .as_ref()
+                .is_some_and(|s| s["appId"] == "0".repeat(40))
+        {
+            replacing = false;
+        }
         if !replacing && let Some(current) = &status {
             // A fresh device must not pay to create a second VM while the
             // coordinator is still bound to the first one.
@@ -1214,13 +1225,12 @@ impl Miner<'_> {
         let images = cloud.catalog("/os-images")?;
         let current = cloud.catalog("/cvms/paginated")?;
         need(
-            images["items"].as_array().unwrap().iter().any(|v| {
-                v["name"] == inv["request"]["image"]
-                    && v["is_dev"] == false
-                    && v["requires_gpu"] == false
-                    && v["os_image_hash"] == inv["osImageHash"]
-            }),
-            "os_catalog_changed",
+            os_listed(&images, inv),
+            if replacing {
+                "replacement_os_retired"
+            } else {
+                "os_catalog_changed"
+            },
         )?;
         need(
             !current["items"]
@@ -2301,4 +2311,17 @@ impl Miner<'_> {
             json!({"phase":phase,"cloudStatus":status,"resolved":false,"next":"No conclusive state change. Do not retry uncertain cloud mutations; ask the operator to reconcile."}),
         )
     }
+}
+
+/// Whether Phala still lists the signed production OS image (exact hash, no
+/// dev or GPU variant). Availability is checked, never substituted.
+pub(crate) fn os_listed(images: &Value, inv: &Value) -> bool {
+    images["items"].as_array().is_some_and(|items| {
+        items.iter().any(|v| {
+            v["name"] == inv["request"]["image"]
+                && v["is_dev"] == false
+                && v["requires_gpu"] == false
+                && v["os_image_hash"] == inv["osImageHash"]
+        })
+    })
 }

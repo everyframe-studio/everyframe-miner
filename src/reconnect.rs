@@ -136,7 +136,19 @@ impl Miner<'_> {
             "reconnect_target_mismatch",
         )?;
         let mut binding_retired = false;
-        if deployment["appId"].is_null() && status["appId"] != "0".repeat(40) {
+        // A VM deleted through this profile is normally replaced from its own
+        // signed deployment. When Phala no longer lists that deployment's OS
+        // image, the replacement can never be created: retire the binding so
+        // the coordinator issues its current reviewed release instead.
+        let os_retired = allow_retirement
+            && deployment["phase"] == "deleted"
+            && deployment["appId"].is_string()
+            && status["appId"] == deployment["appId"]
+            && !crate::miner::os_listed(
+                &Cloud::new(self.http, &credentials)?.catalog("/os-images")?,
+                &inv,
+            );
+        if os_retired || (deployment["appId"].is_null() && status["appId"] != "0".repeat(40)) {
             need(allow_retirement, "deleted_workload_reconnect_required")?;
             let app = s(&status["appId"])?;
             let cloud = Cloud::new(self.http, &credentials)?;
@@ -159,9 +171,15 @@ impl Miner<'_> {
                     .any(|v| v["name"] == inv["request"]["name"]),
                 "duplicate_vm_name",
             )?;
-            confirm(&format!(
-                "Retire the old coordinator binding for app {app}? This Phala workspace cannot find it, but a wrong-workspace key can also return 404. Continue only if you deleted this VM. Its old authorization will be revoked. This does not delete any VM, stop storage billing, or create a new VM."
-            ))?;
+            confirm(&if os_retired {
+                format!(
+                    "Phala no longer offers the OS image of deleted app {app}, so it cannot be replaced as it was. Retire its coordinator binding and fetch the current reviewed deployment? Its old authorization will be revoked. This does not delete any VM, stop storage billing, or create a new VM."
+                )
+            } else {
+                format!(
+                    "Retire the old coordinator binding for app {app}? This Phala workspace cannot find it, but a wrong-workspace key can also return 404. Continue only if you deleted this VM. Its old authorization will be revoked. This does not delete any VM, stop storage billing, or create a new VM."
+                )
+            })?;
             envelope = onboarding::recover(
                 self.http,
                 &self.trust,
@@ -201,7 +219,9 @@ impl Miner<'_> {
             )?;
             binding_retired = true;
         }
-        if let Some(app) = deployment["appId"].as_str() {
+        if let Some(app) = deployment["appId"].as_str()
+            && !binding_retired
+        {
             need(
                 (inv["appId"] == app
                     // Initial public envelopes remain unbound after their first

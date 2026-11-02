@@ -182,6 +182,8 @@ struct Rig {
     envs: RefCell<Vec<Value>>,
     cvms: RefCell<Vec<Value>>,
     recovered: RefCell<Option<Value>>,
+    // Phala dropped the signed OS image; recovery issues dstack-0.5.12.
+    os_retired: RefCell<bool>,
     operation_status: RefCell<Value>,
     operation_history: RefCell<Value>,
 }
@@ -685,6 +687,116 @@ fn missing_local_journal_recovery_requires_explicit_owner_consent_and_never_muta
                 .borrow()
                 .iter()
                 .all(|(p, _)| !p.contains("/cvms") || p.starts_with("GET "))
+        );
+    }
+}
+
+#[test]
+fn deleted_vm_on_retired_os_reconnects_to_current_release_then_deploys_fresh() {
+    // 2026-11-01 (UID 131): Phala dropped dstack-0.5.9. A VM deleted through
+    // the CLI could only be replaced from its own 0.5.9 deployment, and
+    // reconnect returned that same deployment, so deploy failed forever.
+    let (r, _) = Rig::reconnect_fixture();
+    *r.os_retired.borrow_mut() = true;
+    r.status.borrow_mut()["online"] = json!(false);
+    r.status.borrow_mut()["replacementSupported"] = json!(true);
+    let deleted = r.state().read("deployment", false).unwrap();
+
+    // The silent pre-deploy refresh never retires a binding.
+    assert_eq!(r.deploy().unwrap_err().0, "replacement_os_retired");
+    assert!(r.recovered.borrow().is_none());
+    assert!(
+        r.calls
+            .borrow()
+            .iter()
+            .all(|(p, _)| !p.contains("/cvms") || p.starts_with("GET "))
+    );
+
+    // Declining keeps the binding and the profile.
+    let config = r.state().read("config", false).unwrap();
+    let declined = r.miner().reconnect(None, &|q| {
+        if q.starts_with("Phala no longer offers") {
+            Err(Error("declined"))
+        } else {
+            Ok(())
+        }
+    });
+    assert_eq!(declined.unwrap_err().0, "declined");
+    assert!(r.recovered.borrow().is_none());
+    assert_eq!(r.state().read("config", false).unwrap(), config);
+
+    let prompts = RefCell::new(Vec::new());
+    let out = r
+        .miner()
+        .reconnect(None, &|q| {
+            prompts.borrow_mut().push(q.to_string());
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(out["bindingRetired"], true);
+    assert!(prompts.borrow()[1].contains("no longer offers the OS image"));
+    let inv = &r.state().read("config", false).unwrap()["invitation"]["value"];
+    assert_eq!(inv["keyVersion"], 8);
+    assert_eq!(inv["request"]["image"], "dstack-0.5.12");
+    assert!(inv["appId"].is_null());
+    assert_eq!(r.state().read("deployment", false).unwrap(), deleted);
+
+    r.fail.borrow_mut().clear();
+    r.deploy().unwrap();
+    let d = r.state().read("deployment", false).unwrap();
+    assert!(
+        d["replacesAppId"].is_null(),
+        "a fresh VM, not a replacement"
+    );
+    assert_eq!(d["provisionResponse"]["os_image_hash"], "e".repeat(64));
+    assert!(!r.calls.borrow().iter().any(|(p, _)| p.contains("/drain")));
+}
+
+#[test]
+fn retired_os_recovery_never_uses_outages_or_existing_workers_as_deletion_proof() {
+    for mode in [
+        "outage",
+        "existing",
+        "online",
+        "duplicate",
+        "automatic",
+        "current",
+    ] {
+        let (r, _) = Rig::reconnect_fixture();
+        *r.os_retired.borrow_mut() = mode != "current";
+        r.status.borrow_mut()["online"] = json!(mode == "online");
+        if mode == "outage" {
+            *r.fail.borrow_mut() = "/os-images".into();
+        }
+        if mode == "existing" {
+            r.fail.borrow_mut().clear();
+        }
+        if mode == "duplicate" {
+            r.cvms.borrow_mut().push(r.info.borrow().clone());
+        }
+        let before = r.state().read("deployment", false).unwrap();
+        let result = if mode == "automatic" {
+            r.miner().reconnect_authorization(None)
+        } else {
+            r.miner().reconnect(None, &|_| Ok(()))
+        };
+        if ["automatic", "current"].contains(&mode) {
+            assert!(result.is_ok(), "{mode}");
+        } else {
+            assert!(result.is_err(), "{mode}");
+        }
+        assert!(r.recovered.borrow().is_none(), "{mode}");
+        assert_eq!(
+            r.state().read("deployment", false).unwrap(),
+            before,
+            "{mode}"
+        );
+        assert!(
+            r.calls
+                .borrow()
+                .iter()
+                .all(|(p, _)| !p.contains("/cvms") || p.starts_with("GET ")),
+            "{mode}"
         );
     }
 }
@@ -1197,6 +1309,7 @@ impl Rig {
             envs: RefCell::default(),
             cvms: RefCell::default(),
             recovered: RefCell::default(),
+            os_retired: RefCell::default(),
             operation_status: RefCell::new(json!({"status":"idle","operation":null})),
             operation_history: RefCell::new(json!({"items":[]})),
         };
@@ -2243,6 +2356,10 @@ impl Http for Rig {
                 fresh["keyVersion"] = json!(self.inv["keyVersion"].as_i64().unwrap() + 1);
                 fresh["appId"] = Value::Null;
                 fresh["previousComposeHash"] = Value::Null;
+                if *self.os_retired.borrow() {
+                    fresh["request"]["image"] = json!("dstack-0.5.12");
+                    fresh["osImageHash"] = json!("e".repeat(64));
+                }
                 self.status.borrow_mut()["appId"] = json!("0".repeat(40));
                 self.status.borrow_mut()["draining"] = json!(true);
                 *self.recovered.borrow_mut() = Some(fresh.clone());
@@ -2339,7 +2456,12 @@ impl Http for Rig {
                 status["automaticUpdates"]["report"] = json!({"state":body["state"],"pending":body["pending"],"composeHash":status["composeHash"]});
             }
             if action == "bind-app" {
-                assert_eq!(body["previousAppId"], status["appId"]);
+                // Coordinator: an unbound enrollment rejects previousAppId.
+                if status["appId"] == "0".repeat(40) {
+                    assert!(body["previousAppId"].is_null());
+                } else {
+                    assert_eq!(body["previousAppId"], status["appId"]);
+                }
                 status["appId"] = body["appId"].clone();
                 let mut inv = self.inv.clone();
                 inv["appId"] = body["appId"].clone();
@@ -2414,12 +2536,17 @@ impl Http for Rig {
         } else if path.ends_with("/instance-types") {
             json!({"result":[{"items":[{"id":"tdx.small","requires_gpu":false,"hourly_rate":"0.05"}]}]})
         } else if path.ends_with("/os-images") {
-            json!({"items":[{"name":"dstack-0.5.9","is_dev":false,"requires_gpu":false,"os_image_hash":self.inv["osImageHash"]}]})
+            if *self.os_retired.borrow() {
+                json!({"items":[{"name":"dstack-0.5.12","is_dev":false,"requires_gpu":false,"os_image_hash":"e".repeat(64)},
+                    {"name":"dstack-dev-0.5.9","is_dev":true,"requires_gpu":false,"os_image_hash":self.inv["osImageHash"]}]})
+            } else {
+                json!({"items":[{"name":"dstack-0.5.9","is_dev":false,"requires_gpu":false,"os_image_hash":self.inv["osImageHash"]}]})
+            }
         } else if path.ends_with("/cvms/paginated") {
             json!({"items":self.cvms.borrow().clone()})
         } else if path.ends_with("/cvms/provision") {
             assert_eq!(self.phase(), "provision_intent");
-            json!({"app_id":self.info.borrow()["app_id"],"compose_hash":self.inv["composeHash"],"os_image_hash":self.inv["osImageHash"],"app_env_encrypt_pubkey":hex::encode(PublicKey::from(&StaticSecret::from([0x11;32])).as_bytes()),"kms_info":{"slug":"test-kms"}})
+            json!({"app_id":self.info.borrow()["app_id"],"compose_hash":self.inv["composeHash"],"os_image_hash":self.recovered.borrow().as_ref().unwrap_or(&self.inv)["osImageHash"],"app_env_encrypt_pubkey":hex::encode(PublicKey::from(&StaticSecret::from([0x11;32])).as_bytes()),"kms_info":{"slug":"test-kms"}})
         } else if path.contains("/pubkey/") {
             json!({"public_key":hex::encode(PublicKey::from(&StaticSecret::from([0x11;32])).as_bytes())})
         } else if path.ends_with("/compose_file/provision") {
