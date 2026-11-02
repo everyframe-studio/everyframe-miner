@@ -124,25 +124,35 @@ fn batch_offer_error(status: u16, bytes: &[u8]) -> Error {
     }
     crate::diagnostics::http_error(status)
 }
-fn enrollment_error(bytes: &[u8]) -> Error {
+fn enrollment_error(status: u16, bytes: &[u8]) -> Error {
     if bytes.len() <= 4096
         && let Ok(v) = serde_json::from_slice::<Value>(bytes)
     {
-        return Error(match v["error"].as_str() {
-            Some("public_onboarding_unavailable") => "public_onboarding_unavailable_no_vm_created",
-            Some("hotkey_not_registered") => "hotkey_not_registered",
-            Some("miner_paused_contact_operator") => "miner_paused_contact_operator",
-            Some("existing_miner_requires_migration") => "existing_miner_requires_migration",
-            Some("authorization_revoked") => "authorization_revoked",
-            Some("deployment_os_unavailable") => "deployment_os_unavailable",
-            Some("deployment_catalog_unavailable") => "deployment_catalog_unavailable",
-            Some("recovery_target_changed") => "recovery_target_changed",
-            Some("recovery_active_jobs") => "recovery_active_jobs",
-            Some("recovery_worker_still_online") => "recovery_worker_still_online",
-            _ => "enrollment_failed_no_vm_created",
-        });
+        let code = match (status, v["error"].as_str()) {
+            (503, Some("public_onboarding_unavailable")) => {
+                "public_onboarding_unavailable_no_vm_created"
+            }
+            (403, Some("hotkey_not_registered")) => "hotkey_not_registered",
+            (403, Some("miner_paused_contact_operator")) => "miner_paused_contact_operator",
+            (409, Some("existing_miner_requires_migration")) => "existing_miner_requires_migration",
+            (403, Some("authorization_revoked")) => "authorization_revoked",
+            (503, Some("deployment_os_unavailable")) => "deployment_os_unavailable",
+            (503, Some("deployment_catalog_unavailable")) => "deployment_catalog_unavailable",
+            (503, Some("chain_lookup_unavailable")) => "chain_lookup_unavailable",
+            (503, Some("enrollment_timeout")) => "enrollment_timeout",
+            (429, Some("enrollment_busy")) => "enrollment_busy",
+            (401, Some("enrollment_expired")) => "enrollment_expired",
+            (401, Some("enrollment_domain_mismatch")) => "enrollment_domain_mismatch",
+            (401, Some("hotkey_ownership_required")) => "hotkey_ownership_required",
+            (409, Some("enrollment_replayed")) => "enrollment_replayed",
+            (409, Some("recovery_target_changed")) => "recovery_target_changed",
+            (409, Some("recovery_active_jobs")) => "recovery_active_jobs",
+            (409, Some("recovery_worker_still_online")) => "recovery_worker_still_online",
+            _ => return crate::diagnostics::http_error(status),
+        };
+        return Error(code);
     }
-    Error("enrollment_failed_no_vm_created")
+    crate::diagnostics::http_error(status)
 }
 pub fn safe_url(input: &str, hosts: &[String]) -> Result<Url> {
     let u = Url::parse(input).map_err(|_| Error("unapproved_destination"))?;
@@ -259,11 +269,12 @@ impl Http for PublicHttp {
                 // Only expose fixed, known enrollment errors, never arbitrary
                 // remote text or response bodies that might contain secrets.
                 let mut bytes = Vec::new();
+                let status = response.status().as_u16();
                 response
                     .take(4097)
                     .read_to_end(&mut bytes)
                     .map_err(|_| Error("response_read_failed"))?;
-                return Err(enrollment_error(&bytes));
+                return Err(enrollment_error(status, &bytes));
             }
             if !response.status().is_success() {
                 if worker_update_endpoint(&u, &r.method) {
@@ -461,7 +472,7 @@ mod tests {
     #[test]
     fn enrollment_errors_never_echo_remote_text_or_secrets() {
         assert_eq!(
-            enrollment_error(br#"{"error":"public_onboarding_unavailable"}"#).0,
+            enrollment_error(503, br#"{"error":"public_onboarding_unavailable"}"#).0,
             "public_onboarding_unavailable_no_vm_created"
         );
         for bytes in [
@@ -469,11 +480,22 @@ mod tests {
             br#"{"error":"secret-from-server"}"#,
             br#"{"message":"secret-from-server"}"#,
         ] {
-            assert_eq!(enrollment_error(bytes).0, "enrollment_failed_no_vm_created");
+            assert_eq!(enrollment_error(502, bytes).0, "http_502");
         }
-        assert_eq!(
-            enrollment_error(&vec![b' '; 4097]).0,
-            "enrollment_failed_no_vm_created"
-        );
+        assert_eq!(enrollment_error(504, &vec![b' '; 4097]).0, "http_504");
+        for (status, code) in [
+            (503, "enrollment_timeout"),
+            (503, "chain_lookup_unavailable"),
+            (429, "enrollment_busy"),
+            (401, "enrollment_expired"),
+            (401, "enrollment_domain_mismatch"),
+            (401, "hotkey_ownership_required"),
+            (409, "enrollment_replayed"),
+            (403, "hotkey_not_registered"),
+        ] {
+            let body = serde_json::json!({"error":code,"private":"never displayed"}).to_string();
+            assert_eq!(enrollment_error(status, body.as_bytes()).0, code);
+            assert_eq!(enrollment_error(502, body.as_bytes()).0, "http_502");
+        }
     }
 }

@@ -2340,6 +2340,7 @@ impl Http for Rig {
                 .into_bytes());
         }
         if path.ends_with("/onboarding/challenge") {
+            assert_eq!(r.timeout, 15, "challenge keeps its short request deadline");
             let issued = now();
             if body.get("recovery").is_some() {
                 return Ok(self.sign(&json!({"kind":"everyframe-public-recovery-v1","recovery":body["recovery"],"chain":everyframe_miner::hotkey::chain(&self.trust).unwrap(),"audience":self.trust["coordinatorUrl"],"hotkey":body["hotkey"],"nonce":body["nonce"],"challenge":"a".repeat(48),"releaseHash":"b".repeat(64),"issuedAt":issued,"expiresAt":issued+120000})).to_string().into_bytes());
@@ -2347,6 +2348,10 @@ impl Http for Rig {
             return Ok(self.sign(&json!({"kind":"everyframe-public-enrollment-v1","chain":everyframe_miner::hotkey::chain(&self.trust).unwrap(),"audience":self.trust["coordinatorUrl"],"hotkey":body["hotkey"],"nonce":body["nonce"],"challenge":"a".repeat(48),"releaseHash":"b".repeat(64),"issuedAt":issued,"expiresAt":issued+120000})).to_string().into_bytes());
         }
         if path.ends_with("/onboarding/enroll") {
+            assert_eq!(
+                r.timeout, 75,
+                "enrollment waits beyond the coordinator check deadline"
+            );
             if body["challenge"]["value"]["kind"] == "everyframe-public-recovery-v1" {
                 assert_eq!(
                     body["challenge"]["value"]["recovery"]["appId"],
