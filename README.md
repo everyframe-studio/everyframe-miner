@@ -26,6 +26,19 @@ Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
 
+### v0.9.0 — Provider catalog and Google media
+
+The catalog adds reviewed pricing across the supported providers and direct
+Google media: Gemini Omni Flash, Nano Banana image models, Lyria music, and
+Gemini speech. Google supports selectable formats, references, editing, video
+extension, voices and multi-speaker output. Vivix base offers stay available
+after its reference promotion, and retired models stay out of new offers.
+
+Run `everycli update`, reopen the UI, update the worker, then refresh Models and
+choose your offers. Provider switches keep saved discounts; new offers default
+to a neutral 0%. See [v0.9.0 release notes](RELEASE-NOTES-v0.9.0.md) and
+[Google formats and setup](GOOGLE.md).
+
 ### v0.8.9 — Recover deleted workers after OS retirement
 
 If Phala has retired the OS image of a deleted worker, `everycli reconnect`
