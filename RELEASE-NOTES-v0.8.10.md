@@ -1,4 +1,4 @@
-# Everycli v0.8.9 — Google direct media
+# Everycli v0.8.10 — Google direct media
 
 - Adds direct Google support for Gemini Omni Flash, Nano Banana 2.1, Nano
   Banana 2 Lite, Nano Banana 2, Nano Banana Pro, Lyria 3.5, Gemini 3.8 Flash
