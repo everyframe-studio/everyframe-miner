@@ -22,6 +22,16 @@ Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
 
+### v0.8.9 — Recover deleted workers after OS retirement
+
+If Phala has retired the OS image of a deleted worker, `everycli reconnect`
+can fetch the current reviewed deployment after confirming the old VM is gone.
+Your saved keys, offers, discounts and deployment history are preserved.
+
+Run `everycli update`, then `everycli reconnect` in the same profile and reopen
+`everycli ui`. Review **Deploy worker** to create the new VM. No worker update is
+required. See [v0.8.9 release notes](RELEASE-NOTES-v0.8.9.md).
+
 ### v0.8.8 — Model and provider offer controls
 
 New offers default to 0%, with a neutral badge. The **Not offered** tab and
@@ -178,6 +188,12 @@ changes part of a batch or reports the misleading "invalid integer" error.
 See [v0.5.8 release notes](RELEASE-NOTES-v0.5.8.md).
 
 ### v0.5.4 deleted-workload recovery
+
+If a deleted worker cannot be redeployed because its signed OS image was retired,
+run `everycli reconnect` in that same profile. It verifies the old VM is absent,
+asks before retiring its authorization, and fetches the current reviewed
+deployment. Then use **Deploy** again. Saved provider keys, offers, discounts
+and the deleted VM history are preserved. Reconnect creates no VM.
 
 Update with `everycli update`, then reopen `everycli ui`.
 
