@@ -6,6 +6,8 @@
 !config/
 !config/models.json
 !config/provider-expansion.json
+!config/native-media.json
+!config/native-schema-models.json
 !config/google-models.json
 !config/google-capabilities.json
 !config/provider-model-status.json
