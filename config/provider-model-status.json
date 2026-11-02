@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-30T00:00:00Z",
+  "checkedAt": "2026-11-02T00:00:00Z",
   "fal": {
     "fal-ai/sora-2/text-to-video": "removed",
     "fal-ai/sora-2/text-to-video/pro": "removed",
@@ -12,5 +12,12 @@
     "fal-ai/kling-video/v1.6/standard/text-to-video": "deprecated",
     "fal-ai/bytedance/seedance/v1/lite/text-to-video": "deprecated",
     "fal-ai/ltx-2/text-to-video": "removed"
+  },
+  "google": {
+    "veo-3.1-generate-preview": "removed"
+  },
+  "luma": {
+    "ray-2": "deprecated",
+    "ray-flash-2": "deprecated"
   }
 }

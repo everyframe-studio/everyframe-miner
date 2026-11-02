@@ -1,0 +1,350 @@
+[
+  {
+    "spec": {
+      "model": "direct/google/gemini-omni-flash",
+      "input": {
+        "response_format": {
+          "type": "video",
+          "duration": "5s",
+          "resolution": "720p",
+          "aspect_ratio": "16:9",
+          "delivery": "inline"
+        },
+        "store": true,
+        "background": true,
+        "prompt": "A quiet blue lake."
+      }
+    },
+    "hash": "0aec2153ed85d6e42a35dbcb4498795690c5f4a7229dd830c47cfa55c7cfb5c9",
+    "body": {
+      "response_format": {
+        "type": "video",
+        "duration": "5s",
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "delivery": "inline"
+      },
+      "store": true,
+      "background": true,
+      "model": "gemini-omni-1.1-flash",
+      "input": [
+        {
+          "type": "user_input",
+          "content": [
+            {
+              "type": "text",
+              "text": "A quiet blue lake."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "spec": {
+      "model": "direct/google/nano-banana-2.1",
+      "input": {
+        "response_format": {
+          "type": "image",
+          "image_size": "1K",
+          "aspect_ratio": "1:1",
+          "mime_type": "image/jpeg",
+          "delivery": "inline"
+        },
+        "store": true,
+        "background": true,
+        "prompt": "A quiet blue lake."
+      }
+    },
+    "hash": "496cebeebf5230532b166aa72cdffc1b82b416f4d41e3d1af19f8c7235b2b244",
+    "body": {
+      "response_format": {
+        "type": "image",
+        "image_size": "1K",
+        "aspect_ratio": "1:1",
+        "mime_type": "image/jpeg",
+        "delivery": "inline"
+      },
+      "store": true,
+      "background": true,
+      "model": "gemini-nano-banana-2.1",
+      "input": [
+        {
+          "type": "user_input",
+          "content": [
+            {
+              "type": "text",
+              "text": "A quiet blue lake."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "spec": {
+      "model": "direct/google/nano-banana-2-lite",
+      "input": {
+        "response_format": {
+          "type": "image",
+          "image_size": "1K",
+          "aspect_ratio": "1:1",
+          "mime_type": "image/jpeg",
+          "delivery": "inline"
+        },
+        "store": true,
+        "background": true,
+        "prompt": "A quiet blue lake."
+      }
+    },
+    "hash": "571f1715f57602aeb4681a64686c456217468b5f67a711bfff36f90b91a22a70",
+    "body": {
+      "response_format": {
+        "type": "image",
+        "image_size": "1K",
+        "aspect_ratio": "1:1",
+        "mime_type": "image/jpeg",
+        "delivery": "inline"
+      },
+      "store": true,
+      "background": true,
+      "model": "gemini-3.1-flash-lite-image",
+      "input": [
+        {
+          "type": "user_input",
+          "content": [
+            {
+              "type": "text",
+              "text": "A quiet blue lake."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "spec": {
+      "model": "direct/google/nano-banana-2",
+      "input": {
+        "response_format": {
+          "type": "image",
+          "image_size": "1K",
+          "aspect_ratio": "1:1",
+          "mime_type": "image/jpeg",
+          "delivery": "inline"
+        },
+        "store": true,
+        "background": true,
+        "prompt": "A quiet blue lake."
+      }
+    },
+    "hash": "89582878a26a150615fa3e619443ef550fbac85f3360f2b48510ca436a9b9209",
+    "body": {
+      "response_format": {
+        "type": "image",
+        "image_size": "1K",
+        "aspect_ratio": "1:1",
+        "mime_type": "image/jpeg",
+        "delivery": "inline"
+      },
+      "store": true,
+      "background": true,
+      "model": "gemini-3.1-flash-image",
+      "input": [
+        {
+          "type": "user_input",
+          "content": [
+            {
+              "type": "text",
+              "text": "A quiet blue lake."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "spec": {
+      "model": "direct/google/nano-banana-pro",
+      "input": {
+        "response_format": {
+          "type": "image",
+          "image_size": "1K",
+          "aspect_ratio": "1:1",
+          "mime_type": "image/jpeg",
+          "delivery": "inline"
+        },
+        "store": true,
+        "background": true,
+        "prompt": "A quiet blue lake."
+      }
+    },
+    "hash": "0261f59a041e3725a2cc1c93bb9e51902a3aa0d07863faf04c19c9b5c60bc906",
+    "body": {
+      "response_format": {
+        "type": "image",
+        "image_size": "1K",
+        "aspect_ratio": "1:1",
+        "mime_type": "image/jpeg",
+        "delivery": "inline"
+      },
+      "store": true,
+      "background": true,
+      "model": "gemini-3-pro-image",
+      "input": [
+        {
+          "type": "user_input",
+          "content": [
+            {
+              "type": "text",
+              "text": "A quiet blue lake."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "spec": {
+      "model": "direct/google/lyria-3.5",
+      "input": {
+        "response_format": {
+          "type": "audio",
+          "mime_type": "audio/mp3",
+          "delivery": "inline"
+        },
+        "store": true,
+        "background": true,
+        "prompt": "A quiet blue lake."
+      }
+    },
+    "hash": "8e10283ffb8c7ab45d1198274dcf6331c5c113ff68b28ed845dea5e08107f094",
+    "body": {
+      "response_format": {
+        "type": "audio",
+        "mime_type": "audio/mp3",
+        "delivery": "inline"
+      },
+      "store": true,
+      "background": true,
+      "model": "lyria-3.5",
+      "input": [
+        {
+          "type": "user_input",
+          "content": [
+            {
+              "type": "text",
+              "text": "A quiet blue lake."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "spec": {
+      "model": "direct/google/gemini-3.8-flash-tts",
+      "input": {
+        "response_format": {
+          "type": "audio",
+          "mime_type": "audio/wav",
+          "sample_rate": 24000,
+          "delivery": "inline"
+        },
+        "generation_config": {
+          "speech_config": [
+            {
+              "voice": "Kore"
+            }
+          ]
+        },
+        "store": true,
+        "background": true,
+        "prompt": "A quiet blue lake."
+      }
+    },
+    "hash": "7c67645869be6ada0fe0e22808ea5906d719c22710293d245bd53ea21ca987d7",
+    "body": {
+      "response_format": {
+        "type": "audio",
+        "mime_type": "audio/wav",
+        "sample_rate": 24000,
+        "delivery": "inline"
+      },
+      "generation_config": {
+        "speech_config": [
+          {
+            "voice": "Kore"
+          }
+        ]
+      },
+      "store": true,
+      "background": true,
+      "model": "gemini-3.8-flash-tts",
+      "input": [
+        {
+          "type": "user_input",
+          "content": [
+            {
+              "type": "text",
+              "text": "A quiet blue lake."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "spec": {
+      "model": "direct/google/gemini-3.8-flash-lite-tts",
+      "input": {
+        "response_format": {
+          "type": "audio",
+          "mime_type": "audio/wav",
+          "sample_rate": 24000,
+          "delivery": "inline"
+        },
+        "generation_config": {
+          "speech_config": [
+            {
+              "voice": "Kore"
+            }
+          ]
+        },
+        "store": true,
+        "background": true,
+        "prompt": "A quiet blue lake."
+      }
+    },
+    "hash": "44a0bdba2fa9fa56fbd01444b5a775b299a5659d08ba0cd1843e891c072f95be",
+    "body": {
+      "response_format": {
+        "type": "audio",
+        "mime_type": "audio/wav",
+        "sample_rate": 24000,
+        "delivery": "inline"
+      },
+      "generation_config": {
+        "speech_config": [
+          {
+            "voice": "Kore"
+          }
+        ]
+      },
+      "store": true,
+      "background": true,
+      "model": "gemini-3.8-flash-lite-tts",
+      "input": [
+        {
+          "type": "user_input",
+          "content": [
+            {
+              "type": "text",
+              "text": "A quiet blue lake."
+            }
+          ]
+        }
+      ]
+    }
+  }
+]

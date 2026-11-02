@@ -179,6 +179,66 @@ fn check_provider(
         return Ok(Some(BTreeMap::new()));
     }
     match p {
+        "google" => {
+            let mut found = BTreeSet::new();
+            let mut page: Option<String> = None;
+            let mut complete = false;
+            for _ in 0..10 {
+                let mut url = url::Url::parse(
+                    "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000",
+                )
+                .unwrap();
+                if let Some(token) = page.as_ref() {
+                    url.query_pairs_mut().append_pair("pageToken", token);
+                }
+                let data = get(
+                    http,
+                    url.as_str(),
+                    "generativelanguage.googleapis.com",
+                    Some(("x-goog-api-key", key.into())),
+                )?;
+                let rows = data["models"]
+                    .as_array()
+                    .ok_or(Error("incomplete_provider_catalog"))?;
+                for row in rows {
+                    let id = s(&row["name"])?
+                        .strip_prefix("models/")
+                        .ok_or(Error("invalid_provider_catalog"))?;
+                    found.insert(id.to_string());
+                }
+                match data.get("nextPageToken") {
+                    None => {
+                        complete = true;
+                        break;
+                    }
+                    Some(Value::String(token)) if token.is_empty() => {
+                        complete = true;
+                        break;
+                    }
+                    Some(Value::String(token))
+                        if token.len() <= 2000 && page.as_ref() != Some(token) =>
+                    {
+                        page = Some(token.clone())
+                    }
+                    _ => return Err(Error("incomplete_provider_catalog")),
+                }
+            }
+            need(complete, "incomplete_provider_catalog")?;
+            Ok(Some(
+                ids.iter()
+                    .map(|id| {
+                        (
+                            id.clone(),
+                            if found.contains(id) {
+                                "available"
+                            } else {
+                                "access_denied"
+                            },
+                        )
+                    })
+                    .collect(),
+            ))
+        }
         "pika" => {
             let data = get(
                 http,

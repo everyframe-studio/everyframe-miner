@@ -22,6 +22,18 @@ pub static MODELS: LazyLock<Value> = LazyLock::new(|| {
             .unwrap()
             .insert(id.clone(), contract.clone());
     }
+    let google: Value = serde_json::from_str(include_str!("../config/google-models.json"))
+        .expect("embedded Google media registry");
+    for (id, contract) in google.as_object().unwrap() {
+        assert!(
+            models.get(id).is_none(),
+            "Google must not replace signed contracts"
+        );
+        models
+            .as_object_mut()
+            .unwrap()
+            .insert(id.clone(), contract.clone());
+    }
     models
 });
 pub static STUDIO_MODELS: LazyLock<Value> = LazyLock::new(|| {
@@ -76,6 +88,9 @@ pub fn spec(v: &Value) -> Result<Value> {
         return Ok(value);
     }
     let m = info(model)?;
+    if m["interaction"] == true {
+        return crate::google_settings::spec(v, m);
+    }
     let mut keys = vec!["prompt"];
     if v.get("model").is_some() {
         keys.push("model")
@@ -120,6 +135,9 @@ pub fn spec(v: &Value) -> Result<Value> {
 }
 pub fn check(v: &Value) -> Result<()> {
     let model = s(&v["model"])?;
+    if info(model)?["interaction"] == true {
+        return crate::google_settings::check(v);
+    }
     if model.starts_with("studio/tool/") {
         return crate::studio_tools::check(v);
     }

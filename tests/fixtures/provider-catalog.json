@@ -1,0 +1,1460 @@
+[
+  {
+    "model": "minimax/h3-max-turbo/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "minimax/h3-max-turbo/text-to-video",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "minimax/h3-max-turbo/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "duration": 5,
+        "resolution": "768P",
+        "aspect_ratio": "16:9",
+        "prompt_expansion_mode": "balanced",
+        "enable_safety_checker": true
+      }
+    },
+    "hash": "953024611215107cee92fbb90db8720da67819b6abbfe4e7796818d28d80c760"
+  },
+  {
+    "model": "minimax/h3-max/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "minimax/h3-max/text-to-video",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "minimax/h3-max/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "duration": 5,
+        "resolution": "768P",
+        "aspect_ratio": "16:9",
+        "prompt_expansion_mode": "balanced",
+        "enable_safety_checker": true
+      }
+    },
+    "hash": "e39037ae78fa9b89220a5f53d9a239565f6ef90a3b1b8990c09e9d6d45cab8f6"
+  },
+  {
+    "model": "bytedance/seedance-2.5/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "bytedance/seedance-2.5/text-to-video",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "bytedance/seedance-2.5/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "duration": "5",
+        "resolution": "1080p",
+        "aspect_ratio": "16:9",
+        "generate_audio": true,
+        "bitrate_mode": "standard"
+      }
+    },
+    "hash": "4c294dd49744d9a872c6c4296043e396cd33cf2f85f5aa398033a514782e3b5d"
+  },
+  {
+    "model": "fal-ai/veo3.1",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/veo3.1",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "fal-ai/veo3.1",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "duration": "4s",
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "generate_audio": true,
+        "auto_fix": false,
+        "safety_tolerance": "4"
+      }
+    },
+    "hash": "82d9508e495859efce6d1d3996c223622a37b3cdf7a44e4eb18e2b04916586e7"
+  },
+  {
+    "model": "fal-ai/veo3.1/fast",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/veo3.1/fast",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "fal-ai/veo3.1/fast",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "duration": "4s",
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "generate_audio": true,
+        "auto_fix": false,
+        "safety_tolerance": "4"
+      }
+    },
+    "hash": "b2f7ef3d1cf1390f729d913c95cc0cb62584b0040c9f2ccd8aaf91fcb88e03fd"
+  },
+  {
+    "model": "fal-ai/veo3",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/veo3",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "fal-ai/veo3",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "duration": "4s",
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "generate_audio": true,
+        "auto_fix": false,
+        "safety_tolerance": "4"
+      }
+    },
+    "hash": "803c0f8311528adc47896d274f3ceeca014b415258b6ab2610d9cdcf4db4d29d"
+  },
+  {
+    "model": "fal-ai/veo3/fast",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/veo3/fast",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "fal-ai/veo3/fast",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "duration": "4s",
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "generate_audio": true,
+        "auto_fix": false,
+        "safety_tolerance": "4"
+      }
+    },
+    "hash": "a5c1981103de42c3592af1c4ec37f6b4b192c4aef84bb1c0431dff24729e8042"
+  },
+  {
+    "model": "fal-ai/veo2",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/veo2",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "fal-ai/veo2",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "duration": "5s",
+        "aspect_ratio": "16:9",
+        "enhance_prompt": false,
+        "auto_fix": false
+      }
+    },
+    "hash": "59fd12224041cd95d25a35a42ae6ec5b3a79bdb7d39c5bb2876401844a23b849"
+  },
+  {
+    "model": "fal-ai/kling-video/v3/pro/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/kling-video/v3/pro/text-to-video",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "fal-ai/kling-video/v3/pro/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "duration": "5",
+        "aspect_ratio": "16:9",
+        "negative_prompt": "",
+        "generate_audio": true,
+        "shot_type": "customize"
+      }
+    },
+    "hash": "dce12e8e330ecacc6b892f3cbd431bcb2e737f0de7f7e6a98e0d931e47f979ef"
+  },
+  {
+    "model": "fal-ai/kling-video/v3/standard/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/kling-video/v3/standard/text-to-video",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "fal-ai/kling-video/v3/standard/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "duration": "5",
+        "aspect_ratio": "16:9",
+        "negative_prompt": "",
+        "generate_audio": true,
+        "shot_type": "customize"
+      }
+    },
+    "hash": "eaaa7be9a1f979e956ec6c44744afdc8fbef239219aeb96e26a90bec3923f62f"
+  },
+  {
+    "model": "fal-ai/kling-video/v2.6/pro/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/kling-video/v2.6/pro/text-to-video",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "fal-ai/kling-video/v2.6/pro/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "duration": "5",
+        "aspect_ratio": "16:9",
+        "negative_prompt": "",
+        "generate_audio": true
+      }
+    },
+    "hash": "dfb2f48338c8ee809202c7ce2da29fe06dd24edac2833ce6a2dc02cae2b1ab4c"
+  },
+  {
+    "model": "fal-ai/kling-video/v2.5-turbo/pro/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/kling-video/v2.5-turbo/pro/text-to-video",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "fal-ai/kling-video/v2.5-turbo/pro/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "duration": "5",
+        "aspect_ratio": "16:9",
+        "negative_prompt": ""
+      }
+    },
+    "hash": "97fb6c98e9e1cea20e90953ff77c33706861c58674884497730d40130d47ccc3"
+  },
+  {
+    "model": "fal-ai/kling-video/v2.1/master/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/kling-video/v2.1/master/text-to-video",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "fal-ai/kling-video/v2.1/master/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "duration": "5",
+        "aspect_ratio": "16:9",
+        "negative_prompt": ""
+      }
+    },
+    "hash": "5fa37506609619a40847b46b08fbb72203f322c64005eb15a1f1f4945ceb2dd7"
+  },
+  {
+    "model": "fal-ai/kling-video/v2/master/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/kling-video/v2/master/text-to-video",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "fal-ai/kling-video/v2/master/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "duration": "5",
+        "aspect_ratio": "16:9",
+        "negative_prompt": ""
+      }
+    },
+    "hash": "8700a3ec526e4cb5fc72348b096396cdd17d1cad20f9a0a34236f6a2ccb239ef"
+  },
+  {
+    "model": "fal-ai/kling-video/v1.6/pro/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/kling-video/v1.6/pro/text-to-video",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "fal-ai/kling-video/v1.6/pro/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "duration": "5",
+        "aspect_ratio": "16:9",
+        "negative_prompt": ""
+      }
+    },
+    "hash": "fe238123760115d4b94f147bd1a237d4d18530beeb35678d1b4472c8a41cc173"
+  },
+  {
+    "model": "fal-ai/kling-video/v1.6/standard/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/kling-video/v1.6/standard/text-to-video",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "fal-ai/kling-video/v1.6/standard/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "duration": "5",
+        "aspect_ratio": "16:9",
+        "negative_prompt": ""
+      }
+    },
+    "hash": "70c54c906278e9a3a146c8c848c4d32f10afee3a15c95a1953f74117066b05e3"
+  },
+  {
+    "model": "wan/v2.6/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "wan/v2.6/text-to-video",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "wan/v2.6/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "duration": "5",
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "enable_prompt_expansion": false,
+        "enable_safety_checker": true,
+        "multi_shots": false
+      }
+    },
+    "hash": "058635ba41269a229c64bfe8dcf638671c26557625adee71d8a6da01db098031"
+  },
+  {
+    "model": "fal-ai/wan-25-preview/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/wan-25-preview/text-to-video",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "fal-ai/wan-25-preview/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "duration": "5",
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "enable_prompt_expansion": false,
+        "enable_safety_checker": true
+      }
+    },
+    "hash": "e49e4fc278aaadacd0642dcc0ec104188b20c28175e9a0f5a27aa5a545a80f90"
+  },
+  {
+    "model": "fal-ai/wan/v2.2-a14b/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/wan/v2.2-a14b/text-to-video",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "fal-ai/wan/v2.2-a14b/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "num_frames": 121,
+        "frames_per_second": 24,
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "enable_prompt_expansion": false,
+        "enable_safety_checker": true,
+        "enable_output_safety_checker": true,
+        "interpolator_model": "none",
+        "num_interpolated_frames": 0,
+        "adjust_fps_for_interpolation": false
+      }
+    },
+    "hash": "4717a90d312ac9ed67830537ef84dfb42201c523fd8dd83f76ff53328b4b4551"
+  },
+  {
+    "model": "fal-ai/wan/v2.2-5b/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/wan/v2.2-5b/text-to-video",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "fal-ai/wan/v2.2-5b/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "num_frames": 121,
+        "frames_per_second": 24,
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "enable_prompt_expansion": false,
+        "enable_safety_checker": true,
+        "enable_output_safety_checker": true,
+        "interpolator_model": "none",
+        "num_interpolated_frames": 0,
+        "adjust_fps_for_interpolation": false
+      }
+    },
+    "hash": "401b63ea3d25a755bd43ddc99275d5c3c249b5b849bce38ddc1278521be8654f"
+  },
+  {
+    "model": "fal-ai/ltx-2/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/ltx-2/text-to-video",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "fal-ai/ltx-2/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "duration": 6,
+        "resolution": "1080p",
+        "fps": 25,
+        "generate_audio": true
+      }
+    },
+    "hash": "5e944ea11fd5fb40f5b99938b39b92a3f2ec0d5791756d98ffe95752bcf77001"
+  },
+  {
+    "model": "fal-ai/ltx-2.3/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/ltx-2.3/text-to-video",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "fal-ai/ltx-2.3/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "duration": 6,
+        "resolution": "1080p",
+        "fps": 25,
+        "generate_audio": true,
+        "aspect_ratio": "16:9"
+      }
+    },
+    "hash": "3392f5d8239ba4b6fa871b4967220644797333c83dfd138514377f26aa254f96"
+  },
+  {
+    "model": "fal-ai/ltx-2.3/text-to-video/fast",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/ltx-2.3/text-to-video/fast",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "fal-ai/ltx-2.3/text-to-video/fast",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "duration": 6,
+        "resolution": "1080p",
+        "fps": 25,
+        "generate_audio": true,
+        "aspect_ratio": "16:9"
+      }
+    },
+    "hash": "d02d1e5481c3a432b6b92d6417ecbcd72831b5176b6be3c739e82d7173fabe99"
+  },
+  {
+    "model": "fal-ai/pixverse/v6/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/pixverse/v6/text-to-video",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "fal-ai/pixverse/v6/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "duration": 5,
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "negative_prompt": "",
+        "generate_audio_switch": true,
+        "generate_multi_clip_switch": false
+      }
+    },
+    "hash": "3b70192cf7c7b48078ffe2b210b230d7aae9415a141328afce3be64017888605"
+  },
+  {
+    "model": "fal-ai/pixverse/v5.5/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/pixverse/v5.5/text-to-video",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "fal-ai/pixverse/v5.5/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "duration": "5",
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "negative_prompt": "",
+        "generate_audio_switch": true,
+        "generate_multi_clip_switch": false
+      }
+    },
+    "hash": "08079198df7a98424d6732b21594381ef171ca4862c65e45a96d857070516dac"
+  },
+  {
+    "model": "fal-ai/pixverse/v5/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/pixverse/v5/text-to-video",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "fal-ai/pixverse/v5/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "duration": "5",
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "negative_prompt": ""
+      }
+    },
+    "hash": "bc6b1d5ccd222abc63d24474541e2ef42221f0cc7a86d257d51139e9d6c39cb6"
+  },
+  {
+    "model": "fal-ai/pixverse/v4.5/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/pixverse/v4.5/text-to-video",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "fal-ai/pixverse/v4.5/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "duration": "5",
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "negative_prompt": ""
+      }
+    },
+    "hash": "7c2af49421bf551df5a138304c7adc7b90e8806cb7c8d6a0eb46cb79a6b5f6bc"
+  },
+  {
+    "model": "fal-ai/minimax/hailuo-02/standard/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/minimax/hailuo-02/standard/text-to-video",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "fal-ai/minimax/hailuo-02/standard/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "duration": "6",
+        "prompt_optimizer": false
+      }
+    },
+    "hash": "3d3d722b09a5d93546a1b5e41719a001b367bbb6bbb0195135950fa89d7ce094"
+  },
+  {
+    "model": "fal-ai/minimax/hailuo-02/pro/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/minimax/hailuo-02/pro/text-to-video",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "fal-ai/minimax/hailuo-02/pro/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "prompt_optimizer": false
+      }
+    },
+    "hash": "ce4cfc8980dc101729d4619d02b158542c15324c0a9b465e250ad22743ebc760"
+  },
+  {
+    "model": "fal-ai/bytedance/seedance/v1/pro/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/bytedance/seedance/v1/pro/text-to-video",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "fal-ai/bytedance/seedance/v1/pro/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "duration": "5",
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "camera_fixed": false,
+        "enable_safety_checker": true
+      }
+    },
+    "hash": "72cffbc9a2fbbd0170cee00136c1f686d6836b14ad96fc005e5b2c0ef5cbf765"
+  },
+  {
+    "model": "fal-ai/bytedance/seedance/v1/pro/fast/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/bytedance/seedance/v1/pro/fast/text-to-video",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "fal-ai/bytedance/seedance/v1/pro/fast/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "duration": "5",
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "camera_fixed": false,
+        "enable_safety_checker": true
+      }
+    },
+    "hash": "cacd623a06b9364c90f92634ed17db191a6219d0470f29dfed4ce1657d2721c3"
+  },
+  {
+    "model": "fal-ai/bytedance/seedance/v1/lite/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/bytedance/seedance/v1/lite/text-to-video",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "fal-ai/bytedance/seedance/v1/lite/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "duration": "5",
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "camera_fixed": false,
+        "enable_safety_checker": true
+      }
+    },
+    "hash": "12a4deab6f6bfb3a0a7812bdbefa508b4c7a1b1652a8fbf88228a5bbce2c97f9"
+  },
+  {
+    "model": "fal-ai/bytedance/seedance/v1.5/pro/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/bytedance/seedance/v1.5/pro/text-to-video",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "fal-ai/bytedance/seedance/v1.5/pro/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "duration": "5",
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "camera_fixed": false,
+        "enable_safety_checker": true,
+        "generate_audio": true
+      }
+    },
+    "hash": "a8a44c81cdfaf406261530873de366188ad3399364ee35180c7fd71c24dba6fc"
+  },
+  {
+    "model": "xai/grok-imagine-video/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "xai/grok-imagine-video/text-to-video",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "xai/grok-imagine-video/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "duration": 5,
+        "resolution": "720p",
+        "aspect_ratio": "16:9"
+      }
+    },
+    "hash": "4831d58901b5a1e33d1d6691077c72011e83c89887b0da3241d429b3c6ce3464"
+  },
+  {
+    "model": "xai/grok-imagine-video/v1.5/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "xai/grok-imagine-video/v1.5/text-to-video",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "xai/grok-imagine-video/v1.5/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "duration": 5,
+        "resolution": "720p",
+        "aspect_ratio": "16:9"
+      }
+    },
+    "hash": "e1d1b1e2ff42692977961bb2f0b930c618a7f0465c45802cd69dc6d437ca21a7"
+  },
+  {
+    "model": "fal-ai/sora-2/text-to-video",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/sora-2/text-to-video",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "fal-ai/sora-2/text-to-video",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "duration": 4,
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "delete_video": true,
+        "detect_and_block_ip": true,
+        "model": "sora-2"
+      }
+    },
+    "hash": "b71683dfe2bc22e9174d91c9a2a05cce17e66889bc29b41547a94d005467d123"
+  },
+  {
+    "model": "fal-ai/sora-2/text-to-video/pro",
+    "provider": "fal",
+    "request": {
+      "model": "fal-ai/sora-2/text-to-video/pro",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "fal-ai/sora-2/text-to-video/pro",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "duration": 4,
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "delete_video": true,
+        "detect_and_block_ip": true
+      }
+    },
+    "hash": "7a9a918fe3cec606bc7301a695f5019e55dd6b8565cafcbd620ab9fd53c14f92"
+  },
+  {
+    "model": "direct/minimax/hailuo-02",
+    "provider": "minimax",
+    "request": {
+      "model": "direct/minimax/hailuo-02",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "direct/minimax/hailuo-02",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "duration": 6,
+        "resolution": "1080P",
+        "prompt_optimizer": false
+      }
+    },
+    "hash": "90cafb0330b374382fd1d8e5647773cfe5870cc635fd5de9cffd959fcc7f3f6c"
+  },
+  {
+    "model": "direct/bfl/flux-2-max",
+    "provider": "bfl",
+    "request": {
+      "model": "direct/bfl/flux-2-max",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "direct/bfl/flux-2-max",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "width": 1024,
+        "height": 1024,
+        "output_format": "png",
+        "safety_tolerance": 2,
+        "disable_pup": true
+      }
+    },
+    "hash": "41cc35bc635e783fd22a08527c2e3aa7b2da744cee3c372c72b08b068a400532"
+  },
+  {
+    "model": "direct/bfl/flux-2-flex",
+    "provider": "bfl",
+    "request": {
+      "model": "direct/bfl/flux-2-flex",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "direct/bfl/flux-2-flex",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "width": 1024,
+        "height": 1024,
+        "output_format": "png",
+        "safety_tolerance": 2,
+        "prompt_upsampling": false,
+        "steps": 50,
+        "guidance": 5
+      }
+    },
+    "hash": "a32f5bf97c57d5e20d66062c025a2832544cbeaeb4f510354003a78928cd5cd5"
+  },
+  {
+    "model": "direct/bfl/flux-2-klein-4b",
+    "provider": "bfl",
+    "request": {
+      "model": "direct/bfl/flux-2-klein-4b",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "direct/bfl/flux-2-klein-4b",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "width": 1024,
+        "height": 1024,
+        "output_format": "png",
+        "safety_tolerance": 2
+      }
+    },
+    "hash": "5fa8918f3b257bc8d417a39ae94efc645b402c85b20b2c7eec1f55c34a8b127f"
+  },
+  {
+    "model": "direct/bfl/flux-2-klein-9b",
+    "provider": "bfl",
+    "request": {
+      "model": "direct/bfl/flux-2-klein-9b",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "direct/bfl/flux-2-klein-9b",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "width": 1024,
+        "height": 1024,
+        "output_format": "png",
+        "safety_tolerance": 2
+      }
+    },
+    "hash": "bef2f3f60e574757e95a19850cbe841bb264456bc0dfe7d17ac1f26c55d60912"
+  },
+  {
+    "model": "direct/replicate/flux-2-pro",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/flux-2-pro",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "direct/replicate/flux-2-pro",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "aspect_ratio": "custom",
+        "width": 1024,
+        "height": 1024,
+        "output_format": "png",
+        "safety_tolerance": 2,
+        "input_images": []
+      }
+    },
+    "hash": "0437ca808bb78acc9df2409eeaf6c8750019927930512c41a8fe814428263ceb"
+  },
+  {
+    "model": "direct/runway/veo-3.1",
+    "provider": "runway",
+    "request": {
+      "model": "direct/runway/veo-3.1",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "direct/runway/veo-3.1",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "duration": 4,
+        "ratio": "1280:720",
+        "audio": true
+      }
+    },
+    "hash": "0f87b9876302997203a308b8fb38ed43e9510ba33fad78c458f59b51223a61a2"
+  },
+  {
+    "model": "direct/runway/veo-3.1-fast",
+    "provider": "runway",
+    "request": {
+      "model": "direct/runway/veo-3.1-fast",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "direct/runway/veo-3.1-fast",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "duration": 4,
+        "ratio": "1280:720",
+        "audio": true
+      }
+    },
+    "hash": "54b333aa5cf99da7496897f3950cab7d0a95883e94345d91dc3ac0c61bcea8f3"
+  },
+  {
+    "model": "direct/luma/ray-flash-2",
+    "provider": "luma",
+    "request": {
+      "model": "direct/luma/ray-flash-2",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "direct/luma/ray-flash-2",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "duration": "5s",
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "loop": false
+      }
+    },
+    "hash": "c5ab189a3db687aafc16d5d4c6d4f0fb932ab46de12adf830701f1336cb687ee"
+  },
+  {
+    "model": "direct/elevenlabs/v4-rachel",
+    "provider": "elevenlabs",
+    "request": {
+      "model": "direct/elevenlabs/v4-rachel",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "direct/elevenlabs/v4-rachel",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "voice_id": "21m00Tcm4TlvDq8ikWAM",
+        "output_format": "mp3_44100_128"
+      }
+    },
+    "hash": "0493075d341a9b2c587d01fcb5b1d5b3bb82de577030834c276b361a10791f04"
+  },
+  {
+    "model": "direct/elevenlabs/v4-turbo-rachel",
+    "provider": "elevenlabs",
+    "request": {
+      "model": "direct/elevenlabs/v4-turbo-rachel",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "direct/elevenlabs/v4-turbo-rachel",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "voice_id": "21m00Tcm4TlvDq8ikWAM",
+        "output_format": "mp3_44100_128"
+      }
+    },
+    "hash": "6cb92906775e80b78f5a2fdd23ee93cec4e14ad2ca614989f8b9ce7a49942e0a"
+  },
+  {
+    "model": "direct/elevenlabs/v3-rachel",
+    "provider": "elevenlabs",
+    "request": {
+      "model": "direct/elevenlabs/v3-rachel",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "direct/elevenlabs/v3-rachel",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "voice_id": "21m00Tcm4TlvDq8ikWAM",
+        "output_format": "mp3_44100_128"
+      }
+    },
+    "hash": "5ce53c30a2412bc90165490278d337824b61a7a4d68134ff689ce372b7e9deaf"
+  },
+  {
+    "model": "direct/elevenlabs/flash-v2.5-rachel",
+    "provider": "elevenlabs",
+    "request": {
+      "model": "direct/elevenlabs/flash-v2.5-rachel",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "direct/elevenlabs/flash-v2.5-rachel",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "voice_id": "21m00Tcm4TlvDq8ikWAM",
+        "output_format": "mp3_44100_128"
+      }
+    },
+    "hash": "6b3681236a29beda747bd7416421ea1da5d8c7a7133d4a93a6382f86498bdb93"
+  },
+  {
+    "model": "direct/openrouter/veo-3.1-fast",
+    "provider": "openrouter",
+    "request": {
+      "model": "direct/openrouter/veo-3.1-fast",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "direct/openrouter/veo-3.1-fast",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "duration": 4,
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "generate_audio": true
+      }
+    },
+    "hash": "64df42a0ed3b08cae975c7c519ab7a2ff556f977757bb1886891a0e30ac31772"
+  },
+  {
+    "model": "direct/openrouter/veo-3.1-lite",
+    "provider": "openrouter",
+    "request": {
+      "model": "direct/openrouter/veo-3.1-lite",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "direct/openrouter/veo-3.1-lite",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "duration": 4,
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "generate_audio": true
+      }
+    },
+    "hash": "ef733e5265a30e0b9066b7f1859e40af5ca000472343efaaeaa170773c13f00f"
+  },
+  {
+    "model": "direct/google/gemini-omni-flash",
+    "provider": "google",
+    "request": {
+      "model": "direct/google/gemini-omni-flash",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "direct/google/gemini-omni-flash",
+      "input": {
+        "response_format": {
+          "type": "video",
+          "duration": "5s",
+          "resolution": "720p",
+          "aspect_ratio": "16:9",
+          "delivery": "inline"
+        },
+        "store": true,
+        "background": true,
+        "prompt": "All providers: offline contract fixture."
+      }
+    },
+    "hash": "d049c8d9f339905ba7ab9e7e92759757d2e8ea92c63049a4d1ba89c158ae6cef"
+  },
+  {
+    "model": "direct/google/nano-banana-2.1",
+    "provider": "google",
+    "request": {
+      "model": "direct/google/nano-banana-2.1",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "direct/google/nano-banana-2.1",
+      "input": {
+        "response_format": {
+          "type": "image",
+          "image_size": "1K",
+          "aspect_ratio": "1:1",
+          "mime_type": "image/jpeg",
+          "delivery": "inline"
+        },
+        "store": true,
+        "background": true,
+        "prompt": "All providers: offline contract fixture."
+      }
+    },
+    "hash": "ab6804a245d8902685114bb294c87e9ee23c74338a7ba4e96876c1893ebf2149"
+  },
+  {
+    "model": "direct/google/nano-banana-2-lite",
+    "provider": "google",
+    "request": {
+      "model": "direct/google/nano-banana-2-lite",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "direct/google/nano-banana-2-lite",
+      "input": {
+        "response_format": {
+          "type": "image",
+          "image_size": "1K",
+          "aspect_ratio": "1:1",
+          "mime_type": "image/jpeg",
+          "delivery": "inline"
+        },
+        "store": true,
+        "background": true,
+        "prompt": "All providers: offline contract fixture."
+      }
+    },
+    "hash": "a5ea930da8e8899eeab63878c3084eed40d6f5de24c2d616a7411bd3d270c0f1"
+  },
+  {
+    "model": "direct/google/nano-banana-2",
+    "provider": "google",
+    "request": {
+      "model": "direct/google/nano-banana-2",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "direct/google/nano-banana-2",
+      "input": {
+        "response_format": {
+          "type": "image",
+          "image_size": "1K",
+          "aspect_ratio": "1:1",
+          "mime_type": "image/jpeg",
+          "delivery": "inline"
+        },
+        "store": true,
+        "background": true,
+        "prompt": "All providers: offline contract fixture."
+      }
+    },
+    "hash": "d8b9ced518bc6fc0d7de5d4dc13cd17466d42a12b1b2bd28d1ced1bcf55ebb71"
+  },
+  {
+    "model": "direct/google/nano-banana-pro",
+    "provider": "google",
+    "request": {
+      "model": "direct/google/nano-banana-pro",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "direct/google/nano-banana-pro",
+      "input": {
+        "response_format": {
+          "type": "image",
+          "image_size": "1K",
+          "aspect_ratio": "1:1",
+          "mime_type": "image/jpeg",
+          "delivery": "inline"
+        },
+        "store": true,
+        "background": true,
+        "prompt": "All providers: offline contract fixture."
+      }
+    },
+    "hash": "bd14c10f8396938e7a06a386badc9adc7751b1d0ad1249c04bf422749188955c"
+  },
+  {
+    "model": "direct/google/lyria-3.5",
+    "provider": "google",
+    "request": {
+      "model": "direct/google/lyria-3.5",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "direct/google/lyria-3.5",
+      "input": {
+        "response_format": {
+          "type": "audio",
+          "mime_type": "audio/mp3",
+          "delivery": "inline"
+        },
+        "store": true,
+        "background": true,
+        "prompt": "All providers: offline contract fixture."
+      }
+    },
+    "hash": "15c28f25b13e7f8ebf95926061505ae3725df35cac2e3760b4eb8a6de800a36d"
+  },
+  {
+    "model": "direct/google/gemini-3.8-flash-tts",
+    "provider": "google",
+    "request": {
+      "model": "direct/google/gemini-3.8-flash-tts",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "direct/google/gemini-3.8-flash-tts",
+      "input": {
+        "response_format": {
+          "type": "audio",
+          "mime_type": "audio/wav",
+          "sample_rate": 24000,
+          "delivery": "inline"
+        },
+        "generation_config": {
+          "speech_config": [
+            {
+              "voice": "Kore"
+            }
+          ]
+        },
+        "store": true,
+        "background": true,
+        "prompt": "All providers: offline contract fixture."
+      }
+    },
+    "hash": "945487880c16783fc672d6bed0b37641b31d1f2035bc52fa0467feabf62c4d6a"
+  },
+  {
+    "model": "direct/google/gemini-3.8-flash-lite-tts",
+    "provider": "google",
+    "request": {
+      "model": "direct/google/gemini-3.8-flash-lite-tts",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "direct/google/gemini-3.8-flash-lite-tts",
+      "input": {
+        "response_format": {
+          "type": "audio",
+          "mime_type": "audio/wav",
+          "sample_rate": 24000,
+          "delivery": "inline"
+        },
+        "generation_config": {
+          "speech_config": [
+            {
+              "voice": "Kore"
+            }
+          ]
+        },
+        "store": true,
+        "background": true,
+        "prompt": "All providers: offline contract fixture."
+      }
+    },
+    "hash": "45e945fe52bf167baac05ac1f2a400b216d25f8a6dfe8438d5fa29284607e91a"
+  },
+  {
+    "model": "direct/kling/kling-3.0",
+    "provider": "kling",
+    "request": {
+      "model": "direct/kling/kling-3.0",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "direct/kling/kling-3.0",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "duration": 5,
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "audio": "off",
+        "multi_shot": false
+      }
+    },
+    "hash": "ce9c9a822782c2d6bda897bef38a6a093fb3574f09375ddaa69aa103e30ea126"
+  },
+  {
+    "model": "direct/vivix/vivix-w1",
+    "provider": "vivix",
+    "request": {
+      "model": "direct/vivix/vivix-w1",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "direct/vivix/vivix-w1",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "duration": 5,
+        "aspect_ratio": "16:9",
+        "output_format": "mp4"
+      }
+    },
+    "hash": "1657c594611df1e39a374be5a1d348bdc00795a5c080c4311500cad9d0f65a1e"
+  },
+  {
+    "model": "direct/minimax/hailuo-2.3",
+    "provider": "minimax",
+    "request": {
+      "model": "direct/minimax/hailuo-2.3",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "direct/minimax/hailuo-2.3",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "duration": 6,
+        "resolution": "1080P",
+        "prompt_optimizer": false
+      }
+    },
+    "hash": "cb3e225e7927cbe0230f5f20bfba5dd838102e01370037e9a61f49f61e5a70b2"
+  },
+  {
+    "model": "direct/openrouter/veo-3.1",
+    "provider": "openrouter",
+    "request": {
+      "model": "direct/openrouter/veo-3.1",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "direct/openrouter/veo-3.1",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "duration": 4,
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "generate_audio": true
+      }
+    },
+    "hash": "2bc3c594a8da96bcc38c6eeb4db86a76367d8dc46a1c13f807c70e9028d48598"
+  },
+  {
+    "model": "direct/bfl/flux-2-pro",
+    "provider": "bfl",
+    "request": {
+      "model": "direct/bfl/flux-2-pro",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "direct/bfl/flux-2-pro",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "width": 1024,
+        "height": 1024,
+        "output_format": "png",
+        "safety_tolerance": 2
+      }
+    },
+    "hash": "3777772d534c3c5423e286631787525a4edfd770af217616ee1a666e618791fd"
+  },
+  {
+    "model": "direct/replicate/hailuo-02",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/hailuo-02",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "direct/replicate/hailuo-02",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "duration": 6,
+        "resolution": "1080p",
+        "prompt_optimizer": false
+      }
+    },
+    "hash": "667399aea495de8311f69742bff729dad2cfc1e1247449b40d4c307cbf67103f"
+  },
+  {
+    "model": "direct/google/veo-3.1",
+    "provider": "google",
+    "request": {
+      "model": "direct/google/veo-3.1",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "direct/google/veo-3.1",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "durationSeconds": 4,
+        "resolution": "720p",
+        "aspectRatio": "16:9",
+        "sampleCount": 1
+      }
+    },
+    "hash": "ca916176d6d5cc7d30c661ff2acae3127f1468a32b688a1a9e1d1f782c209a03"
+  },
+  {
+    "model": "direct/runway/gen4.5",
+    "provider": "runway",
+    "request": {
+      "model": "direct/runway/gen4.5",
+      "prompt": "All providers: offline contract fixture.",
+      "seed": 42
+    },
+    "spec": {
+      "model": "direct/runway/gen4.5",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "seed": 42,
+        "duration": 5,
+        "ratio": "1280:720",
+        "outputFormat": "mp4"
+      }
+    },
+    "hash": "c1375563fbc221c57a648eb0e120da86a3d029b0c372405eca4d763760f1a81c"
+  },
+  {
+    "model": "direct/luma/ray-2",
+    "provider": "luma",
+    "request": {
+      "model": "direct/luma/ray-2",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "direct/luma/ray-2",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "duration": "5s",
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "loop": false
+      }
+    },
+    "hash": "32e325e2c6fef724216404522bde936c13df42c3ecad9f9354502472bdf9d0db"
+  },
+  {
+    "model": "direct/elevenlabs/multilingual-v2-rachel",
+    "provider": "elevenlabs",
+    "request": {
+      "model": "direct/elevenlabs/multilingual-v2-rachel",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "direct/elevenlabs/multilingual-v2-rachel",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "voice_id": "21m00Tcm4TlvDq8ikWAM",
+        "output_format": "mp3_44100_128"
+      }
+    },
+    "hash": "fcccd67ad8b09bc07073b50fea71ef05383da1f700873c8c9ff759b6a0c67d96"
+  }
+]

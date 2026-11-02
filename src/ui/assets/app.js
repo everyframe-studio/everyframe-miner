@@ -1353,6 +1353,22 @@ async function batchOffers(rows, withdraw) {
     if (epoch === S.navigationEpoch && currentRoute() === "models") render(); else renderNav();
   }
 }
+function googleCapabilityDetails(r) {
+  const c = r.contract?.googleCapabilities;
+  if (!c) return null;
+  const parts = [];
+  if (c.resolutions) parts.push("Sizes: " + c.resolutions.join(", "));
+  if (c.aspects) parts.push("Aspect ratios: " + c.aspects.join(", "));
+  if (c.durationRange) parts.push("Video duration: " + c.durationRange.join("–") + " seconds; extension up to 40 seconds");
+  if (c.imageReferences) parts.push("Image references: up to " + c.imageReferences);
+  if (c.videoReferences) parts.push("Video references supported");
+  if (c.documentReferences) parts.push("PDF references supported");
+  if (c.tasks) parts.push("Video generation, first/last frames, editing and extension");
+  if (c.formats) parts.push("Audio formats: " + c.formats.map(v => v.replace("audio/", "")).join(", "));
+  if (c.speech) parts.push("Voice and language selection, custom voices, and two-speaker dialogue");
+  if (c.search) parts.push("Google Search grounding supported");
+  return h("div", { class: "small muted" }, ...parts.map(v => h("div", null, v)));
+}
 function offerRow(r) {
   const [ready, tone] = readiness(r);
   const disc = h("input", { type: "number", min: "0", max: "99.9", step: "0.01", value: S.offerDrafts.get(r.model) ?? (r.discountBp != null ? String(r.discountBp / 100) : "0"), oninput: e => S.offerDrafts.set(r.model, e.target.value), class: "tiny", "aria-label": "Discount percent for " + (r.name || r.model) });
@@ -1364,7 +1380,7 @@ function offerRow(r) {
   const apply = button(r.offered ? "Update" : "Offer", async () => { const job = await run("offer", { model: r.model, discountPct: disc.value }); if (job.state === "done") S.offerDrafts.delete(r.model); await loadOffers(); await loadHealth(); render(); }, "small primary");
   apply.disabled = !canApplyOffer(r); disc.disabled = !canApplyOffer(r);
   return h("tr", null,
-    h("td", { "data-label": "Model" }, h("label", { class: "row" }, S.overview?.initialized ? h("input", { type: "checkbox", checked: S.selectedOffers.has(r.model), disabled: S.batchBusy || !selectableOffer(r), "aria-label": "Select " + (r.name || r.model), onchange: e => { if (e.target.checked) S.selectedOffers.add(r.model); else S.selectedOffers.delete(r.model); patchModels(); } }) : null, h("b", null, r.name || r.model)), h("details", { class: "model-details" }, h("summary", null, "Model details"), h("span", { class: "id" }, "Everyframe contract: " + r.model), h("span", { class: "id" }, "Provider API ID: " + (r.providerApiId || "Not reported")))),
+    h("td", { "data-label": "Model" }, h("label", { class: "row" }, S.overview?.initialized ? h("input", { type: "checkbox", checked: S.selectedOffers.has(r.model), disabled: S.batchBusy || !selectableOffer(r), "aria-label": "Select " + (r.name || r.model), onchange: e => { if (e.target.checked) S.selectedOffers.add(r.model); else S.selectedOffers.delete(r.model); patchModels(); } }) : null, h("b", null, r.name || r.model)), h("details", { class: "model-details" }, h("summary", null, "Model details"), h("span", { class: "id" }, "Everyframe contract: " + r.model), h("span", { class: "id" }, "Provider API ID: " + (r.providerApiId || "Not reported")), googleCapabilityDetails(r))),
     h("td", { "data-label": "Provider" }, providerName(r.provider || ""), r.localKeyConfigured === false ? h("div", { class: "small muted" }, "No key saved") : null),
     h("td", { "data-label": "Readiness" }, h("span", { class: "badge " + tone }, ready)),
     h("td", { "data-label": "Your offer" }, yours),

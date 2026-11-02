@@ -25,8 +25,22 @@ impl Http for Api {
             .as_ref()
             .map(|b| serde_json::from_slice(b).unwrap())
             .unwrap_or(json!(null));
-        let media = r.limit >= 10 * 1024 * 1024;
-        let v = if media {
+        let modern_google = self.provider == "google"
+            && models::info(self.spec["model"].as_str().unwrap()).unwrap()["interaction"] == true;
+        let media = r.limit >= 10 * 1024 * 1024 && !modern_google;
+        let v = if modern_google {
+            assert_eq!(u.host_str(), Some("generativelanguage.googleapis.com"));
+            assert!(r.headers.iter().any(|(k, _)| k == "x-goog-api-key"));
+            let m = models::info(self.spec["model"].as_str().unwrap()).unwrap();
+            if r.method == "POST" {
+                assert_eq!(path, "/v1beta/interactions");
+                assert_eq!(body, everyframe_miner::google::body(&self.spec, m).unwrap());
+                json!({"id":"job123","model":model,"status":"in_progress"})
+            } else {
+                assert_eq!(path, "/v1beta/interactions/job123");
+                json!({"id":native,"model":model,"status":"completed","steps":[{"type":"model_output","content":[{"type":m["kind"],"mime_type":m["mime"],"data":"c3ludGhldGljIG1lZGlh"}]}]})
+            }
+        } else if media {
             if self.provider == "google" {
                 assert!(r.headers.iter().any(|(k, _)| k == "x-goog-api-key"));
                 assert!(r.redirect_hosts.contains(&"*.googleusercontent.com".into()));
@@ -240,7 +254,9 @@ fn foreign_refs_and_path_injection_are_rejected_before_network() {
 fn provider_response_id_binding() {
     for (id, m) in models::MODELS.as_object().unwrap() {
         let p = m["provider"].as_str().unwrap();
-        if ["fal", "elevenlabs"].contains(&p) {
+        if ["fal", "elevenlabs"].contains(&p)
+            || everyframe_miner::model_availability::retired(id).is_some()
+        {
             continue;
         }
         let api = Api {
@@ -337,6 +353,14 @@ fn every_added_model_checks_deadline_and_does_not_retry_ambiguous_submission() {
     for id in added.as_object().unwrap().keys() {
         let api = Timeout(std::cell::Cell::new(0));
         let mut router = Router::new(&api, credentials());
+        if everyframe_miner::model_availability::retired(id).is_some() {
+            assert_eq!(
+                router.submit_before(&spec(id), 0).unwrap_err().0,
+                "provider_model_unavailable"
+            );
+            assert_eq!(api.0.get(), 0, "{id}");
+            continue;
+        }
         assert_eq!(
             router.submit_before(&spec(id), 0).unwrap_err().0,
             "submission_deadline_elapsed"
