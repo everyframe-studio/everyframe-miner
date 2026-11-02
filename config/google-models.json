@@ -4,7 +4,7 @@
     "vendor": "Google",
     "deadlineMs": 480000,
     "seed": false,
-    "maxPrompt": 2000,
+    "maxPrompt": 8388608,
     "feeMultiplier": 1,
     "interaction": true,
     "schemaUrl": "https://ai.google.dev/api/interactions-api",
@@ -22,9 +22,6 @@
         "resolution": "720p",
         "aspect_ratio": "16:9",
         "delivery": "inline"
-      },
-      "generation_config": {
-        "max_output_tokens": 32768
       },
       "store": true,
       "background": true
@@ -44,14 +41,15 @@
       "hevc"
     ],
     "audio": true,
-    "description": "Gemini Omni Flash through Google Gemini API. Fixed text-only preset using resumable interactions; no provider tools or reference inputs."
+    "description": "Gemini Omni Flash (Google direct) with provider-supported settings and reference inputs.",
+    "flexibleGoogle": true
   },
   "direct/google/nano-banana-2.1": {
     "provider": "google",
     "vendor": "Google",
     "deadlineMs": 480000,
     "seed": false,
-    "maxPrompt": 2000,
+    "maxPrompt": 1048576,
     "feeMultiplier": 1,
     "interaction": true,
     "schemaUrl": "https://ai.google.dev/api/interactions-api",
@@ -70,9 +68,6 @@
         "mime_type": "image/jpeg",
         "delivery": "inline"
       },
-      "generation_config": {
-        "max_output_tokens": 4096
-      },
       "store": true,
       "background": true
     },
@@ -91,14 +86,15 @@
     ],
     "audio": false,
     "mediaPolicy": 2,
-    "description": "Nano Banana 2.1 through Google Gemini API. Fixed text-only preset using resumable interactions; no provider tools or reference inputs."
+    "description": "Nano Banana 2.1 (Google direct) with provider-supported settings and reference inputs.",
+    "flexibleGoogle": true
   },
   "direct/google/nano-banana-2-lite": {
     "provider": "google",
     "vendor": "Google",
     "deadlineMs": 480000,
     "seed": false,
-    "maxPrompt": 2000,
+    "maxPrompt": 1048576,
     "feeMultiplier": 1,
     "interaction": true,
     "schemaUrl": "https://ai.google.dev/api/interactions-api",
@@ -117,9 +113,6 @@
         "mime_type": "image/jpeg",
         "delivery": "inline"
       },
-      "generation_config": {
-        "max_output_tokens": 4096
-      },
       "store": true,
       "background": true
     },
@@ -138,14 +131,15 @@
     ],
     "audio": false,
     "mediaPolicy": 2,
-    "description": "Nano Banana 2 Lite through Google Gemini API. Fixed text-only preset using resumable interactions; no provider tools or reference inputs."
+    "description": "Nano Banana 2 Lite (Google direct) with provider-supported settings and reference inputs.",
+    "flexibleGoogle": true
   },
   "direct/google/nano-banana-2": {
     "provider": "google",
     "vendor": "Google",
     "deadlineMs": 480000,
     "seed": false,
-    "maxPrompt": 2000,
+    "maxPrompt": 1048576,
     "feeMultiplier": 1,
     "interaction": true,
     "schemaUrl": "https://ai.google.dev/api/interactions-api",
@@ -164,9 +158,6 @@
         "mime_type": "image/jpeg",
         "delivery": "inline"
       },
-      "generation_config": {
-        "max_output_tokens": 4096
-      },
       "store": true,
       "background": true
     },
@@ -185,14 +176,15 @@
     ],
     "audio": false,
     "mediaPolicy": 2,
-    "description": "Nano Banana 2 through Google Gemini API. Fixed text-only preset using resumable interactions; no provider tools or reference inputs."
+    "description": "Nano Banana 2 (Google direct) with provider-supported settings and reference inputs.",
+    "flexibleGoogle": true
   },
   "direct/google/nano-banana-pro": {
     "provider": "google",
     "vendor": "Google",
     "deadlineMs": 480000,
     "seed": false,
-    "maxPrompt": 2000,
+    "maxPrompt": 524288,
     "feeMultiplier": 1,
     "interaction": true,
     "schemaUrl": "https://ai.google.dev/api/interactions-api",
@@ -211,9 +203,6 @@
         "mime_type": "image/jpeg",
         "delivery": "inline"
       },
-      "generation_config": {
-        "max_output_tokens": 4096
-      },
       "store": true,
       "background": true
     },
@@ -232,14 +221,15 @@
     ],
     "audio": false,
     "mediaPolicy": 2,
-    "description": "Nano Banana Pro through Google Gemini API. Fixed text-only preset using resumable interactions; no provider tools or reference inputs."
+    "description": "Nano Banana Pro (Google direct) with provider-supported settings and reference inputs.",
+    "flexibleGoogle": true
   },
   "direct/google/lyria-3.5": {
     "provider": "google",
     "vendor": "Google",
     "deadlineMs": 480000,
     "seed": false,
-    "maxPrompt": 2000,
+    "maxPrompt": 1048576,
     "feeMultiplier": 1,
     "interaction": true,
     "schemaUrl": "https://ai.google.dev/api/interactions-api",
@@ -271,14 +261,15 @@
     "audio": true,
     "mediaPolicy": 2,
     "maxDurationMs": 300000,
-    "description": "Lyria 3.5 through Google Gemini API. Fixed text-only preset using resumable interactions; no provider tools or reference inputs."
+    "description": "Lyria 3.5 (Google direct) with provider-supported settings and reference inputs.",
+    "flexibleGoogle": true
   },
   "direct/google/gemini-3.8-flash-tts": {
     "provider": "google",
     "vendor": "Google",
     "deadlineMs": 480000,
     "seed": false,
-    "maxPrompt": 2000,
+    "maxPrompt": 65536,
     "feeMultiplier": 1,
     "interaction": true,
     "schemaUrl": "https://ai.google.dev/api/interactions-api",
@@ -297,7 +288,6 @@
         "delivery": "inline"
       },
       "generation_config": {
-        "max_output_tokens": 4096,
         "speech_config": [
           {
             "voice": "Kore"
@@ -319,14 +309,15 @@
     "audio": true,
     "mediaPolicy": 2,
     "maxDurationMs": 180000,
-    "description": "Gemini 3.8 Flash TTS through Google Gemini API. Fixed text-only preset using resumable interactions; no provider tools or reference inputs."
+    "description": "Gemini 3.8 Flash TTS (Google direct) with provider-supported settings and reference inputs.",
+    "flexibleGoogle": true
   },
   "direct/google/gemini-3.8-flash-lite-tts": {
     "provider": "google",
     "vendor": "Google",
     "deadlineMs": 480000,
     "seed": false,
-    "maxPrompt": 2000,
+    "maxPrompt": 65536,
     "feeMultiplier": 1,
     "interaction": true,
     "schemaUrl": "https://ai.google.dev/api/interactions-api",
@@ -345,7 +336,6 @@
         "delivery": "inline"
       },
       "generation_config": {
-        "max_output_tokens": 4096,
         "speech_config": [
           {
             "voice": "Kore"
@@ -367,6 +357,7 @@
     "audio": true,
     "mediaPolicy": 2,
     "maxDurationMs": 180000,
-    "description": "Gemini 3.8 Flash-Lite TTS through Google Gemini API. Fixed text-only preset using resumable interactions; no provider tools or reference inputs."
+    "description": "Gemini 3.8 Flash-Lite TTS (Google direct) with provider-supported settings and reference inputs.",
+    "flexibleGoogle": true
   }
 }

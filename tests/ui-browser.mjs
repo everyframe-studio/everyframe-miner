@@ -317,6 +317,7 @@ try {
     try {
       S.offers = {offers:[
         {model:'studio/openrouter/example',providerApiId:'vendor/example',name:'Supported fixture',provider:'openrouter',offerable:true,catalogGroup:'supported'},
+        {model:'direct/google/gemini-omni-flash',name:'Google flexible fixture',provider:'google',offerable:true,catalogGroup:'supported',contract:{googleCapabilities:{resolutions:['360p','720p','1080p','4k'],aspects:['16:9','9:16'],durationRange:[3,10],imageReferences:10,videoReferences:3,tasks:['edit','extend']}}},
         {model:'retired/example',providerApiId:'vendor/old',name:'Retired fixture',offered:true,offerable:false,catalogGroup:'candidate',providerAvailability:{status:'deprecated'}},
         {model:'candidate/example',name:'Candidate fixture',offerable:false,catalogGroup:'candidate'},
       ]};
@@ -330,6 +331,8 @@ try {
   });
   assert.match(availabilityUI.all,/Everyframe contract: studio\/openrouter\/example/);
   assert.match(availabilityUI.all,/Provider API ID: vendor\/example/);
+  assert.match(availabilityUI.all,/Sizes: 360p, 720p, 1080p, 4k/);
+  assert.match(availabilityUI.all,/Video generation, first\/last frames, editing and extension/);
   assert.doesNotMatch(availabilityUI.all,/Retired fixture|Candidate fixture/);
   assert.match(availabilityUI.candidates,/Deprecated by provider/);
   assert.equal(availabilityUI.canUpdate,false);

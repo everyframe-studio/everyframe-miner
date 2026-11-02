@@ -452,7 +452,20 @@ impl Runtime for LiveRuntime {
             .ok_or(Error("invalid_release_url"))?
             .to_string();
         let mut r = Request::get(url, &[&host]).json("POST", body);
-        r.limit = 300000;
+        r.limit = if body["value"]["action"] == "claim"
+            && body["value"]["payload"]["models"]
+                .as_array()
+                .is_some_and(|a| {
+                    a.iter().any(|id| {
+                        crate::google_settings::CAPS
+                            .get(id.as_str().unwrap_or(""))
+                            .is_some()
+                    })
+                }) {
+            32 * 1024 * 1024
+        } else {
+            300000
+        };
         r.timeout = if ["balances", "heartbeat"]
             .iter()
             .any(|action| body["value"]["action"] == *action)

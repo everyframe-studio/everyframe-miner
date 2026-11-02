@@ -1,0 +1,1817 @@
+[
+  {
+    "request": {
+      "model": "direct/google/gemini-omni-flash",
+      "prompt": "Interpolate the frames",
+      "duration": 10,
+      "resolution": "4k",
+      "aspect": "9:16",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_1?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "last",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "first",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        }
+      ],
+      "options": {
+        "generation_config": {
+          "video_config": {
+            "task": "image_to_video"
+          },
+          "seed": 11
+        }
+      }
+    },
+    "spec": {
+      "model": "direct/google/gemini-omni-flash",
+      "input": {
+        "response_format": {
+          "type": "video",
+          "duration": "10s",
+          "resolution": "4k",
+          "aspect_ratio": "9:16",
+          "delivery": "inline"
+        },
+        "store": true,
+        "background": true,
+        "prompt": "Interpolate the frames",
+        "generation_config": {
+          "video_config": {
+            "task": "image_to_video"
+          },
+          "seed": 11
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_1?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "last",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "first",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          }
+        ]
+      }
+    },
+    "hash": "5baeee12581e057f19f51033baeba3ab4655436b13f959e64b27e62fb5886dca",
+    "body": {
+      "response_format": {
+        "type": "video",
+        "duration": "10s",
+        "resolution": "4k",
+        "aspect_ratio": "9:16",
+        "delivery": "inline"
+      },
+      "store": true,
+      "background": true,
+      "generation_config": {
+        "video_config": {
+          "task": "image_to_video"
+        },
+        "seed": 11
+      },
+      "model": "gemini-omni-1.1-flash",
+      "input": [
+        {
+          "type": "user_input",
+          "content": [
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref0"
+            },
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref1"
+            },
+            {
+              "type": "text",
+              "text": "Interpolate the frames"
+            }
+          ]
+        }
+      ]
+    },
+    "uploaded": [
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref0"
+      },
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref1"
+      }
+    ]
+  },
+  {
+    "request": {
+      "model": "direct/google/gemini-omni-flash",
+      "prompt": "Make it a sunset",
+      "duration": 6,
+      "resolution": "1080p",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "video/mp4",
+          "role": "video",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 3000,
+          "frameCount": 72
+        }
+      ],
+      "options": {
+        "generation_config": {
+          "video_config": {
+            "task": "edit"
+          }
+        }
+      }
+    },
+    "spec": {
+      "model": "direct/google/gemini-omni-flash",
+      "input": {
+        "response_format": {
+          "type": "video",
+          "duration": "6s",
+          "resolution": "1080p",
+          "delivery": "inline"
+        },
+        "store": true,
+        "background": true,
+        "prompt": "Make it a sunset",
+        "generation_config": {
+          "video_config": {
+            "task": "edit"
+          }
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "video/mp4",
+            "role": "video",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 3000,
+            "frameCount": 72
+          }
+        ]
+      }
+    },
+    "hash": "b8f478c03ce47ac40066a025f3f101ad9e123d8420bd636ab64ce5f3f154ca33",
+    "body": {
+      "response_format": {
+        "type": "video",
+        "duration": "6s",
+        "resolution": "1080p",
+        "delivery": "inline"
+      },
+      "store": true,
+      "background": true,
+      "generation_config": {
+        "video_config": {
+          "task": "edit"
+        }
+      },
+      "model": "gemini-omni-1.1-flash",
+      "input": [
+        {
+          "type": "user_input",
+          "content": [
+            {
+              "type": "video",
+              "mime_type": "video/mp4",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref0"
+            },
+            {
+              "type": "text",
+              "text": "Make it a sunset"
+            }
+          ]
+        }
+      ]
+    },
+    "uploaded": [
+      {
+        "type": "video",
+        "mime_type": "video/mp4",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref0"
+      }
+    ]
+  },
+  {
+    "request": {
+      "model": "direct/google/gemini-omni-flash",
+      "prompt": "Continue for ten seconds",
+      "duration": 10,
+      "options": {
+        "previous_interaction_id": "v1_prior",
+        "generation_config": {
+          "video_config": {
+            "task": "extend"
+          }
+        }
+      }
+    },
+    "spec": {
+      "model": "direct/google/gemini-omni-flash",
+      "input": {
+        "response_format": {
+          "type": "video",
+          "duration": "10s",
+          "resolution": "720p",
+          "aspect_ratio": "16:9",
+          "delivery": "inline"
+        },
+        "store": true,
+        "background": true,
+        "prompt": "Continue for ten seconds",
+        "generation_config": {
+          "video_config": {
+            "task": "extend"
+          }
+        },
+        "previous_interaction_id": "v1_prior"
+      }
+    },
+    "hash": "aaeea382a1300a5864cf8b148e5d98a0491bed00ab33d40fd7c88bbc54b09bc0",
+    "body": {
+      "response_format": {
+        "type": "video",
+        "duration": "10s",
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "delivery": "inline"
+      },
+      "store": true,
+      "background": true,
+      "generation_config": {
+        "video_config": {
+          "task": "extend"
+        }
+      },
+      "previous_interaction_id": "v1_prior",
+      "model": "gemini-omni-1.1-flash",
+      "input": [
+        {
+          "type": "user_input",
+          "content": [
+            {
+              "type": "text",
+              "text": "Continue for ten seconds"
+            }
+          ]
+        }
+      ]
+    },
+    "uploaded": []
+  },
+  {
+    "request": {
+      "model": "direct/google/nano-banana-2.1",
+      "prompt": "Create a panorama",
+      "resolution": "4k",
+      "aspect": "8:1",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        }
+      ],
+      "options": {
+        "generation_config": {
+          "thinking_level": "high",
+          "temperature": 0.7
+        },
+        "tools": [
+          {
+            "type": "google_search",
+            "search_types": [
+              "web_search",
+              "image_search"
+            ]
+          }
+        ]
+      }
+    },
+    "spec": {
+      "model": "direct/google/nano-banana-2.1",
+      "input": {
+        "response_format": {
+          "type": "image",
+          "image_size": "4K",
+          "aspect_ratio": "8:1",
+          "mime_type": "image/jpeg",
+          "delivery": "inline"
+        },
+        "store": true,
+        "background": true,
+        "prompt": "Create a panorama",
+        "generation_config": {
+          "thinking_level": "high",
+          "temperature": "0.7"
+        },
+        "tools": [
+          {
+            "type": "google_search",
+            "search_types": [
+              "web_search",
+              "image_search"
+            ]
+          }
+        ],
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          }
+        ]
+      }
+    },
+    "hash": "102e606bef4be058f6eddb6b529bc80648c96ab0bc0f5babef2d2a23a7f9961d",
+    "body": {
+      "response_format": {
+        "type": "image",
+        "image_size": "4K",
+        "aspect_ratio": "8:1",
+        "mime_type": "image/jpeg",
+        "delivery": "inline"
+      },
+      "store": true,
+      "background": true,
+      "generation_config": {
+        "thinking_level": "high",
+        "temperature": 0.7
+      },
+      "tools": [
+        {
+          "type": "google_search",
+          "search_types": [
+            "web_search",
+            "image_search"
+          ]
+        }
+      ],
+      "model": "gemini-nano-banana-2.1",
+      "input": [
+        {
+          "type": "user_input",
+          "content": [
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref0"
+            },
+            {
+              "type": "text",
+              "text": "Create a panorama"
+            }
+          ]
+        }
+      ]
+    },
+    "uploaded": [
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref0"
+      }
+    ]
+  },
+  {
+    "request": {
+      "model": "direct/google/nano-banana-2",
+      "prompt": "Draw this video",
+      "resolution": "512",
+      "aspect": "2:3",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "video/mp4",
+          "role": "video",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 3000,
+          "frameCount": 72
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_1?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "application/pdf",
+          "role": "document",
+          "width": 0,
+          "height": 0,
+          "durationMs": 0,
+          "frameCount": 0
+        }
+      ]
+    },
+    "spec": {
+      "model": "direct/google/nano-banana-2",
+      "input": {
+        "response_format": {
+          "type": "image",
+          "image_size": "512",
+          "aspect_ratio": "2:3",
+          "mime_type": "image/jpeg",
+          "delivery": "inline"
+        },
+        "store": true,
+        "background": true,
+        "prompt": "Draw this video",
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "video/mp4",
+            "role": "video",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 3000,
+            "frameCount": 72
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_1?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "application/pdf",
+            "role": "document",
+            "width": 0,
+            "height": 0,
+            "durationMs": 0,
+            "frameCount": 0
+          }
+        ]
+      }
+    },
+    "hash": "eb3d81a2123132fa8268c41f50a9107e509aa139edcd1db6f1f6d87ab1aef6de",
+    "body": {
+      "response_format": {
+        "type": "image",
+        "image_size": "512",
+        "aspect_ratio": "2:3",
+        "mime_type": "image/jpeg",
+        "delivery": "inline"
+      },
+      "store": true,
+      "background": true,
+      "model": "gemini-3.1-flash-image",
+      "input": [
+        {
+          "type": "user_input",
+          "content": [
+            {
+              "type": "video",
+              "mime_type": "video/mp4",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref0"
+            },
+            {
+              "type": "document",
+              "mime_type": "application/pdf",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref1"
+            },
+            {
+              "type": "text",
+              "text": "Draw this video"
+            }
+          ]
+        }
+      ]
+    },
+    "uploaded": [
+      {
+        "type": "video",
+        "mime_type": "video/mp4",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref0"
+      },
+      {
+        "type": "document",
+        "mime_type": "application/pdf",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref1"
+      }
+    ]
+  },
+  {
+    "request": {
+      "model": "direct/google/nano-banana-2-lite",
+      "prompt": "Draw this video",
+      "resolution": "1k",
+      "aspect": "21:9",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "video/mp4",
+          "role": "video",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 3000,
+          "frameCount": 72
+        }
+      ]
+    },
+    "spec": {
+      "model": "direct/google/nano-banana-2-lite",
+      "input": {
+        "response_format": {
+          "type": "image",
+          "image_size": "1K",
+          "aspect_ratio": "21:9",
+          "mime_type": "image/jpeg",
+          "delivery": "inline"
+        },
+        "store": true,
+        "background": true,
+        "prompt": "Draw this video",
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "video/mp4",
+            "role": "video",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 3000,
+            "frameCount": 72
+          }
+        ]
+      }
+    },
+    "hash": "59750b9c6deed49eadd552c81160a376f323ecefbe5ad1bbd3c30d25f8cba79e",
+    "body": {
+      "response_format": {
+        "type": "image",
+        "image_size": "1K",
+        "aspect_ratio": "21:9",
+        "mime_type": "image/jpeg",
+        "delivery": "inline"
+      },
+      "store": true,
+      "background": true,
+      "model": "gemini-3.1-flash-lite-image",
+      "input": [
+        {
+          "type": "user_input",
+          "content": [
+            {
+              "type": "video",
+              "mime_type": "video/mp4",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref0"
+            },
+            {
+              "type": "text",
+              "text": "Draw this video"
+            }
+          ]
+        }
+      ]
+    },
+    "uploaded": [
+      {
+        "type": "video",
+        "mime_type": "video/mp4",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref0"
+      }
+    ]
+  },
+  {
+    "request": {
+      "model": "direct/google/nano-banana-pro",
+      "prompt": "Use all reference characters",
+      "resolution": "4k",
+      "aspect": "4:5",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_1?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_2?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_3?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_4?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_5?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_6?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_7?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_8?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_9?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_10?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_11?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_12?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_13?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        }
+      ]
+    },
+    "spec": {
+      "model": "direct/google/nano-banana-pro",
+      "input": {
+        "response_format": {
+          "type": "image",
+          "image_size": "4K",
+          "aspect_ratio": "4:5",
+          "mime_type": "image/jpeg",
+          "delivery": "inline"
+        },
+        "store": true,
+        "background": true,
+        "prompt": "Use all reference characters",
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_1?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_2?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_3?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_4?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_5?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_6?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_7?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_8?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_9?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_10?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_11?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_12?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_13?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          }
+        ]
+      }
+    },
+    "hash": "272662856da8aa558b4146bf9f223c081ba448c7aa70031c0b13b5894994dead",
+    "body": {
+      "response_format": {
+        "type": "image",
+        "image_size": "4K",
+        "aspect_ratio": "4:5",
+        "mime_type": "image/jpeg",
+        "delivery": "inline"
+      },
+      "store": true,
+      "background": true,
+      "model": "gemini-3-pro-image",
+      "input": [
+        {
+          "type": "user_input",
+          "content": [
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref0"
+            },
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref1"
+            },
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref2"
+            },
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref3"
+            },
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref4"
+            },
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref5"
+            },
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref6"
+            },
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref7"
+            },
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref8"
+            },
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref9"
+            },
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref10"
+            },
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref11"
+            },
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref12"
+            },
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref13"
+            },
+            {
+              "type": "text",
+              "text": "Use all reference characters"
+            }
+          ]
+        }
+      ]
+    },
+    "uploaded": [
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref0"
+      },
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref1"
+      },
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref2"
+      },
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref3"
+      },
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref4"
+      },
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref5"
+      },
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref6"
+      },
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref7"
+      },
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref8"
+      },
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref9"
+      },
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref10"
+      },
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref11"
+      },
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref12"
+      },
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref13"
+      }
+    ]
+  },
+  {
+    "request": {
+      "model": "direct/google/gemini-3.8-flash-tts",
+      "turns": [
+        {
+          "text": "Good morning.",
+          "speaker": "Alice",
+          "style": "cheerful"
+        },
+        {
+          "text": "Hello.",
+          "speaker": "Bob",
+          "style": "calm"
+        }
+      ],
+      "options": {
+        "response_format": {
+          "mime_type": "audio/mp3",
+          "sample_rate": 48000,
+          "bit_rate": 128000
+        },
+        "generation_config": {
+          "speech_config": {
+            "speakers": [
+              {
+                "speaker": "Alice",
+                "voice": "Kore",
+                "language": "en-US"
+              },
+              {
+                "speaker": "Bob",
+                "voice": "Puck"
+              }
+            ],
+            "mode": "conversational"
+          }
+        }
+      }
+    },
+    "spec": {
+      "model": "direct/google/gemini-3.8-flash-tts",
+      "input": {
+        "response_format": {
+          "type": "audio",
+          "mime_type": "audio/mp3",
+          "sample_rate": 48000,
+          "delivery": "inline",
+          "bit_rate": 128000
+        },
+        "generation_config": {
+          "speech_config": {
+            "speakers": [
+              {
+                "speaker": "Alice",
+                "voice": "Kore",
+                "language": "en-US"
+              },
+              {
+                "speaker": "Bob",
+                "voice": "Puck"
+              }
+            ],
+            "mode": "conversational"
+          }
+        },
+        "store": true,
+        "background": true,
+        "prompt": "Good morning.\nHello.",
+        "turns": [
+          {
+            "text": "Good morning.",
+            "speaker": "Alice",
+            "style": "cheerful"
+          },
+          {
+            "text": "Hello.",
+            "speaker": "Bob",
+            "style": "calm"
+          }
+        ]
+      }
+    },
+    "hash": "d3f3ce155de5f544ded312f2ca8017c362df79a0da5af0cc97fc7d0fd0343794",
+    "body": {
+      "response_format": {
+        "type": "audio",
+        "mime_type": "audio/mp3",
+        "sample_rate": 48000,
+        "delivery": "inline",
+        "bit_rate": 128000
+      },
+      "generation_config": {
+        "speech_config": {
+          "speakers": [
+            {
+              "speaker": "Alice",
+              "voice": "Kore",
+              "language": "en-US"
+            },
+            {
+              "speaker": "Bob",
+              "voice": "Puck"
+            }
+          ],
+          "mode": "conversational"
+        }
+      },
+      "store": true,
+      "background": true,
+      "model": "gemini-3.8-flash-tts",
+      "input": [
+        {
+          "type": "user_input",
+          "content": [
+            {
+              "type": "text",
+              "text": "Good morning.",
+              "annotations": [
+                {
+                  "type": "speech_metadata",
+                  "speaker": "Alice",
+                  "style": "cheerful"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "text": "Hello.",
+              "annotations": [
+                {
+                  "type": "speech_metadata",
+                  "speaker": "Bob",
+                  "style": "calm"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "uploaded": []
+  },
+  {
+    "request": {
+      "model": "direct/google/gemini-3.8-flash-lite-tts",
+      "prompt": "Use my custom voice",
+      "options": {
+        "response_format": {
+          "mime_type": "audio/l16"
+        },
+        "generation_config": {
+          "speech_config": [
+            {
+              "voice": "voice_custom123"
+            }
+          ]
+        }
+      }
+    },
+    "spec": {
+      "model": "direct/google/gemini-3.8-flash-lite-tts",
+      "input": {
+        "response_format": {
+          "type": "audio",
+          "mime_type": "audio/l16",
+          "sample_rate": 24000,
+          "delivery": "inline"
+        },
+        "generation_config": {
+          "speech_config": [
+            {
+              "voice": "voice_custom123"
+            }
+          ]
+        },
+        "store": true,
+        "background": true,
+        "prompt": "Use my custom voice"
+      }
+    },
+    "hash": "6b2aa9ae6a3057b1834c87a9135b336fde0b9781074f31d8250ba9e6d37920cc",
+    "body": {
+      "response_format": {
+        "type": "audio",
+        "mime_type": "audio/l16",
+        "sample_rate": 24000,
+        "delivery": "inline"
+      },
+      "generation_config": {
+        "speech_config": [
+          {
+            "voice": "voice_custom123"
+          }
+        ]
+      },
+      "store": true,
+      "background": true,
+      "model": "gemini-3.8-flash-lite-tts",
+      "input": [
+        {
+          "type": "user_input",
+          "content": [
+            {
+              "type": "text",
+              "text": "Use my custom voice"
+            }
+          ]
+        }
+      ]
+    },
+    "uploaded": []
+  },
+  {
+    "request": {
+      "model": "direct/google/lyria-3.5",
+      "prompt": "Music inspired by these images",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_1?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_2?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_3?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_4?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_5?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_6?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_7?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_8?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_9?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+          "bytes": 9,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        }
+      ],
+      "options": {
+        "response_format": {
+          "mime_type": "audio/wav"
+        }
+      }
+    },
+    "spec": {
+      "model": "direct/google/lyria-3.5",
+      "input": {
+        "response_format": {
+          "type": "audio",
+          "mime_type": "audio/wav",
+          "delivery": "inline"
+        },
+        "store": true,
+        "background": true,
+        "prompt": "Music inspired by these images",
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_1?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_2?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_3?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_4?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_5?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_6?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_7?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_8?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_9?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "52367a6622b19f08825e915fad80c542ad4f4c34dbcebad9f5007994b3e39208",
+            "bytes": 9,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          }
+        ]
+      }
+    },
+    "hash": "8ab20ed73da0e423f41fc8397490982a7a1c0c069a727591636d69986eedad04",
+    "body": {
+      "response_format": {
+        "type": "audio",
+        "mime_type": "audio/wav",
+        "delivery": "inline"
+      },
+      "store": true,
+      "background": true,
+      "model": "lyria-3.5",
+      "input": [
+        {
+          "type": "user_input",
+          "content": [
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref0"
+            },
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref1"
+            },
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref2"
+            },
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref3"
+            },
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref4"
+            },
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref5"
+            },
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref6"
+            },
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref7"
+            },
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref8"
+            },
+            {
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref9"
+            },
+            {
+              "type": "text",
+              "text": "Music inspired by these images"
+            }
+          ]
+        }
+      ]
+    },
+    "uploaded": [
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref0"
+      },
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref1"
+      },
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref2"
+      },
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref3"
+      },
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref4"
+      },
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref5"
+      },
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref6"
+      },
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref7"
+      },
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref8"
+      },
+      {
+        "type": "image",
+        "mime_type": "image/jpeg",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref9"
+      }
+    ]
+  },
+  {
+    "request": {
+      "model": "direct/google/nano-banana-2.1",
+      "prompt": "Explain and draw the scene",
+      "options": {
+        "system_instruction": "Return a caption and matching image.",
+        "response_format": [
+          {
+            "type": "text",
+            "mime_type": "application/json",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "caption": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "type": "image",
+            "image_size": "2K",
+            "aspect_ratio": "16:9",
+            "mime_type": "image/jpeg"
+          }
+        ]
+      }
+    },
+    "spec": {
+      "model": "direct/google/nano-banana-2.1",
+      "input": {
+        "response_format": [
+          {
+            "type": "text",
+            "mime_type": "application/json",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "caption": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "type": "image",
+            "image_size": "2K",
+            "aspect_ratio": "16:9",
+            "mime_type": "image/jpeg"
+          }
+        ],
+        "store": true,
+        "background": true,
+        "prompt": "Explain and draw the scene",
+        "system_instruction": "Return a caption and matching image."
+      }
+    },
+    "hash": "31c874d1ec7e20b8508f9d6d08a1b2b3dc0c9efa8c57a9a83d69de955ce2f157",
+    "body": {
+      "response_format": [
+        {
+          "type": "text",
+          "mime_type": "application/json",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "caption": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "type": "image",
+          "image_size": "2K",
+          "aspect_ratio": "16:9",
+          "mime_type": "image/jpeg"
+        }
+      ],
+      "store": true,
+      "background": true,
+      "system_instruction": "Return a caption and matching image.",
+      "model": "gemini-nano-banana-2.1",
+      "input": [
+        {
+          "type": "user_input",
+          "content": [
+            {
+              "type": "text",
+              "text": "Explain and draw the scene"
+            }
+          ]
+        }
+      ]
+    },
+    "uploaded": []
+  }
+]

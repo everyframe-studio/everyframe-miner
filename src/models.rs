@@ -88,6 +88,9 @@ pub fn spec(v: &Value) -> Result<Value> {
         return Ok(value);
     }
     let m = info(model)?;
+    if m["interaction"] == true {
+        return crate::google_settings::spec(v, m);
+    }
     let mut keys = vec!["prompt"];
     if v.get("model").is_some() {
         keys.push("model")
@@ -132,6 +135,9 @@ pub fn spec(v: &Value) -> Result<Value> {
 }
 pub fn check(v: &Value) -> Result<()> {
     let model = s(&v["model"])?;
+    if info(model)?["interaction"] == true {
+        return crate::google_settings::check(v);
+    }
     if model.starts_with("studio/tool/") {
         return crate::studio_tools::check(v);
     }

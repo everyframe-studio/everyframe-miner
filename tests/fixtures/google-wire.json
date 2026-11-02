@@ -3,7 +3,6 @@
     "spec": {
       "model": "direct/google/gemini-omni-flash",
       "input": {
-        "prompt": "A quiet blue lake.",
         "response_format": {
           "type": "video",
           "duration": "5s",
@@ -11,14 +10,12 @@
           "aspect_ratio": "16:9",
           "delivery": "inline"
         },
-        "generation_config": {
-          "max_output_tokens": 32768
-        },
         "store": true,
-        "background": true
+        "background": true,
+        "prompt": "A quiet blue lake."
       }
     },
-    "hash": "f7b27ec0b0176ed6f9ab36373d7ec3587620dce830a04fb7d198babc27f58a31",
+    "hash": "0aec2153ed85d6e42a35dbcb4498795690c5f4a7229dd830c47cfa55c7cfb5c9",
     "body": {
       "response_format": {
         "type": "video",
@@ -26,9 +23,6 @@
         "resolution": "720p",
         "aspect_ratio": "16:9",
         "delivery": "inline"
-      },
-      "generation_config": {
-        "max_output_tokens": 32768
       },
       "store": true,
       "background": true,
@@ -50,7 +44,6 @@
     "spec": {
       "model": "direct/google/nano-banana-2.1",
       "input": {
-        "prompt": "A quiet blue lake.",
         "response_format": {
           "type": "image",
           "image_size": "1K",
@@ -58,14 +51,12 @@
           "mime_type": "image/jpeg",
           "delivery": "inline"
         },
-        "generation_config": {
-          "max_output_tokens": 4096
-        },
         "store": true,
-        "background": true
+        "background": true,
+        "prompt": "A quiet blue lake."
       }
     },
-    "hash": "ff1b3c8fdbfeeac5d3557253658dedd6ffbaf8336525fd3349940f3b0bcadd0e",
+    "hash": "496cebeebf5230532b166aa72cdffc1b82b416f4d41e3d1af19f8c7235b2b244",
     "body": {
       "response_format": {
         "type": "image",
@@ -73,9 +64,6 @@
         "aspect_ratio": "1:1",
         "mime_type": "image/jpeg",
         "delivery": "inline"
-      },
-      "generation_config": {
-        "max_output_tokens": 4096
       },
       "store": true,
       "background": true,
@@ -97,7 +85,6 @@
     "spec": {
       "model": "direct/google/nano-banana-2-lite",
       "input": {
-        "prompt": "A quiet blue lake.",
         "response_format": {
           "type": "image",
           "image_size": "1K",
@@ -105,14 +92,12 @@
           "mime_type": "image/jpeg",
           "delivery": "inline"
         },
-        "generation_config": {
-          "max_output_tokens": 4096
-        },
         "store": true,
-        "background": true
+        "background": true,
+        "prompt": "A quiet blue lake."
       }
     },
-    "hash": "20e063d7c6ef163da2ccff8e678d7485ff5f3a38e48fc10d249c546a02af1769",
+    "hash": "571f1715f57602aeb4681a64686c456217468b5f67a711bfff36f90b91a22a70",
     "body": {
       "response_format": {
         "type": "image",
@@ -120,9 +105,6 @@
         "aspect_ratio": "1:1",
         "mime_type": "image/jpeg",
         "delivery": "inline"
-      },
-      "generation_config": {
-        "max_output_tokens": 4096
       },
       "store": true,
       "background": true,
@@ -144,7 +126,6 @@
     "spec": {
       "model": "direct/google/nano-banana-2",
       "input": {
-        "prompt": "A quiet blue lake.",
         "response_format": {
           "type": "image",
           "image_size": "1K",
@@ -152,14 +133,12 @@
           "mime_type": "image/jpeg",
           "delivery": "inline"
         },
-        "generation_config": {
-          "max_output_tokens": 4096
-        },
         "store": true,
-        "background": true
+        "background": true,
+        "prompt": "A quiet blue lake."
       }
     },
-    "hash": "4124ea5cc1b08216388a8c9f2955974727823d921415fb5af385d65abbd68fc2",
+    "hash": "89582878a26a150615fa3e619443ef550fbac85f3360f2b48510ca436a9b9209",
     "body": {
       "response_format": {
         "type": "image",
@@ -167,9 +146,6 @@
         "aspect_ratio": "1:1",
         "mime_type": "image/jpeg",
         "delivery": "inline"
-      },
-      "generation_config": {
-        "max_output_tokens": 4096
       },
       "store": true,
       "background": true,
@@ -191,7 +167,6 @@
     "spec": {
       "model": "direct/google/nano-banana-pro",
       "input": {
-        "prompt": "A quiet blue lake.",
         "response_format": {
           "type": "image",
           "image_size": "1K",
@@ -199,14 +174,12 @@
           "mime_type": "image/jpeg",
           "delivery": "inline"
         },
-        "generation_config": {
-          "max_output_tokens": 4096
-        },
         "store": true,
-        "background": true
+        "background": true,
+        "prompt": "A quiet blue lake."
       }
     },
-    "hash": "a353513ff128beb2871c2f31e59b69a99a7f5bf332627d09e27048e47044648c",
+    "hash": "0261f59a041e3725a2cc1c93bb9e51902a3aa0d07863faf04c19c9b5c60bc906",
     "body": {
       "response_format": {
         "type": "image",
@@ -214,9 +187,6 @@
         "aspect_ratio": "1:1",
         "mime_type": "image/jpeg",
         "delivery": "inline"
-      },
-      "generation_config": {
-        "max_output_tokens": 4096
       },
       "store": true,
       "background": true,
@@ -238,14 +208,14 @@
     "spec": {
       "model": "direct/google/lyria-3.5",
       "input": {
-        "prompt": "A quiet blue lake.",
         "response_format": {
           "type": "audio",
           "mime_type": "audio/mp3",
           "delivery": "inline"
         },
         "store": true,
-        "background": true
+        "background": true,
+        "prompt": "A quiet blue lake."
       }
     },
     "hash": "8e10283ffb8c7ab45d1198274dcf6331c5c113ff68b28ed845dea5e08107f094",
@@ -275,7 +245,6 @@
     "spec": {
       "model": "direct/google/gemini-3.8-flash-tts",
       "input": {
-        "prompt": "A quiet blue lake.",
         "response_format": {
           "type": "audio",
           "mime_type": "audio/wav",
@@ -283,7 +252,6 @@
           "delivery": "inline"
         },
         "generation_config": {
-          "max_output_tokens": 4096,
           "speech_config": [
             {
               "voice": "Kore"
@@ -291,10 +259,11 @@
           ]
         },
         "store": true,
-        "background": true
+        "background": true,
+        "prompt": "A quiet blue lake."
       }
     },
-    "hash": "ebc2d14a7ceb8da452284d63d4a489566e9c0935d4a95bd5f006be9ffa6f9688",
+    "hash": "7c67645869be6ada0fe0e22808ea5906d719c22710293d245bd53ea21ca987d7",
     "body": {
       "response_format": {
         "type": "audio",
@@ -303,7 +272,6 @@
         "delivery": "inline"
       },
       "generation_config": {
-        "max_output_tokens": 4096,
         "speech_config": [
           {
             "voice": "Kore"
@@ -330,7 +298,6 @@
     "spec": {
       "model": "direct/google/gemini-3.8-flash-lite-tts",
       "input": {
-        "prompt": "A quiet blue lake.",
         "response_format": {
           "type": "audio",
           "mime_type": "audio/wav",
@@ -338,7 +305,6 @@
           "delivery": "inline"
         },
         "generation_config": {
-          "max_output_tokens": 4096,
           "speech_config": [
             {
               "voice": "Kore"
@@ -346,10 +312,11 @@
           ]
         },
         "store": true,
-        "background": true
+        "background": true,
+        "prompt": "A quiet blue lake."
       }
     },
-    "hash": "f29dc3b64d5db52cc79d0275bd0a666c6928052684f6d733ee32c242a325a33d",
+    "hash": "44a0bdba2fa9fa56fbd01444b5a775b299a5659d08ba0cd1843e891c072f95be",
     "body": {
       "response_format": {
         "type": "audio",
@@ -358,7 +325,6 @@
         "delivery": "inline"
       },
       "generation_config": {
-        "max_output_tokens": 4096,
         "speech_config": [
           {
             "voice": "Kore"

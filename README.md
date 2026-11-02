@@ -21,7 +21,7 @@ and media contracts, and twelve provider adapters. See the
 
 The direct Google integration adds Gemini Omni Flash, four Nano Banana image
 models, Lyria 3.5, and both Gemini 3.8 TTS models. See the [Google provider
-guide](GOOGLE.md) for the fixed presets and compatible-worker requirements.
+guide](GOOGLE.md) for supported settings, references and compatible-worker requirements.
 Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.

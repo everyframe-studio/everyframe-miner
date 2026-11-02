@@ -7,6 +7,7 @@ pub mod cloud;
 pub mod diagnostics;
 pub mod display;
 pub mod google;
+pub mod google_settings;
 pub mod health;
 pub mod hotkey;
 pub mod invitation;

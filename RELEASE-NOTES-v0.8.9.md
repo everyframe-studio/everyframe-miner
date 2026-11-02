@@ -3,6 +3,8 @@
 - Adds direct Google support for Gemini Omni Flash, Nano Banana 2.1, Nano
   Banana 2 Lite, Nano Banana 2, Nano Banana Pro, Lyria 3.5, Gemini 3.8 Flash
   TTS and Gemini 3.8 Flash-Lite TTS.
+- Adds selectable sizes, aspect ratios, reference inputs, video editing and
+  extension, speech voices and multi-speaker output, and native audio formats.
 - Checks model access using your Google API key.
 - Resumes Google requests by their saved interaction ID after interruption.
 - Uses the existing provider offer switches, neutral 0% defaults and explicit

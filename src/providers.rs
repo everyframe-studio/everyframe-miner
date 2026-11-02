@@ -363,6 +363,97 @@ impl<'a> Router<'a> {
         models::check(spec)?;
         Ok(data)
     }
+    fn google_references(&self, spec: &Value) -> Result<Vec<Value>> {
+        use base64::{Engine, engine::general_purpose::STANDARD};
+        use sha2::Digest;
+        let mut out = vec![];
+        let mut references: Vec<_> = spec["input"]["references"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .collect();
+        references.sort_by_key(|r| match r["role"].as_str() {
+            Some("first") => 0,
+            Some("last") => 1,
+            _ => 2,
+        });
+        for r in references {
+            let mut req = Request::get(
+                s(&r["url"])?,
+                &["api.everyframe.studio", "app.everyframe.studio"],
+            );
+            req.limit = crate::n(&r["bytes"])? as usize;
+            req.timeout = 180;
+            let bytes = self.http.bytes(req)?;
+            need(
+                bytes.len() == crate::n(&r["bytes"])? as usize && sha(&bytes) == s(&r["sha256"])?,
+                "reference_integrity_mismatch",
+            )?;
+            let boundary = format!("everyframe-{}", id());
+            let metadata =
+                json!({"file":{"display_name":format!("everyframe-{}",&s(&r["sha256"])?[..16])}});
+            let mut payload=format!("--{boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n{metadata}\r\n--{boundary}\r\nContent-Type: {}\r\n\r\n",s(&r["mime"])?).into_bytes();
+            payload.extend_from_slice(&bytes);
+            payload.extend_from_slice(format!("\r\n--{boundary}--\r\n").as_bytes());
+            let mut req = Request::get(
+                format!(
+                    "{}/upload/v1beta/files?uploadType=multipart",
+                    crate::google::ORIGIN
+                ),
+                &["generativelanguage.googleapis.com"],
+            );
+            req.method = "POST".into();
+            req.headers = self.auth("google")?;
+            req.headers.push((
+                "content-type".into(),
+                format!("multipart/related; boundary={boundary}"),
+            ));
+            req.body = Some(payload);
+            req.timeout = 180;
+            self.guard_submission(&mut req)?;
+            let mut file = self.http.json(req)?["file"].clone();
+            let name = s(&file["name"])?.to_string();
+            need(
+                crate::matches("files/[A-Za-z0-9_-]+", &json!(name)),
+                "invalid_provider_ref",
+            )?;
+            let deadline = crate::now() + 60000;
+            while file["state"] == "PROCESSING" {
+                need(crate::now() < deadline, "provider_timeout")?;
+                std::thread::sleep(std::time::Duration::from_millis(500));
+                file = self.api("google", &format!("/v1beta/{name}"), None)?;
+                need(file["name"] == name, "provider_id_mismatch")?;
+            }
+            need(file["state"] == "ACTIVE", "reference_upload_failed")?;
+            if let Some(mime) = file.get("mimeType") {
+                need(mime == &r["mime"], "reference_integrity_mismatch")?;
+            }
+            if let Some(size) = file.get("sizeBytes") {
+                need(
+                    size.as_str()
+                        .and_then(|v| v.parse::<i64>().ok())
+                        .or_else(|| size.as_i64())
+                        == r["bytes"].as_i64(),
+                    "reference_integrity_mismatch",
+                )?;
+            }
+            if let Some(hash) = file.get("sha256Hash") {
+                need(
+                    STANDARD.decode(s(hash)?).ok() == Some(sha2::Sha256::digest(&bytes).to_vec()),
+                    "reference_integrity_mismatch",
+                )?;
+            }
+
+            let uri = s(&file["uri"])?;
+            let parsed = safe_url(uri, &["generativelanguage.googleapis.com".into()])?;
+            need(
+                parsed.path() == format!("/v1beta/{name}") && parsed.query().is_none(),
+                "invalid_reference_origin",
+            )?;
+            out.push(json!({"type":if ["first","last"].contains(&s(&r["role"])?){"image"}else{s(&r["role"])?},"mime_type":r["mime"],"uri":uri}));
+        }
+        Ok(out)
+    }
     fn read(&self, r: &str, spec: &Value, m: &Value, p: &str) -> Result<Value> {
         let model = m["apiModel"].as_str().unwrap_or("");
         let data = match p {
@@ -646,7 +737,8 @@ impl Provider for Router<'_> {
             "provider_model_unavailable",
         )?;
         if p == "google" && m["interaction"] == true {
-            let body = crate::google::body(spec, m)?;
+            let references = self.google_references(spec)?;
+            let body = crate::google::body_with_references(spec, m, &references)?;
             let mut req = Request::get(
                 format!("{}/v1beta/interactions", crate::google::ORIGIN),
                 &["generativelanguage.googleapis.com"],
@@ -831,21 +923,48 @@ impl Provider for Router<'_> {
         let (m, p) = self.context(spec)?;
         if p == "google" && m["interaction"] == true {
             let data = self.google_read(r, spec, m)?;
-            let block = crate::google::media(&data, m)?;
-            let media = if block["data"].is_string() {
-                crate::google::inline(block)?
-            } else {
-                self.download(
-                    &crate::google::download_url(block)?,
-                    &["generativelanguage.googleapis.com"],
-                    Some("google"),
-                    &[
-                        "generativelanguage.googleapis.com",
-                        "*.googleusercontent.com",
-                        "storage.googleapis.com",
-                    ],
-                )?
-            };
+            let expected = crate::google::output_model(spec, m)?;
+            let blocks = crate::google::media_blocks(&data, &expected)?;
+            let bundled = blocks.len() > 1 || spec["input"]["response_format"].is_array();
+            let mut parts = vec![];
+            let mut media = vec![];
+            for block in blocks {
+                let bytes = if block["data"].is_string() {
+                    crate::google::inline(block)?
+                } else {
+                    self.download(
+                        &crate::google::download_url(block)?,
+                        &["generativelanguage.googleapis.com"],
+                        Some("google"),
+                        &[
+                            "generativelanguage.googleapis.com",
+                            "*.googleusercontent.com",
+                            "storage.googleapis.com",
+                        ],
+                    )?
+                };
+                if bundled {
+                    parts.push(json!({"type":expected["kind"],"mime":expected["mime"],"data":crate::protocol::b64(&bytes)}));
+                } else {
+                    media = bytes;
+                }
+            }
+            if bundled {
+                let text: Vec<_> = data["steps"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .filter(|s| s["type"] == "model_output")
+                    .filter_map(|s| s["content"].as_array())
+                    .flatten()
+                    .filter(|c| c["type"] == "text")
+                    .filter_map(|c| c["text"].as_str())
+                    .collect();
+                media = json!({"kind":"google-media-bundle","version":1,"parts":parts,"text":text})
+                    .to_string()
+                    .into_bytes();
+                need(media.len() <= MAX_MEDIA, "invalid_media_size")?;
+            }
             let response_hash = crate::google::response_hash(spec, &data, &media)?;
             return Ok(Output {
                 media,

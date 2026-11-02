@@ -30,7 +30,11 @@ fn google_contracts_match_coordinator_wire_fixtures_and_reject_extra_options() {
             assert!(models::check(&changed).is_err());
         }
         let mut changed = spec.clone();
-        changed["input"]["generation_config"]["max_output_tokens"] = json!(1_000_000);
+        changed["input"]["generation_config"]["max_output_tokens"] = json!(
+            everyframe_miner::google_settings::CAPS[spec["model"].as_str().unwrap()]["outputTokens"]
+                .as_i64()
+                .unwrap() + 1
+        );
         assert!(models::check(&changed).is_err());
     }
 }
@@ -205,4 +209,120 @@ fn google_catalog_is_read_only_paginated_and_account_scoped() {
             .any(|r| r["model"] == "direct/google/gemini-omni-flash"
                 && r["status"] == "access_denied")
     );
+}
+
+#[test]
+fn flexible_google_options_match_coordinator_and_provider_wire() {
+    let rows: Vec<Value> =
+        serde_json::from_str(include_str!("fixtures/google-flexible.json")).unwrap();
+    assert_eq!(rows.len(), 11);
+    for row in rows {
+        let spec = models::spec(&row["request"]).unwrap();
+        assert_eq!(spec, row["spec"]);
+        assert_eq!(protocol::digest(&spec).unwrap(), row["hash"]);
+        let model = models::info(spec["model"].as_str().unwrap()).unwrap();
+        assert_eq!(
+            google::body_with_references(&spec, model, row["uploaded"].as_array().unwrap())
+                .unwrap(),
+            row["body"]
+        );
+    }
+}
+
+#[test]
+fn google_native_formats_and_provider_limits_are_not_preset_limits() {
+    use everyframe_miner::google_settings::CAPS;
+    for (id, caps) in CAPS.as_object().unwrap() {
+        if let Some(sizes) = caps["resolutions"].as_array() {
+            for size in sizes {
+                for aspect in caps["aspects"].as_array().unwrap() {
+                    models::spec(
+                        &json!({"model":id,"prompt":"scene","resolution":size,"aspect":aspect}),
+                    )
+                    .unwrap();
+                }
+            }
+        }
+        if let Some(formats) = caps["formats"].as_array() {
+            for mime in formats {
+                models::spec(&json!({"model":id,"prompt":"scene","options":{"response_format":{"mime_type":mime}}})).unwrap();
+            }
+        }
+        let spec = models::spec(&json!({"model":id,"prompt":"scene"})).unwrap();
+        assert!(
+            spec["input"]["generation_config"]
+                .get("max_output_tokens")
+                .is_none()
+        );
+        let mut invalid = spec;
+        invalid["input"]["response_format"]["delivery"] = json!("external");
+        assert!(models::check(&invalid).is_err());
+    }
+    let s = models::spec(&json!({"model":"direct/google/gemini-3.8-flash-tts","prompt":"hello","options":{"generation_config":{"structured_speech_config":[{"voice":"Puck"}]}}})).unwrap();
+    assert!(
+        s["input"]["generation_config"]
+            .get("speech_config")
+            .is_none()
+    );
+}
+
+#[test]
+fn google_reference_uploads_verify_bytes_before_generation() {
+    use base64::{Engine, engine::general_purpose::STANDARD};
+    use sha2::{Digest, Sha256};
+    struct References {
+        calls: RefCell<Vec<Request>>,
+        tampered: bool,
+    }
+    impl Http for References {
+        fn bytes(&self, req: Request) -> Result<Vec<u8>> {
+            let result = if req.url.starts_with("https://api.everyframe.studio/") {
+                assert!(req.headers.is_empty());
+                if self.tampered {
+                    b"tampered".to_vec()
+                } else {
+                    b"reference".to_vec()
+                }
+            } else if req.url.contains("/upload/") {
+                assert!(
+                    req.body
+                        .as_ref()
+                        .unwrap()
+                        .windows(9)
+                        .any(|v| v == b"reference")
+                );
+                assert!(
+                    req.headers
+                        .iter()
+                        .any(|(k, v)| k == "x-goog-api-key" && v == "synthetic-key")
+                );
+                json!({"file":{"state":"ACTIVE","name":"files/ref1","uri":"https://generativelanguage.googleapis.com/v1beta/files/ref1","mimeType":"image/jpeg","sizeBytes":"9","sha256Hash":STANDARD.encode(Sha256::digest(b"reference"))}}).to_string().into_bytes()
+            } else {
+                let body: Value = serde_json::from_slice(req.body.as_ref().unwrap()).unwrap();
+                assert_eq!(body["input"][0]["content"][0]["type"], "image");
+                assert_eq!(body["input"][0]["content"][1]["type"], "image");
+                json!({"id":"v1_ref","status":"in_progress","model":"gemini-omni-1.1-flash"})
+                    .to_string()
+                    .into_bytes()
+            };
+            self.calls.borrow_mut().push(req);
+            Ok(result)
+        }
+    }
+    let rows: Vec<Value> =
+        serde_json::from_str(include_str!("fixtures/google-flexible.json")).unwrap();
+    for tampered in [false, true] {
+        let http = References {
+            calls: RefCell::new(vec![]),
+            tampered,
+        };
+        let mut router = Router::new(&http, json!({"GEMINI_API_KEY":"synthetic-key"}));
+        let result = router.submit_before(&rows[0]["spec"], everyframe_miner::now() + 60000);
+        if tampered {
+            assert_eq!(result.unwrap_err().0, "reference_integrity_mismatch");
+            assert!(!http.calls.borrow().iter().any(|r| r.method == "POST"));
+        } else {
+            assert!(result.unwrap().starts_with("google_ix_"));
+        }
+    }
 }
