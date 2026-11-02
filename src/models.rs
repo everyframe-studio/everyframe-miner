@@ -22,6 +22,18 @@ pub static MODELS: LazyLock<Value> = LazyLock::new(|| {
             .unwrap()
             .insert(id.clone(), contract.clone());
     }
+    let google: Value = serde_json::from_str(include_str!("../config/google-models.json"))
+        .expect("embedded Google media registry");
+    for (id, contract) in google.as_object().unwrap() {
+        assert!(
+            models.get(id).is_none(),
+            "Google must not replace signed contracts"
+        );
+        models
+            .as_object_mut()
+            .unwrap()
+            .insert(id.clone(), contract.clone());
+    }
     models
 });
 pub static STUDIO_MODELS: LazyLock<Value> = LazyLock::new(|| {

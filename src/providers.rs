@@ -347,6 +347,22 @@ impl<'a> Router<'a> {
         self.speech = Some((local.clone(), digest(spec)?, media, hash));
         Ok(local)
     }
+    fn google_read(&self, r: &str, spec: &Value, m: &Value) -> Result<Value> {
+        let id = crate::google::reference_id(spec, r)?;
+        let mut req = Request::get(
+            format!("{}/v1beta/interactions/{id}", crate::google::ORIGIN),
+            &["generativelanguage.googleapis.com"],
+        );
+        req.headers = self.auth("google")?;
+        req.limit = crate::google::JSON_LIMIT;
+        req.timeout = 60;
+        let data = self.http.json(req)?;
+        crate::google::interaction_id(&data, m, Some(id))?;
+        // spec was validated by context; binding the model also prevents
+        // reusing an interaction from a different signed model contract.
+        models::check(spec)?;
+        Ok(data)
+    }
     fn read(&self, r: &str, spec: &Value, m: &Value, p: &str) -> Result<Value> {
         let model = m["apiModel"].as_str().unwrap_or("");
         let data = match p {
@@ -629,6 +645,21 @@ impl Provider for Router<'_> {
             self.catalog.allows(s(&spec["model"])?),
             "provider_model_unavailable",
         )?;
+        if p == "google" && m["interaction"] == true {
+            let body = crate::google::body(spec, m)?;
+            let mut req = Request::get(
+                format!("{}/v1beta/interactions", crate::google::ORIGIN),
+                &["generativelanguage.googleapis.com"],
+            )
+            .json("POST", &body);
+            req.headers.extend(self.auth("google")?);
+            req.limit = crate::google::JSON_LIMIT;
+            req.timeout = 60;
+            self.guard_submission(&mut req)?;
+            let data = self.http.json(req)?;
+            let id = crate::google::interaction_id(&data, m, None)?;
+            return crate::google::reference(spec, &id);
+        }
         if s(&spec["model"])?.starts_with("studio/tool/") {
             let urls = crate::studio_tools::references(self.http, spec)?;
             let (path, body) = crate::studio_tools::body(spec, &urls)?;
@@ -770,6 +801,9 @@ impl Provider for Router<'_> {
     }
     fn poll(&mut self, r: &str, spec: &Value) -> Result<String> {
         let (m, p) = self.context(spec)?;
+        if p == "google" && m["interaction"] == true {
+            return Ok(crate::google::state(&self.google_read(r, spec, m)?)?.into());
+        }
         if r.starts_with("openrouter_sync_") {
             need(
                 p == "openrouter" && m["kind"] == "image",
@@ -795,6 +829,29 @@ impl Provider for Router<'_> {
     }
     fn result(&mut self, r: &str, spec: &Value) -> Result<Output> {
         let (m, p) = self.context(spec)?;
+        if p == "google" && m["interaction"] == true {
+            let data = self.google_read(r, spec, m)?;
+            let block = crate::google::media(&data, m)?;
+            let media = if block["data"].is_string() {
+                crate::google::inline(block)?
+            } else {
+                self.download(
+                    &crate::google::download_url(block)?,
+                    &["generativelanguage.googleapis.com"],
+                    Some("google"),
+                    &[
+                        "generativelanguage.googleapis.com",
+                        "*.googleusercontent.com",
+                        "storage.googleapis.com",
+                    ],
+                )?
+            };
+            let response_hash = crate::google::response_hash(spec, &data, &media)?;
+            return Ok(Output {
+                media,
+                response_hash,
+            });
+        }
         if r.starts_with("openrouter_sync_") {
             need(
                 p == "openrouter" && m["kind"] == "image",

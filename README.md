@@ -14,10 +14,14 @@ signed release (one-command flow in v0.3.7 and later).
 New to mining? Run `everycli ui` for a guided setup page and status dashboard
 in your browser (see [Set up in your browser](#set-up-in-your-browser-everycli-ui)).
 
-This source tree includes the worker, the CLI with built-in updates, 62 base
+This source tree includes the worker, the CLI with built-in updates, 70 base
 contracts, flexible Studio video
 and media contracts, and twelve provider adapters. See the
 [additional provider models](PROVIDER-EXPANSION.md).
+
+The direct Google integration adds Gemini Omni Flash, four Nano Banana image
+models, Lyria 3.5, and both Gemini 3.8 TTS models. See the [Google provider
+guide](GOOGLE.md) for the fixed presets and compatible-worker requirements.
 Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
@@ -163,7 +167,7 @@ The model dashboard separates **Candidates / retired** from supported models.
 Removed/deprecated models cannot receive new offers, but existing offers can
 still be withdrawn and historical jobs remain readable. Provider catalog checks
 run every 15 minutes; failed checks retry after one minute without paid requests.
-OpenRouter uses the deployed key's filtered model list, Vivix uses its workspace
+OpenRouter and Google use the deployed key's model list, Vivix uses its workspace
 model list, and Fal uses its public model catalog (not proof of account access).
 Other provider account access is explicitly unchecked. A listed model is not
 proof of adequate funds, capacity, or successful generation.

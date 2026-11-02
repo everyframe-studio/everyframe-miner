@@ -1,0 +1,372 @@
+{
+  "direct/google/gemini-omni-flash": {
+    "provider": "google",
+    "vendor": "Google",
+    "deadlineMs": 480000,
+    "seed": false,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "interaction": true,
+    "schemaUrl": "https://ai.google.dev/api/interactions-api",
+    "schemaCheckedAt": "2026-11-02",
+    "documentationCheckedAt": "2026-11-02",
+    "validationStatus": "documentation-reviewed",
+    "apiModel": "gemini-omni-1.1-flash",
+    "name": "Gemini Omni Flash (Google direct)",
+    "kind": "video",
+    "family": "Gemini Omni Flash",
+    "params": {
+      "response_format": {
+        "type": "video",
+        "duration": "5s",
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "delivery": "inline"
+      },
+      "generation_config": {
+        "max_output_tokens": 32768
+      },
+      "store": true,
+      "background": true
+    },
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "audio": true,
+    "description": "Gemini Omni Flash through Google Gemini API. Fixed text-only preset using resumable interactions; no provider tools or reference inputs."
+  },
+  "direct/google/nano-banana-2.1": {
+    "provider": "google",
+    "vendor": "Google",
+    "deadlineMs": 480000,
+    "seed": false,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "interaction": true,
+    "schemaUrl": "https://ai.google.dev/api/interactions-api",
+    "schemaCheckedAt": "2026-11-02",
+    "documentationCheckedAt": "2026-11-02",
+    "validationStatus": "documentation-reviewed",
+    "apiModel": "gemini-nano-banana-2.1",
+    "name": "Nano Banana 2.1 (Google direct)",
+    "kind": "image",
+    "family": "Nano Banana 2.1",
+    "params": {
+      "response_format": {
+        "type": "image",
+        "image_size": "1K",
+        "aspect_ratio": "1:1",
+        "mime_type": "image/jpeg",
+        "delivery": "inline"
+      },
+      "generation_config": {
+        "max_output_tokens": 4096
+      },
+      "store": true,
+      "background": true
+    },
+    "mime": "image/jpeg",
+    "duration": null,
+    "resolution": "1k",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "codecs": [
+      "mjpeg"
+    ],
+    "audio": false,
+    "mediaPolicy": 2,
+    "description": "Nano Banana 2.1 through Google Gemini API. Fixed text-only preset using resumable interactions; no provider tools or reference inputs."
+  },
+  "direct/google/nano-banana-2-lite": {
+    "provider": "google",
+    "vendor": "Google",
+    "deadlineMs": 480000,
+    "seed": false,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "interaction": true,
+    "schemaUrl": "https://ai.google.dev/api/interactions-api",
+    "schemaCheckedAt": "2026-11-02",
+    "documentationCheckedAt": "2026-11-02",
+    "validationStatus": "documentation-reviewed",
+    "apiModel": "gemini-3.1-flash-lite-image",
+    "name": "Nano Banana 2 Lite (Google direct)",
+    "kind": "image",
+    "family": "Nano Banana 2 Lite",
+    "params": {
+      "response_format": {
+        "type": "image",
+        "image_size": "1K",
+        "aspect_ratio": "1:1",
+        "mime_type": "image/jpeg",
+        "delivery": "inline"
+      },
+      "generation_config": {
+        "max_output_tokens": 4096
+      },
+      "store": true,
+      "background": true
+    },
+    "mime": "image/jpeg",
+    "duration": null,
+    "resolution": "1k",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "codecs": [
+      "mjpeg"
+    ],
+    "audio": false,
+    "mediaPolicy": 2,
+    "description": "Nano Banana 2 Lite through Google Gemini API. Fixed text-only preset using resumable interactions; no provider tools or reference inputs."
+  },
+  "direct/google/nano-banana-2": {
+    "provider": "google",
+    "vendor": "Google",
+    "deadlineMs": 480000,
+    "seed": false,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "interaction": true,
+    "schemaUrl": "https://ai.google.dev/api/interactions-api",
+    "schemaCheckedAt": "2026-11-02",
+    "documentationCheckedAt": "2026-11-02",
+    "validationStatus": "documentation-reviewed",
+    "apiModel": "gemini-3.1-flash-image",
+    "name": "Nano Banana 2 (Google direct)",
+    "kind": "image",
+    "family": "Nano Banana 2",
+    "params": {
+      "response_format": {
+        "type": "image",
+        "image_size": "1K",
+        "aspect_ratio": "1:1",
+        "mime_type": "image/jpeg",
+        "delivery": "inline"
+      },
+      "generation_config": {
+        "max_output_tokens": 4096
+      },
+      "store": true,
+      "background": true
+    },
+    "mime": "image/jpeg",
+    "duration": null,
+    "resolution": "1k",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "codecs": [
+      "mjpeg"
+    ],
+    "audio": false,
+    "mediaPolicy": 2,
+    "description": "Nano Banana 2 through Google Gemini API. Fixed text-only preset using resumable interactions; no provider tools or reference inputs."
+  },
+  "direct/google/nano-banana-pro": {
+    "provider": "google",
+    "vendor": "Google",
+    "deadlineMs": 480000,
+    "seed": false,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "interaction": true,
+    "schemaUrl": "https://ai.google.dev/api/interactions-api",
+    "schemaCheckedAt": "2026-11-02",
+    "documentationCheckedAt": "2026-11-02",
+    "validationStatus": "documentation-reviewed",
+    "apiModel": "gemini-3-pro-image",
+    "name": "Nano Banana Pro (Google direct)",
+    "kind": "image",
+    "family": "Nano Banana Pro",
+    "params": {
+      "response_format": {
+        "type": "image",
+        "image_size": "1K",
+        "aspect_ratio": "1:1",
+        "mime_type": "image/jpeg",
+        "delivery": "inline"
+      },
+      "generation_config": {
+        "max_output_tokens": 4096
+      },
+      "store": true,
+      "background": true
+    },
+    "mime": "image/jpeg",
+    "duration": null,
+    "resolution": "1k",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "codecs": [
+      "mjpeg"
+    ],
+    "audio": false,
+    "mediaPolicy": 2,
+    "description": "Nano Banana Pro through Google Gemini API. Fixed text-only preset using resumable interactions; no provider tools or reference inputs."
+  },
+  "direct/google/lyria-3.5": {
+    "provider": "google",
+    "vendor": "Google",
+    "deadlineMs": 480000,
+    "seed": false,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "interaction": true,
+    "schemaUrl": "https://ai.google.dev/api/interactions-api",
+    "schemaCheckedAt": "2026-11-02",
+    "documentationCheckedAt": "2026-11-02",
+    "validationStatus": "documentation-reviewed",
+    "apiModel": "lyria-3.5",
+    "name": "Lyria 3.5 (Google direct)",
+    "kind": "audio",
+    "family": "Lyria 3.5",
+    "params": {
+      "response_format": {
+        "type": "audio",
+        "mime_type": "audio/mp3",
+        "delivery": "inline"
+      },
+      "store": true,
+      "background": true
+    },
+    "mime": "audio/mpeg",
+    "duration": null,
+    "resolution": "audio",
+    "aspect": "none",
+    "dimensions": [],
+    "codecs": [
+      "mp3"
+    ],
+    "sampleRate": 44100,
+    "audio": true,
+    "mediaPolicy": 2,
+    "maxDurationMs": 300000,
+    "description": "Lyria 3.5 through Google Gemini API. Fixed text-only preset using resumable interactions; no provider tools or reference inputs."
+  },
+  "direct/google/gemini-3.8-flash-tts": {
+    "provider": "google",
+    "vendor": "Google",
+    "deadlineMs": 480000,
+    "seed": false,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "interaction": true,
+    "schemaUrl": "https://ai.google.dev/api/interactions-api",
+    "schemaCheckedAt": "2026-11-02",
+    "documentationCheckedAt": "2026-11-02",
+    "validationStatus": "documentation-reviewed",
+    "apiModel": "gemini-3.8-flash-tts",
+    "name": "Gemini 3.8 Flash TTS (Google direct)",
+    "kind": "audio",
+    "family": "Gemini 3.8 Flash TTS",
+    "params": {
+      "response_format": {
+        "type": "audio",
+        "mime_type": "audio/wav",
+        "sample_rate": 24000,
+        "delivery": "inline"
+      },
+      "generation_config": {
+        "max_output_tokens": 4096,
+        "speech_config": [
+          {
+            "voice": "Kore"
+          }
+        ]
+      },
+      "store": true,
+      "background": true
+    },
+    "mime": "audio/wav",
+    "duration": null,
+    "resolution": "audio",
+    "aspect": "none",
+    "dimensions": [],
+    "codecs": [
+      "pcm_s16le"
+    ],
+    "sampleRate": 24000,
+    "audio": true,
+    "mediaPolicy": 2,
+    "maxDurationMs": 180000,
+    "description": "Gemini 3.8 Flash TTS through Google Gemini API. Fixed text-only preset using resumable interactions; no provider tools or reference inputs."
+  },
+  "direct/google/gemini-3.8-flash-lite-tts": {
+    "provider": "google",
+    "vendor": "Google",
+    "deadlineMs": 480000,
+    "seed": false,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "interaction": true,
+    "schemaUrl": "https://ai.google.dev/api/interactions-api",
+    "schemaCheckedAt": "2026-11-02",
+    "documentationCheckedAt": "2026-11-02",
+    "validationStatus": "documentation-reviewed",
+    "apiModel": "gemini-3.8-flash-lite-tts",
+    "name": "Gemini 3.8 Flash-Lite TTS (Google direct)",
+    "kind": "audio",
+    "family": "Gemini 3.8 Flash-Lite TTS",
+    "params": {
+      "response_format": {
+        "type": "audio",
+        "mime_type": "audio/wav",
+        "sample_rate": 24000,
+        "delivery": "inline"
+      },
+      "generation_config": {
+        "max_output_tokens": 4096,
+        "speech_config": [
+          {
+            "voice": "Kore"
+          }
+        ]
+      },
+      "store": true,
+      "background": true
+    },
+    "mime": "audio/wav",
+    "duration": null,
+    "resolution": "audio",
+    "aspect": "none",
+    "dimensions": [],
+    "codecs": [
+      "pcm_s16le"
+    ],
+    "sampleRate": 24000,
+    "audio": true,
+    "mediaPolicy": 2,
+    "maxDurationMs": 180000,
+    "description": "Gemini 3.8 Flash-Lite TTS through Google Gemini API. Fixed text-only preset using resumable interactions; no provider tools or reference inputs."
+  }
+}
