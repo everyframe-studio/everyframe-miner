@@ -15,6 +15,38 @@ impl Http for Failure {
 }
 
 #[test]
+fn enrollment_diagnostics_preserve_gateway_status_and_do_not_advise_reregistration() {
+    let args = cli::parse(&[
+        "init".into(),
+        "--wallet".into(),
+        "sn117v".into(),
+        "--hotkey".into(),
+        "default".into(),
+    ])
+    .unwrap();
+    for code in [
+        "http_502",
+        "http_504",
+        "enrollment_timeout",
+        "chain_lookup_unavailable",
+        "enrollment_busy",
+        "deployment_catalog_unavailable",
+        "deployment_os_unavailable",
+    ] {
+        let shown = everyframe_miner::cli_errors::diagnostic(&Error(code), Some(&args));
+        assert_eq!(shown["error"], code);
+        assert!(!shown["next"].as_str().unwrap().contains("btcli"));
+        assert!(
+            !shown["next"]
+                .as_str()
+                .unwrap()
+                .contains("everycli reconnect")
+        );
+        assert!(!shown.to_string().contains("provider service health"));
+    }
+}
+
+#[test]
 fn http_reasons_preserve_status_and_phala_scope_without_remote_text() {
     for status in [
         400, 401, 402, 403, 404, 405, 408, 409, 422, 429, 500, 502, 503, 504,

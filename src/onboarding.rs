@@ -13,6 +13,10 @@ use std::{
 };
 use twox_hash::XxHash64;
 
+// The coordinator permits 45 seconds for finalized-chain and OS-catalog checks
+// and a 60-second response window. Keep the client deadline outside both.
+const ENROLLMENT_TIMEOUT_SECONDS: u64 = 75;
+
 pub fn enroll(http: &dyn Http, trust: &Value, path: &Path) -> Result<Value> {
     enroll_or_recover(http, trust, path, None)
 }
@@ -31,13 +35,15 @@ fn enroll_or_recover(
     let base = s(&trust["coordinatorUrl"])?.trim_end_matches('/');
     let nonce = crate::protocol::id();
     let post = |route: &str, body: &Value| {
-        http.json(
-            Request::get(
-                format!("{base}/onboarding/{route}"),
-                &["subnet.everyframe.studio"],
-            )
-            .json("POST", body),
+        let mut request = Request::get(
+            format!("{base}/onboarding/{route}"),
+            &["subnet.everyframe.studio"],
         )
+        .json("POST", body);
+        if route == "enroll" {
+            request.timeout = ENROLLMENT_TIMEOUT_SECONDS;
+        }
+        http.json(request)
     };
     let mut request = json!({"hotkey":address,"nonce":nonce});
     if let Some(target) = recovery {
