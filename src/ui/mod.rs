@@ -122,6 +122,7 @@ const PARAMS: &[(&str, &str)] = &[
 ];
 const FLAG_PARAMS: &[(&str, &str)] = &[
     ("withdraw", "--withdraw"),
+    ("keepDiscounts", "--keep-discounts"),
     ("drainOnly", "--drain-only"),
     ("force", "--force"),
 ];

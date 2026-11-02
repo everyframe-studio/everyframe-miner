@@ -430,9 +430,38 @@ function acknowledgeModels() {
 
 // ---------- shell ----------
 const ROUTES = [["overview", "Overview"], ["setup", "Setup guide"], ["models", "Models"], ["jobs", "Job history"], ["earnings", "Earnings"], ["keys", "API keys"], ["worker", "Worker"], ["help", "Help"]];
+const OFFER_FILTERS = [["ready", "Ready for my keys"], ["active", "My active offers"], ["not-offered", "Not offered"], ["all", "All models"], ["candidate", "Unavailable"]];
 function route() { const m = location.hash.match(/^#\/(\w+)/); return m && ROUTES.some(([r]) => r === m[1]) ? m[1] : null; }
 function currentRoute() { return route() || (S.overview?.initialized ? "overview" : "setup"); }
 function go(r) { location.hash = "#/" + r; }
+function modelsHref(filter, provider = "") {
+  const query = new URLSearchParams({ filter });
+  if (provider) query.set("provider", provider);
+  return "#/models?" + query;
+}
+function readModelsRoute() {
+  if (route() !== "models") return;
+  const query = new URLSearchParams(location.hash.split("?")[1] || "");
+  if (OFFER_FILTERS.some(([f]) => f === query.get("filter"))) S.offerFilter = query.get("filter");
+  if (query.has("filter")) {
+    S.modelProvider = Object.hasOwn(PROVIDERS, query.get("provider")) ? query.get("provider") : "";
+    S.modelQuery = ""; S.modelKind = ""; S.selectedOffers.clear();
+  }
+}
+function openModels(filter, provider = "", resetSearch = true) {
+  S.offerFilter = filter; S.modelProvider = provider; S.selectedOffers.clear(); clearBatchReport();
+  if (resetSearch) { S.modelQuery = ""; S.modelKind = ""; }
+  if (filter === "all") acknowledgeModels();
+  const href = modelsHref(filter, provider);
+  if (location.hash !== href) {
+    history.pushState(null, "", href); S.navigationEpoch++;
+    S.openStep = null; S.renaming = false;
+  }
+  render();
+}
+function modelViewLink(label, filter, provider = "", attrs = {}) {
+  return h("a", { ...attrs, href: modelsHref(filter, provider), onclick: e => { e.preventDefault(); openModels(filter, provider); } }, label);
+}
 
 function renderMeta() {
   const s = S.session, o = S.overview;
@@ -576,10 +605,12 @@ function pageOverview() {
   const [phase, tone] = workerState();
   const activity = health?.activity || {};
   const activeOffers = checks.filter((c) => (c.name || "").startsWith("Model: ")).length;
+  const offersStat = stat("Active offers", String(activeOffers), activeOffers ? "" : "Choose models to serve", activeOffers ? "ok" : "warn");
+  if (Array.isArray(S.offers?.offers)) offersStat.append(h("div", { class: "sub" }, modelViewLink(S.offers.offers.filter(r => integratedModel(r) && !r.offered && r.catalogGroup !== "candidate" && !["removed", "deprecated"].includes(r.providerAvailability?.status)).length + " not offered", "not-offered")));
   root.append(h("div", { class: "grid overview-stats", "aria-label": "Miner overview summary" },
     workerStat(phase, tone),
     workStatusStat(),
-    stat("Active offers", String(activeOffers), activeOffers ? "" : "Choose models to serve", activeOffers ? "ok" : "warn"),
+    offersStat,
     stat("Jobs", activity.activeJobs == null ? "Unknown" : activity.activeJobs + " active", activity.acceptedJobs == null ? "Accepted count not reported" : activity.acceptedJobs + " accepted so far")));
   if (S.workloads?.length) root.append(notice("warn", "A worker for this miner runs in your Phala account, but this computer doesn't manage it",
     h("div", null, "It was probably deployed from another computer. Keep managing it there, or delete or replace it from the ", h("a", { href: "#/worker" }, "Worker page"), ".")));
@@ -1135,8 +1166,7 @@ function pageModels() {
   const refresh = button("Refresh", async () => { await loadOffers(false); render(); });
   if (!S.offers && !S.offersError) { root.append(card("Offers", [refresh], h("p", { class: "muted" }, "Loading…"))); loadOffers().then(render); return root; }
   if (S.offersError) { root.append(card("Offers", [refresh], errorView(S.offersError))); return root; }
-  const filters = [["ready", "Ready for my keys"], ["active", "My active offers"], ["all", "All models"], ["candidate", "Candidates / retired"]];
-  const seg = h("div", { class: "seg" }, filters.map(([f, label]) => h("button", { disabled: S.batchBusy, class: S.offerFilter === f ? "on" : "", onclick: () => { S.offerFilter = f; S.selectedOffers.clear(); clearBatchReport(); if (f === "all") acknowledgeModels(); render(); } }, label,
+  const seg = h("div", { class: "seg model-tabs" }, OFFER_FILTERS.map(([f, label]) => h("button", { disabled: S.batchBusy, class: S.offerFilter === f ? "on" : "", onclick: () => openModels(f, S.modelProvider, false) }, label,
     f === "all" && S.newModels.size ? h("span", { class: "badge info", "aria-label": S.newModels.size + " new models" }, S.newModels.size + " new") : null)));
   const search = h("input", { type: "search", disabled: S.batchBusy, value: S.modelQuery, placeholder: "Search models", "aria-label": "Search models", oninput: e => { S.modelQuery = e.target.value; patchModels(); } });
   const providers = [...new Set((S.offers.offers || []).map(r => r.provider).filter(Boolean))].sort();
@@ -1144,7 +1174,9 @@ function pageModels() {
     h("option", { value: "" }, "All providers"), providers.map(p => h("option", { value: p }, providerName(p)))); provider.value = S.modelProvider;
   const kind = h("select", { "aria-label": "Filter model type", disabled: S.batchBusy, onchange: e => { S.modelKind = e.target.value; patchModels(); } },
     h("option", { value: "" }, "All types"), ["video", "image", "audio"].map(v => h("option", { value: v }, v[0].toUpperCase() + v.slice(1)))); kind.value = S.modelKind;
-  if (S.offerFilter === "candidate") root.append(notice("", "Not available for new offers", "These contracts are unpriced or retired. Existing offers can still be withdrawn."));
+  if (S.overview?.initialized) root.append(providerOffersCard());
+  if (S.offerFilter === "not-offered") root.append(notice("", "Models without an active offer", "New models start at 0% discount. Review a model and turn its offer on when you want to serve it."));
+  if (S.offerFilter === "candidate") root.append(notice("", "Not available for new offers", "These models need attention before they can be offered. Existing offers can still be withdrawn."));
   const body = h("div", { id: "model-list" });
   root.append(card("Offers", [seg, refresh], h("div", { class: "row model-filters" }, search, provider, kind), body));
   fillModels(body);
@@ -1153,6 +1185,7 @@ function pageModels() {
 function visibleOffers() {
   let rows = (S.offers?.offers || []).filter(integratedModel);
   if (S.overview?.initialized && S.offerFilter === "active") rows = rows.filter(r => r.offered);
+  if (S.offerFilter === "not-offered") rows = rows.filter(r => !r.offered && r.catalogGroup !== "candidate" && !["removed", "deprecated"].includes(r.providerAvailability?.status));
   if (S.overview?.initialized && S.offerFilter === "ready") rows = rows.filter(r => canApplyOffer(r) && readiness(r)[0].startsWith("Available") && r.localKeyConfigured !== false);
   if (S.offerFilter === "all" || (!S.overview?.initialized && S.offerFilter === "ready")) rows = rows.filter(r => r.catalogGroup !== "candidate" && r.providerAvailability?.status !== "removed");
   if (S.offerFilter === "candidate") rows = rows.filter(r => r.catalogGroup === "candidate" || ["removed", "deprecated"].includes(r.providerAvailability?.status));
@@ -1172,6 +1205,25 @@ function fillModels(body) {
   if (S.batchBusy) body.querySelectorAll("button, input").forEach(el => { el.disabled = true; });
 }
 function patchModels() { const body = $("#model-list"); if (body) fillModels(body); }
+function providerOffersCard() {
+  const rows = (S.offers?.offers || []).filter(integratedModel);
+  const providers = [...new Set(rows.map(r => r.provider).filter(Boolean))].sort();
+  const controls = providers.map(provider => {
+    const models = rows.filter(r => r.provider === provider), active = models.filter(r => r.offered);
+    const inactive = models.filter(r => !r.offered && r.catalogGroup !== "candidate" && !["removed", "deprecated"].includes(r.providerAvailability?.status));
+    const eligible = inactive.filter(r => canApplyOffer(r) && r.localKeyConfigured !== false);
+    const on = active.length > 0;
+    const toggle = h("button", { type: "button", role: "switch", "aria-checked": String(on), "aria-label": providerName(provider) + " offers",
+      class: "offer-switch" + (on ? " on" : ""), disabled: S.batchBusy || S.pendingOperations.size > 0 || (!on && !eligible.length),
+      title: on ? "Turn off all offers for " + providerName(provider) : "Turn on eligible offers for " + providerName(provider),
+      onclick: () => changeProviderOffers(provider, !on) }, h("span", { class: "switch-track", "aria-hidden": "true" }, h("span")), on ? "On" : "Off");
+    return h("div", { class: "provider-offer", "data-offer-provider": provider },
+      h("div", { class: "row" }, h("b", null, providerName(provider)), toggle),
+      h("div", { class: "small" }, modelViewLink(active.length + " offered", "active", provider), " · ", modelViewLink(inactive.length + " not offered", "not-offered", provider)),
+      h("div", { class: "small muted" }, on ? "Turn off to withdraw this provider's offers." : eligible.length ? eligible.length + " models can be turned on." : "No models ready to offer. Check the provider key and model readiness."));
+  });
+  return card("Provider offers", [], h("p", { class: "small muted" }, "Switches apply to all models for that provider, across filters. Turning on keeps saved discounts and uses 0% for new models. Turning off keeps discounts for later and lets current jobs finish."), h("div", { class: "provider-offers" }, controls));
+}
 function offerBlocker(r) {
   if (!integratedModel(r)) return "This contract is not supported.";
   const provider = r.providerAvailability?.status;
@@ -1226,6 +1278,46 @@ function batchReportView() {
     h("ul", null, report.map(r => h("li", null, r.model + ": " + r.message)))));
   view.setAttribute("data-batch-report", ""); return view;
 }
+async function reviewOfferBatch(params, title, epoch) {
+  const prepared = await run("offer-batch", params, { quiet: true, prepareOnly: true });
+  if (prepared.state !== "confirm") return prepared;
+  const yes = epoch === S.navigationEpoch && await confirmDialog(prepared.result.question, title);
+  return yes && epoch === S.navigationEpoch
+    ? run("offer-batch", params, { quiet: true, approvals: [prepared.result.hash], exactApproval: true })
+    : { state: "cancelled" };
+}
+async function changeProviderOffers(provider, enabled) {
+  if (S.batchBusy || S.pendingOperations.size) return;
+  const epoch = S.navigationEpoch;
+  S.batchBusy = true; clearBatchReport(); render();
+  const report = [];
+  try {
+    await loadOffers(false);
+    if (S.offersError || !Array.isArray(S.offers?.offers)) throw Error("Could not refresh offers. No provider offers were changed.");
+    const rows = (S.offers?.offers || []).filter(r => integratedModel(r) && r.provider === provider);
+    const changes = rows.filter(r => enabled ? !r.offered && canApplyOffer(r) && r.localKeyConfigured !== false : r.offered);
+    if (enabled) for (const row of rows.filter(r => !r.offered && !changes.includes(r))) report.push({ model: row.name || row.model, ok: false, skipped: true,
+      message: "Skipped: " + (row.localKeyConfigured === false ? "No provider key saved." : offerBlocker(row) || "Not ready to offer.") });
+    if (changes.length) {
+      const params = { models: changes.map(r => r.model).join(","), ...(enabled ? { keepDiscounts: true } : { withdraw: true }) };
+      const job = await reviewOfferBatch(params, (enabled ? "Turn on " : "Turn off ") + providerName(provider) + " offers", epoch);
+      const ok = job.state === "done";
+      const message = ok ? enabled ? "Offer on; saved discount kept (0% for a new model)." : "Offer off; discount kept."
+        : job.state === "confirm" ? "Offers changed; nothing applied. Review again."
+        : job.state === "cancelled" ? "Cancelled; unchanged."
+        : errorOf(job)?.message || "Result not confirmed. Refresh offers before retrying.";
+      for (const row of changes) {
+        report.push({ model: row.model, ok, message });
+        if (ok) { S.selectedOffers.delete(row.model); S.offerDrafts.delete(row.model); }
+      }
+    } else if (!report.length) report.push({ model: providerName(provider), ok: true, message: enabled ? "All eligible offers are already on." : "All offers are already off." });
+  } catch (e) { report.push({ model: providerName(provider), ok: false, message: e.message || "Result not confirmed. Refresh offers before retrying." });
+  } finally {
+    showBatchReport(report, epoch); S.batchBusy = false;
+    await loadOffers(); await loadHealth();
+    if (epoch === S.navigationEpoch && currentRoute() === "models") render(); else renderNav();
+  }
+}
 async function batchOffers(rows, withdraw) {
   if (S.batchBusy) return;
   const latest = new Map((S.offers?.offers || []).map(r => [r.model, r]));
@@ -1246,14 +1338,7 @@ async function batchOffers(rows, withdraw) {
   try {
     if (changes.length) {
       const params = { models: changes.map(r => r.model).join(","), ...(withdraw ? { withdraw: true } : { discountPct: discount }) };
-      const prepared = await run("offer-batch", params, { quiet: true, prepareOnly: true });
-      let job = prepared;
-      if (prepared.state === "confirm") {
-        const yes = epoch === S.navigationEpoch && await confirmDialog(prepared.result.question, "Batch model offers");
-        job = yes && epoch === S.navigationEpoch
-          ? await run("offer-batch", params, { quiet: true, approvals: [prepared.result.hash], exactApproval: true })
-          : { state: "cancelled" };
-      }
+      const job = await reviewOfferBatch(params, "Batch model offers", epoch);
       const ok = job.state === "done";
       const message = ok ? (withdraw ? "Withdrawn." : `Discount set to ${discount}%.`)
         : job.state === "confirm" ? "Quote changed; nothing applied. Review again."
@@ -1270,17 +1355,19 @@ async function batchOffers(rows, withdraw) {
 }
 function offerRow(r) {
   const [ready, tone] = readiness(r);
-  const disc = h("input", { type: "number", min: "0", max: "99.9", step: "0.01", value: S.offerDrafts.get(r.model) ?? (r.offered && r.discountBp != null ? String(r.discountBp / 100) : "0"), oninput: e => S.offerDrafts.set(r.model, e.target.value), class: "tiny", "aria-label": "Discount percent for " + (r.name || r.model) });
+  const disc = h("input", { type: "number", min: "0", max: "99.9", step: "0.01", value: S.offerDrafts.get(r.model) ?? (r.discountBp != null ? String(r.discountBp / 100) : "0"), oninput: e => S.offerDrafts.set(r.model, e.target.value), class: "tiny", "aria-label": "Discount percent for " + (r.name || r.model) });
   const baseMicrousd = r.baseMinerRewardMicrousd ?? r.pricing?.minerRewardMicrousd;
   const base = typeof baseMicrousd === "number" ? baseMicrousd / 1e6 : null;
-  const yours = r.offered ? (r.pricingCurrent ? "Active · " + ((r.discountBp || 0) / 100).toFixed(2) + "% off" : "Stale pricing") : "Not offered";
+  const discountLabel = ((r.discountBp || 0) / 100).toFixed(2) + "% off";
+  const yours = r.offered ? h("span", { class: "badge " + (r.pricingCurrent ? r.discountBp > 0 ? "ok" : "neutral" : "warn") }, r.pricingCurrent ? "Active · " + discountLabel : "Stale pricing")
+    : modelViewLink("Not offered · " + discountLabel, "not-offered", "", { class: "badge neutral", title: "Show models without an active offer" });
   const apply = button(r.offered ? "Update" : "Offer", async () => { const job = await run("offer", { model: r.model, discountPct: disc.value }); if (job.state === "done") S.offerDrafts.delete(r.model); await loadOffers(); await loadHealth(); render(); }, "small primary");
   apply.disabled = !canApplyOffer(r); disc.disabled = !canApplyOffer(r);
   return h("tr", null,
     h("td", { "data-label": "Model" }, h("label", { class: "row" }, S.overview?.initialized ? h("input", { type: "checkbox", checked: S.selectedOffers.has(r.model), disabled: S.batchBusy || !selectableOffer(r), "aria-label": "Select " + (r.name || r.model), onchange: e => { if (e.target.checked) S.selectedOffers.add(r.model); else S.selectedOffers.delete(r.model); patchModels(); } }) : null, h("b", null, r.name || r.model)), h("details", { class: "model-details" }, h("summary", null, "Model details"), h("span", { class: "id" }, "Everyframe contract: " + r.model), h("span", { class: "id" }, "Provider API ID: " + (r.providerApiId || "Not reported")))),
     h("td", { "data-label": "Provider" }, providerName(r.provider || ""), r.localKeyConfigured === false ? h("div", { class: "small muted" }, "No key saved") : null),
     h("td", { "data-label": "Readiness" }, h("span", { class: "badge " + tone }, ready)),
-    h("td", { "data-label": "Your offer" }, h("span", { class: "badge " + (r.offered ? (r.pricingCurrent ? "ok" : "warn") : "") }, yours)),
+    h("td", { "data-label": "Your offer" }, yours),
     h("td", { "data-label": "Base reward" }, base != null ? fmtUsd(base, base < 1 ? 3 : 2) : "—"),
     h("td", { "data-label": "Change" }, !S.overview?.initialized ? h("a", { href: "#/setup" }, "Set up to offer") : h("div", { class: "row nowrap" }, disc, h("span", { class: "small muted" }, "% off"),
       apply,
@@ -1512,6 +1599,7 @@ async function boot() {
   S.session = s.data;
   restorePendingOperations();
   await loadOverview();
+  readModelsRoute();
   const w = await api("/api/wallets"); if (w.ok) S.wallets = w.data;
   render();
   if (!managedHere()) { await loadWorkloads(); if (currentRoute() === "overview" && !S.renaming) render(); }
@@ -1545,6 +1633,7 @@ async function boot() {
 window.addEventListener("hashchange", () => {
   if (location.hash.includes("pair=")) return;
   S.navigationEpoch++; clearBatchReport();
+  readModelsRoute();
   S.openStep = null; S.renaming = false; render(); window.scrollTo(0, 0); $("#main").focus({ preventScroll: true });
   if (currentRoute() === "keys") loadBalances();
   if (currentRoute() === "worker") loadWorkerTools();

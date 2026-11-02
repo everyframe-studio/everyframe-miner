@@ -167,6 +167,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
             "--yes",
             "--drain-only",
             "--withdraw",
+            "--keep-discounts",
             "--check",
             "--stdin",
             "--publish",
@@ -301,7 +302,12 @@ pub fn parse(args: &[String]) -> Result<Args> {
         "balances" => vec!["--publish"],
         "jobs" => vec!["--limit", "--cursor", "--status", "--model", "--summary"],
         "offer" => vec!["--model", "--discount-pct", "--withdraw"],
-        "offer-batch" => vec!["--models", "--discount-pct", "--withdraw"],
+        "offer-batch" => vec![
+            "--models",
+            "--discount-pct",
+            "--withdraw",
+            "--keep-discounts",
+        ],
         "update" => vec!["--release", "--check", "--abort"],
         "ui" => vec!["--port", "--no-open"],
         "stop" => vec!["--drain-only", "--force"],
@@ -338,6 +344,11 @@ pub fn parse(args: &[String]) -> Result<Args> {
     need(
         !(out.flag("--withdraw") && out.get("--discount-pct").is_some()),
         "conflicting_offer_options",
+    )?;
+    need(
+        !(out.flag("--keep-discounts")
+            && (out.flag("--withdraw") || out.get("--discount-pct").is_some())),
+        "conflicting_batch_offer_options",
     )?;
     need(
         !(out.command == "worker-auto-update" && out.flag("--enable") && out.flag("--disable")),
@@ -889,6 +900,9 @@ pub fn run_with(
         "earnings" => miner.earnings(),
         "jobs" if args.flag("--summary") => miner.jobs(),
         "jobs" => miner.job_history(crate::job_history::query(args)?),
+        "offer-batch" if args.flag("--keep-discounts") => {
+            miner.offer_batch_preserving(args.required("--models")?, confirm)
+        }
         "offer-batch" => miner.offer_batch(
             args.required("--models")?,
             args.get("--discount-pct"),

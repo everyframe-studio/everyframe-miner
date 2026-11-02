@@ -658,6 +658,89 @@ try {
   assert(await page.getByRole('button',{name:'Update worker',exact:true}).isDisabled(),'unknown operation cannot be repeated');
   await page.evaluate(()=>{S.pendingOperations.clear();savePendingOperations();});
 
+  // Zero-percent offers stay neutral. Links and tabs open the actual inactive subset.
+  await page.evaluate(()=>{
+    S.modelQuery='';S.modelProvider='';S.modelKind='';S.offerFilter='all';S.offersError=null;
+    S.offerDrafts.clear();S.selectedOffers.clear();clearBatchReport();
+    S.offers={offers:[
+      {model:'controls/active',name:'Active Ten',provider:'fal',offered:true,discountBp:1000,pricingCurrent:true,offerable:true},
+      {model:'controls/zero',name:'Active Zero',provider:'fal',offered:true,discountBp:0,pricingCurrent:true,offerable:true},
+      {model:'controls/new',name:'New Zero',provider:'fal',offered:false,discountBp:null,offerable:true},
+      {model:'controls/saved',name:'Saved Twelve',provider:'fal',offered:false,discountBp:1250,offerable:true},
+      {model:'controls/blocked',name:'Blocked Price',provider:'fal',offered:false,offerable:false,catalogGroup:'candidate',blockers:['pricing_required']},
+      {model:'controls/other',name:'Other Provider',provider:'replicate',offered:true,discountBp:2000,pricingCurrent:true,offerable:true},
+      {model:'controls/no-key',name:'Needs Key',provider:'pika',offered:false,offerable:true,localKeyConfigured:false},
+    ]};
+    history.replaceState(null,'','#/models');render();
+  });
+  assert.equal(await page.getByLabel('Discount percent for New Zero',{exact:true}).inputValue(),'0');
+  assert.equal(await page.getByLabel('Discount percent for Saved Twelve',{exact:true}).inputValue(),'12.5');
+  assert.equal(await page.locator('tr').filter({hasText:'Active Zero'}).locator('[data-label="Your offer"] .ok').count(),0);
+  const notOfferedLink=page.locator('tr').filter({hasText:'New Zero'}).getByRole('link',{name:'Not offered · 0.00% off',exact:true});
+  assert.match(await notOfferedLink.getAttribute('class'),/neutral/);
+  await notOfferedLink.click();
+  await page.waitForFunction(()=>location.hash==='#/models?filter=not-offered'&&S.offerFilter==='not-offered');
+  assert.equal(await page.getByLabel('Select Active Ten',{exact:true}).count(),0);
+  assert.equal(await page.getByLabel('Select New Zero',{exact:true}).count(),1);
+  assert.equal(await page.getByLabel('Select Saved Twelve',{exact:true}).count(),1);
+  assert.equal(await page.getByLabel('Select Blocked Price',{exact:true}).count(),0);
+  await page.locator('[data-offer-provider="fal"]').getByRole('link',{name:'2 not offered',exact:true}).click();
+  await page.waitForFunction(()=>S.modelProvider==='fal'&&location.hash.includes('provider=fal'));
+  assert.equal(await page.getByLabel('Select Needs Key',{exact:true}).count(),0);
+  await page.evaluate(()=>{S.offerFilter='all';S.modelProvider='';readModelsRoute();render();});
+  assert.equal(await page.evaluate(()=>S.offerFilter),'not-offered','deep-link filter survives fresh route parsing');
+  assert.equal(await page.evaluate(()=>S.modelProvider),'fal');
+  assert.equal(await page.getByRole('switch',{name:'Pika offers',exact:true}).isDisabled(),true);
+
+  const providerChanges=await page.evaluate(async()=>{
+    const original={run,loadOffers,loadHealth,confirmDialog};const calls=[],questions=[];
+    try{
+      loadOffers=async()=>{};loadHealth=async()=>{};
+      confirmDialog=async q=>{questions.push(q);return true;};
+      run=async(action,params,opts)=>{
+        calls.push({action,params,opts});
+        if(opts.prepareOnly)return {state:'confirm',result:{question:'Review provider offers',hash:'provider-review'}};
+        for(const model of params.models.split(',')){
+          const row=S.offers.offers.find(r=>r.model===model);
+          row.offered=!params.withdraw;row.discountBp??=0;row.pricingCurrent=true;
+        }
+        return {state:'done'};
+      };
+      S.modelQuery='New Zero';S.offerDrafts.set('controls/other','22.5');
+      await changeProviderOffers('fal',false);
+      const off={calls:[...calls],rows:structuredClone(S.offers.offers)};
+      calls.length=0;
+      await changeProviderOffers('fal',true);
+      const on={calls:[...calls],rows:structuredClone(S.offers.offers),draft:S.offerDrafts.get('controls/other')};
+      calls.length=0;confirmDialog=async()=>false;
+      await changeProviderOffers('fal',false);
+      const cancel={calls:[...calls],active:S.offers.offers.filter(r=>r.provider==='fal'&&r.offered).length};
+      calls.length=0;confirmDialog=async()=>true;
+      run=async(action,params,opts)=>{calls.push({action,params,opts});return {state:'confirm',result:{question:'Changed quote',hash:opts.prepareOnly?'first':'changed'}};};
+      await changeProviderOffers('fal',false);
+      const changed={calls:[...calls],report:[...S.batchReport]};
+      return {off,on,cancel,changed,questions};
+    }finally{({run,loadOffers,loadHealth,confirmDialog}=original);S.modelQuery='';S.offerFilter='all';S.modelProvider='';S.offerDrafts.clear();clearBatchReport();render();}
+  });
+  assert.equal(providerChanges.off.calls.length,2);
+  assert.equal(providerChanges.off.calls[0].params.withdraw,true);
+  assert.deepEqual(providerChanges.off.calls[0].params.models.split(',').sort(),['controls/active','controls/zero']);
+  assert.equal(providerChanges.off.rows.find(r=>r.model==='controls/active').discountBp,1000);
+  assert.equal(providerChanges.on.calls.length,2);
+  assert.equal(providerChanges.on.calls[0].params.keepDiscounts,true);
+  assert.equal(providerChanges.on.calls[0].params.discountPct,undefined);
+  assert.deepEqual(providerChanges.on.calls[0].params.models.split(',').sort(),['controls/active','controls/new','controls/saved','controls/zero']);
+  for(const [model,bp] of [['controls/active',1000],['controls/new',0],['controls/saved',1250],['controls/other',2000]]){
+    const row=providerChanges.on.rows.find(r=>r.model===model);assert.equal(row.offered,true);assert.equal(row.discountBp,bp);
+  }
+  assert.equal(providerChanges.on.rows.find(r=>r.model==='controls/blocked').offered,false);
+  assert.equal(providerChanges.on.draft,'22.5');
+  assert.equal(providerChanges.cancel.calls.length,1,'cancel only prepares; never submits');
+  assert.equal(providerChanges.cancel.active,4);
+  assert.equal(providerChanges.changed.calls.length,2,'changed quotes are not automatically re-approved');
+  assert(providerChanges.changed.report.every(r=>!r.ok&&/changed/.test(r.message)));
+  assert(providerChanges.on.calls.every(c=>c.action==='offer-batch'),'switches only change bids');
+
   for (const width of [1440,390]) {
     await page.setViewportSize({width,height:900});
     for (const route of ['models','worker']) {

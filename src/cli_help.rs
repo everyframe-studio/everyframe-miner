@@ -127,7 +127,7 @@ pub fn render(command: &str) -> String {
         ),
         "offer-batch" => (
             "Review and apply multiple offers atomically. Changed pricing or revisions reject the whole batch. No automatic retry.",
-            "  --models ID,ID      Required comma-separated model IDs (up to 128)\n  --discount-pct PCT  Required unless --withdraw; 0–99.90, up to 2 decimals\n  --withdraw          Withdraw active selected offers",
+            "  --models ID,ID      Required comma-separated model IDs (up to 128)\n  --discount-pct PCT  0–99.90, up to 2 decimals\n  --keep-discounts    Enable inactive offers at their saved discounts (new models: 0%); active offers stay unchanged\n  --withdraw          Withdraw active selected offers and keep their discounts\n  Choose exactly one of --discount-pct, --keep-discounts or --withdraw.",
             "offer-batch --models minimax/h3-max-turbo/text-to-video,minimax/h3-max/text-to-video --discount-pct 10",
         ),
         "deploy" => (

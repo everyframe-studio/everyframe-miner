@@ -3062,6 +3062,87 @@ fn batches_review_once_and_use_one_status_plus_one_post_for_many_models() {
     assert!(r.envs.borrow().is_empty());
 }
 #[test]
+fn provider_enable_preserves_saved_discounts_defaults_new_models_to_zero_and_leaves_active_bids_alone()
+ {
+    let r = Rig::new();
+    let template = r.status.borrow()["offers"][0].clone();
+    let mut saved = template.clone();
+    saved["model"] = json!("fixture/saved");
+    saved["discountBp"] = json!(1250);
+    let mut active = template;
+    active["model"] = json!("fixture/active");
+    active["offered"] = json!(true);
+    active["discountBp"] = json!(2500);
+    r.status.borrow_mut()["offers"][0]["discountBp"] = Value::Null;
+    r.status.borrow_mut()["offers"]
+        .as_array_mut()
+        .unwrap()
+        .extend([saved, active.clone()]);
+    r.status.borrow_mut()["batchOffersSupported"] = json!(true);
+    r.calls.borrow_mut().clear();
+    let reviews = RefCell::new(Vec::new());
+    let out = r
+        .miner()
+        .offer_batch_preserving("fixture/video,fixture/saved,fixture/active", &|q| {
+            reviews.borrow_mut().push(q.to_string());
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(reviews.borrow().len(), 1);
+    assert!(reviews.borrow()[0].contains("0.00% discount"));
+    assert!(reviews.borrow()[0].contains("12.50% discount"));
+    assert_eq!(out["offers"].as_array().unwrap().len(), 2);
+    assert_eq!(out["offers"][0]["discountBp"], 0);
+    assert_eq!(out["offers"][1]["discountBp"], 1250);
+    assert_eq!(r.status.borrow()["offers"][2], active);
+    assert_eq!(r.calls.borrow().len(), 2);
+    assert!(r.calls.borrow()[1].0.ends_with("/offer-batch"));
+    r.miner()
+        .offer_batch("fixture/video,fixture/saved", None, true, &|_| Ok(()))
+        .unwrap();
+    assert_eq!(r.status.borrow()["offers"][1]["discountBp"], 1250);
+    assert_eq!(r.status.borrow()["offers"][1]["offered"], false);
+    r.miner()
+        .offer_batch_preserving("fixture/saved", &|_| Ok(()))
+        .unwrap();
+    assert_eq!(r.status.borrow()["offers"][1]["discountBp"], 1250);
+    assert!(r.envs.borrow().is_empty());
+}
+#[test]
+fn provider_enable_rejects_bad_saved_discounts_and_does_not_retry_uncertain_posts() {
+    for discount in [json!(-1), json!(10000), json!("10")] {
+        let r = Rig::new();
+        r.status.borrow_mut()["batchOffersSupported"] = json!(true);
+        r.status.borrow_mut()["offers"][0]["discountBp"] = discount;
+        r.calls.borrow_mut().clear();
+        assert!(
+            r.miner()
+                .offer_batch_preserving("fixture/video", &|_| panic!("must fail before review"))
+                .is_err()
+        );
+        assert!(r.calls.borrow().iter().all(|c| c.0.starts_with("GET ")));
+    }
+    let r = Rig::new();
+    r.status.borrow_mut()["batchOffersSupported"] = json!(true);
+    *r.fail.borrow_mut() = "offer-batch".into();
+    r.calls.borrow_mut().clear();
+    assert_eq!(
+        r.miner()
+            .offer_batch_preserving("fixture/video", &|_| Ok(()))
+            .unwrap_err()
+            .0,
+        "ambiguous_network_error"
+    );
+    assert_eq!(
+        r.calls
+            .borrow()
+            .iter()
+            .filter(|c| c.0.ends_with("/offer-batch"))
+            .count(),
+        1
+    );
+}
+#[test]
 fn batch_endpoint_404_is_actionable_and_never_retries_or_falls_back_to_partial_offers() {
     let r = Rig::new();
     let mut second = r.status.borrow()["offers"][0].clone();
