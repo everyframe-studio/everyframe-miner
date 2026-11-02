@@ -254,7 +254,9 @@ fn foreign_refs_and_path_injection_are_rejected_before_network() {
 fn provider_response_id_binding() {
     for (id, m) in models::MODELS.as_object().unwrap() {
         let p = m["provider"].as_str().unwrap();
-        if ["fal", "elevenlabs"].contains(&p) {
+        if ["fal", "elevenlabs"].contains(&p)
+            || everyframe_miner::model_availability::retired(id).is_some()
+        {
             continue;
         }
         let api = Api {
@@ -351,6 +353,14 @@ fn every_added_model_checks_deadline_and_does_not_retry_ambiguous_submission() {
     for id in added.as_object().unwrap().keys() {
         let api = Timeout(std::cell::Cell::new(0));
         let mut router = Router::new(&api, credentials());
+        if everyframe_miner::model_availability::retired(id).is_some() {
+            assert_eq!(
+                router.submit_before(&spec(id), 0).unwrap_err().0,
+                "provider_model_unavailable"
+            );
+            assert_eq!(api.0.get(), 0, "{id}");
+            continue;
+        }
         assert_eq!(
             router.submit_before(&spec(id), 0).unwrap_err().0,
             "submission_deadline_elapsed"
