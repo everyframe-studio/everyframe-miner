@@ -1456,5 +1456,2054 @@
       }
     },
     "hash": "fcccd67ad8b09bc07073b50fea71ef05383da1f700873c8c9ff759b6a0c67d96"
+  },
+  {
+    "model": "direct/openai/gpt-image-2.5-sunburst",
+    "provider": "openai",
+    "request": {
+      "model": "direct/openai/gpt-image-2.5-sunburst",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/openai/gpt-image-2.5-sunburst",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "size": "1024x1024",
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "png",
+          "n": 1
+        },
+        "references": []
+      }
+    },
+    "hash": "91064d3dae99cbbbd9f816c9a06d583b94be92a0d7c56d00da802223b817309c"
+  },
+  {
+    "model": "direct/openai/gpt-image-2.5-flare",
+    "provider": "openai",
+    "request": {
+      "model": "direct/openai/gpt-image-2.5-flare",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/openai/gpt-image-2.5-flare",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "size": "1024x1024",
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "png",
+          "n": 1
+        },
+        "references": []
+      }
+    },
+    "hash": "d33c6aa08cb1400eb71126455f221c622f1a6c348e37a9db0e674b6031661ea3"
+  },
+  {
+    "model": "direct/openai/gpt-image-2",
+    "provider": "openai",
+    "request": {
+      "model": "direct/openai/gpt-image-2",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/openai/gpt-image-2",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "size": "1024x1024",
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "png",
+          "n": 1
+        },
+        "references": []
+      }
+    },
+    "hash": "7cc0ce79ccee3074453abe8000646b4776b9223c189f7d2a5b2540165c2fcf5b"
+  },
+  {
+    "model": "direct/openai/gpt-audio-1.5",
+    "provider": "openai",
+    "request": {
+      "model": "direct/openai/gpt-audio-1.5",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/openai/gpt-audio-1.5",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "audio": {
+            "voice": "alloy",
+            "format": "wav"
+          },
+          "max_completion_tokens": 4096
+        },
+        "references": []
+      }
+    },
+    "hash": "c2bd5a5e391f3ec117995ba393fe0dda435680d2b6b7de68832115e4d3bf8ce2"
+  },
+  {
+    "model": "direct/xai/grok-imagine-image-2.0",
+    "provider": "xai",
+    "request": {
+      "model": "direct/xai/grok-imagine-image-2.0",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/xai/grok-imagine-image-2.0",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "resolution": "1k",
+          "aspect_ratio": "1:1",
+          "n": 1,
+          "quality": "low"
+        },
+        "references": []
+      }
+    },
+    "hash": "06abd13758b982f491041c359e596d29d8169169dfb380da3eaabd7eb1d120d7"
+  },
+  {
+    "model": "direct/xai/grok-imagine-image",
+    "provider": "xai",
+    "request": {
+      "model": "direct/xai/grok-imagine-image",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/xai/grok-imagine-image",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "resolution": "1k",
+          "aspect_ratio": "1:1",
+          "n": 1
+        },
+        "references": []
+      }
+    },
+    "hash": "c7fe6fff310704801d88dc53ea7b01fc166bc540322dcf1fd9dbfa57a699f892"
+  },
+  {
+    "model": "direct/xai/grok-imagine-video-1.5",
+    "provider": "xai",
+    "request": {
+      "model": "direct/xai/grok-imagine-video-1.5",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/xai/grok-imagine-video-1.5",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "duration": 5,
+          "resolution": "720p",
+          "aspect_ratio": "16:9",
+          "task": "generate"
+        },
+        "references": []
+      }
+    },
+    "hash": "8e93579a88495c9305e8da042dcf974de6da77ec15b6529c8a910906508a90b3"
+  },
+  {
+    "model": "direct/xai/grok-imagine-video-1.5-lite",
+    "provider": "xai",
+    "request": {
+      "model": "direct/xai/grok-imagine-video-1.5-lite",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/xai/grok-imagine-video-1.5-lite",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "duration": 5,
+          "resolution": "720p",
+          "aspect_ratio": "16:9",
+          "task": "generate"
+        },
+        "references": []
+      }
+    },
+    "hash": "9c208a0f49ae4eaf6c7176fd226508def4c16056a5209458966421f5579502d1"
+  },
+  {
+    "model": "direct/xai/grok-imagine-video",
+    "provider": "xai",
+    "request": {
+      "model": "direct/xai/grok-imagine-video",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/xai/grok-imagine-video",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "duration": 5,
+          "resolution": "720p",
+          "aspect_ratio": "16:9",
+          "task": "generate"
+        },
+        "references": []
+      }
+    },
+    "hash": "41ef0a1395ccd31df9b04f915fb3862ccf770e56118dc42f0bd95e8eb3fb179a"
+  },
+  {
+    "model": "direct/xai/tts",
+    "provider": "xai",
+    "request": {
+      "model": "direct/xai/tts",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/xai/tts",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "voice_id": "eve",
+          "language": "auto",
+          "output_format": {
+            "codec": "mp3",
+            "sample_rate": 24000,
+            "bit_rate": 128000
+          },
+          "speed": 1
+        },
+        "references": []
+      }
+    },
+    "hash": "6bc2cc3252b6d81782d91160179b4bd1a14f6611d55d657c3c3c1ee0e677f745"
+  },
+  {
+    "model": "studio/native/bfl/flux-pro-1.1",
+    "provider": "bfl",
+    "request": {
+      "model": "studio/native/bfl/flux-pro-1.1",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/bfl/flux-pro-1.1",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "prompt_upsampling": false,
+          "safety_tolerance": 2,
+          "output_format": "jpeg",
+          "width": 1024,
+          "height": 1024
+        },
+        "references": []
+      }
+    },
+    "hash": "5b8c56b36129e5242eeb69ff047c50590c9acbcbf67bc7fb51c8ac6f3187e2f0"
+  },
+  {
+    "model": "studio/native/bfl/flux-dev",
+    "provider": "bfl",
+    "request": {
+      "model": "studio/native/bfl/flux-dev",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/bfl/flux-dev",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "steps": 28,
+          "prompt_upsampling": false,
+          "guidance": 3,
+          "safety_tolerance": 2,
+          "output_format": "jpeg",
+          "width": 1024,
+          "height": 1024
+        },
+        "references": []
+      }
+    },
+    "hash": "fb004c3f2755033b34ab3f75b9ff88ecc6c1b1d7b1fa8a07952e8bfaf4346f31"
+  },
+  {
+    "model": "studio/native/bfl/flux-pro-1.1-ultra",
+    "provider": "bfl",
+    "request": {
+      "model": "studio/native/bfl/flux-pro-1.1-ultra",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/bfl/flux-pro-1.1-ultra",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "prompt_upsampling": false,
+          "aspect_ratio": "16:9",
+          "safety_tolerance": 2,
+          "output_format": "jpeg",
+          "raw": false,
+          "image_prompt_strength": "0.1"
+        },
+        "references": []
+      }
+    },
+    "hash": "985fd6e763406457e2638b8cc6a4af45cdd2e511f5404fd99ef70ab625d8f6e0"
+  },
+  {
+    "model": "studio/native/bfl/flux-pro-1.0-fill",
+    "provider": "bfl",
+    "request": {
+      "model": "studio/native/bfl/flux-pro-1.0-fill",
+      "prompt": "Native catalog compatibility fixture",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "image/png",
+          "role": "image",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example1?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "image/png",
+          "role": "mask",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/native/bfl/flux-pro-1.0-fill",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "steps": 50,
+          "prompt_upsampling": false,
+          "guidance": 60,
+          "output_format": "jpeg",
+          "safety_tolerance": 2,
+          "image": "@reference:0",
+          "mask": "@reference:1"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example0?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example1?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "image/png",
+            "role": "mask",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "83190c0a5579b5d959b7c727430ace2f52bf5284c4cf2161ae17df7e093a98ed"
+  },
+  {
+    "model": "studio/native/bfl/flux-2-flex",
+    "provider": "bfl",
+    "request": {
+      "model": "studio/native/bfl/flux-2-flex",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/bfl/flux-2-flex",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "prompt_upsampling": true,
+          "guidance": 5,
+          "steps": 50,
+          "safety_tolerance": 2,
+          "output_format": "jpeg",
+          "width": 1024,
+          "height": 1024
+        },
+        "references": []
+      }
+    },
+    "hash": "02c6da243069537ed5a57464d50698490ec3f8665478537ee3bb36b12209803c"
+  },
+  {
+    "model": "studio/native/bfl/flux-2-klein-9b",
+    "provider": "bfl",
+    "request": {
+      "model": "studio/native/bfl/flux-2-klein-9b",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/bfl/flux-2-klein-9b",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "safety_tolerance": 2,
+          "output_format": "jpeg",
+          "width": 1024,
+          "height": 1024
+        },
+        "references": []
+      }
+    },
+    "hash": "f94369bcd7533688ff862825a45f700cc2590c5b7a162f542c94f5b3948729e0"
+  },
+  {
+    "model": "studio/native/bfl/flux-2-klein-4b",
+    "provider": "bfl",
+    "request": {
+      "model": "studio/native/bfl/flux-2-klein-4b",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/bfl/flux-2-klein-4b",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "safety_tolerance": 2,
+          "output_format": "jpeg",
+          "width": 1024,
+          "height": 1024
+        },
+        "references": []
+      }
+    },
+    "hash": "40bb16a61df343ddd997a988cc536b4e24716375e43c4397ff724ccbf6377b93"
+  },
+  {
+    "model": "studio/native/bfl/flux-2-max",
+    "provider": "bfl",
+    "request": {
+      "model": "studio/native/bfl/flux-2-max",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/bfl/flux-2-max",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "disable_pup": false,
+          "safety_tolerance": 2,
+          "output_format": "jpeg",
+          "width": 1024,
+          "height": 1024
+        },
+        "references": []
+      }
+    },
+    "hash": "72a8372e113462f37d9a7a0550d523c09b94dc56d322da7dcda6ba761d87fa24"
+  },
+  {
+    "model": "studio/native/bfl/flux-2-pro",
+    "provider": "bfl",
+    "request": {
+      "model": "studio/native/bfl/flux-2-pro",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/bfl/flux-2-pro",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "disable_pup": false,
+          "safety_tolerance": 2,
+          "output_format": "jpeg",
+          "width": 1024,
+          "height": 1024
+        },
+        "references": []
+      }
+    },
+    "hash": "ed5d4f96350330e87393ad4fa86fabdd5a940f46a9750fbe9116bed599d7216e"
+  },
+  {
+    "model": "studio/native/bfl/flux-3-video",
+    "provider": "bfl",
+    "request": {
+      "model": "studio/native/bfl/flux-3-video",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/bfl/flux-3-video",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 5,
+          "resolution": "hd",
+          "version": "latest",
+          "generate_audio": true,
+          "safety_tolerance": 2,
+          "draft": false,
+          "mode": "t2v"
+        },
+        "references": []
+      }
+    },
+    "hash": "b96d5ad01b62c85358fe85ce1d8f1f42f24c73c6af1fad49dd99188e11049686"
+  },
+  {
+    "model": "studio/native/bfl/flux-3-image",
+    "provider": "bfl",
+    "request": {
+      "model": "studio/native/bfl/flux-3-image",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/bfl/flux-3-image",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "aspect_ratio": "auto",
+          "resolution": "1k",
+          "safety_tolerance": 2,
+          "grounding": true,
+          "version": "latest"
+        },
+        "references": []
+      }
+    },
+    "hash": "12318850f4ea56e1e1fa2ceb59ee515faaa8aceaf06fbc2f92807a683f167a43"
+  },
+  {
+    "model": "studio/native/bfl/flux-3-image-klein",
+    "provider": "bfl",
+    "request": {
+      "model": "studio/native/bfl/flux-3-image-klein",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/bfl/flux-3-image-klein",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "aspect_ratio": "auto",
+          "safety_tolerance": 2,
+          "output_format": "jpeg"
+        },
+        "references": []
+      }
+    },
+    "hash": "a1274451be6c47821552ad8d1a8f1c45dc2fbaec91f2d2ccb67ee7398984a0a5"
+  },
+  {
+    "model": "studio/native/bfl/flux-kontext-max",
+    "provider": "bfl",
+    "request": {
+      "model": "studio/native/bfl/flux-kontext-max",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/bfl/flux-kontext-max",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "output_format": "png",
+          "prompt_upsampling": false,
+          "safety_tolerance": 2
+        },
+        "references": []
+      }
+    },
+    "hash": "9b9500125c65e28ae0140401a6a582741711a508f496f669220329f614cc48dd"
+  },
+  {
+    "model": "studio/native/bfl/flux-kontext-pro",
+    "provider": "bfl",
+    "request": {
+      "model": "studio/native/bfl/flux-kontext-pro",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/bfl/flux-kontext-pro",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "output_format": "png",
+          "prompt_upsampling": false,
+          "safety_tolerance": 2
+        },
+        "references": []
+      }
+    },
+    "hash": "ce82c382ab188b98b0b96225ab422a3ea481e61f1fa57f3c6e06b72d004e54f2"
+  },
+  {
+    "model": "studio/native/minimax/minimax-h3",
+    "provider": "minimax",
+    "request": {
+      "model": "studio/native/minimax/minimax-h3",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/minimax/minimax-h3",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "content": [
+            {
+              "type": "text"
+            }
+          ],
+          "resolution": "768P",
+          "duration": 5,
+          "ratio": "16:9"
+        },
+        "references": []
+      }
+    },
+    "hash": "771690f99afce779d56eadf693b2890fbceed9c0d0181065f30701210f6908c5"
+  },
+  {
+    "model": "studio/native/minimax/minimax-h3-highspeed",
+    "provider": "minimax",
+    "request": {
+      "model": "studio/native/minimax/minimax-h3-highspeed",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/minimax/minimax-h3-highspeed",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "content": [
+            {
+              "type": "text"
+            }
+          ],
+          "resolution": "480P",
+          "duration": 5,
+          "ratio": "16:9"
+        },
+        "references": []
+      }
+    },
+    "hash": "80b82d046254be3ac5648fbae9415b88d49ffab4e327bd395ce2bcb8f3bc6f68"
+  },
+  {
+    "model": "studio/native/minimax/minimax-h3-lite",
+    "provider": "minimax",
+    "request": {
+      "model": "studio/native/minimax/minimax-h3-lite",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/minimax/minimax-h3-lite",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "content": [
+            {
+              "type": "text"
+            }
+          ],
+          "resolution": "480P",
+          "duration": 5,
+          "ratio": "16:9"
+        },
+        "references": []
+      }
+    },
+    "hash": "fd737b7a8c5a8dc5cec4feb945a25ffba95c74206654e5cb25fa1198fad9a615"
+  },
+  {
+    "model": "studio/native/minimax/minimax-h3-max",
+    "provider": "minimax",
+    "request": {
+      "model": "studio/native/minimax/minimax-h3-max",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/minimax/minimax-h3-max",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "content": [
+            {
+              "type": "text"
+            }
+          ],
+          "resolution": "480P",
+          "duration": 5,
+          "ratio": "16:9"
+        },
+        "references": []
+      }
+    },
+    "hash": "f411b5210738fdac63ec037090712992ee22c2ceb2dc8755237800ca0e372279"
+  },
+  {
+    "model": "studio/native/minimax/speech-2.8-hd",
+    "provider": "minimax",
+    "request": {
+      "model": "studio/native/minimax/speech-2.8-hd",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/minimax/speech-2.8-hd",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "stream": false,
+          "output_format": "hex",
+          "voice_setting": {
+            "voice_id": "English_expressive_narrator",
+            "speed": 1,
+            "vol": 1,
+            "pitch": 0
+          },
+          "audio_setting": {
+            "sample_rate": 32000,
+            "bitrate": 128000,
+            "format": "mp3",
+            "channel": 1
+          }
+        },
+        "references": []
+      }
+    },
+    "hash": "80ff66d99f0172147296b3d7141c2f5506714f1ca897ac312422ac0cf02ed8f7"
+  },
+  {
+    "model": "studio/native/minimax/speech-2.8-turbo",
+    "provider": "minimax",
+    "request": {
+      "model": "studio/native/minimax/speech-2.8-turbo",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/minimax/speech-2.8-turbo",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "stream": false,
+          "output_format": "hex",
+          "voice_setting": {
+            "voice_id": "English_expressive_narrator",
+            "speed": 1,
+            "vol": 1,
+            "pitch": 0
+          },
+          "audio_setting": {
+            "sample_rate": 32000,
+            "bitrate": 128000,
+            "format": "mp3",
+            "channel": 1
+          }
+        },
+        "references": []
+      }
+    },
+    "hash": "3904be19957850b0832f9a5524defdf1bc332352abb982b53af0497b9e0c6048"
+  },
+  {
+    "model": "studio/native/minimax/speech-2.6-hd",
+    "provider": "minimax",
+    "request": {
+      "model": "studio/native/minimax/speech-2.6-hd",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/minimax/speech-2.6-hd",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "stream": false,
+          "output_format": "hex",
+          "voice_setting": {
+            "voice_id": "English_expressive_narrator",
+            "speed": 1,
+            "vol": 1,
+            "pitch": 0
+          },
+          "audio_setting": {
+            "sample_rate": 32000,
+            "bitrate": 128000,
+            "format": "mp3",
+            "channel": 1
+          }
+        },
+        "references": []
+      }
+    },
+    "hash": "1f37cef0263c4d1f7c6b5fc335ac924ba9eb400e9dc8cbaf34b6dd133dd16e41"
+  },
+  {
+    "model": "studio/native/minimax/speech-2.6-turbo",
+    "provider": "minimax",
+    "request": {
+      "model": "studio/native/minimax/speech-2.6-turbo",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/minimax/speech-2.6-turbo",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "stream": false,
+          "output_format": "hex",
+          "voice_setting": {
+            "voice_id": "English_expressive_narrator",
+            "speed": 1,
+            "vol": 1,
+            "pitch": 0
+          },
+          "audio_setting": {
+            "sample_rate": 32000,
+            "bitrate": 128000,
+            "format": "mp3",
+            "channel": 1
+          }
+        },
+        "references": []
+      }
+    },
+    "hash": "c39ff3f4797263265f14f29eb7f20a1c94deddc3518e4acbb556c82ecf5ee131"
+  },
+  {
+    "model": "studio/native/minimax/speech-02-hd",
+    "provider": "minimax",
+    "request": {
+      "model": "studio/native/minimax/speech-02-hd",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/minimax/speech-02-hd",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "stream": false,
+          "output_format": "hex",
+          "voice_setting": {
+            "voice_id": "English_expressive_narrator",
+            "speed": 1,
+            "vol": 1,
+            "pitch": 0
+          },
+          "audio_setting": {
+            "sample_rate": 32000,
+            "bitrate": 128000,
+            "format": "mp3",
+            "channel": 1
+          }
+        },
+        "references": []
+      }
+    },
+    "hash": "601dd0e2d38d40022fd4ae683c447578e3e32e8a7e1cf8c46d42af82d508d5ce"
+  },
+  {
+    "model": "studio/native/minimax/speech-02-turbo",
+    "provider": "minimax",
+    "request": {
+      "model": "studio/native/minimax/speech-02-turbo",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/minimax/speech-02-turbo",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "stream": false,
+          "output_format": "hex",
+          "voice_setting": {
+            "voice_id": "English_expressive_narrator",
+            "speed": 1,
+            "vol": 1,
+            "pitch": 0
+          },
+          "audio_setting": {
+            "sample_rate": 32000,
+            "bitrate": 128000,
+            "format": "mp3",
+            "channel": 1
+          }
+        },
+        "references": []
+      }
+    },
+    "hash": "91b6c2f2b65f742f146153330821038aca72573226e11f6116435b17e9af89ac"
+  },
+  {
+    "model": "studio/native/minimax/image-01",
+    "provider": "minimax",
+    "request": {
+      "model": "studio/native/minimax/image-01",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/minimax/image-01",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "response_format": "base64",
+          "aspect_ratio": "1:1",
+          "n": 1
+        },
+        "references": []
+      }
+    },
+    "hash": "d5353645b6913c21776705b3516b98f98b2fec280cc3b2e2537168e0585ab050"
+  },
+  {
+    "model": "studio/native/kling/kling-4.0",
+    "provider": "kling",
+    "request": {
+      "model": "studio/native/kling/kling-4.0",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/kling/kling-4.0",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "contents": [
+            {
+              "type": "prompt"
+            }
+          ],
+          "settings": {
+            "duration": 5,
+            "resolution": "720p",
+            "aspect_ratio": "16:9"
+          }
+        },
+        "references": []
+      }
+    },
+    "hash": "60bd582c98b107cec6e8fbb07e81499d633d716df72fd765c11ae4e3dfeec124"
+  },
+  {
+    "model": "studio/native/kling/kling-3.0-omni",
+    "provider": "kling",
+    "request": {
+      "model": "studio/native/kling/kling-3.0-omni",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/kling/kling-3.0-omni",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "contents": [
+            {
+              "type": "prompt"
+            }
+          ],
+          "settings": {
+            "duration": 5,
+            "resolution": "720p",
+            "aspect_ratio": "16:9",
+            "audio": "off",
+            "multi_shot": true
+          }
+        },
+        "references": []
+      }
+    },
+    "hash": "e0d36b34c03eef1e31eb97018c90d4bb6db70a2f5dfb46d7f3a3c1684f5c2d7d"
+  },
+  {
+    "model": "studio/native/kling/kling-o1",
+    "provider": "kling",
+    "request": {
+      "model": "studio/native/kling/kling-o1",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/kling/kling-o1",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "contents": [
+            {
+              "type": "prompt"
+            }
+          ],
+          "settings": {
+            "duration": 5,
+            "resolution": "720p",
+            "aspect_ratio": "16:9",
+            "audio": "off"
+          }
+        },
+        "references": []
+      }
+    },
+    "hash": "6ea7aeb967800530669e1c073b169c6cb4dc98a7efe84400018fd25f8a796b62"
+  },
+  {
+    "model": "studio/native/kling/kling-3.0",
+    "provider": "kling",
+    "request": {
+      "model": "studio/native/kling/kling-3.0",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/kling/kling-3.0",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "settings": {
+            "duration": 5,
+            "resolution": "720p",
+            "aspect_ratio": "16:9",
+            "audio": "off",
+            "multi_shot": true
+          }
+        },
+        "references": []
+      }
+    },
+    "hash": "cb5f6456f36e83079fa977553ab36ea1190a2a2d6567aeca7c35b853d2f877aa"
+  },
+  {
+    "model": "studio/native/kling/kling-3.0-turbo",
+    "provider": "kling",
+    "request": {
+      "model": "studio/native/kling/kling-3.0-turbo",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/kling/kling-3.0-turbo",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "settings": {
+            "duration": 5,
+            "resolution": "720p",
+            "aspect_ratio": "16:9"
+          }
+        },
+        "references": []
+      }
+    },
+    "hash": "a2652ee641293c00b7995bca9d3e7abc3c58db1470ae648f2ba7b48155b3e226"
+  },
+  {
+    "model": "studio/native/kling/kling-3.0-turbo-image-to-video",
+    "provider": "kling",
+    "request": {
+      "model": "studio/native/kling/kling-3.0-turbo-image-to-video",
+      "prompt": "Native catalog compatibility fixture",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": 0,
+          "frameCount": 0
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/native/kling/kling-3.0-turbo-image-to-video",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "contents": [
+            {
+              "type": "prompt"
+            },
+            {
+              "type": "first_frame",
+              "url": "@reference:0"
+            }
+          ],
+          "settings": {
+            "duration": 5,
+            "resolution": "720p"
+          }
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": 0,
+            "frameCount": 0
+          }
+        ]
+      }
+    },
+    "hash": "2a7d82f072f029389d2268042f7a2ba17ce006466e9b9fab0b533a42e9c25377"
+  },
+  {
+    "model": "studio/native/kling/kling-2.6",
+    "provider": "kling",
+    "request": {
+      "model": "studio/native/kling/kling-2.6",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/kling/kling-2.6",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "settings": {
+            "duration": 5,
+            "resolution": "720p",
+            "aspect_ratio": "16:9",
+            "audio": "off"
+          }
+        },
+        "references": []
+      }
+    },
+    "hash": "d5dccf16f4f23aded9f91fcf7dd538cafca6e68c7ef69f700757168b17da1357"
+  },
+  {
+    "model": "studio/native/kling/kling-2.6-image-to-video",
+    "provider": "kling",
+    "request": {
+      "model": "studio/native/kling/kling-2.6-image-to-video",
+      "prompt": "Native catalog compatibility fixture",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": 0,
+          "frameCount": 0
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/native/kling/kling-2.6-image-to-video",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "contents": [
+            {
+              "type": "prompt"
+            },
+            {
+              "type": "first_frame",
+              "url": "@reference:0"
+            }
+          ],
+          "settings": {
+            "duration": 5,
+            "resolution": "720p",
+            "audio": "off"
+          }
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": 0,
+            "frameCount": 0
+          }
+        ]
+      }
+    },
+    "hash": "e0a12b574ea321613969e4016b261f4ba33a5c79f7af31e37367b8a5be0d0ed2"
+  },
+  {
+    "model": "studio/native/kling/kling-2.5-turbo",
+    "provider": "kling",
+    "request": {
+      "model": "studio/native/kling/kling-2.5-turbo",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/kling/kling-2.5-turbo",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "settings": {
+            "duration": 5,
+            "resolution": "720p",
+            "aspect_ratio": "16:9"
+          }
+        },
+        "references": []
+      }
+    },
+    "hash": "42a7a6cfa55ce46b16d6b29a65d3bcf5ba4ba02f8d9acbbd747868c083cf891e"
+  },
+  {
+    "model": "studio/native/kling/kling-2.5-turbo-image-to-video",
+    "provider": "kling",
+    "request": {
+      "model": "studio/native/kling/kling-2.5-turbo-image-to-video",
+      "prompt": "Native catalog compatibility fixture",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": 0,
+          "frameCount": 0
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/native/kling/kling-2.5-turbo-image-to-video",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "contents": [
+            {
+              "type": "prompt"
+            },
+            {
+              "type": "first_frame",
+              "url": "@reference:0"
+            }
+          ],
+          "settings": {
+            "duration": 5,
+            "resolution": "720p"
+          }
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": 0,
+            "frameCount": 0
+          }
+        ]
+      }
+    },
+    "hash": "b30f4b36a109dbf2f0c71d9881b7cf079eb3e143e626361b1154132754f5bcf1"
+  },
+  {
+    "model": "studio/native/kling/kling-v3",
+    "provider": "kling",
+    "request": {
+      "model": "studio/native/kling/kling-v3",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/kling/kling-v3",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "resolution": "1k",
+          "aspect_ratio": "16:9",
+          "n": 1
+        },
+        "references": []
+      }
+    },
+    "hash": "d1841132820178c38706bbef502d42772d1fa53070c4275a458cee7ca5a955e8"
+  },
+  {
+    "model": "studio/native/kling/kling-v2-1",
+    "provider": "kling",
+    "request": {
+      "model": "studio/native/kling/kling-v2-1",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/kling/kling-v2-1",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "resolution": "1k",
+          "aspect_ratio": "16:9",
+          "n": 1
+        },
+        "references": []
+      }
+    },
+    "hash": "d031799169b9ac369b72d71185f266c360cdbcc184a797185ac6b5de98c04404"
+  },
+  {
+    "model": "studio/native/kling/kling-v3-omni",
+    "provider": "kling",
+    "request": {
+      "model": "studio/native/kling/kling-v3-omni",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/kling/kling-v3-omni",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "resolution": "1k",
+          "aspect_ratio": "16:9",
+          "n": 1
+        },
+        "references": []
+      }
+    },
+    "hash": "8eb9f67958cd2353fd207824be7219dee950ba36bc7bdb7bf89eeab2025bc14a"
+  },
+  {
+    "model": "studio/native/kling/kling-image-o1",
+    "provider": "kling",
+    "request": {
+      "model": "studio/native/kling/kling-image-o1",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/kling/kling-image-o1",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "resolution": "1k",
+          "aspect_ratio": "16:9",
+          "n": 1
+        },
+        "references": []
+      }
+    },
+    "hash": "a550f261be6a8bfbcd7d74253a74d92ee199a1ca1a23405f0af88e0178708560"
+  },
+  {
+    "model": "studio/native/elevenlabs/eleven_v4",
+    "provider": "elevenlabs",
+    "request": {
+      "model": "studio/native/elevenlabs/eleven_v4",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/elevenlabs/eleven_v4",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "request": {
+            "inputs": [
+              {
+                "voice_id": "21m00Tcm4TlvDq8ikWAM"
+              }
+            ]
+          },
+          "output_format": "mp3_44100_128"
+        },
+        "references": []
+      }
+    },
+    "hash": "dc75d6eeddbf6df5a244dee6bec581517bf5e10ed8c5573773659c8e879f4676"
+  },
+  {
+    "model": "studio/native/elevenlabs/eleven_v3",
+    "provider": "elevenlabs",
+    "request": {
+      "model": "studio/native/elevenlabs/eleven_v3",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/elevenlabs/eleven_v3",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "request": {},
+          "output_format": "mp3_44100_128",
+          "voice_id": "21m00Tcm4TlvDq8ikWAM"
+        },
+        "references": []
+      }
+    },
+    "hash": "d9b07de106f84862c6c40a0dbd5bb9dacc04d3152a35ada73a59214a61a43bfd"
+  },
+  {
+    "model": "studio/native/elevenlabs/eleven_multilingual_v2",
+    "provider": "elevenlabs",
+    "request": {
+      "model": "studio/native/elevenlabs/eleven_multilingual_v2",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/elevenlabs/eleven_multilingual_v2",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "request": {},
+          "output_format": "mp3_44100_128",
+          "voice_id": "21m00Tcm4TlvDq8ikWAM"
+        },
+        "references": []
+      }
+    },
+    "hash": "9a4511b9da84ab3dcc7bc727b9ddcf0d27e1b4050ca2cbcdc7bf213f78bdc441"
+  },
+  {
+    "model": "studio/native/elevenlabs/eleven_flash_v2_5",
+    "provider": "elevenlabs",
+    "request": {
+      "model": "studio/native/elevenlabs/eleven_flash_v2_5",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/elevenlabs/eleven_flash_v2_5",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "request": {},
+          "output_format": "mp3_44100_128",
+          "voice_id": "21m00Tcm4TlvDq8ikWAM"
+        },
+        "references": []
+      }
+    },
+    "hash": "ac72aceb10ff3d13781b1ec258aed14e89de94ffc5a701f24cf083ae9b3c35f1"
+  },
+  {
+    "model": "studio/native/elevenlabs/eleven_flash_v2",
+    "provider": "elevenlabs",
+    "request": {
+      "model": "studio/native/elevenlabs/eleven_flash_v2",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/elevenlabs/eleven_flash_v2",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "request": {},
+          "output_format": "mp3_44100_128",
+          "voice_id": "21m00Tcm4TlvDq8ikWAM"
+        },
+        "references": []
+      }
+    },
+    "hash": "ac5619cdb5a4b64d9daa1509bcae0149c6d30eb7ac92d9a4855796d606b6110b"
+  },
+  {
+    "model": "studio/native/elevenlabs/eleven_text_to_sound_v2",
+    "provider": "elevenlabs",
+    "request": {
+      "model": "studio/native/elevenlabs/eleven_text_to_sound_v2",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/elevenlabs/eleven_text_to_sound_v2",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "request": {
+            "duration_seconds": 5
+          },
+          "output_format": "mp3_44100_128"
+        },
+        "references": []
+      }
+    },
+    "hash": "96777670a3d62296b4278c5659b42522a03a793469e3d14912ef118b1400645c"
+  },
+  {
+    "model": "studio/native/elevenlabs/eleven_text_to_sound_v3",
+    "provider": "elevenlabs",
+    "request": {
+      "model": "studio/native/elevenlabs/eleven_text_to_sound_v3",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/elevenlabs/eleven_text_to_sound_v3",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "request": {
+            "duration_seconds": 5
+          },
+          "output_format": "mp3_44100_128"
+        },
+        "references": []
+      }
+    },
+    "hash": "33c1ff8064b4adb7513e3d04d9505ddb12516c5dc2b92b01bfcfdec369618859"
+  },
+  {
+    "model": "studio/native/elevenlabs/music_v2",
+    "provider": "elevenlabs",
+    "request": {
+      "model": "studio/native/elevenlabs/music_v2",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/elevenlabs/music_v2",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "request": {
+            "music_length_ms": 30000
+          },
+          "output_format": "mp3_44100_128"
+        },
+        "references": []
+      }
+    },
+    "hash": "0c6f4fe57661a10f53fa1701d13b2e6777a3aff914ecca4d7c9fe886ca83ecbe"
+  },
+  {
+    "model": "studio/native/elevenlabs/music_v2_5",
+    "provider": "elevenlabs",
+    "request": {
+      "model": "studio/native/elevenlabs/music_v2_5",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/elevenlabs/music_v2_5",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "request": {
+            "music_length_ms": 30000
+          },
+          "output_format": "mp3_44100_128"
+        },
+        "references": []
+      }
+    },
+    "hash": "28ceff31c01f1fef7753f6a059f79b58dd4c37cff7ec67dcfb86fe68d82ab2dc"
+  },
+  {
+    "model": "studio/native/luma-agents/uni-1",
+    "provider": "luma-agents",
+    "request": {
+      "model": "studio/native/luma-agents/uni-1",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/luma-agents/uni-1",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "type": "image",
+          "aspect_ratio": "1:1",
+          "output_format": "png"
+        },
+        "references": []
+      }
+    },
+    "hash": "62358af06e8d58c1ca7003eef38b647e33f842ef9c1569cfa83bee023186b3f4"
+  },
+  {
+    "model": "studio/native/luma-agents/uni-1-max",
+    "provider": "luma-agents",
+    "request": {
+      "model": "studio/native/luma-agents/uni-1-max",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/luma-agents/uni-1-max",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "type": "image",
+          "aspect_ratio": "1:1",
+          "output_format": "png"
+        },
+        "references": []
+      }
+    },
+    "hash": "2c30f8f78e0448ce1a7904b84e5d3d3de9d2e4415ed543bcb2e3d6ff28e1d196"
+  },
+  {
+    "model": "studio/native/luma-agents/ray-3.2",
+    "provider": "luma-agents",
+    "request": {
+      "model": "studio/native/luma-agents/ray-3.2",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/luma-agents/ray-3.2",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "type": "video",
+          "video": {
+            "resolution": "720p",
+            "duration": "5s"
+          },
+          "aspect_ratio": "16:9"
+        },
+        "references": []
+      }
+    },
+    "hash": "0e936ef16518f5d015bdd5923d8a0f634e920fc643d0dc2f4b1d178d32d28af7"
+  },
+  {
+    "model": "studio/native/runway/gen4.5",
+    "provider": "runway",
+    "request": {
+      "model": "studio/native/runway/gen4.5",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/runway/gen4.5",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "ratio": "1280:720",
+          "duration": 5,
+          "outputFormat": "mp4"
+        },
+        "references": []
+      }
+    },
+    "hash": "300e14dd1540ae58fa030a0456bb5413fd6edd6611fa29f9eec3510c62f6a549"
+  },
+  {
+    "model": "studio/native/runway/gen4.5-image-to-video",
+    "provider": "runway",
+    "request": {
+      "model": "studio/native/runway/gen4.5-image-to-video",
+      "prompt": "Native catalog compatibility fixture",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_first?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/native/runway/gen4.5-image-to-video",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "ratio": "1280:720",
+          "duration": 5,
+          "outputFormat": "mp4",
+          "promptImage": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_first?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          }
+        ]
+      }
+    },
+    "hash": "ac0428b9aadb5d069d3ddab900558d93a3276d73596d64fc2e48fa18cd3b8398"
+  },
+  {
+    "model": "studio/native/runway/gen4_turbo",
+    "provider": "runway",
+    "request": {
+      "model": "studio/native/runway/gen4_turbo",
+      "prompt": "Native catalog compatibility fixture",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_first?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/native/runway/gen4_turbo",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "ratio": "1280:720",
+          "duration": 5,
+          "promptImage": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_first?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          }
+        ]
+      }
+    },
+    "hash": "bd1c5c04510f6bf9cfb0446dd7aa8a9c6409ae4823ed19dd0886c01690f7afec"
+  },
+  {
+    "model": "studio/native/runway/aleph2",
+    "provider": "runway",
+    "request": {
+      "model": "studio/native/runway/aleph2",
+      "prompt": "Native catalog compatibility fixture",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_video?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "video/mp4",
+          "role": "video",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 5000,
+          "frameCount": 120
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/native/runway/aleph2",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "outputFormat": "mp4",
+          "videoUri": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_video?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "video/mp4",
+            "role": "video",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 5000,
+            "frameCount": 120
+          }
+        ]
+      }
+    },
+    "hash": "cad85a29c0e77ff1771392ec00e144ccaf2895e849a61e8741982b55f8988c82"
+  },
+  {
+    "model": "studio/native/runway/gen4_image_turbo",
+    "provider": "runway",
+    "request": {
+      "model": "studio/native/runway/gen4_image_turbo",
+      "prompt": "Native catalog compatibility fixture",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_image?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "image/png",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/native/runway/gen4_image_turbo",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "ratio": "1024:1024",
+          "referenceImages": [
+            {
+              "uri": "@reference:0"
+            }
+          ]
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_image?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          }
+        ]
+      }
+    },
+    "hash": "14a47be72677de9bb016cd9a0567e1b9768f0431df48a97ca8d82855423876b4"
+  },
+  {
+    "model": "studio/native/runway/gen4_image",
+    "provider": "runway",
+    "request": {
+      "model": "studio/native/runway/gen4_image",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/runway/gen4_image",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "ratio": "1024:1024"
+        },
+        "references": []
+      }
+    },
+    "hash": "c446fb77202fa907edc8ec514d9b39261877306784d7de6a9b72feff9ddccdc6"
+  },
+  {
+    "model": "studio/native/runway/muse_image",
+    "provider": "runway",
+    "request": {
+      "model": "studio/native/runway/muse_image",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/runway/muse_image",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "ratio": "1600:1600",
+          "outputFormat": "png"
+        },
+        "references": []
+      }
+    },
+    "hash": "34859ec9d1bcec06f57e560ff6e01d58a3d5668958fe3eabc0560b2f2b89623c"
+  },
+  {
+    "model": "studio/native/runway/act_two",
+    "provider": "runway",
+    "request": {
+      "model": "studio/native/runway/act_two",
+      "prompt": "Native catalog compatibility fixture",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_image?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "image/png",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0,
+          "frameCount": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_video?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "video/mp4",
+          "role": "video",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 5000,
+          "frameCount": 120
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/native/runway/act_two",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "ratio": "1280:720",
+          "character": {
+            "type": "image",
+            "uri": "@reference:0"
+          },
+          "reference": {
+            "type": "video",
+            "uri": "@reference:1"
+          }
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_image?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0,
+            "frameCount": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_video?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "video/mp4",
+            "role": "video",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 5000,
+            "frameCount": 120
+          }
+        ]
+      }
+    },
+    "hash": "7e394a3522702de1c874b9af6ca9689ed254cc996995af21c8b0aa631ee5bdf2"
+  },
+  {
+    "model": "studio/native/elevenlabs/eleven_v4_turbo",
+    "provider": "elevenlabs",
+    "request": {
+      "model": "studio/native/elevenlabs/eleven_v4_turbo",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/elevenlabs/eleven_v4_turbo",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "request": {
+            "inputs": [
+              {
+                "voice_id": "21m00Tcm4TlvDq8ikWAM"
+              }
+            ]
+          },
+          "output_format": "mp3_44100_128"
+        },
+        "references": []
+      }
+    },
+    "hash": "106906caa46b934176feabe55e40975ced2b1d651f5b554e6db93a3919873897"
+  },
+  {
+    "model": "studio/native/elevenlabs/eleven_v3_conversational",
+    "provider": "elevenlabs",
+    "request": {
+      "model": "studio/native/elevenlabs/eleven_v3_conversational",
+      "prompt": "Native catalog compatibility fixture",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/elevenlabs/eleven_v3_conversational",
+      "input": {
+        "prompt": "Native catalog compatibility fixture",
+        "parameters": {
+          "request": {
+            "inputs": [
+              {
+                "voice_id": "21m00Tcm4TlvDq8ikWAM"
+              }
+            ]
+          },
+          "output_format": "mp3_44100_128"
+        },
+        "references": []
+      }
+    },
+    "hash": "b3783b92d418da484b48c63a266fca5511355ac0be597f1dfcef3bf36974ee28"
   }
 ]

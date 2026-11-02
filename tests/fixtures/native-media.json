@@ -1,0 +1,298 @@
+[
+  {
+    "input": {
+      "model": "direct/openai/gpt-image-2.5-sunburst",
+      "prompt": "Cross-language native media fixture"
+    },
+    "spec": {
+      "model": "direct/openai/gpt-image-2.5-sunburst",
+      "input": {
+        "prompt": "Cross-language native media fixture",
+        "parameters": {
+          "size": "1024x1024",
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "png",
+          "n": 1
+        },
+        "references": []
+      }
+    },
+    "hash": "5fde5fe155954d9325c50db4ab894287010fdc0d9d777821d9e3276a19007d3b"
+  },
+  {
+    "input": {
+      "model": "direct/openai/gpt-image-2.5-flare",
+      "prompt": "Cross-language native media fixture"
+    },
+    "spec": {
+      "model": "direct/openai/gpt-image-2.5-flare",
+      "input": {
+        "prompt": "Cross-language native media fixture",
+        "parameters": {
+          "size": "1024x1024",
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "png",
+          "n": 1
+        },
+        "references": []
+      }
+    },
+    "hash": "ab6648bd1d0e7b2c46e95f022e96f870aa79da31fd10b12d827a2dab7f8eb58f"
+  },
+  {
+    "input": {
+      "model": "direct/openai/gpt-image-2",
+      "prompt": "Cross-language native media fixture"
+    },
+    "spec": {
+      "model": "direct/openai/gpt-image-2",
+      "input": {
+        "prompt": "Cross-language native media fixture",
+        "parameters": {
+          "size": "1024x1024",
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "png",
+          "n": 1
+        },
+        "references": []
+      }
+    },
+    "hash": "a226a620ac64445e5f2f09c7671e3fcf3a85da16349518987d0dbf6844561fa8"
+  },
+  {
+    "input": {
+      "model": "direct/openai/gpt-audio-1.5",
+      "prompt": "Cross-language native media fixture"
+    },
+    "spec": {
+      "model": "direct/openai/gpt-audio-1.5",
+      "input": {
+        "prompt": "Cross-language native media fixture",
+        "parameters": {
+          "audio": {
+            "voice": "alloy",
+            "format": "wav"
+          },
+          "max_completion_tokens": 4096
+        },
+        "references": []
+      }
+    },
+    "hash": "f8170474b0fd43ee34b094b8122300835f110945d1c3e3988ef24b7a521c45ea"
+  },
+  {
+    "input": {
+      "model": "direct/xai/grok-imagine-image-2.0",
+      "prompt": "Cross-language native media fixture"
+    },
+    "spec": {
+      "model": "direct/xai/grok-imagine-image-2.0",
+      "input": {
+        "prompt": "Cross-language native media fixture",
+        "parameters": {
+          "resolution": "1k",
+          "aspect_ratio": "1:1",
+          "n": 1,
+          "quality": "low"
+        },
+        "references": []
+      }
+    },
+    "hash": "e27b3def9d6a94ff0d99334160d3529d0199ca9f6d84bc3fe1009e5ec94140d8"
+  },
+  {
+    "input": {
+      "model": "direct/xai/grok-imagine-image",
+      "prompt": "Cross-language native media fixture"
+    },
+    "spec": {
+      "model": "direct/xai/grok-imagine-image",
+      "input": {
+        "prompt": "Cross-language native media fixture",
+        "parameters": {
+          "resolution": "1k",
+          "aspect_ratio": "1:1",
+          "n": 1
+        },
+        "references": []
+      }
+    },
+    "hash": "2c0b589a082a6ace2161f16d02b85f0436b67970627ba56f8b7a57302b57f029"
+  },
+  {
+    "input": {
+      "model": "direct/xai/grok-imagine-video-1.5",
+      "prompt": "Cross-language native media fixture"
+    },
+    "spec": {
+      "model": "direct/xai/grok-imagine-video-1.5",
+      "input": {
+        "prompt": "Cross-language native media fixture",
+        "parameters": {
+          "duration": 5,
+          "resolution": "720p",
+          "aspect_ratio": "16:9",
+          "task": "generate"
+        },
+        "references": []
+      }
+    },
+    "hash": "44e6a5a92140dc92c1910a1be13fc6d38f5b4bd089be705d6b3e571344134de0"
+  },
+  {
+    "input": {
+      "model": "direct/xai/grok-imagine-video-1.5-lite",
+      "prompt": "Cross-language native media fixture"
+    },
+    "spec": {
+      "model": "direct/xai/grok-imagine-video-1.5-lite",
+      "input": {
+        "prompt": "Cross-language native media fixture",
+        "parameters": {
+          "duration": 5,
+          "resolution": "720p",
+          "aspect_ratio": "16:9",
+          "task": "generate"
+        },
+        "references": []
+      }
+    },
+    "hash": "f36dbcda841d2dd52211c270120d7afab5d2baa6d94bdce75724f3e472ce847a"
+  },
+  {
+    "input": {
+      "model": "direct/xai/grok-imagine-video",
+      "prompt": "Cross-language native media fixture"
+    },
+    "spec": {
+      "model": "direct/xai/grok-imagine-video",
+      "input": {
+        "prompt": "Cross-language native media fixture",
+        "parameters": {
+          "duration": 5,
+          "resolution": "720p",
+          "aspect_ratio": "16:9",
+          "task": "generate"
+        },
+        "references": []
+      }
+    },
+    "hash": "2dd916766f15ab3103021e78c1e2e8cef6376b6b530cd599676df451b4381ee1"
+  },
+  {
+    "input": {
+      "model": "direct/xai/tts",
+      "prompt": "Cross-language native media fixture"
+    },
+    "spec": {
+      "model": "direct/xai/tts",
+      "input": {
+        "prompt": "Cross-language native media fixture",
+        "parameters": {
+          "voice_id": "eve",
+          "language": "auto",
+          "output_format": {
+            "codec": "mp3",
+            "sample_rate": 24000,
+            "bit_rate": 128000
+          },
+          "speed": 1
+        },
+        "references": []
+      }
+    },
+    "hash": "ba79b16733a22d01280d6bd8cc9bcf026568ec1a13a2b36eee06c6d88b04b679"
+  },
+  {
+    "input": {
+      "model": "direct/xai/tts",
+      "prompt": "Cross-language native media fixture",
+      "parameters": {
+        "speed": 0.85,
+        "output_format": {
+          "codec": "wav"
+        }
+      }
+    },
+    "spec": {
+      "model": "direct/xai/tts",
+      "input": {
+        "prompt": "Cross-language native media fixture",
+        "parameters": {
+          "voice_id": "eve",
+          "language": "auto",
+          "output_format": {
+            "codec": "wav",
+            "sample_rate": 24000
+          },
+          "speed": "0.85"
+        },
+        "references": []
+      }
+    },
+    "hash": "48ba56708bf8196d3acec258fd027d51666660377d4220b9c72fa793b8f3b96e"
+  },
+  {
+    "input": {
+      "model": "direct/openai/gpt-image-2.5-sunburst",
+      "prompt": "Cross-language native media fixture",
+      "parameters": {
+        "size": "3840x2160",
+        "n": 10,
+        "quality": "max",
+        "output_format": "webp",
+        "output_compression": 60
+      }
+    },
+    "spec": {
+      "model": "direct/openai/gpt-image-2.5-sunburst",
+      "input": {
+        "prompt": "Cross-language native media fixture",
+        "parameters": {
+          "size": "3840x2160",
+          "quality": "max",
+          "background": "auto",
+          "output_format": "webp",
+          "n": 10,
+          "output_compression": 60
+        },
+        "references": []
+      }
+    },
+    "hash": "c1932b3450bc954d097d0e664fb7ec6c018958541fd114dad6060d8ab37412b1"
+  },
+  {
+    "input": {
+      "model": "direct/openai/gpt-audio-1.5",
+      "prompt": "Cross-language native media fixture",
+      "parameters": {
+        "audio": {
+          "voice": "coral",
+          "format": "mp3"
+        },
+        "temperature": 0.75,
+        "top_p": 0.9
+      }
+    },
+    "spec": {
+      "model": "direct/openai/gpt-audio-1.5",
+      "input": {
+        "prompt": "Cross-language native media fixture",
+        "parameters": {
+          "audio": {
+            "voice": "coral",
+            "format": "mp3"
+          },
+          "max_completion_tokens": 4096,
+          "temperature": "0.75",
+          "top_p": "0.9"
+        },
+        "references": []
+      }
+    },
+    "hash": "ac70a4f0568cf83dc5ace23f18756e829b6b035abb16fa12a8ca6764b770493f"
+  }
+]

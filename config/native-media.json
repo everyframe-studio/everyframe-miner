@@ -1,0 +1,724 @@
+{
+  "direct/openai/gpt-image-2.5-sunburst": {
+    "provider": "openai",
+    "apiModel": "gpt-image-2.5-sunburst",
+    "name": "GPT Image 2.5 Sunburst",
+    "vendor": "OpenAI",
+    "family": "GPT Image 2.5 Sunburst",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "openai-images",
+    "deadlineMs": 720000,
+    "maxPrompt": 32000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "params": {
+      "size": "1024x1024",
+      "quality": "medium",
+      "background": "auto",
+      "output_format": "png",
+      "n": 1
+    },
+    "nativeCapabilities": {
+      "maxPrompt": 32000,
+      "maxReferences": 16,
+      "count": [
+        1,
+        10
+      ],
+      "qualities": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+        "auto"
+      ],
+      "formats": [
+        "png",
+        "jpeg",
+        "webp"
+      ],
+      "maxEdge": 3840,
+      "pixelRange": [
+        655360,
+        8294400
+      ],
+      "multiple": 16,
+      "maxAspect": 3,
+      "mask": true,
+      "markup": true,
+      "versions": [
+        "gpt-image-2.5-sunburst",
+        "gpt-image-2.5-sunburst-2026-09-08"
+      ]
+    },
+    "schemaCheckedAt": "2026-11-02",
+    "documentationCheckedAt": "2026-11-02",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://developers.openai.com/api/docs/guides/image-generation",
+    "mime": "image/png",
+    "duration": null,
+    "resolution": "1k",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "codecs": [
+      "png"
+    ],
+    "audio": false
+  },
+  "direct/openai/gpt-image-2.5-flare": {
+    "provider": "openai",
+    "apiModel": "gpt-image-2.5-flare",
+    "name": "GPT Image 2.5 Flare",
+    "vendor": "OpenAI",
+    "family": "GPT Image 2.5 Flare",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "openai-images",
+    "deadlineMs": 720000,
+    "maxPrompt": 32000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "params": {
+      "size": "1024x1024",
+      "quality": "medium",
+      "background": "auto",
+      "output_format": "png",
+      "n": 1
+    },
+    "nativeCapabilities": {
+      "maxPrompt": 32000,
+      "maxReferences": 16,
+      "count": [
+        1,
+        10
+      ],
+      "qualities": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+        "auto"
+      ],
+      "formats": [
+        "png",
+        "jpeg",
+        "webp"
+      ],
+      "maxEdge": 3840,
+      "pixelRange": [
+        655360,
+        8294400
+      ],
+      "multiple": 16,
+      "maxAspect": 3,
+      "mask": true,
+      "markup": true,
+      "versions": [
+        "gpt-image-2.5-flare",
+        "gpt-image-2.5-flare-2026-09-08"
+      ]
+    },
+    "schemaCheckedAt": "2026-11-02",
+    "documentationCheckedAt": "2026-11-02",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://developers.openai.com/api/docs/guides/image-generation",
+    "mime": "image/png",
+    "duration": null,
+    "resolution": "1k",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "codecs": [
+      "png"
+    ],
+    "audio": false
+  },
+  "direct/openai/gpt-image-2": {
+    "provider": "openai",
+    "apiModel": "gpt-image-2",
+    "name": "GPT Image 2",
+    "vendor": "OpenAI",
+    "family": "GPT Image 2",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "openai-images",
+    "deadlineMs": 720000,
+    "maxPrompt": 32000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "params": {
+      "size": "1024x1024",
+      "quality": "medium",
+      "background": "auto",
+      "output_format": "png",
+      "n": 1
+    },
+    "nativeCapabilities": {
+      "maxPrompt": 32000,
+      "maxReferences": 16,
+      "count": [
+        1,
+        10
+      ],
+      "qualities": [
+        "low",
+        "medium",
+        "high",
+        "auto"
+      ],
+      "formats": [
+        "png",
+        "jpeg",
+        "webp"
+      ],
+      "maxEdge": 3840,
+      "pixelRange": [
+        655360,
+        8294400
+      ],
+      "multiple": 16,
+      "maxAspect": 3,
+      "mask": true,
+      "markup": false,
+      "versions": [
+        "gpt-image-2",
+        "gpt-image-2-2026-04-21"
+      ]
+    },
+    "schemaCheckedAt": "2026-11-02",
+    "documentationCheckedAt": "2026-11-02",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://developers.openai.com/api/docs/guides/image-generation",
+    "mime": "image/png",
+    "duration": null,
+    "resolution": "1k",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "codecs": [
+      "png"
+    ],
+    "audio": false
+  },
+  "direct/openai/gpt-audio-1.5": {
+    "provider": "openai",
+    "apiModel": "gpt-audio-1.5",
+    "name": "GPT Audio 1.5",
+    "vendor": "OpenAI",
+    "family": "GPT Audio 1.5",
+    "kind": "audio",
+    "nativeMedia": true,
+    "adapter": "openai-audio",
+    "deadlineMs": 720000,
+    "maxPrompt": 512000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "params": {
+      "audio": {
+        "voice": "alloy",
+        "format": "wav"
+      },
+      "max_completion_tokens": 4096
+    },
+    "nativeCapabilities": {
+      "maxPrompt": 512000,
+      "maxCompletionTokens": 16384,
+      "formats": [
+        "wav",
+        "aac",
+        "mp3",
+        "flac",
+        "opus",
+        "pcm16"
+      ],
+      "voices": [
+        "alloy",
+        "ash",
+        "ballad",
+        "coral",
+        "echo",
+        "fable",
+        "nova",
+        "onyx",
+        "sage",
+        "shimmer",
+        "verse",
+        "marin",
+        "cedar"
+      ],
+      "customVoice": true,
+      "inputAudio": [
+        "audio/wav",
+        "audio/mpeg"
+      ]
+    },
+    "schemaCheckedAt": "2026-11-02",
+    "documentationCheckedAt": "2026-11-02",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://developers.openai.com/api/docs/guides/audio-chat-completions",
+    "mime": "audio/wav",
+    "duration": null,
+    "resolution": "audio",
+    "aspect": "none",
+    "dimensions": [],
+    "codecs": [
+      "pcm_s16le"
+    ],
+    "audio": true
+  },
+  "direct/xai/grok-imagine-image-2.0": {
+    "provider": "xai",
+    "apiModel": "grok-imagine-image-2.0",
+    "name": "Grok Imagine Image 2.0",
+    "vendor": "xAI",
+    "family": "Grok Imagine Image 2.0",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "xai-images",
+    "deadlineMs": 720000,
+    "maxPrompt": 150000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "params": {
+      "resolution": "1k",
+      "aspect_ratio": "1:1",
+      "n": 1,
+      "quality": "low"
+    },
+    "nativeCapabilities": {
+      "count": [
+        1,
+        10
+      ],
+      "maxReferences": 5,
+      "resolutions": [
+        "1k",
+        "1.5k",
+        "2k"
+      ],
+      "qualities": [
+        "low",
+        "medium",
+        "auto"
+      ],
+      "aspects": [
+        "1:1",
+        "3:4",
+        "4:3",
+        "9:16",
+        "16:9",
+        "2:3",
+        "3:2",
+        "9:19.5",
+        "19.5:9",
+        "9:20",
+        "20:9",
+        "1:2",
+        "2:1",
+        "21:9",
+        "5:2",
+        "auto"
+      ],
+      "deferred": true
+    },
+    "schemaCheckedAt": "2026-11-02",
+    "documentationCheckedAt": "2026-11-02",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://docs.x.ai/developers/rest-api-reference/inference/images",
+    "mime": "image/jpeg",
+    "duration": null,
+    "resolution": "1k",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "codecs": [
+      "mjpeg"
+    ],
+    "audio": false
+  },
+  "direct/xai/grok-imagine-image": {
+    "provider": "xai",
+    "apiModel": "grok-imagine-image",
+    "name": "Grok Imagine Image",
+    "vendor": "xAI",
+    "family": "Grok Imagine Image",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "xai-images",
+    "deadlineMs": 720000,
+    "maxPrompt": 150000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "params": {
+      "resolution": "1k",
+      "aspect_ratio": "1:1",
+      "n": 1
+    },
+    "nativeCapabilities": {
+      "count": [
+        1,
+        10
+      ],
+      "maxReferences": 5,
+      "resolutions": [
+        "1k",
+        "2k"
+      ],
+      "qualities": [],
+      "aspects": [
+        "1:1",
+        "3:4",
+        "4:3",
+        "9:16",
+        "16:9",
+        "2:3",
+        "3:2",
+        "9:19.5",
+        "19.5:9",
+        "9:20",
+        "20:9",
+        "1:2",
+        "2:1",
+        "21:9",
+        "5:2",
+        "auto"
+      ],
+      "deferred": true
+    },
+    "schemaCheckedAt": "2026-11-02",
+    "documentationCheckedAt": "2026-11-02",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://docs.x.ai/developers/rest-api-reference/inference/images",
+    "mime": "image/jpeg",
+    "duration": null,
+    "resolution": "1k",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "codecs": [
+      "mjpeg"
+    ],
+    "audio": false
+  },
+  "direct/xai/grok-imagine-video-1.5": {
+    "provider": "xai",
+    "apiModel": "grok-imagine-video-1.5",
+    "name": "Grok Imagine Video 1.5",
+    "vendor": "xAI",
+    "family": "Grok Imagine Video 1.5",
+    "kind": "video",
+    "nativeMedia": true,
+    "adapter": "xai-videos",
+    "deadlineMs": 720000,
+    "maxPrompt": 150000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "params": {
+      "duration": 5,
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "task": "generate"
+    },
+    "nativeCapabilities": {
+      "duration": [
+        1,
+        15
+      ],
+      "resolutions": [
+        "480p",
+        "720p",
+        "1080p"
+      ],
+      "aspects": [
+        "1:1",
+        "16:9",
+        "9:16",
+        "4:3",
+        "3:4",
+        "3:2",
+        "2:3",
+        "21:9",
+        "5:2"
+      ],
+      "maxReferences": 14,
+      "firstImage": true,
+      "lastImage": true,
+      "keyframes": 4,
+      "referenceVoices": 3,
+      "referenceResolution": "720p",
+      "referenceDurationMax": 15,
+      "tasks": [
+        "generate"
+      ],
+      "editSourceMaxMs": 0,
+      "extensionSeconds": null
+    },
+    "schemaCheckedAt": "2026-11-02",
+    "documentationCheckedAt": "2026-11-02",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://docs.x.ai/developers/rest-api-reference/inference/videos",
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "audio": true
+  },
+  "direct/xai/grok-imagine-video-1.5-lite": {
+    "provider": "xai",
+    "apiModel": "grok-imagine-video-1.5-lite",
+    "name": "Grok Imagine Video 1.5 Lite",
+    "vendor": "xAI",
+    "family": "Grok Imagine Video 1.5 Lite",
+    "kind": "video",
+    "nativeMedia": true,
+    "adapter": "xai-videos",
+    "deadlineMs": 720000,
+    "maxPrompt": 150000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "params": {
+      "duration": 5,
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "task": "generate"
+    },
+    "nativeCapabilities": {
+      "duration": [
+        1,
+        15
+      ],
+      "resolutions": [
+        "480p",
+        "720p",
+        "1080p"
+      ],
+      "aspects": [
+        "1:1",
+        "16:9",
+        "9:16",
+        "4:3",
+        "3:4",
+        "3:2",
+        "2:3",
+        "21:9",
+        "5:2"
+      ],
+      "maxReferences": 0,
+      "firstImage": true,
+      "lastImage": false,
+      "keyframes": 0,
+      "referenceVoices": 0,
+      "referenceResolution": "720p",
+      "referenceDurationMax": 15,
+      "tasks": [
+        "generate"
+      ],
+      "editSourceMaxMs": 0,
+      "extensionSeconds": null
+    },
+    "schemaCheckedAt": "2026-11-02",
+    "documentationCheckedAt": "2026-11-02",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://docs.x.ai/developers/rest-api-reference/inference/videos",
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "audio": true
+  },
+  "direct/xai/grok-imagine-video": {
+    "provider": "xai",
+    "apiModel": "grok-imagine-video",
+    "name": "Grok Imagine Video",
+    "vendor": "xAI",
+    "family": "Grok Imagine Video",
+    "kind": "video",
+    "nativeMedia": true,
+    "adapter": "xai-videos",
+    "deadlineMs": 720000,
+    "maxPrompt": 150000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "params": {
+      "duration": 5,
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "task": "generate"
+    },
+    "nativeCapabilities": {
+      "duration": [
+        1,
+        15
+      ],
+      "resolutions": [
+        "480p",
+        "720p"
+      ],
+      "aspects": [
+        "1:1",
+        "16:9",
+        "9:16",
+        "4:3",
+        "3:4",
+        "3:2",
+        "2:3",
+        "21:9",
+        "5:2"
+      ],
+      "maxReferences": 7,
+      "firstImage": true,
+      "lastImage": false,
+      "keyframes": 0,
+      "referenceVoices": 0,
+      "referenceResolution": "720p",
+      "referenceDurationMax": 10,
+      "tasks": [
+        "generate",
+        "edit",
+        "extend"
+      ],
+      "editSourceMaxMs": 8700,
+      "extensionSeconds": [
+        2,
+        10
+      ]
+    },
+    "schemaCheckedAt": "2026-11-02",
+    "documentationCheckedAt": "2026-11-02",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://docs.x.ai/developers/rest-api-reference/inference/videos",
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "audio": true
+  },
+  "direct/xai/tts": {
+    "provider": "xai",
+    "apiModel": "tts",
+    "name": "Grok Text to Speech",
+    "vendor": "xAI",
+    "family": "Grok Text to Speech",
+    "kind": "audio",
+    "nativeMedia": true,
+    "adapter": "xai-tts",
+    "deadlineMs": 720000,
+    "maxPrompt": 60000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "params": {
+      "voice_id": "eve",
+      "language": "auto",
+      "output_format": {
+        "codec": "mp3",
+        "sample_rate": 24000,
+        "bit_rate": 128000
+      },
+      "speed": 1
+    },
+    "nativeCapabilities": {
+      "maxPrompt": 60000,
+      "codecs": [
+        "mp3",
+        "wav",
+        "pcm",
+        "mulaw",
+        "alaw"
+      ],
+      "sampleRates": [
+        8000,
+        16000,
+        22050,
+        24000,
+        44100,
+        48000
+      ],
+      "bitRates": [
+        32000,
+        64000,
+        96000,
+        128000,
+        192000
+      ],
+      "speed": [
+        "0.7",
+        "1.5"
+      ],
+      "timestamps": true,
+      "customVoice": true,
+      "replacements": {
+        "maxEntries": 200,
+        "maxKey": 100,
+        "maxValue": 128,
+        "maxExpandedText": 240000
+      }
+    },
+    "schemaCheckedAt": "2026-11-02",
+    "documentationCheckedAt": "2026-11-02",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://docs.x.ai/developers/rest-api-reference/inference/voice",
+    "mime": "audio/mpeg",
+    "duration": null,
+    "resolution": "audio",
+    "aspect": "none",
+    "dimensions": [],
+    "codecs": [
+      "mp3"
+    ],
+    "audio": true
+  }
+}

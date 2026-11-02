@@ -42,6 +42,9 @@ impl Request {
 }
 pub trait Http {
     fn bytes(&self, r: Request) -> Result<Vec<u8>>;
+    fn dialogue(&self, _r: Request, _voices: &Value, _inputs: &Value) -> Result<Vec<u8>> {
+        Err(Error("unsupported_stream_transport"))
+    }
     fn json(&self, r: Request) -> Result<Value> {
         serde_json::from_slice(&self.bytes(r)?).map_err(|_| Error("invalid_remote_json"))
     }
@@ -201,6 +204,9 @@ pub fn public_address(ip: IpAddr) -> bool {
     }
 }
 impl Http for PublicHttp {
+    fn dialogue(&self, r: Request, voices: &Value, inputs: &Value) -> Result<Vec<u8>> {
+        crate::native_websocket::dialogue(r, voices, inputs)
+    }
     fn bytes(&self, mut r: Request) -> Result<Vec<u8>> {
         for hop in 0..=2 {
             let u = safe_url(&r.url, &r.hosts)?;

@@ -14,6 +14,19 @@ struct Api {
     bad: bool,
 }
 impl Http for Api {
+    fn dialogue(&self, mut r: Request, voices: &Value, inputs: &Value) -> Result<Vec<u8>> {
+        assert_eq!(r.method, "GET");
+        assert!(
+            r.url
+                .starts_with("https://api.elevenlabs.io/v1/text-to-dialogue/stream-input?")
+        );
+        assert_eq!(voices[0], self.spec["input"]["voice_id"]);
+        assert_eq!(inputs[0]["text"], self.spec["input"]["prompt"]);
+        r.method = "WEBSOCKET".into();
+        r.body = Some(json!({"text":inputs[0]["text"]}).to_string().into_bytes());
+        self.calls.borrow_mut().push(r);
+        Ok(b"synthetic media".to_vec())
+    }
     fn bytes(&self, r: Request) -> Result<Vec<u8>> {
         safe_url(&r.url, &r.hosts).unwrap();
         let u = url::Url::parse(&r.url).unwrap();
@@ -179,7 +192,12 @@ fn spec(id: &str) -> Value {
 }
 #[test]
 fn all_models_complete_through_their_provider_adapters() {
-    for (id, m) in models::MODELS.as_object().unwrap() {
+    for (id, m) in models::MODELS
+        .as_object()
+        .unwrap()
+        .iter()
+        .filter(|(_, m)| m["nativeMedia"] != true)
+    {
         let spec = spec(id);
         let api = Api {
             provider: m["provider"].as_str().unwrap().into(),
@@ -205,14 +223,24 @@ fn all_models_complete_through_their_provider_adapters() {
         assert_eq!(output.response_hash.len(), 64);
         let calls = api.calls.borrow();
         assert_eq!(
-            calls.iter().filter(|r| r.method == "POST").count(),
+            calls
+                .iter()
+                .filter(|r| r.method == "POST" || r.method == "WEBSOCKET")
+                .count(),
             1,
             "{id}"
         );
         if api.provider == "elevenlabs" {
             assert_eq!(calls.len(), 1);
             let body: Value = serde_json::from_slice(calls[0].body.as_ref().unwrap()).unwrap();
-            assert_eq!(body["text"], spec["input"]["prompt"]);
+            assert_eq!(
+                if body["text"].is_null() {
+                    &body["inputs"][0]["text"]
+                } else {
+                    &body["text"]
+                },
+                &spec["input"]["prompt"]
+            );
         }
     }
 }
@@ -252,7 +280,12 @@ fn foreign_refs_and_path_injection_are_rejected_before_network() {
 }
 #[test]
 fn provider_response_id_binding() {
-    for (id, m) in models::MODELS.as_object().unwrap() {
+    for (id, m) in models::MODELS
+        .as_object()
+        .unwrap()
+        .iter()
+        .filter(|(_, m)| m["nativeMedia"] != true)
+    {
         let p = m["provider"].as_str().unwrap();
         if ["fal", "elevenlabs"].contains(&p)
             || everyframe_miner::model_availability::retired(id).is_some()
@@ -341,6 +374,12 @@ fn openrouter_failure_with_unassigned_model_is_terminal() {
 fn every_added_model_checks_deadline_and_does_not_retry_ambiguous_submission() {
     struct Timeout(std::cell::Cell<usize>);
     impl Http for Timeout {
+        fn dialogue(&self, r: Request, _voices: &Value, _inputs: &Value) -> Result<Vec<u8>> {
+            assert_eq!(r.method, "GET");
+            assert!(r.submit_deadline.is_some());
+            self.0.set(self.0.get() + 1);
+            Err(everyframe_miner::Error("request_timeout"))
+        }
         fn bytes(&self, r: Request) -> Result<Vec<u8>> {
             assert_eq!(r.method, "POST");
             assert!(r.submit_deadline.is_some());
@@ -377,7 +416,12 @@ fn every_added_model_checks_deadline_and_does_not_retry_ambiguous_submission() {
 
 #[test]
 fn expanded_speech_is_bound_to_input_and_cannot_be_recovered_by_resubmitting() {
-    for (id, m) in models::MODELS.as_object().unwrap() {
+    for (id, m) in models::MODELS
+        .as_object()
+        .unwrap()
+        .iter()
+        .filter(|(_, m)| m["nativeMedia"] != true)
+    {
         if m["provider"] != "elevenlabs" {
             continue;
         }

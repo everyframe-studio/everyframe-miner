@@ -915,7 +915,7 @@ impl Miner<'_> {
         let unique: std::collections::HashSet<_> = models.iter().copied().collect();
         need(
             !models.is_empty()
-                && models.len() <= 128
+                && models.len() <= 256
                 && unique.len() == models.len()
                 && models.iter().all(|m| {
                     !m.is_empty()

@@ -14,9 +14,9 @@ signed release (one-command flow in v0.3.7 and later).
 New to mining? Run `everycli ui` for a guided setup page and status dashboard
 in your browser (see [Set up in your browser](#set-up-in-your-browser-everycli-ui)).
 
-This source tree includes the worker, the CLI with built-in updates, 70 base
-contracts, flexible Studio video
-and media contracts, and twelve provider adapters. See the
+This source tree includes the worker, the CLI with built-in updates, native
+provider contracts, flexible Studio video and media contracts, and fifteen
+provider integrations. See the [direct provider guide](DIRECT-PROVIDERS.md) and
 [additional provider models](PROVIDER-EXPANSION.md).
 
 The direct Google integration adds Gemini Omni Flash, four Nano Banana image
@@ -25,6 +25,18 @@ guide](GOOGLE.md) for supported settings, references and compatible-worker requi
 Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
+
+### v0.9.2 — Direct providers first
+
+Models, provider switches, API keys and setup list direct providers before Fal,
+OpenRouter and other intermediaries. Native model routes add OpenAI and xAI
+media, more Black Forest Labs and MiniMax models, Kling generation, flexible
+ElevenLabs voices, Runway, and the Luma Agents API.
+
+Choose each provider's offers explicitly. Provider order does not automatically
+switch a job to another provider. Saved offers and discounts stay in place.
+Run `everycli update`, reopen the UI, then use **Update worker** to install the
+compatible signed worker. See [v0.9.2 release notes](RELEASE-NOTES-v0.9.2.md).
 
 ### v0.9.0 — Provider catalog and Google media
 
