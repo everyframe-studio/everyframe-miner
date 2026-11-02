@@ -347,6 +347,9 @@ function workerControls() {
 }
 
 const PROVIDERS = {
+  "luma-agents": ["Luma Agents", "Native UNI images and Ray video. Uses a Luma Agents API key."],
+  openai: ["OpenAI", "Direct GPT Image and audio generation using your OpenAI API key."],
+  xai: ["xAI", "Direct Grok image, video and speech generation using your xAI API key."],
   phala: ["Phala Cloud", "Hosting. Your worker runs in a sealed (TEE) machine billed to your Phala account."],
   fal: ["fal", "Most video, image and audio models on the network (for example H3 Max, Seedance 2.5, Flux 3)."],
   vivix: ["Vivix", "Vivix W1 world video. Needs Vivix W credits (a W credit pack); A credits do not work."],
@@ -364,6 +367,9 @@ const PROVIDERS = {
   "openrouter-billing": ["OpenRouter billing (optional)", "Used only on this computer to show your OpenRouter balance. Never sent to the worker."],
 };
 const providerName = (p) => (PROVIDERS[p] || [p])[0];
+const DIRECT_PROVIDERS = new Set(["luma-agents", "openai", "google", "xai", "elevenlabs", "minimax", "bfl", "kling", "pika", "runway", "luma", "vivix"]);
+const compareProviders = (a, b) => Number(!DIRECT_PROVIDERS.has(a)) - Number(!DIRECT_PROVIDERS.has(b))
+  || String(providerName(a) || "").localeCompare(String(providerName(b) || ""));
 
 // ---------- data loading ----------
 async function loadOverview() {
@@ -850,9 +856,9 @@ function stepBody(id) {
       continueButton("phala"));
     case "providers": return h("div", null,
       h("p", null, "The worker generates with your own provider account, so each job is billed there. Add at least one key. You can add more later on the API keys page."),
-      ["fal", "vivix", "openrouter", "pika"].map((p) => keyRow(p, "providers")),
-      h("details", { open: setupOtherProviders().some((p) => S.keyStatus[p]) },
-        h("summary", null, "Other providers"), setupOtherProviders().map((p) => keyRow(p, "providers"))),
+      h("h3", null, "Direct providers"), setupProviders(true).map((p) => keyRow(p, "providers")),
+      h("details", { open: setupProviders(false).some((p) => S.keyStatus[p]) },
+        h("summary", null, "Other model providers"), setupProviders(false).map((p) => keyRow(p, "providers"))),
       continueButton("providers"));
     case "init": return h("div", null,
       h("p", null, "everycli proves you own the hotkey by signing a challenge on this computer, then downloads your signed worker configuration. No machine is created and nothing is paid."),
@@ -1104,7 +1110,7 @@ function keyForm(provider, after, stayOn) {
     status);
   return form;
 }
-function setupOtherProviders() { return Object.keys(PROVIDERS).filter(p => !["phala", "fal", "vivix", "openrouter", "pika"].includes(p) && !p.endsWith("-billing")); }
+function setupProviders(direct) { return Object.keys(PROVIDERS).filter(p => p !== "phala" && !p.endsWith("-billing") && DIRECT_PROVIDERS.has(p) === direct).sort(compareProviders); }
 function keyRow(provider, stayOn) {
   const [name, hint] = PROVIDERS[provider] || [provider, ""];
   return h("div", { class: "card flat", "data-provider-key": provider }, h("h3", null, name), h("p", { class: "small muted" }, hint), keyForm(provider, null, stayOn));
@@ -1132,7 +1138,7 @@ function pageKeys() {
     button("Apply keys to worker", async () => { await run("apply-api-keys"); await refreshAll(); }))));
   root.append(balancesCard());
   for (const [kind, title] of groups) {
-    const rows = keys.filter((k) => k.kind === kind);
+    const rows = keys.filter((k) => k.kind === kind).sort((a,b) => compareProviders(a.provider,b.provider));
     root.append(card(title, null, h("ul", { class: "keylist" }, rows.map(providerKeyItem))));
   }
   return root;
@@ -1169,7 +1175,7 @@ function pageModels() {
   const seg = h("div", { class: "seg model-tabs" }, OFFER_FILTERS.map(([f, label]) => h("button", { disabled: S.batchBusy, class: S.offerFilter === f ? "on" : "", onclick: () => openModels(f, S.modelProvider, false) }, label,
     f === "all" && S.newModels.size ? h("span", { class: "badge info", "aria-label": S.newModels.size + " new models" }, S.newModels.size + " new") : null)));
   const search = h("input", { type: "search", disabled: S.batchBusy, value: S.modelQuery, placeholder: "Search models", "aria-label": "Search models", oninput: e => { S.modelQuery = e.target.value; patchModels(); } });
-  const providers = [...new Set((S.offers.offers || []).map(r => r.provider).filter(Boolean))].sort();
+  const providers = [...new Set((S.offers.offers || []).map(r => r.provider).filter(Boolean))].sort(compareProviders);
   const provider = h("select", { "aria-label": "Filter model provider", disabled: S.batchBusy, onchange: e => { S.modelProvider = e.target.value; patchModels(); } },
     h("option", { value: "" }, "All providers"), providers.map(p => h("option", { value: p }, providerName(p)))); provider.value = S.modelProvider;
   const kind = h("select", { "aria-label": "Filter model type", disabled: S.batchBusy, onchange: e => { S.modelKind = e.target.value; patchModels(); } },
@@ -1191,7 +1197,8 @@ function visibleOffers() {
   if (S.offerFilter === "candidate") rows = rows.filter(r => r.catalogGroup === "candidate" || ["removed", "deprecated"].includes(r.providerAvailability?.status));
   const q = S.modelQuery.trim().toLowerCase();
   return rows.filter(r => (!S.modelProvider || r.provider === S.modelProvider) && (!S.modelKind || (r.kind || r.contract?.kind) === S.modelKind)
-    && (!q || [r.name, r.model, r.providerApiId, providerName(r.provider)].filter(Boolean).join(" ").toLowerCase().includes(q)));
+    && (!q || [r.name, r.model, r.providerApiId, providerName(r.provider)].filter(Boolean).join(" ").toLowerCase().includes(q)))
+    .sort((a,b) => compareProviders(a.provider,b.provider));
 }
 function fillModels(body) {
   const rows = visibleOffers();
@@ -1207,7 +1214,7 @@ function fillModels(body) {
 function patchModels() { const body = $("#model-list"); if (body) fillModels(body); }
 function providerOffersCard() {
   const rows = (S.offers?.offers || []).filter(integratedModel);
-  const providers = [...new Set(rows.map(r => r.provider).filter(Boolean))].sort();
+  const providers = [...new Set(rows.map(r => r.provider).filter(Boolean))].sort(compareProviders);
   const controls = providers.map(provider => {
     const models = rows.filter(r => r.provider === provider), active = models.filter(r => r.offered);
     const inactive = models.filter(r => !r.offered && r.catalogGroup !== "candidate" && !["removed", "deprecated"].includes(r.providerAvailability?.status));
@@ -1353,6 +1360,22 @@ async function batchOffers(rows, withdraw) {
     if (epoch === S.navigationEpoch && currentRoute() === "models") render(); else renderNav();
   }
 }
+function nativeCapabilityDetails(r) {
+  const c = r.contract?.nativeCapabilities;
+  if (!c) return null;
+  const parts = [];
+  if (c.resolutions?.length) parts.push("Sizes: " + c.resolutions.join(", "));
+  if (c.aspects?.length) parts.push("Aspect ratios: " + c.aspects.join(", "));
+  if (c.qualities?.length) parts.push("Quality: " + c.qualities.join(", "));
+  if (c.formats?.length || c.codecs?.length) parts.push("Formats: " + (c.formats || c.codecs).join(", "));
+  if (c.tasks?.length) parts.push("Tasks: " + c.tasks.join(", "));
+  if (c.maxReferences) parts.push("Reference inputs: up to " + c.maxReferences);
+  if (c.count) parts.push("Images per request: " + c.count.join("–"));
+  if (c.keyframes) parts.push("Keyframes: up to " + c.keyframes);
+  if (c.referenceVoices) parts.push("Reference voices: up to " + c.referenceVoices);
+  if (c.mask) parts.push("Masked image edits supported");
+  return h("div", { class: "small muted" }, ...parts.map(v => h("div", null, v)));
+}
 function googleCapabilityDetails(r) {
   const c = r.contract?.googleCapabilities;
   if (!c) return null;
@@ -1380,7 +1403,7 @@ function offerRow(r) {
   const apply = button(r.offered ? "Update" : "Offer", async () => { const job = await run("offer", { model: r.model, discountPct: disc.value }); if (job.state === "done") S.offerDrafts.delete(r.model); await loadOffers(); await loadHealth(); render(); }, "small primary");
   apply.disabled = !canApplyOffer(r); disc.disabled = !canApplyOffer(r);
   return h("tr", null,
-    h("td", { "data-label": "Model" }, h("label", { class: "row" }, S.overview?.initialized ? h("input", { type: "checkbox", checked: S.selectedOffers.has(r.model), disabled: S.batchBusy || !selectableOffer(r), "aria-label": "Select " + (r.name || r.model), onchange: e => { if (e.target.checked) S.selectedOffers.add(r.model); else S.selectedOffers.delete(r.model); patchModels(); } }) : null, h("b", null, r.name || r.model)), h("details", { class: "model-details" }, h("summary", null, "Model details"), h("span", { class: "id" }, "Everyframe contract: " + r.model), h("span", { class: "id" }, "Provider API ID: " + (r.providerApiId || "Not reported")), googleCapabilityDetails(r))),
+    h("td", { "data-label": "Model" }, h("label", { class: "row" }, S.overview?.initialized ? h("input", { type: "checkbox", checked: S.selectedOffers.has(r.model), disabled: S.batchBusy || !selectableOffer(r), "aria-label": "Select " + (r.name || r.model), onchange: e => { if (e.target.checked) S.selectedOffers.add(r.model); else S.selectedOffers.delete(r.model); patchModels(); } }) : null, h("b", null, r.name || r.model)), h("details", { class: "model-details" }, h("summary", null, "Model details"), h("span", { class: "id" }, "Everyframe contract: " + r.model), h("span", { class: "id" }, "Provider API ID: " + (r.providerApiId || "Not reported")), googleCapabilityDetails(r), nativeCapabilityDetails(r))),
     h("td", { "data-label": "Provider" }, providerName(r.provider || ""), r.localKeyConfigured === false ? h("div", { class: "small muted" }, "No key saved") : null),
     h("td", { "data-label": "Readiness" }, h("span", { class: "badge " + tone }, ready)),
     h("td", { "data-label": "Your offer" }, yours),

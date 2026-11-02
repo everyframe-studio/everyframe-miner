@@ -87,6 +87,17 @@ fn probe(provider: &str, key: &str) -> Option<Probe> {
             "api.replicate.com",
             bearer(),
         ),
+        "openai" => (
+            "https://api.openai.com/v1/models".into(),
+            "api.openai.com",
+            bearer(),
+        ),
+        "xai" => ("https://api.x.ai/v1/models".into(), "api.x.ai", bearer()),
+        "luma-agents" => (
+            "https://agents.lumalabs.ai/v1/credits".into(),
+            "agents.lumalabs.ai",
+            bearer(),
+        ),
         "google" => (
             "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1".into(),
             "generativelanguage.googleapis.com",
@@ -176,6 +187,8 @@ pub fn check(http: &dyn Http, provider: &str, key: &str) -> (Verdict, &'static s
                 "fal-billing" => v["credits"]["current_balance"].is_number(),
                 "phala" => v["credits"].is_object() || v["user"].is_object(),
                 "google" => v["models"].is_array(),
+                "openai" | "xai" => v["data"].is_array(),
+                "luma-agents" => v["balance_credits"].as_u64().is_some(),
                 "replicate" => v["username"].is_string(),
                 "bfl" => v["credits"].is_number(),
                 "runway" => v["creditBalance"].is_number(),
@@ -298,6 +311,8 @@ mod tests {
             "runway",
             "luma",
             "replicate",
+            "openai",
+            "xai",
         ] {
             assert_eq!(
                 check(&Fixed(Ok("{}")), provider, "k").0,
@@ -305,6 +320,28 @@ mod tests {
             );
             assert_eq!(
                 check(&Fixed(Ok(r#"{"error":"denied"}"#)), provider, "k").0,
+                Verdict::Unverified
+            );
+        }
+    }
+    #[test]
+    fn native_key_checks_are_read_only_and_distinguish_authentication_from_billing() {
+        for provider in ["openai", "xai"] {
+            assert_eq!(
+                check(
+                    &Fixed(Ok(r#"{"data":[{"id":"fixture"}]}"#)),
+                    provider,
+                    "fixture"
+                )
+                .0,
+                Verdict::Valid
+            );
+            assert_eq!(
+                check(&Fixed(Err("http_401")), provider, "fixture").0,
+                Verdict::Rejected
+            );
+            assert_eq!(
+                check(&Fixed(Err("http_403")), provider, "fixture").0,
                 Verdict::Unverified
             );
         }

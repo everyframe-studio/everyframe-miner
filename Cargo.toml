@@ -1,6 +1,6 @@
 [package]
 name = "everyframe-miner"
-version = "0.9.1"
+version = "0.9.2"
 edition = "2024"
 rust-version = "1.88"
 description = "EveryFrame attested worker and native Rust operator CLI"
@@ -41,6 +41,7 @@ sha2 = "0.10"
 signal-hook = "0.3"
 url = "2"
 x25519-dalek = { version = "2", features = ["static_secrets", "getrandom"] }
+tungstenite = { version = "0.28.0", default-features = false, features = ["handshake", "rustls-tls-webpki-roots"] }
 
 [dev-dependencies]
 tempfile = "3"

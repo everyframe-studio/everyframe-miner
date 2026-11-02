@@ -1,25 +1,28 @@
 //! Fixed, non-secret diagnostics; never infer rejection from a lost response.
 pub fn rejected(code: &str) -> Option<&'static str> {
     match code {
-        "http_401" | "vivix_auth_rejected" | "kling_auth_rejected" => {
+        "http_401" | "vivix_auth_rejected" | "kling_auth_rejected" | "minimax_auth_rejected" => {
             Some("provider_auth_rejected")
         }
         "http_402"
         | "vivix_billing_required"
         | "fal_billing_required"
         | "kling_billing_required"
-        | "pika_billing_required" => Some("provider_billing_required"),
+        | "pika_billing_required"
+        | "minimax_billing_required" => Some("provider_billing_required"),
         "submission_deadline_elapsed" => Some("provider_invalid_request"),
         "http_429"
         | "vivix_capacity_limited"
         | "kling_capacity_limited"
-        | "pika_capacity_limited" => Some("provider_capacity_limited"),
+        | "pika_capacity_limited"
+        | "minimax_capacity_limited" => Some("provider_capacity_limited"),
         "provider_key_required" => Some("provider_key_required"),
         // Catalog refusal happens before any paid provider request.
         "provider_model_unavailable" => Some("provider_model_unavailable"),
-        "vivix_content_rejected" | "kling_content_rejected" | "pika_content_rejected" => {
-            Some("provider_content_rejected")
-        }
+        "vivix_content_rejected"
+        | "kling_content_rejected"
+        | "pika_content_rejected"
+        | "minimax_content_rejected" => Some("provider_content_rejected"),
         // Generic 403 may be moderation. It must never cause cross-miner retry.
         "http_400"
         | "http_403"
@@ -28,7 +31,42 @@ pub fn rejected(code: &str) -> Option<&'static str> {
         | "http_422"
         | "vivix_invalid_parameters"
         | "kling_invalid_parameters"
-        | "pika_invalid_parameters" => Some("provider_invalid_request"),
+        | "pika_invalid_parameters"
+        | "minimax_invalid_parameters" => Some("provider_invalid_request"),
+        // These local validation failures happen before a generation POST.
+        "invalid_native_schema"
+        | "native_prompt_mismatch"
+        | "unbound_native_reference"
+        | "unverified_native_reference"
+        | "invalid_native_reference_slot"
+        | "invalid_native_media_fields"
+        | "invalid_native_media_prompt"
+        | "invalid_native_media_references"
+        | "invalid_native_image_format"
+        | "invalid_native_image_count"
+        | "invalid_native_image_background"
+        | "invalid_native_image_compression"
+        | "invalid_native_image_size"
+        | "invalid_native_image_quality"
+        | "invalid_native_video_format"
+        | "invalid_native_video_voices"
+        | "invalid_native_reference_format"
+        | "invalid_native_keyframe"
+        | "invalid_native_video_source"
+        | "invalid_native_video_duration"
+        | "invalid_native_audio_voice"
+        | "invalid_native_audio_format"
+        | "invalid_native_audio_parameter"
+        | "invalid_native_audio_replacements"
+        | "invalid_reference_role"
+        | "invalid_reference_origin"
+        | "invalid_reference_size"
+        | "invalid_reference_type"
+        | "invalid_reference_duration"
+        | "invalid_reference_dimensions"
+        | "reference_integrity_mismatch"
+        | "reference_count_mismatch"
+        | "unsupported_model_version" => Some("provider_invalid_request"),
         _ => None,
     }
 }
@@ -157,6 +195,18 @@ pub fn vivix_http_error(status: u16, bytes: &[u8]) -> crate::Error {
     }
     crate::diagnostics::http_error(status)
 }
+/// Only documented MiniMax admission errors qualify as rejected submissions.
+pub fn minimax_error(code: i64) -> crate::Error {
+    crate::Error(match code {
+        1004 | 2049 => "minimax_auth_rejected",
+        1008 => "minimax_billing_required",
+        1002 => "minimax_capacity_limited",
+        1026 => "minimax_content_rejected",
+        2013 => "minimax_invalid_parameters",
+        _ => "provider_rejected",
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

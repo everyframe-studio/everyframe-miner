@@ -30,7 +30,7 @@ pub trait Provider {
 pub struct Router<'a> {
     pub http: &'a dyn Http,
     pub credentials: Value,
-    speech: Option<(String, String, Vec<u8>, String)>,
+    pub(crate) speech: Option<(String, String, Vec<u8>, String)>,
     submission_deadline: Option<i64>,
     catalog: crate::model_availability::CatalogCache,
 }
@@ -74,7 +74,7 @@ fn bfl_ref(r: &str) -> Result<(String, String)> {
     Ok((id.clone(), format!("https://{host}/v1/get_result?id={id}")))
 }
 impl<'a> Router<'a> {
-    fn guard_submission(&self, req: &mut Request) -> Result<()> {
+    pub(crate) fn guard_submission(&self, req: &mut Request) -> Result<()> {
         if let Some(deadline) = self.submission_deadline {
             need(crate::now() < deadline, "submission_deadline_elapsed")?;
             req.submit_deadline = Some(deadline);
@@ -102,7 +102,7 @@ impl<'a> Router<'a> {
         need(configured(&self.credentials[key]), "provider_key_required")?;
         Ok((m, p.into()))
     }
-    fn auth(&self, p: &str) -> Result<Vec<(String, String)>> {
+    pub(crate) fn auth(&self, p: &str) -> Result<Vec<(String, String)>> {
         let key = PROVIDERS
             .iter()
             .find(|(name, _)| *name == p)
@@ -671,7 +671,7 @@ impl<'a> Router<'a> {
     ) -> Result<Vec<u8>> {
         self.download_bounded(url, hosts, auth, redirects, MAX_MEDIA)
     }
-    fn download_bounded(
+    pub(crate) fn download_bounded(
         &self,
         url: &str,
         hosts: &[&str],
@@ -736,6 +736,9 @@ impl Provider for Router<'_> {
             self.catalog.allows(s(&spec["model"])?),
             "provider_model_unavailable",
         )?;
+        if m["nativeMedia"] == true {
+            return self.native_submit(spec, m);
+        }
         if p == "google" && m["interaction"] == true {
             let references = self.google_references(spec)?;
             let body = crate::google::body_with_references(spec, m, &references)?;
@@ -858,19 +861,50 @@ impl Provider for Router<'_> {
             }
             "elevenlabs" => {
                 self.speech = None;
-                let url = format!(
-                    "{}/v1/text-to-speech/{}?output_format={}",
-                    prefix(&p),
-                    s(&input["voice_id"])?,
-                    s(&input["output_format"])?
-                );
-                let mut r = Request::get(url, &["api.elevenlabs.io"])
-                    .json("POST", &json!({"text":input["prompt"],"model_id":model}));
+                let url = if model == "eleven_v4" {
+                    format!(
+                        "{}/v1/text-to-dialogue?output_format={}",
+                        prefix(&p),
+                        s(&input["output_format"])?
+                    )
+                } else {
+                    format!(
+                        "{}/v1/text-to-speech/{}?output_format={}",
+                        prefix(&p),
+                        s(&input["voice_id"])?,
+                        s(&input["output_format"])?
+                    )
+                };
+                let body = if model == "eleven_v4" {
+                    json!({"inputs":[{"text":input["prompt"],"voice_id":input["voice_id"]}],"model_id":model})
+                } else {
+                    json!({"text":input["prompt"],"model_id":model})
+                };
+                let mut r = Request::get(url, &["api.elevenlabs.io"]).json("POST", &body);
                 r.headers.extend(self.auth(&p)?);
                 r.limit = 10 * 1024 * 1024;
                 r.timeout = 60;
                 self.guard_submission(&mut r)?;
-                let media = self.http.bytes(r)?;
+                let media = if model == "eleven_v4_turbo" {
+                    let mut ws = Request::get(
+                        format!(
+                            "https://api.elevenlabs.io/v1/text-to-dialogue/stream-input?model_id={model}&output_format={}",
+                            s(&input["output_format"])?
+                        ),
+                        &["api.elevenlabs.io"],
+                    );
+                    ws.headers = self.auth(&p)?;
+                    ws.limit = r.limit;
+                    ws.timeout = r.timeout;
+                    self.guard_submission(&mut ws)?;
+                    self.http.dialogue(
+                        ws,
+                        &json!([input["voice_id"]]),
+                        &json!([{"text":input["prompt"],"voice_id":input["voice_id"]}]),
+                    )?
+                } else {
+                    self.http.bytes(r)?
+                };
                 need(
                     !media.is_empty() && media.len() <= 10 * 1024 * 1024,
                     "invalid_media_size",
@@ -893,6 +927,9 @@ impl Provider for Router<'_> {
     }
     fn poll(&mut self, r: &str, spec: &Value) -> Result<String> {
         let (m, p) = self.context(spec)?;
+        if m["nativeMedia"] == true {
+            return self.native_poll(r, spec, m);
+        }
         if p == "google" && m["interaction"] == true {
             return Ok(crate::google::state(&self.google_read(r, spec, m)?)?.into());
         }
@@ -921,6 +958,9 @@ impl Provider for Router<'_> {
     }
     fn result(&mut self, r: &str, spec: &Value) -> Result<Output> {
         let (m, p) = self.context(spec)?;
+        if m["nativeMedia"] == true {
+            return self.native_result(r, spec, m);
+        }
         if p == "google" && m["interaction"] == true {
             let data = self.google_read(r, spec, m)?;
             let expected = crate::google::output_model(spec, m)?;

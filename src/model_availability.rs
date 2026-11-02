@@ -179,6 +179,70 @@ fn check_provider(
         return Ok(Some(BTreeMap::new()));
     }
     match p {
+        "elevenlabs" => {
+            let data = get(
+                http,
+                "https://api.elevenlabs.io/v1/models",
+                "api.elevenlabs.io",
+                Some(("xi-api-key", key.into())),
+            )?;
+            let rows = data.as_array().ok_or(Error("invalid_provider_catalog"))?;
+            need(
+                !rows.is_empty() && rows.len() <= 10000,
+                "incomplete_provider_catalog",
+            )?;
+            let found = rows
+                .iter()
+                .map(|r| s(&r["model_id"]).map(str::to_owned))
+                .collect::<Result<BTreeSet<_>>>()?;
+            Ok(Some(
+                ids.iter()
+                    .map(|id| {
+                        (
+                            id.clone(),
+                            if id.starts_with("music_") || id.starts_with("eleven_text_to_sound_") {
+                                "unchecked"
+                            } else if found.contains(id) {
+                                "available"
+                            } else {
+                                "access_denied"
+                            },
+                        )
+                    })
+                    .collect(),
+            ))
+        }
+        "openai" | "xai" => {
+            let host = if p == "openai" {
+                "api.openai.com"
+            } else {
+                "api.x.ai"
+            };
+            let data = get(
+                http,
+                &format!("https://{host}/v1/models"),
+                host,
+                Some(("authorization", format!("Bearer {key}"))),
+            )?;
+            let found = list_ids(&data)?;
+            need(!found.is_empty(), "incomplete_provider_catalog")?;
+            Ok(Some(
+                ids.iter()
+                    .map(|id| {
+                        (
+                            id.clone(),
+                            if p == "xai" && id == "tts" {
+                                "unchecked"
+                            } else if found.contains(id) {
+                                "available"
+                            } else {
+                                "access_denied"
+                            },
+                        )
+                    })
+                    .collect(),
+            ))
+        }
         "google" => {
             let mut found = BTreeSet::new();
             let mut page: Option<String> = None;

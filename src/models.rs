@@ -34,6 +34,13 @@ pub static MODELS: LazyLock<Value> = LazyLock::new(|| {
             .unwrap()
             .insert(id.clone(), contract.clone());
     }
+    for (id, contract) in crate::native_media::MODELS.as_object().unwrap() {
+        assert!(
+            models.get(id).is_none(),
+            "native model cannot replace existing contract"
+        );
+        models[id] = contract.clone();
+    }
     models
 });
 pub static STUDIO_MODELS: LazyLock<Value> = LazyLock::new(|| {
@@ -71,6 +78,9 @@ pub fn duration_range(model: &str) -> Option<(i64, i64)> {
 }
 pub fn spec(v: &Value) -> Result<Value> {
     let model = v.get("model").map(s).transpose()?.unwrap_or(DEFAULT_MODEL);
+    if crate::native_media::MODELS.get(model).is_some() {
+        return crate::native_media::spec(v);
+    }
     if model.starts_with("studio/") {
         let mut input = v.clone();
         input
@@ -88,6 +98,9 @@ pub fn spec(v: &Value) -> Result<Value> {
         return Ok(value);
     }
     let m = info(model)?;
+    if m["nativeMedia"] == true {
+        return crate::native_media::spec(v);
+    }
     if m["interaction"] == true {
         return crate::google_settings::spec(v, m);
     }
@@ -135,6 +148,9 @@ pub fn spec(v: &Value) -> Result<Value> {
 }
 pub fn check(v: &Value) -> Result<()> {
     let model = s(&v["model"])?;
+    if info(model)?["nativeMedia"] == true {
+        return crate::native_media::check(v);
+    }
     if info(model)?["interaction"] == true {
         return crate::google_settings::check(v);
     }

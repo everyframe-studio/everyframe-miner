@@ -334,3 +334,37 @@ fn coordinator_retirements_only_narrow_and_skip_the_provider_check() {
     assert!(!c.allows("fal-ai/ltx-2/text-to-video"));
     assert_eq!(retired("fal-ai/ltx-2/text-to-video"), Some("removed"));
 }
+
+#[test]
+fn native_elevenlabs_uses_account_model_list_without_claiming_music_entitlements() {
+    struct Eleven;
+    impl Http for Eleven {
+        fn bytes(&self, request: Request) -> Result<Vec<u8>> {
+            assert_eq!(request.method, "GET");
+            assert_eq!(request.url, "https://api.elevenlabs.io/v1/models");
+            assert!(request.body.is_none());
+            assert!(
+                request
+                    .headers
+                    .iter()
+                    .any(|(k, v)| k == "xi-api-key" && v == "synthetic-secret")
+            );
+            Ok(serde_json::to_vec(&json!([{"model_id":"eleven_v4"}])).unwrap())
+        }
+    }
+    let mut router = Router::new(&Eleven, json!({"ELEVENLABS_API_KEY":"synthetic-secret"}));
+    let report = router.refresh_availability(1_000_000).unwrap();
+    let state = |model: &str| {
+        report
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|r| r["model"] == model)
+            .unwrap()["status"]
+            .as_str()
+            .unwrap()
+    };
+    assert_eq!(state("studio/native/elevenlabs/eleven_v4"), "available");
+    assert_eq!(state("studio/native/elevenlabs/eleven_v3"), "access_denied");
+    assert_eq!(state("studio/native/elevenlabs/music_v2_5"), "unchecked");
+}

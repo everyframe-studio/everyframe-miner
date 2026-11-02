@@ -4240,7 +4240,7 @@ fn manually_started_vm_reconciles_the_old_intent_and_still_requires_fresh_attest
 }
 
 #[test]
-fn manual_worker_update_requests_reviewed_pika_environment_without_cloud_mutation_on_check() {
+fn manual_worker_update_requests_reviewed_native_environment_without_cloud_mutation_on_check() {
     let r = Rig::new();
     r.staged_update(true, true);
     r.calls.borrow_mut().clear();
@@ -4256,7 +4256,7 @@ fn manual_worker_update_requests_reviewed_pika_environment_without_cloud_mutatio
     assert_eq!(out["state"], "available");
     assert_eq!(
         *r.provider_environments.borrow(),
-        vec![Some("pika-v1".into())]
+        vec![Some("native-v1".into())]
     );
     assert!(r.calls.borrow().iter().all(|(p, _)| p.starts_with("GET ")));
 }

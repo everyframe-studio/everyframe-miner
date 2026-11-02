@@ -154,7 +154,11 @@ impl Miner<'_> {
                 && info["status"] == "running",
             "unapproved_running_compose",
         )?;
-        let response = self.api(c, "worker-update", json!({"providerEnvironment":"pika-v1"}))?;
+        let response = self.api(
+            c,
+            "worker-update",
+            json!({"providerEnvironment":"native-v1"}),
+        )?;
         need(
             ["available", "current"].contains(&response["update"]["state"].as_str().unwrap_or("")),
             "unapproved_running_compose",
@@ -469,14 +473,14 @@ impl Miner<'_> {
             }
             progress("Checking for a compatible signed worker update…");
             // Older offline controllers keep a compatible environment. A
-            // reviewed manual update can add Pika and migrate its controller.
+            // reviewed manual update can add provider keys and migrate its controller.
             let discovery = self.api(
                 &c,
                 "worker-update",
                 if automatic {
                     json!({})
                 } else {
-                    json!({"providerEnvironment":"pika-v1"})
+                    json!({"providerEnvironment":"native-v1"})
                 },
             )?;
             let update = &discovery["update"];
