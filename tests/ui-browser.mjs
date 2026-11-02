@@ -311,6 +311,32 @@ try {
   assert.equal(batch.withdrawCalls.every(c => c.params.models === 'fixture/a' && c.params.withdraw === true), true);
   assert.equal(batch.withdrawReport.some(r => !r.ok && /Coordinator unavailable/.test(r.message)), true);
 
+  const providerPriority = await page.evaluate(() => {
+    const original = {offers:S.offers,filter:S.offerFilter,provider:S.modelProvider,query:S.modelQuery,kind:S.modelKind};
+    try {
+      const rows = [
+        {model:'priority/fal',name:'Grok via fal',provider:'fal'},
+        {model:'priority/openrouter',name:'OpenRouter fixture',provider:'openrouter'},
+        {model:'priority/xai',name:'Grok direct',provider:'xai'},
+        {model:'priority/google',name:'Google direct',provider:'google'},
+      ].map(r=>({...r,offered:false,discountBp:0,offerable:true,catalogGroup:'supported'}));
+      S.offers={offers:rows};S.offerFilter='all';S.modelProvider='';S.modelQuery='';S.modelKind='';
+      const before=JSON.stringify(rows);render();
+      return {
+        models:visibleOffers().map(r=>r.provider),
+        filters:[...document.querySelector('[aria-label="Filter model provider"]').options].map(o=>o.value).filter(Boolean),
+        switches:[...document.querySelectorAll('[data-offer-provider]')].map(e=>e.dataset.offerProvider),
+        keys:setupProviders(true).every(p=>DIRECT_PROVIDERS.has(p))&&setupProviders(false).every(p=>!DIRECT_PROVIDERS.has(p)),
+        unchanged:before===JSON.stringify(rows),
+      };
+    } finally {
+      S.offers=original.offers;S.offerFilter=original.filter;S.modelProvider=original.provider;S.modelQuery=original.query;S.modelKind=original.kind;render();
+    }
+  });
+  for(const location of ['models','filters','switches'])assert.deepEqual(providerPriority[location],['google','xai','fal','openrouter']);
+  assert(providerPriority.keys);
+  assert(providerPriority.unchanged,'provider priority does not enable offers or change discounts');
+
   // run itself must not approve a changed quote or open another modal in a batch.
   const availabilityUI = await page.evaluate(async () => {
     const original = S.offers;
