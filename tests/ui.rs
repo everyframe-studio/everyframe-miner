@@ -36,6 +36,20 @@ fn batch_and_jobs_ui_actions_use_the_same_scoped_cli_commands() {
     assert!(changes);
     assert_eq!(args.command, "offer-batch");
     assert_eq!(args.get("--models"), Some("fixture/a,fixture/b"));
+    let (args, changes) = ui::action_args(
+        &sh,
+        "offer-batch",
+        &json!({"models":"fixture/a,fixture/b","keepDiscounts":true}),
+    )
+    .unwrap();
+    assert!(changes);
+    assert!(args.flag("--keep-discounts"));
+    for conflicting in [
+        json!({"models":"fixture/a","keepDiscounts":true,"withdraw":true}),
+        json!({"models":"fixture/a","keepDiscounts":true,"discountPct":"10"}),
+    ] {
+        assert!(ui::action_args(&sh, "offer-batch", &conflicting).is_err());
+    }
     assert!(
         ui::action_args(
             &sh,

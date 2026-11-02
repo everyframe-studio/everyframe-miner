@@ -894,6 +894,23 @@ impl Miner<'_> {
         withdraw: bool,
         confirm: &dyn Fn(&str) -> Result<()>,
     ) -> Result<Value> {
+        self.offer_batch_inner(models, discount, withdraw, false, confirm)
+    }
+    pub fn offer_batch_preserving(
+        &self,
+        models: &str,
+        confirm: &dyn Fn(&str) -> Result<()>,
+    ) -> Result<Value> {
+        self.offer_batch_inner(models, None, false, true, confirm)
+    }
+    fn offer_batch_inner(
+        &self,
+        models: &str,
+        discount: Option<&str>,
+        withdraw: bool,
+        keep_discounts: bool,
+        confirm: &dyn Fn(&str) -> Result<()>,
+    ) -> Result<Value> {
         let models: Vec<_> = models.split(',').collect();
         let unique: std::collections::HashSet<_> = models.iter().copied().collect();
         need(
@@ -908,7 +925,7 @@ impl Miner<'_> {
                 }),
             "invalid_offer_batch",
         )?;
-        let discount_bp = if withdraw {
+        let discount_bp = if withdraw || keep_discounts {
             0
         } else {
             invitation::discount(discount.ok_or(Error("missing_option").option("--discount-pct"))?)?
@@ -930,14 +947,21 @@ impl Miner<'_> {
                 .iter()
                 .find(|e| e["model"] == model)
                 .ok_or(Error("model_not_allowed"))?;
-            if withdraw && entry["offered"] != true {
+            if (withdraw && entry["offered"] != true)
+                || (keep_discounts && entry["offered"] == true)
+            {
                 continue;
             }
-            let bp = if withdraw {
-                entry["discountBp"].as_i64().unwrap_or(0)
+            let bp = if withdraw || keep_discounts {
+                if entry["discountBp"].is_null() {
+                    0
+                } else {
+                    n(&entry["discountBp"])?
+                }
             } else {
                 discount_bp
             };
+            need((0..=9990).contains(&bp), "invalid_discount")?;
             if !withdraw {
                 need(
                     crate::model_availability::retired(model).is_none()

@@ -22,6 +22,16 @@ Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
 
+### v0.8.8 — Model and provider offer controls
+
+New offers default to 0%, with a neutral badge. The **Not offered** tab and
+linked counts open models without an active bid. Provider switches turn offers
+on or off together: saved discounts are kept, and new models use 0%. Each batch
+is reviewed before it is submitted; existing jobs keep their locked price.
+
+Run `everycli update`, then restart `everycli ui`. No worker update is required.
+See [v0.8.8 release notes](RELEASE-NOTES-v0.8.8.md).
+
 ### v0.8.7 — Wait through temporary worker-status failures
 
 Worker updates keep waiting through temporary gateway errors and delayed worker
