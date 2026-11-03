@@ -102,3 +102,85 @@ fn bfl_settings_use_the_reviewed_schema_and_reject_webhooks_and_unverified_image
         assert!(models::spec(&json!({"model":model,"prompt":"A poster","parameters":p})).is_err());
     }
 }
+
+struct RegionalApi {
+    polling: String,
+    delivery: String,
+    calls: RefCell<Vec<Request>>,
+}
+impl Http for RegionalApi {
+    fn bytes(&self, r: Request) -> Result<Vec<u8>> {
+        let data = if r.method == "POST" {
+            assert_eq!(r.url, "https://api.bfl.ai/v1/flux-3-image");
+            json!({"id":"task_123","polling_url":self.polling})
+                .to_string()
+                .into_bytes()
+        } else if r.url == self.delivery {
+            assert!(r.headers.is_empty(), "API credentials never reach delivery");
+            assert!(r.redirect_hosts.is_empty());
+            b"\xff\xd8\xfffixture-jpeg".to_vec()
+        } else {
+            assert_eq!(r.url, self.polling);
+            assert!(
+                r.headers
+                    .iter()
+                    .any(|(k, v)| k == "x-key" && v == "fixture-secret")
+            );
+            json!({"id":"task_123","status":"Ready","result":{"sample":self.delivery}})
+                .to_string()
+                .into_bytes()
+        };
+        self.calls.borrow_mut().push(r);
+        Ok(data)
+    }
+}
+
+#[test]
+fn regional_tasks_resume_on_the_returned_cluster_and_download_without_credentials() {
+    for region in ["us", "eu", "us1", "eu1", "us2", "eu2", "ap-southeast-1"] {
+        let api = RegionalApi {
+            polling: format!("https://api.{region}.bfl.ai/v1/get_result?id=task_123"),
+            delivery: format!("https://delivery.{region}.bfl.ai/output.jpg?sig=fixture"),
+            calls: RefCell::default(),
+        };
+        let spec =
+            models::spec(&json!({"model":"studio/native/bfl/flux-3-image","prompt":"A river"}))
+                .unwrap();
+        let key = json!({"BFL_API_KEY":"fixture-secret"});
+        let reference = Router::new(&api, key.clone()).submit(&spec).unwrap();
+        let mut resumed = Router::new(&api, key);
+        assert_eq!(resumed.poll(&reference, &spec).unwrap(), "COMPLETED");
+        let output = resumed.result(&reference, &spec).unwrap();
+        let bundle: Value = serde_json::from_slice(&output.media).unwrap();
+        assert_eq!(bundle["parts"][0]["mime"], "image/jpeg");
+        assert_eq!(
+            api.calls
+                .borrow()
+                .iter()
+                .filter(|r| r.method == "POST")
+                .count(),
+            1
+        );
+    }
+}
+
+#[test]
+fn unsafe_response_preserves_paid_task_id_without_following_or_reposting() {
+    let api = RegionalApi {
+        polling: "https://evil.example/v1/get_result?id=task_123&key=secret".into(),
+        delivery: "https://delivery.us.bfl.ai/output.jpg".into(),
+        calls: RefCell::default(),
+    };
+    let spec = models::spec(&json!({"model":"studio/native/bfl/flux-3-image","prompt":"A river"}))
+        .unwrap();
+    let key = json!({"BFL_API_KEY":"fixture-secret"});
+    let reference = Router::new(&api, key.clone()).submit(&spec).unwrap();
+    assert!(reference.ends_with("unresolved_task_123"));
+    assert!(!reference.contains("evil") && !reference.contains("secret"));
+    let mut resumed = Router::new(&api, key);
+    assert_eq!(
+        resumed.poll(&reference, &spec).unwrap_err().0,
+        "bfl_polling_url_rejected"
+    );
+    assert_eq!(api.calls.borrow().len(), 1);
+}

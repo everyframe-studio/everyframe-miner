@@ -2,7 +2,7 @@
 //! the request digest; polling and artifact reads never replay a submission.
 use crate::{
     Error, Result, native_media, native_provider, need,
-    network::{Request, safe_url},
+    network::Request,
     protocol::{digest, sha},
     providers::{Output, Router},
     s,
@@ -189,32 +189,7 @@ impl Router<'_> {
         let data =
             self.http
                 .json(self.native_request(model, s(&model["apiPath"])?, Some(body))?)?;
-        let id = s(&data["id"])?;
-        need(
-            crate::matches("[A-Za-z0-9_-]{1,80}", &json!(id)),
-            "invalid_provider_ref",
-        )?;
-        let url = safe_url(
-            s(&data["polling_url"])?,
-            &[
-                "api.bfl.ai".into(),
-                "api.us1.bfl.ai".into(),
-                "api.eu1.bfl.ai".into(),
-            ],
-        )?;
-        need(
-            url.path() == "/v1/get_result"
-                && url.query_pairs().count() == 1
-                && url.query_pairs().any(|(k, v)| k == "id" && v == id),
-            "invalid_polling_url",
-        )?;
-        let region = match url.host_str() {
-            Some("api.bfl.ai") => "global",
-            Some("api.us1.bfl.ai") => "us1",
-            Some("api.eu1.bfl.ai") => "eu1",
-            _ => return Err(Error("invalid_polling_url")),
-        };
-        native_media::reference(spec, &format!("{region}_{id}"))
+        native_media::reference(spec, &crate::bfl::submission_reference(&data)?)
     }
     fn schema_read(&self, reference: &str, spec: &Value, model: &Value) -> Result<Value> {
         if model["provider"] == "runway" {
@@ -285,23 +260,21 @@ impl Router<'_> {
         }
         need(model["adapter"] == "schema-bfl", "unsupported_provider")?;
         let bound = native_media::reference_id(spec, reference)?;
-        let (region, id) = bound.split_once('_').ok_or(Error("invalid_provider_ref"))?;
-        let host = match region {
-            "global" => "api.bfl.ai",
-            "us1" => "api.us1.bfl.ai",
-            "eu1" => "api.eu1.bfl.ai",
-            _ => return Err(Error("invalid_provider_ref")),
-        };
-        need(
-            crate::matches("[A-Za-z0-9_-]{1,80}", &json!(id)),
-            "invalid_provider_ref",
-        )?;
-        let mut req = Request::get(format!("https://{host}/v1/get_result?id={id}"), &[host]);
+        let (id, url) = crate::bfl::polling_url(bound)?;
+        let host = url::Url::parse(&url)
+            .map_err(|_| Error("invalid_provider_ref"))?
+            .host_str()
+            .unwrap()
+            .to_string();
+        let mut req = Request::get(url, &[&host]);
         req.headers = self.auth("bfl")?;
         req.timeout = 60;
         let data = self.http.json(req)?;
         if let Some(returned) = data.get("id") {
-            need(returned == id, "provider_id_mismatch")?;
+            need(
+                returned.as_str() == Some(id.as_str()),
+                "provider_id_mismatch",
+            )?;
         }
         Ok(data)
     }
@@ -536,13 +509,10 @@ impl Router<'_> {
             });
         }
         need(d["status"] == "Ready", "provider_not_complete")?;
+        let delivery = crate::bfl::delivery_url(s(&d["result"]["sample"])?)?;
         let bytes = self.download_bounded(
-            s(&d["result"]["sample"])?,
-            &[
-                "delivery-us1.bfl.ai",
-                "delivery-eu1.bfl.ai",
-                "delivery.bfl.ai",
-            ],
+            delivery.as_str(),
+            &[delivery.host_str().unwrap()],
             None,
             &[],
             80 * 1024 * 1024,

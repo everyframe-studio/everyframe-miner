@@ -55,23 +55,11 @@ fn prefix(p: &str) -> &str {
         _ => "",
     }
 }
-fn bfl_host(region: &str) -> Result<&'static str> {
-    match region {
-        "global" => Ok("api.bfl.ai"),
-        "us1" => Ok("api.us1.bfl.ai"),
-        "eu1" => Ok("api.eu1.bfl.ai"),
-        _ => Err(Error("invalid_provider_ref")),
-    }
-}
 fn bfl_ref(r: &str) -> Result<(String, String)> {
-    let parts = r.splitn(3, '_').collect::<Vec<_>>();
-    need(
-        parts.len() == 3 && parts[0] == "bfl",
-        "invalid_provider_ref",
-    )?;
-    let host = bfl_host(parts[1])?;
-    let id = reference(&json!(parts[2]))?;
-    Ok((id.clone(), format!("https://{host}/v1/get_result?id={id}")))
+    crate::bfl::polling_url(
+        r.strip_prefix("bfl_")
+            .ok_or(Error("invalid_provider_ref"))?,
+    )
 }
 impl<'a> Router<'a> {
     pub(crate) fn guard_submission(&self, req: &mut Request) -> Result<()> {
@@ -811,27 +799,10 @@ impl Provider for Router<'_> {
             }
             "bfl" => {
                 let d = self.api(&p, &format!("/v1/{model}"), Some(input))?;
-                let id = reference(&d["id"])?;
-                let u = safe_url(
-                    s(&d["polling_url"])?,
-                    &[
-                        "api.bfl.ai".into(),
-                        "api.us1.bfl.ai".into(),
-                        "api.eu1.bfl.ai".into(),
-                    ],
-                )?;
-                need(
-                    u.path() == "/v1/get_result"
-                        && u.query_pairs().count() == 1
-                        && u.query_pairs().any(|(k, v)| k == "id" && v == id),
-                    "invalid_polling_url",
-                )?;
-                let region = match u.host_str() {
-                    Some("api.bfl.ai") => "global",
-                    Some("api.us1.bfl.ai") => "us1",
-                    _ => "eu1",
-                };
-                reference(&json!(format!("bfl_{region}_{id}")))?
+                reference(&json!(format!(
+                    "bfl_{}",
+                    crate::bfl::submission_reference(&d)?
+                )))?
             }
             "replicate" => reference(
                 &self.api(
@@ -1128,16 +1099,15 @@ impl Provider for Router<'_> {
                 Some(&p),
                 &[],
             )?,
-            "bfl" => self.download(
-                s(&data["result"]["sample"])?,
-                &[
-                    "delivery-us1.bfl.ai",
-                    "delivery-eu1.bfl.ai",
-                    "delivery.bfl.ai",
-                ],
-                None,
-                &[],
-            )?,
+            "bfl" => {
+                let delivery = crate::bfl::delivery_url(s(&data["result"]["sample"])?)?;
+                self.download(
+                    delivery.as_str(),
+                    &[delivery.host_str().unwrap()],
+                    None,
+                    &[],
+                )?
+            }
             "replicate" => self.download(
                 s(&data["output"])?,
                 &["replicate.delivery", "*.replicate.delivery"],
