@@ -337,6 +337,12 @@ pub fn body(spec: &Value, urls: &[String]) -> Result<(String, Value)> {
     }
     if p["provider"] == "openrouter" {
         b["model"] = json!(model);
+        if p["seed"] == false {
+            b.as_object_mut().unwrap().remove("seed");
+        }
+        if model == "alibaba/wan-3.0" {
+            b["generate_audio"] = json!(true);
+        }
         if has_refs {
             let mut values = vec![];
             for (kind, list) in [
