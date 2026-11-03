@@ -46,9 +46,9 @@
     },
     {
       "version": "v0.2.0",
-      "title": "CLI improvements",
+      "title": "Top-level miner commands",
       "changes": [
-        "Merged through PR #1 after Linux and macOS checks passed."
+        "Moves miner setup, health, balances, offers and lifecycle commands to the top level while retaining namespaced compatibility aliases."
       ],
       "workerUpdate": "not_required",
       "actions": []
@@ -86,7 +86,7 @@
       "title": "CLI improvements",
       "changes": [
         "Vivix API key management: everycli set-api-keys --provider vivix stores VIVIX_API_KEY privately in the local profile.",
-        "Direct Vivix W1 candidate worker adapter for 5–15-second, 720p landscape text-to-video, with authenticated job submission, polling, bounded downloads, and duplicate-submission protection.",
+        "Adds Vivix W1 task submission, polling, bounded result downloads and duplicate-submission protection.",
         "Explicit unsupported status for Vivix USD balance queries; W credits are not converted into a fabricated USD balance."
       ],
       "workerUpdate": "conditional",
@@ -160,7 +160,7 @@
       "version": "v0.3.5",
       "title": "CLI improvements",
       "changes": [
-        "everycli offers can display the coordinator-signed Studio catalog with provider and readiness columns. Pending integrations are visible, not silently enabled. Existing bids and older coordinators remain supported.",
+        "Shows provider and readiness columns in signed model catalogs while preserving existing bids and older coordinator compatibility.",
         "everycli doctor explains when a key is saved locally but excluded by the signed deployment. This is not an API authentication verdict.",
         "The worker accepts Vivix results from its reviewed clipgen-us.vivi-x.ai CDN, without forwarding credentials or allowing arbitrary hosts/redirects."
       ],
@@ -454,7 +454,7 @@
       "title": "Offline worker updates and Kling direct API",
       "changes": [
         "Kling developer API key setup in CLI and UI, with a free read-only key check.",
-        "Candidate Kling 3.0 direct text-to-video adapter: 3–15 seconds, 720p landscape, silent single shot. Separate from Fal-hosted Kling. Provider errors are safely categorized, task IDs and output hosts checked, and uncertain paid submissions never blindly retried. Live routing is pending pricing and attested validation.",
+        "Adds direct Kling key management and video task handling, with contracts kept separate from Fal-hosted models.",
         "Explicit unsupported USD balance diagnostics for Kling; delayed resource-pack quantities are not presented as live cash balances."
       ],
       "workerUpdate": "conditional",
