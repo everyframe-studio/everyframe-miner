@@ -365,6 +365,51 @@ mod tests {
             false
         );
     }
+
+    #[test]
+    fn long_release_histories_remain_readable_after_a_background_update() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = State {
+            directory: fs::canonicalize(dir.path()).unwrap().join("updater"),
+        };
+        let releases: Vec<_> = (0..=128)
+            .map(|patch| {
+                json!({"version":format!("v0.0.{patch}"),"title":"Release history",
+                    "changes":["A".repeat(1000),"B".repeat(1000)],
+                    "workerUpdate":"not_required","actions":[]})
+            })
+            .collect();
+        let catalog = json!({"schema":1,"firstRelease":"v0.0.0","releases":releases});
+        let upgrade = crate::upgrade_notes::summarize(
+            &serde_json::to_vec(&catalog).unwrap(),
+            "v0.0.0",
+            "v0.0.128",
+            "release_asset",
+        )
+        .unwrap();
+        let result =
+            json!({"updated":true,"previous":"0.0.0","version":"v0.0.128","upgrade":upgrade});
+        assert!(serde_json::to_vec(&result).unwrap().len() > 200_000);
+        perform(&s, || Ok(result.clone())).unwrap();
+        assert_eq!(
+            s.read("auto-update-result", false).unwrap()["result"],
+            result
+        );
+        assert_eq!(
+            s.read("last-successful-update", false).unwrap()["result"],
+            result
+        );
+        perform(&s, || Ok(json!({"updated":false}))).unwrap();
+        assert_eq!(
+            s.read("auto-update-result", false).unwrap()["state"],
+            "current"
+        );
+        assert_eq!(
+            s.read("last-successful-update", false).unwrap()["result"],
+            result
+        );
+    }
+
     #[test]
     fn native_paths_exclude_builds_packages_and_relative_overrides() {
         let h = Path::new("/home/miner");

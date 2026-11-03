@@ -136,14 +136,17 @@ impl State {
         if optional && !p.exists() {
             return Ok(Value::Null);
         }
-        if name == "profile-recovery" || name == "last-successful-update" {
+        if matches!(
+            name,
+            "profile-recovery" | "last-successful-update" | "auto-update-result"
+        ) {
             serde_json::from_slice(&read(
                 &p,
                 true,
-                if name == "last-successful-update" {
-                    4_000_000
-                } else {
+                if name == "profile-recovery" {
                     2_000_000
+                } else {
+                    4_000_000
                 },
             )?)
             .map_err(|_| Error("invalid_json_file").at_file(&p))
