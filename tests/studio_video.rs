@@ -423,3 +423,35 @@ fn renewal_budget_includes_long_studio_jobs() {
         assert!(models::max_job_ms() >= m["deadlineMs"].as_i64().unwrap());
     }
 }
+
+#[test]
+fn openrouter_wan_and_grok_preserve_keyframes_and_provider_parameters() {
+    let mut wan = spec("openrouter", "alibaba/wan-3.0");
+    wan["input"]["duration"] = json!(30);
+    wan["input"]["resolution"] = json!("1080p");
+    wan["input"]["references"] = json!([asset("first"), asset("last")]);
+    let (path, body) = studio_video::body(&wan, &["first".into(), "last".into()]).unwrap();
+    assert_eq!(path, "/api/v1/videos");
+    assert_eq!(body["model"], "alibaba/wan-3.0");
+    assert_eq!(body["seed"], 42);
+    assert_eq!(body["generate_audio"], true);
+    assert_eq!(body["duration"], 30);
+    assert_eq!(body["resolution"], "1080p");
+    assert_eq!(body["frame_images"][0]["frame_type"], "first_frame");
+    assert_eq!(body["frame_images"][1]["frame_type"], "last_frame");
+    assert_eq!(body["frame_images"][1]["image_url"]["url"], "last");
+    wan["input"]["references"] = json!([asset("image")]);
+    assert!(studio_video::check(&wan).is_err());
+    let mut grok = spec("openrouter", "x-ai/grok-imagine-video");
+    grok["input"]["references"] = json!([asset("first")]);
+    let (_, body) = studio_video::body(&grok, &["first".into()]).unwrap();
+    assert!(body.get("seed").is_none());
+    assert!(body.get("generate_audio").is_none());
+    assert_eq!(body["model"], "x-ai/grok-imagine-video");
+    assert_eq!(body["frame_images"][0]["image_url"]["url"], "first");
+    grok["input"]["references"] = json!([asset("first"), asset("last")]);
+    assert!(studio_video::check(&grok).is_err());
+    grok["input"]["references"] = json!([]);
+    grok["input"]["resolution"] = json!("1080p");
+    assert!(studio_video::check(&grok).is_err());
+}
