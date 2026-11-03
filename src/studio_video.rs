@@ -40,7 +40,10 @@ pub fn check(spec: &Value) -> Result<()> {
         "invalid_studio_seed",
     )?;
     need(
-        (n(&p["min"])?..=n(&p["max"])?).contains(&n(&v["duration"])?),
+        (n(&p["min"])?..=n(&p["max"])?).contains(&n(&v["duration"])?)
+            && p["durations"]
+                .as_array()
+                .is_none_or(|a| a.contains(&v["duration"])),
         "invalid_studio_duration",
     )?;
     for (key, policy, code) in [
@@ -340,6 +343,9 @@ pub fn body(spec: &Value, urls: &[String]) -> Result<(String, Value)> {
         if p["seed"] == false {
             b.as_object_mut().unwrap().remove("seed");
         }
+        if let Some(audio) = p["generateAudio"].as_bool() {
+            b["generate_audio"] = json!(audio);
+        }
         if model == "alibaba/wan-3.0" {
             b["generate_audio"] = json!(true);
         }
@@ -542,7 +548,7 @@ pub fn model_registry() -> Value {
     for (id, p) in POLICIES.as_object().unwrap() {
         let model = p["apiModel"].as_str().unwrap();
         let app = model.split('/').take(2).collect::<Vec<_>>().join("/");
-        result.insert(id.clone(),json!({"provider":p["provider"],"apiModel":model,"app":app,"name":p["name"],"family":"Studio","kind":"video","mime":"video/mp4","params":{},"seed":p["seed"].as_bool().unwrap_or(true),"duration":5,"resolution":p["resolutions"][0],"aspect":"16:9","dimensions":[],"codecs":["h264","hevc"],"deadlineMs":p["deadlineMs"].as_i64().unwrap_or(480000),"maxPrompt":p["maxPrompt"]}));
+        result.insert(id.clone(),json!({"provider":p["provider"],"apiModel":model,"app":app,"name":p["name"],"family":"Studio","kind":"video","mime":"video/mp4","params":{},"seed":p["seed"].as_bool().unwrap_or(true),"duration":p["defaultDuration"].as_i64().unwrap_or(5),"resolution":p["resolutions"][0],"aspect":"16:9","dimensions":[],"codecs":["h264","hevc"],"deadlineMs":p["deadlineMs"].as_i64().unwrap_or(480000),"maxPrompt":p["maxPrompt"]}));
     }
     Value::Object(result)
 }
