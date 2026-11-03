@@ -91,6 +91,22 @@ pub fn needs_operator(reason: &str) -> bool {
     matches!(reason, POLLING_REJECTED | DELIVERY_REJECTED)
 }
 
+/// BFL's shared result schema includes FLUX 3's reasoning/generation phases.
+/// Only Ready permits downloading; moderation and empty results are terminal.
+pub fn poll_status(value: &Value) -> Result<&'static str> {
+    match value.as_str() {
+        Some("Pending" | "Reasoning" | "Generating" | "Running" | "Processing") => {
+            Ok("IN_PROGRESS")
+        }
+        Some("Ready") => Ok("COMPLETED"),
+        Some("Request Moderated" | "Content Moderated") => Err(Error("provider_content_rejected")),
+        Some("Error" | "Failed" | "Task not found" | "No Card Generated") => {
+            Err(Error("provider_generation_failed"))
+        }
+        _ => Err(Error("invalid_provider_status")),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -170,6 +186,38 @@ mod tests {
                     .unwrap_err()
                     .0,
                 DELIVERY_REJECTED
+            );
+        }
+    }
+
+    #[test]
+    fn handles_every_published_result_status_without_early_completion() {
+        for status in [
+            "Pending",
+            "Reasoning",
+            "Generating",
+            "Running",
+            "Processing",
+        ] {
+            assert_eq!(poll_status(&json!(status)).unwrap(), "IN_PROGRESS");
+        }
+        assert_eq!(poll_status(&json!("Ready")).unwrap(), "COMPLETED");
+        for status in ["Request Moderated", "Content Moderated"] {
+            assert_eq!(
+                poll_status(&json!(status)).unwrap_err().0,
+                "provider_content_rejected"
+            );
+        }
+        for status in ["Error", "Failed", "Task not found", "No Card Generated"] {
+            assert_eq!(
+                poll_status(&json!(status)).unwrap_err().0,
+                "provider_generation_failed"
+            );
+        }
+        for value in [json!(null), json!(123), json!("unknown"), json!("ready")] {
+            assert_eq!(
+                poll_status(&value).unwrap_err().0,
+                "invalid_provider_status"
             );
         }
     }
