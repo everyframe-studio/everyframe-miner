@@ -162,11 +162,26 @@
     "provider": "fal",
     "apiModel": "blackforestlabs/flux-3-max/text-to-video",
     "name": "FLUX 3 Max",
-    "aspects": ["21:9", "2:1", "16:9", "4:3", "1:1", "3:4", "9:16"],
+    "aspects": [
+      "21:9",
+      "2:1",
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+    ],
     "min": 5,
     "max": 20,
-    "resolutions": ["720p", "1080p"],
-    "refs": {"image": 0, "video": 0, "audio": 0},
+    "resolutions": [
+      "720p",
+      "1080p"
+    ],
+    "refs": {
+      "image": 0,
+      "video": 0,
+      "audio": 0
+    },
     "frames": 2,
     "mixed": false,
     "maxPrompt": 50000
@@ -520,5 +535,495 @@
     "maxPrompt": 4000,
     "seed": false,
     "schemaCheckedAt": "2026-11-03"
+  },
+  "studio/openrouter/x-ai/grok-imagine-video-1.5": {
+    "provider": "openrouter",
+    "apiModel": "x-ai/grok-imagine-video-1.5",
+    "name": "Grok Imagine Video 1.5 (OpenRouter)",
+    "aspects": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:3",
+      "3:4",
+      "3:2",
+      "2:3"
+    ],
+    "min": 1,
+    "max": 15,
+    "resolutions": [
+      "480p",
+      "720p",
+      "1080p"
+    ],
+    "refs": {
+      "image": 0,
+      "video": 0,
+      "audio": 0
+    },
+    "frames": 1,
+    "mixed": false,
+    "maxPrompt": 4000,
+    "seed": false,
+    "schemaCheckedAt": "2026-11-03",
+    "deadlineMs": 1200000
+  },
+  "studio/openrouter/x-ai/grok-imagine-video-1.5-lite": {
+    "provider": "openrouter",
+    "apiModel": "x-ai/grok-imagine-video-1.5-lite",
+    "name": "Grok Imagine Video 1.5 Lite (OpenRouter)",
+    "aspects": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:3",
+      "3:4",
+      "3:2",
+      "2:3"
+    ],
+    "min": 1,
+    "max": 15,
+    "resolutions": [
+      "480p",
+      "720p",
+      "1080p"
+    ],
+    "refs": {
+      "image": 0,
+      "video": 0,
+      "audio": 0
+    },
+    "frames": 1,
+    "mixed": false,
+    "maxPrompt": 4000,
+    "seed": false,
+    "schemaCheckedAt": "2026-11-03",
+    "deadlineMs": 1200000
+  },
+  "studio/openrouter/minimax/hailuo-3-max": {
+    "provider": "openrouter",
+    "apiModel": "minimax/hailuo-3-max",
+    "name": "H3 Max (OpenRouter)",
+    "aspects": [
+      "21:9",
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+    ],
+    "min": 5,
+    "max": 15,
+    "resolutions": [
+      "480p",
+      "768p"
+    ],
+    "refs": {
+      "image": 0,
+      "video": 0,
+      "audio": 0
+    },
+    "frames": 2,
+    "mixed": false,
+    "maxPrompt": 4000,
+    "seed": false,
+    "schemaCheckedAt": "2026-11-03",
+    "deadlineMs": 1200000
+  },
+  "studio/openrouter/alibaba/wan-3.0-prime": {
+    "provider": "openrouter",
+    "apiModel": "alibaba/wan-3.0-prime",
+    "name": "Wan 3.0 Prime (OpenRouter)",
+    "aspects": [
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+    ],
+    "min": 2,
+    "max": 30,
+    "resolutions": [
+      "480p",
+      "720p",
+      "1080p"
+    ],
+    "refs": {
+      "image": 0,
+      "video": 0,
+      "audio": 0
+    },
+    "frames": 2,
+    "mixed": false,
+    "maxPrompt": 4000,
+    "seed": true,
+    "schemaCheckedAt": "2026-11-03",
+    "deadlineMs": 1200000,
+    "generateAudio": true
+  },
+  "studio/openrouter/runway/gen-4.5": {
+    "provider": "openrouter",
+    "apiModel": "runway/gen-4.5",
+    "name": "Gen-4.5 (OpenRouter)",
+    "aspects": [
+      "16:9",
+      "9:16"
+    ],
+    "min": 2,
+    "max": 10,
+    "resolutions": [
+      "720p"
+    ],
+    "refs": {
+      "image": 0,
+      "video": 0,
+      "audio": 0
+    },
+    "frames": 1,
+    "mixed": false,
+    "maxPrompt": 4000,
+    "seed": true,
+    "schemaCheckedAt": "2026-11-03",
+    "deadlineMs": 1200000,
+    "outputSizes": [
+      "1280x720",
+      "720x1280"
+    ]
+  },
+  "studio/openrouter/alibaba/happyhorse-1.0": {
+    "provider": "openrouter",
+    "apiModel": "alibaba/happyhorse-1.0",
+    "name": "HappyHorse 1.0 (OpenRouter)",
+    "aspects": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:3",
+      "3:4",
+      "21:9",
+      "9:21"
+    ],
+    "min": 3,
+    "max": 15,
+    "resolutions": [
+      "720p",
+      "1080p"
+    ],
+    "refs": {
+      "image": 0,
+      "video": 0,
+      "audio": 0
+    },
+    "frames": 1,
+    "mixed": false,
+    "maxPrompt": 4000,
+    "seed": true,
+    "schemaCheckedAt": "2026-11-03",
+    "deadlineMs": 1200000,
+    "outputSizes": [
+      "1280x720",
+      "720x1280",
+      "720x720",
+      "960x720",
+      "720x960",
+      "1680x720",
+      "720x1680",
+      "1920x1080",
+      "1080x1920",
+      "1080x1080",
+      "1440x1080",
+      "1080x1440",
+      "2520x1080",
+      "1080x2520"
+    ]
+  },
+  "studio/openrouter/alibaba/happyhorse-1.1": {
+    "provider": "openrouter",
+    "apiModel": "alibaba/happyhorse-1.1",
+    "name": "HappyHorse 1.1 (OpenRouter)",
+    "aspects": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:3",
+      "3:4",
+      "21:9",
+      "9:21"
+    ],
+    "min": 3,
+    "max": 15,
+    "resolutions": [
+      "720p",
+      "1080p"
+    ],
+    "refs": {
+      "image": 0,
+      "video": 0,
+      "audio": 0
+    },
+    "frames": 1,
+    "mixed": false,
+    "maxPrompt": 4000,
+    "seed": true,
+    "schemaCheckedAt": "2026-11-03",
+    "deadlineMs": 1200000,
+    "outputSizes": [
+      "1280x720",
+      "720x1280",
+      "720x720",
+      "960x720",
+      "720x960",
+      "1680x720",
+      "720x1680",
+      "1920x1080",
+      "1080x1920",
+      "1080x1080",
+      "1440x1080",
+      "1080x1440",
+      "2520x1080",
+      "1080x2520"
+    ]
+  },
+  "studio/openrouter/kwaivgi/kling-v3.0-pro": {
+    "provider": "openrouter",
+    "apiModel": "kwaivgi/kling-v3.0-pro",
+    "name": "Video v3.0 Pro (OpenRouter)",
+    "aspects": [
+      "16:9",
+      "9:16",
+      "1:1"
+    ],
+    "min": 3,
+    "max": 15,
+    "resolutions": [
+      "720p"
+    ],
+    "refs": {
+      "image": 0,
+      "video": 0,
+      "audio": 0
+    },
+    "frames": 2,
+    "mixed": false,
+    "maxPrompt": 4000,
+    "seed": false,
+    "schemaCheckedAt": "2026-11-03",
+    "deadlineMs": 1200000,
+    "generateAudio": true,
+    "outputSizes": [
+      "1280x720",
+      "720x1280",
+      "720x720"
+    ]
+  },
+  "studio/openrouter/kwaivgi/kling-v3.0-std": {
+    "provider": "openrouter",
+    "apiModel": "kwaivgi/kling-v3.0-std",
+    "name": "Video v3.0 Standard (OpenRouter)",
+    "aspects": [
+      "16:9",
+      "9:16",
+      "1:1"
+    ],
+    "min": 3,
+    "max": 15,
+    "resolutions": [
+      "720p"
+    ],
+    "refs": {
+      "image": 0,
+      "video": 0,
+      "audio": 0
+    },
+    "frames": 2,
+    "mixed": false,
+    "maxPrompt": 4000,
+    "seed": false,
+    "schemaCheckedAt": "2026-11-03",
+    "deadlineMs": 1200000,
+    "generateAudio": true,
+    "outputSizes": [
+      "1280x720",
+      "720x1280",
+      "720x720"
+    ]
+  },
+  "studio/openrouter/kwaivgi/kling-video-o1": {
+    "provider": "openrouter",
+    "apiModel": "kwaivgi/kling-video-o1",
+    "name": "Video O1 (OpenRouter)",
+    "aspects": [
+      "16:9",
+      "9:16",
+      "1:1"
+    ],
+    "min": 5,
+    "max": 10,
+    "resolutions": [
+      "720p"
+    ],
+    "refs": {
+      "image": 0,
+      "video": 0,
+      "audio": 0
+    },
+    "frames": 2,
+    "mixed": false,
+    "maxPrompt": 4000,
+    "seed": false,
+    "schemaCheckedAt": "2026-11-03",
+    "deadlineMs": 1200000,
+    "durations": [
+      5,
+      10
+    ],
+    "generateAudio": true,
+    "outputSizes": [
+      "1280x720",
+      "720x1280",
+      "720x720"
+    ]
+  },
+  "studio/openrouter/minimax/hailuo-2.3": {
+    "provider": "openrouter",
+    "apiModel": "minimax/hailuo-2.3",
+    "name": "Hailuo 2.3 (OpenRouter)",
+    "aspects": [
+      "16:9"
+    ],
+    "min": 6,
+    "max": 10,
+    "resolutions": [
+      "1080p"
+    ],
+    "refs": {
+      "image": 0,
+      "video": 0,
+      "audio": 0
+    },
+    "frames": 1,
+    "mixed": false,
+    "maxPrompt": 4000,
+    "seed": false,
+    "schemaCheckedAt": "2026-11-03",
+    "deadlineMs": 1200000,
+    "durations": [
+      6,
+      10
+    ],
+    "defaultDuration": 6,
+    "outputSizes": [
+      "1920x1080"
+    ]
+  },
+  "studio/openrouter/alibaba/wan-2.7": {
+    "provider": "openrouter",
+    "apiModel": "alibaba/wan-2.7",
+    "name": "Wan 2.7 (OpenRouter)",
+    "aspects": [
+      "16:9",
+      "9:16",
+      "1:1",
+      "4:3",
+      "3:4"
+    ],
+    "min": 2,
+    "max": 10,
+    "resolutions": [
+      "720p",
+      "1080p"
+    ],
+    "refs": {
+      "image": 0,
+      "video": 0,
+      "audio": 0
+    },
+    "frames": 2,
+    "mixed": false,
+    "maxPrompt": 4000,
+    "seed": true,
+    "schemaCheckedAt": "2026-11-03",
+    "deadlineMs": 1200000,
+    "generateAudio": true,
+    "outputSizes": [
+      "1280x720",
+      "720x1280",
+      "1920x1080",
+      "1080x1920",
+      "720x720",
+      "1080x1080",
+      "960x720",
+      "720x960",
+      "1440x1080",
+      "1080x1440"
+    ]
+  },
+  "studio/openrouter/alibaba/wan-2.6": {
+    "provider": "openrouter",
+    "apiModel": "alibaba/wan-2.6",
+    "name": "Wan 2.6 (OpenRouter)",
+    "aspects": [
+      "16:9",
+      "9:16"
+    ],
+    "min": 5,
+    "max": 10,
+    "resolutions": [
+      "720p",
+      "1080p"
+    ],
+    "refs": {
+      "image": 0,
+      "video": 0,
+      "audio": 0
+    },
+    "frames": 1,
+    "mixed": false,
+    "maxPrompt": 4000,
+    "seed": true,
+    "schemaCheckedAt": "2026-11-03",
+    "deadlineMs": 1200000,
+    "durations": [
+      5,
+      10
+    ],
+    "generateAudio": true,
+    "outputSizes": [
+      "1280x720",
+      "1080x1920",
+      "720x1280",
+      "1920x1080"
+    ]
+  },
+  "studio/openrouter/black-forest-labs/flux-3-video": {
+    "provider": "openrouter",
+    "apiModel": "black-forest-labs/flux-3-video",
+    "name": "FLUX 3 Video (OpenRouter)",
+    "aspects": [
+      "21:9",
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+    ],
+    "min": 5,
+    "max": 20,
+    "resolutions": [
+      "720p",
+      "1080p"
+    ],
+    "refs": {
+      "image": 0,
+      "video": 0,
+      "audio": 0
+    },
+    "frames": 2,
+    "mixed": false,
+    "maxPrompt": 4000,
+    "seed": false,
+    "schemaCheckedAt": "2026-11-03",
+    "deadlineMs": 1200000,
+    "generateAudio": true
   }
 }

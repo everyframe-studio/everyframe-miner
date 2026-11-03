@@ -26,7 +26,22 @@ Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
 
-### v0.9.4 — BFL polling and result recovery
+### v0.9.6 — More OpenRouter video models
+
+OpenRouter offers now include Grok Imagine Video 1.5 and Lite, H3 Max, Wan 3.0
+Prime, Runway Gen-4.5, HappyHorse 1.0 and 1.1, Kling 3.0 Pro and Standard,
+Kling O1, Hailuo 2.3, Wan 2.7 and 2.6, and FLUX 3 Video. Each model has its own
+supported formats and price schedule. See [OpenRouter routes](OPENROUTER.md).
+
+Run `everycli update`, then `everycli worker-update` on your existing management
+profile. Review and enable the new offers with your preferred discount.
+Existing offers and discounts are preserved; the new offers are opt-in.
+
+### v0.9.5 — BFL polling and result recovery
+
+FLUX 3's Reasoning and Generating states now remain in progress while the
+worker waits for the completed image. Empty results and moderation are handled
+as terminal outcomes. Polling and recovery use the same BFL status handling.
 
 BFL jobs follow the regional polling location returned by the provider and support
 its current delivery hosts. Accepted task IDs are retained when a response needs

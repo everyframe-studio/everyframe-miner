@@ -10,7 +10,7 @@ use std::cell::RefCell;
 fn spec(provider: &str, model: &str) -> Value {
     let id = format!("studio/{provider}/{model}");
     let policy = &studio_video::POLICIES[&id];
-    json!({"model":id,"input":{"prompt":"A cinematic product shot","seed":42,"duration":5,"resolution":policy["resolutions"][0],"aspect":"9:16","references":[],"promptExpansion":"balanced"}})
+    json!({"model":id,"input":{"prompt":"A cinematic product shot","seed":42,"duration":policy["defaultDuration"].as_i64().unwrap_or(5),"resolution":policy["resolutions"][0],"aspect":if policy["aspects"].as_array().is_none_or(|a| a.contains(&json!("9:16"))){"9:16"}else{"16:9"},"references":[],"promptExpansion":"balanced"}})
 }
 fn asset(role: &str) -> Value {
     json!({"url":format!("https://api.everyframe.studio/v1/attachment/att_{role}?t={}","a".repeat(32)),"sha256":sha(b"fixture image bytes"),"bytes":19,"mime":"image/jpeg","role":role,"width":720,"height":1280,"durationMs":0})
@@ -454,4 +454,55 @@ fn openrouter_wan_and_grok_preserve_keyframes_and_provider_parameters() {
     grok["input"]["references"] = json!([]);
     grok["input"]["resolution"] = json!("1080p");
     assert!(studio_video::check(&grok).is_err());
+}
+
+#[test]
+fn expanded_openrouter_contracts_preserve_audio_frames_and_discrete_durations() {
+    for (api, audio, seeded) in [
+        ("kwaivgi/kling-v3.0-pro", Some(true), false),
+        ("kwaivgi/kling-v3.0-std", Some(true), false),
+        ("minimax/hailuo-3-max", None, false),
+        ("runway/gen-4.5", None, true),
+        ("x-ai/grok-imagine-video-1.5", None, false),
+        ("x-ai/grok-imagine-video-1.5-lite", None, false),
+        ("alibaba/wan-3.0-prime", Some(true), true),
+        ("alibaba/happyhorse-1.0", None, true),
+        ("alibaba/happyhorse-1.1", None, true),
+        ("kwaivgi/kling-video-o1", Some(true), false),
+        ("minimax/hailuo-2.3", None, false),
+        ("alibaba/wan-2.7", Some(true), true),
+        ("alibaba/wan-2.6", Some(true), true),
+        ("black-forest-labs/flux-3-video", Some(true), false),
+    ] {
+        let mut request = spec("openrouter", api);
+        let (path, body) = studio_video::body(&request, &[]).unwrap();
+        assert_eq!(path, "/api/v1/videos");
+        assert_eq!(body["model"], api);
+        assert_eq!(body["generate_audio"].as_bool(), audio);
+        assert_eq!(body.get("seed").is_some(), seeded);
+        request["input"]["references"] = json!([asset("first")]);
+        let (_, body) = studio_video::body(&request, &["first".into()]).unwrap();
+        assert_eq!(body["frame_images"][0]["frame_type"], "first_frame");
+        assert_eq!(body["frame_images"][0]["image_url"]["url"], "first");
+        assert!(body.get("input_references").is_none());
+        request["input"]["references"] = json!([asset("image")]);
+        assert_eq!(
+            studio_video::check(&request).unwrap_err().0,
+            "reference_kind_not_supported"
+        );
+    }
+    for api in [
+        "kwaivgi/kling-video-o1",
+        "minimax/hailuo-2.3",
+        "alibaba/wan-2.6",
+    ] {
+        let mut request = spec("openrouter", api);
+        request["input"]["duration"] = json!(7);
+        assert_eq!(
+            studio_video::check(&request).unwrap_err().0,
+            "invalid_studio_duration"
+        );
+        request["input"]["duration"] = json!(10);
+        studio_video::check(&request).unwrap();
+    }
 }

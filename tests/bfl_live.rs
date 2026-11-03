@@ -46,6 +46,31 @@ fn bfl_regional_image_round_trip() {
     // Drop the submitting router: polling must work from the recorded reference.
     let credentials = router.credentials.clone();
     drop(router);
+    finish_recorded_task(&root, &reference, &spec, credentials);
+}
+
+#[test]
+#[ignore = "read-only recovery requires a private BFL key and an existing accepted task record"]
+fn bfl_resume_recorded_task() {
+    assert_eq!(
+        std::env::var("EVERYFRAME_APPROVE_BFL_RECOVERY").as_deref(),
+        Ok("read-only")
+    );
+    let root = PathBuf::from(std::env::var("EVERYFRAME_CANARY_OUTPUT_DIR").unwrap());
+    let accepted: Value =
+        serde_json::from_slice(&fs::read(root.join("accepted.json")).unwrap()).unwrap();
+    let intent: Value =
+        serde_json::from_slice(&fs::read(root.join("intent.json")).unwrap()).unwrap();
+    let key = std::env::var("BFL_API_KEY").expect("BFL key must be configured privately");
+    finish_recorded_task(
+        &root,
+        accepted["reference"].as_str().unwrap(),
+        &intent["spec"],
+        json!({"BFL_API_KEY": key}),
+    );
+}
+
+fn finish_recorded_task(root: &std::path::Path, reference: &str, spec: &Value, credentials: Value) {
     let mut resumed = Router::new(&PublicHttp, credentials);
     let end = everyframe_miner::now() + 600000;
     loop {
@@ -53,12 +78,12 @@ fn bfl_regional_image_round_trip() {
             everyframe_miner::now() < end,
             "Timed out: recover this task ID; never resubmit."
         );
-        if resumed.poll(&reference, &spec).unwrap() == "COMPLETED" {
+        if resumed.poll(reference, spec).unwrap() == "COMPLETED" {
             break;
         }
         std::thread::sleep(Duration::from_secs(2));
     }
-    let result = resumed.result(&reference, &spec).unwrap();
+    let result = resumed.result(reference, spec).unwrap();
     let bundle: Value = serde_json::from_slice(&result.media).unwrap();
     let parts = bundle["parts"].as_array().unwrap();
     assert_eq!(parts.len(), 1);
