@@ -137,6 +137,43 @@ try {
   assert.match(await page.locator('#provider-balances').innerText(),/42\.50/);
   await page.evaluate(()=>{run=window.balanceTestOriginalRun;delete window.balanceTestOriginalRun;S.overview.keys=[];history.replaceState(null,'','#/overview');render();});
 
+  // Refreshing health re-runs only the health rows; the balances and offers rows stay in the card.
+  await page.evaluate(() => {
+    window.healthTestOriginalRun = run;
+    Boot.begin('Checking your miner');
+    Boot.step('balances', 'Provider balances').ok('1 providers ok'); Boot.step('offers', 'Model offers').ok('2 active'); Boot.finish(); render();
+    run = async (command, ...args) => command === 'health' ? { state: 'done', result: { value: { checks: [{ name: 'Coordinator', ok: true }, { name: 'Phala workload', ok: true }] } } } : window.healthTestOriginalRun(command, ...args);
+  });
+  await page.locator('#overview-health').getByRole('button', { name: 'Refresh', exact: true }).click();
+  await page.waitForFunction(() => S.boot?.finished);
+  const heroChecks = await page.locator('#hero-side').innerText();
+  assert.match(heroChecks, /Coordinator/);
+  assert.match(heroChecks, /Provider balances[\s\S]*1 providers ok/);
+  assert.match(heroChecks, /Model offers[\s\S]*2 active/);
+  await page.evaluate(() => { run = window.healthTestOriginalRun; delete window.healthTestOriginalRun; S.boot = null; render(); });
+
+  // Each failing or warning readiness check says how to fix it and links to the place that does.
+  await page.evaluate(() => {
+    window.fixTestHealth = S.health;
+    S.health = { state: 'done', result: { value: { checks: [
+      { name: 'Accepting new work', ok: false, detail: 'Miner is draining or paused. Review everycli health before choosing to resume provider-billed work.' },
+      { name: 'Model: fal/example/video', ok: false, state: 'WARN', detail: 'Coordinator did not report model capability evidence.' },
+      { name: 'Phala credential', ok: false, detail: 'Your Phala account pays hosting.' },
+      { name: 'Rust runtime', ok: true, detail: 'Native executable.' }] } } };
+    history.replaceState(null, '', '#/overview'); render();
+  });
+  const fixes = page.locator('#overview-health .fix');
+  assert.equal(await fixes.count(), 3);
+  assert.match(await fixes.nth(0).innerText(), /How to fix: Your worker is paused/);
+  assert.equal(await fixes.nth(0).getByRole('button', { name: 'Start accepting work', exact: true }).count(), 1);
+  assert.equal(await fixes.nth(1).getByRole('button', { name: 'Withdraw offer', exact: true }).count(), 1);
+  assert.equal(await fixes.nth(2).getByRole('link', { name: 'Add Phala token', exact: true }).getAttribute('href'), '#/keys');
+  await fixes.nth(1).getByRole('link', { name: 'Open in Models', exact: true }).click();
+  await page.waitForFunction(() => location.hash.startsWith('#/models'));
+  assert.equal(await page.evaluate(() => S.modelQuery), 'fal/example/video');
+  assert.equal(await page.evaluate(() => S.offerFilter), 'active');
+  await page.evaluate(() => { S.health = window.fixTestHealth; delete window.fixTestHealth; S.modelQuery = ''; S.offerFilter = 'ready'; history.replaceState(null, '', '#/overview'); render(); });
+
   const summary = page.getByLabel('Miner overview summary', { exact: true });
   assert.deepEqual(await summary.locator('.label').allTextContents(), ['Worker', 'Status', 'Active offers', 'Jobs']);
   assert.equal(await summary.locator('.stat').count(), 4);
@@ -154,7 +191,7 @@ try {
     await page.evaluate(health => { S.health = health; render(); }, test.health);
     assert.equal(await summary.locator('.stat').nth(1).locator('.value').textContent(), test.expected);
   }
-  for (const [width, columns] of [[1000, 2], [390, 1], [1440, 4]]) {
+  for (const [width, columns] of [[1000, 2], [390, 2], [340, 1], [1440, 4]]) {
     await page.setViewportSize({ width, height: 1000 });
     assert.equal(await summary.evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length), columns);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'overview must fit viewport');
@@ -176,6 +213,7 @@ try {
   assert.match(await identity.innerText(), /UID 0/);
   assert.match(await identity.innerText(), /5FW5r4…8quSvT/);
   assert.equal(await identity.locator('code').getAttribute('title'), '5FW5r4Hjpa7m2hsU5h3awcAwmErcfurCyFqB3Fi1fv8quSvT');
+  assert.equal(await identity.getByRole('button', { name: 'Copy hotkey', exact: true }).innerText(), '');
   await page.evaluate(() => { S.overview.registration.hotkey = 'wrong'; render(); });
   assert.match(await identity.innerText(), /UID not checked/);
   await page.evaluate(() => { S.overview.registration.hotkey = S.overview.profile.hotkey; S.overview.registration.uid = 127; S.overview.recoveryPending = true; render(); });
@@ -355,7 +393,7 @@ try {
       return {all,candidates,canUpdate,canWithdraw,report:S.batchReport};
     } finally {S.offers=original;S.offerFilter='all';S.selectedOffers.clear();clearBatchReport();render();}
   });
-  assert.match(availabilityUI.all,/Everyframe contract: studio\/openrouter\/example/);
+  assert.match(availabilityUI.all,/EveryFrame contract: studio\/openrouter\/example/);
   assert.match(availabilityUI.all,/Provider API ID: vendor\/example/);
   assert.match(availabilityUI.all,/Sizes: 360p, 720p, 1080p, 4k/);
   assert.match(availabilityUI.all,/Video generation, first\/last frames, editing and extension/);

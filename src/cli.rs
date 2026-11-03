@@ -892,7 +892,7 @@ pub fn run_with(
             Ok(out)
         }
         "doctor" => miner.doctor(),
-        "health" => miner.health(),
+        "health" => miner.health_with_progress(progress),
         "status" => miner.status(),
         "providers" => miner.providers(),
         "balances" => miner.balances(args.flag("--publish")),

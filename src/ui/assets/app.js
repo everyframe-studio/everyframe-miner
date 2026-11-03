@@ -35,6 +35,26 @@ function h(tag, attrs, ...kids) {
   return el;
 }
 const $ = (sel) => document.querySelector(sel);
+const ICONS = {
+  overview: "M4 13h6V4H4zM14 20h6v-9h-6zM14 4v4h6V4zM4 20h6v-3H4z",
+  setup: "M9 11l2 2 4-4M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z",
+  models: "M12 3l8 4.5v9L12 21l-8-4.5v-9zM12 12l8-4.5M12 12v9M12 12L4 7.5",
+  jobs: "M4 6h16M4 12h16M4 18h10",
+  earnings: "M4 19V9M10 19V5M16 19v-7M22 19H2",
+  keys: "M14 10a4 4 0 1 0-3.2 3.9L13 16h2v2h2v2h3v-3l-5.1-5.1A4 4 0 0 0 14 10zM9.5 9.5h.01",
+  worker: "M4 5h16v6H4zM4 13h16v6H4zM8 8h.01M8 16h.01",
+  help: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17h.01",
+  pulse: "M3 12h4l3-8 4 16 3-8h4",
+  offers: "M20 12l-8 8-9-9V3h8zM7.5 7.5h.01",
+  bolt: "M13 2L4 14h7l-1 8 9-12h-7z",
+  copy: "M9 9h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1zM5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1",
+  check: "M5 12.5l4.5 4.5L19 7",
+};
+function icon(name, cls) {
+  const ns = "http://www.w3.org/2000/svg", svg = document.createElementNS(ns, "svg"), path = document.createElementNS(ns, "path");
+  svg.setAttribute("viewBox", "0 0 24 24"); svg.setAttribute("aria-hidden", "true"); svg.setAttribute("class", "icon " + (cls || ""));
+  path.setAttribute("d", ICONS[name] || ""); svg.append(path); return svg;
+}
 const fmtUsd = (n, d = 2) => (typeof n === "number" && isFinite(n)) ? "$" + n.toFixed(d) : "—";
 const fmtTime = (ms) => ms ? new Date(ms).toLocaleString() : "—";
 const ago = (ms) => {
@@ -47,6 +67,11 @@ function bar(pct) {
   const fill = h("span");
   fill.style.width = Math.max(0, Math.min(100, Math.round(pct))) + "%";
   return h("div", { class: "progress" }, fill);
+}
+function meter(frac) {
+  const fill = h("span");
+  fill.style.width = Math.max(2, Math.round(Math.max(0, Math.min(1, frac)) * 100)) + "%";
+  return h("span", { class: "meter", "aria-hidden": "true" }, fill);
 }
 const daysLeft = (ms) => ms ? Math.floor((ms - Date.now()) / 86400000) : null;
 
@@ -73,9 +98,10 @@ const LABELS = {
   "worker-update-check": "Check for worker update", "cli-update-check": "Check for CLI update", "init": "Create miner profile",
   "offer": "Update model offer", "deploy": "Deploy worker", "start": "Start worker", "activate": "Activate keys",
   "offer-batch": "Update model offers", "jobs": "Job history",
-  "apply-api-keys": "Apply keys to worker", "resume": "Start accepting work", "stop": "Stop worker",
+  "apply-api-keys": "Apply keys to worker", "resume": "Start accepting work", "stop": "Shut down worker",
   "worker-update": "Update worker", "reconcile": "Re-sync operation", "remove-api-key": "Remove key",
-  "worker-update-abort": "Cancel worker update",
+  "worker-update-abort": "Cancel worker update", "worker-auto-enable": "Turn on automatic worker updates",
+  "worker-auto-disable": "Turn off automatic worker updates", "worker-auto-status": "Automatic update status",
   "balances-publish": "Publish balances",
   "label": "Save worker label", "logs": "Worker logs",
   "reconnect": "Reconnect miner profile",
@@ -107,7 +133,7 @@ async function run(action, params = {}, opts = {}) {
     if (changes.has(action) && jobId !== requestId) {
       S.pendingOperations.delete(requestId); S.pendingOperations.set(jobId, { ...operation, id: jobId }); savePendingOperations();
     }
-    const job = await poll(jobId, act);
+    const job = await poll(jobId, act, opts.onLog);
     if (job.state !== "unknown") { S.pendingOperations.delete(jobId); savePendingOperations(); }
     if (job.state === "confirm") {
       // Batch review gathers exact CLI questions without approving anything.
@@ -122,7 +148,7 @@ async function run(action, params = {}, opts = {}) {
     return job;
   }
 }
-async function poll(id, act) {
+async function poll(id, act, onLog) {
   let failures = 0;
   for (;;) {
     const r = await api("/api/jobs/" + id);
@@ -134,6 +160,7 @@ async function poll(id, act) {
     }
     failures = 0;
     act?.log(r.data.log || []);
+    onLog?.(r.data.log || []);
     if (r.data.state !== "running") return r.data;
     await new Promise((ok) => setTimeout(ok, 700));
   }
@@ -283,21 +310,93 @@ function copyBox(text) {
   return h("div", { class: "copy" }, h("code", null, text), btn);
 }
 function notice(kind, title, body) { return h("div", { class: "notice " + (kind || "") }, title ? h("b", null, title) : null, body); }
-function stat(label, val, sub, tone) { return h("div", { class: "stat " + (tone || "") }, h("div", { class: "label" }, label), h("div", { class: "value" }, val), sub ? h("div", { class: "sub" }, sub) : null); }
+function stat(label, val, sub, tone, glyph) { return h("div", { class: "stat " + (tone || "") }, glyph ? icon(glyph, "stat-icon") : null, h("div", { class: "label" }, label), h("div", { class: "value" }, val), sub ? h("div", { class: "sub" }, sub) : null); }
 function card(title, actions, ...body) {
   return h("section", { class: "card" }, h("div", { class: "card-head" }, h("h2", null, title), actions ? h("div", { class: "row" }, actions) : null), ...body);
 }
 function checkState(c) { return c.state || (c.ok ? "PASS" : "FAIL"); }
-function checksList(checks) {
-  return h("ul", { class: "checks" }, (checks || []).map((c) => h("li", null,
-    h("span", { class: "badge " + checkState(c) }, checkState(c)),
-    h("div", null, h("div", { class: "name" }, c.name), h("div", { class: "detail" }, c.message || c.detail || "")))));
+function checksList(checks, withFix = false) {
+  return h("ul", { class: "checks" }, (checks || []).map((c) => {
+    const fix = withFix ? checkFix(c) : null;
+    return h("li", null,
+      h("span", { class: "badge " + checkState(c) }, checkState(c)),
+      h("div", null, h("div", { class: "name" }, c.name), h("div", { class: "detail" }, c.message || c.detail || ""),
+        fix ? h("div", { class: "fix" }, h("p", null, h("b", null, "How to fix: "), fix[0]), h("div", { class: "row" }, fix.slice(1))) : null));
+  }));
 }
 function healthList(checks) {
   const problems = checks.filter((c) => checkState(c) !== "PASS"), passed = checks.filter((c) => checkState(c) === "PASS");
   return h("div", null,
-    problems.length ? checksList(problems) : notice("ok", "All checks pass", null),
+    problems.length ? checksList(problems, true) : notice("ok", "All checks pass", null),
     passed.length ? h("details", null, h("summary", null, passed.length + " checks passed"), checksList(passed)) : null);
+}
+// ---------- how to fix a readiness problem ----------
+// Opens the page that fixes a check and briefly highlights the control to use there.
+async function goFix(hash, selector, prep) {
+  if (location.hash !== hash) { history.pushState(null, "", hash); S.navigationEpoch++; clearBatchReport(); S.renaming = false; S.openStep = null; }
+  prep?.(); render(); window.scrollTo(0, 0);
+  const flash = () => {
+    const el = selector && document.querySelector(selector);
+    if (!el) return null;
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    el.classList.remove("spotlight"); void el.offsetWidth; el.classList.add("spotlight");
+    setTimeout(() => el.classList.remove("spotlight"), 2600);
+    return el;
+  };
+  const el = flash();
+  // These pages refresh some cards after opening; highlight again if ours was replaced.
+  if (currentRoute() === "keys") await loadBalances();
+  if (currentRoute() === "worker") await loadWorkerTools();
+  if (selector && !el?.isConnected) flash();
+}
+async function recheckHealth() {
+  // Re-run only the health rows; balances and offers keep their last result.
+  const keep = (S.boot?.steps || []).filter(st => !st.id.startsWith("health-") && st.id !== "readiness");
+  Boot.begin("Re-checking health"); const checking = healthStep(); S.boot.steps.push(...keep); Boot.render();
+  await checking; Boot.finish(); render();
+}
+// Returns [what to do, ...buttons or links] for a failing or warning check, or null.
+function checkFix(c) {
+  const name = c.name || "", detail = String(c.message || c.detail || "");
+  const go = (label, hash, selector, prep) => h("a", { class: "btn small", href: hash, onclick: e => { e.preventDefault(); goFix(hash, selector, prep); } }, label);
+  const again = () => button("Check again", recheckHealth, "small");
+  const resync = () => button("Re-sync worker", async () => { await run("reconcile"); await refreshAll(); }, "small");
+  const worker = (label, selector) => go(label, "#/worker", selector);
+  const setupDeploy = (label) => go(label, "#/setup", '[data-step="deploy"]', () => { S.openStep = "deploy"; });
+  const models = (label, filter, model) => go(label, modelsHref(filter), model ? 'tr[data-model="' + CSS.escape(model) + '"]' : "#offers-table",
+    () => { S.offerFilter = filter; S.modelProvider = ""; S.modelKind = ""; S.modelQuery = model || ""; S.selectedOffers.clear(); });
+  if (name.startsWith("Model: ")) {
+    const model = name.slice(7);
+    if (/stale|unverified/i.test(detail)) return ["Renew this offer at the current price on the Models page.", models("Review offer", "active", model)];
+    return ["Check this model on the Models page. If your worker can't serve it, withdraw the offer so no jobs are routed to it.",
+      models("Open in Models", "active", model),
+      button("Withdraw offer", async () => { const job = await run("offer", { model, withdraw: true }); if (job.state === "done") { await loadOffers(); await recheckHealth(); } }, "small")];
+  }
+  if (name.startsWith("Provider: ")) return ["Your worker's release doesn't allow " + providerName(name.slice(10)) + " yet. Update the worker to the latest signed release.", worker("Update worker", "#worker-software")];
+  switch (name) {
+    case "Local miner profile": return ["Finish the setup guide to create your miner profile.", go("Open setup guide", "#/setup", "#setup-guide .step.current")];
+    case "Deployment configuration": return ["Reconnect your profile to refresh its signed setup. It keeps your keys and worker.", reconnectButton()];
+    case "Phala credential": return ["Save your Phala Cloud token on the API keys page.", go("Add Phala token", "#/keys", '[data-provider-key="phala"]')];
+    case "Provider credentials": return ["Save at least one generation provider key, such as fal or OpenRouter.", go("Add a provider key", "#/keys", "#keys-generation")];
+    case "Registry": return ["This release needs a registry credential. Deploy from the setup guide to supply it.", setupDeploy("Open deploy step")];
+    case "Operation journal": return ["An earlier worker operation didn't finish. Re-sync checks its result without repeating it.", resync()];
+    case "Coordinator": return ["everycli couldn't reach the EveryFrame coordinator. Check this computer's internet connection, then check again.", again()];
+    case "Miner enabled": return ["The coordinator has disabled this miner. Another VM won't change that; contact EveryFrame support.", go("Get help", "#/help", null)];
+    case "Workload attestation":
+    case "Attestation session": return ["Verification usually finishes a few minutes after the worker starts or gets new keys. Check again shortly; if it doesn't clear, re-sync the worker.", again(), resync()];
+    case "Accepting new work":
+      if (/draining|paused/i.test(detail)) return ["Your worker is paused. Resume it to accept paid jobs again.", button("Start accepting work", async () => { await startAcceptingWork(); await recheckHealth(); }, "small primary")];
+      return ["Routing is off for this miner on the coordinator. Check the worker's state, then check again.", worker("Open Worker", '[data-action="Re-sync state"]'), again()];
+    case "Current model bid":
+    case "Active model support": return ["Offer at least one model with a current price, so the network can send you jobs.", models("Choose models", "ready")];
+    case "Deployment binding": return ["The coordinator's workload doesn't match this computer's record. Re-sync the worker; don't deploy another one.", resync(), worker("Open Worker", '[data-action="Re-sync state"]')];
+    case "Phala workload":
+      if (/No workload deployed/i.test(detail)) return ["No worker is deployed from this profile yet. Deploy one from the setup guide.", setupDeploy("Deploy a worker")];
+      if (/not running/i.test(detail)) return ["Your worker is stopped. Start the same machine again from the Worker page; don't deploy another.", worker("Start worker", '[data-action="Start a stopped worker"]')];
+      return ["everycli couldn't confirm the worker in Phala Cloud. Re-sync it, then check again.", resync(), again()];
+    case "Worker heartbeat": return ["The worker hasn't checked in within the last 30 seconds. Look at its state and logs on the Worker page; don't deploy another worker.", worker("Open worker logs", "#worker-logs"), again()];
+  }
+  return null;
 }
 function button(label, onclick, cls) {
   const b = h("button", { class: "btn " + (cls || "") }, label);
@@ -371,15 +470,124 @@ const DIRECT_PROVIDERS = new Set(["luma-agents", "openai", "google", "xai", "ele
 const compareProviders = (a, b) => Number(!DIRECT_PROVIDERS.has(a)) - Number(!DIRECT_PROVIDERS.has(b))
   || String(providerName(a) || "").localeCompare(String(providerName(b) || ""));
 
+// ---------- startup checks (shown step by step in the status card while the first load runs) ----------
+const Boot = {
+  begin(title) {
+    clearInterval(S.bootTimer);
+    S.boot = { title, steps: [], started: Date.now(), finished: null };
+    S.bootTimer = setInterval(() => Boot.tick(), 200);
+    Boot.render();
+  },
+  step(id, label, waiting = false) {
+    const st = { id, label, state: waiting ? "wait" : "run", detail: "", started: waiting ? null : Date.now(), ended: null };
+    S.boot?.steps.push(st); Boot.render();
+    const end = (state, detail) => { st.started ??= Date.now(); st.state = state; st.detail = detail || ""; st.ended ??= Date.now(); Boot.render(); };
+    return Object.assign(st, { start: () => { if (st.state === "wait") { st.state = "run"; st.started = Date.now(); Boot.render(); } },
+      ok: d => end("ok", d), warn: d => end("warn", d), fail: d => end("bad", d) });
+  },
+  // `st` may be a step listed earlier as waiting; it starts when the work does.
+  async track(st, work, summarize) {
+    st.start();
+    try { await work(st); const [state, detail] = summarize(); st[state === "bad" ? "fail" : state](detail); }
+    catch (e) { st.fail(e?.message || "Could not finish this check."); }
+  },
+  finish() {
+    const b = S.boot; if (!b) return;
+    b.finished = Date.now(); clearInterval(S.bootTimer); Boot.render();
+  },
+  tone(b) { return !b.finished ? "run" : b.steps.some(x => x.state === "bad") ? "bad" : b.steps.some(x => x.state === "warn") ? "warn" : "ok"; },
+  tick() { for (const el of document.querySelectorAll("[data-since]")) el.textContent = secs(Date.now() - Number(el.dataset.since)); },
+  render() {
+    const side = $("#hero-side");
+    // Fade the list in once, not on every step change or page redraw.
+    if (side) { side.replaceChildren(...heroSide()); requestAnimationFrame(() => { side.dataset.shown = "1"; S.bootShown = true; }); return; }
+    // Before the status card exists, the loading line names the step in progress.
+    const loading = $("#main > p.pad"), cur = S.boot?.steps.findLast(x => x.state === "run");
+    if (loading && cur) loading.textContent = cur.label + "…";
+  },
+};
+const secs = (ms) => (Math.max(0, ms) / 1000).toFixed(1) + " s";
+const stateIcon = (state) => h("span", { class: "chk-icon " + state, "aria-hidden": "true" }, state === "ok" ? "✓" : state === "warn" ? "!" : state === "bad" ? "×" : "");
+const stepTime = (st) => st.ended ? h("span", { class: "chk-time" }, secs(st.ended - st.started)) : st.started ? h("span", { class: "chk-time", "data-since": st.started }, secs(Date.now() - st.started)) : h("span", { class: "chk-time" });
+// Shown as waiting while everycli and the profile load, before the real rows exist.
+const BOOT_PLANNED = ["Profile and keys", "Coordinator", "Phala worker", "Readiness", "Provider balances", "Model offers"];
+function bootList(b) {
+  const tone = Boot.tone(b);
+  return h("div", { class: "hero-checks " + tone, role: "status", "aria-live": "polite", "aria-label": b.title },
+    h("ul", null, (b.steps.length || b.finished ? b.steps : BOOT_PLANNED.map(label => ({ label, state: "wait" }))).map(st => h("li", {
+      class: "chk " + st.state + (st.id === "readiness" && ["warn", "bad"].includes(st.state) ? " chk-link" : ""),
+      title: st.label + (st.why || st.detail ? ": " + (st.why || st.detail) : "") + (st.id === "readiness" && ["warn", "bad"].includes(st.state) ? ". Click to see how to fix." : ""),
+      onclick: st.id === "readiness" && ["warn", "bad"].includes(st.state) ? () => $("#overview-health")?.scrollIntoView({ behavior: "smooth", block: "start" }) : null },
+      stateIcon(st.state), h("span", { class: "chk-label" }, st.short || st.label),
+      h("span", { class: "chk-detail" }, st.detail || (st.state === "run" ? "checking…" : st.state === "wait" ? "waiting" : "")), stepTime(st)))));
+}
+function heroSide() { return S.boot ? [bootList(S.boot)] : []; }
+// Health runs its stages in order and logs a line as each one starts; each stage is its own row.
+const HEALTH_STAGES = [["local miner profile", "Profile and keys"], ["coordinator", "Coordinator"], ["phala cloud", "Phala worker"]];
+function healthStep() {
+  const rows = HEALTH_STAGES.map(([, label], i) => Boot.step("health-" + i, label, i > 0));
+  const ready = Boot.step("readiness", "Readiness", true);
+  let at = 0;
+  const reach = (n) => { for (; at < n && at < rows.length - 1; at++) { rows[at].ok(); rows[at + 1].start(); } };
+  return (async () => {
+    try {
+      await loadHealth(true, (lines) => {
+        const text = lines.filter(l => typeof l === "string").map(l => l.toLowerCase());
+        reach(Math.max(0, ...HEALTH_STAGES.map(([key], i) => text.some(l => l.includes(key)) ? i : 0)));
+      });
+    } catch {}
+    const err = errorOf(S.health), v = value(S.health), checks = v?.checks || [];
+    // Order from health: profile checks, "Coordinator" and what it reports, "Phala workload", then readiness.
+    const ci = checks.findIndex(c => c.name === "Coordinator"), pi = checks.findIndex(c => c.name === "Phala workload");
+    const known = ci >= 0 && pi > ci;
+    const groups = known ? [checks.slice(0, ci), checks.slice(ci, pi), [checks[pi]]] : [[], [], []];
+    const tail = known ? checks.slice(pi + 1) : checks;
+    const verdict = (st, list, okText) => {
+      const bad = list.find(c => checkState(c) === "FAIL"), warn = list.find(c => checkState(c) === "WARN");
+      const pick = bad || warn, why = pick && (pick.name + ": " + (pick.message || pick.detail || checkState(pick).toLowerCase()));
+      bad ? st.fail(why) : warn ? st.warn(why) : st.ok(okText);
+    };
+    rows.forEach((st, i) => {
+      if (err && !checks.length) return st.state === "ok" ? null : st.fail(err.message || "Health check failed");
+      verdict(st, groups[i], [list => list.length ? list.length + " checks ok" : "ok", () => "verified", () => v?.cloudStatus || "checked"][i](groups[i]));
+    });
+    ready.start();
+    if (err && !checks.length) return ready.fail("not checked");
+    const pass = checks.filter(c => checkState(c) === "PASS").length;
+    verdict(ready, tail, pass + " of " + checks.length + " pass");
+    // The row stays short; its tooltip and the Health checks card name the check.
+    if (ready.state !== "ok") { const n = tail.filter(c => checkState(c) !== "PASS").length; ready.why = ready.detail; ready.detail = pass + " of " + checks.length + " pass · " + n + (ready.state === "bad" ? " failing" : n === 1 ? " warning" : " warnings"); Boot.render(); }
+  })();
+}
+function bootSteps() {
+  const health = healthStep();
+  const bal = Boot.step("balances", "Provider balances", true), offers = Boot.step("offers", "Model offers", true);
+  return Promise.all([
+    health,
+    Boot.track(bal, loadBalances, () => {
+      if (errorOf(S.balances)) return ["bad", errorOf(S.balances).message || "Could not read balances"];
+      const rows = value(S.balances)?.balances || [], ok = rows.filter(r => r.status === "ok");
+      if (!rows.length) return ["ok", "no keys to check"];
+      return [ok.length < rows.length ? "warn" : "ok", ok.length < rows.length ? (rows.length - ok.length) + " of " + rows.length + " unavailable" : rows.length + " providers ok"];
+    }),
+    loadEarnings(),
+    Boot.track(offers, () => loadOffers(), () => {
+      if (S.offersError) return ["bad", S.offersError.message || "Could not load offers"];
+      const on = (S.offers?.offers || []).filter(r => r.offered).length;
+      return [on ? "ok" : "warn", on + " active"];
+    }),
+  ]);
+}
+
 // ---------- data loading ----------
 async function loadOverview() {
   const r = await api("/api/overview");
   if (r.ok) S.overview = r.data;
   return S.overview;
 }
-async function loadHealth(quiet = true) {
+async function loadHealth(quiet = true, onLog) {
   if (!S.overview?.initialized) return;
-  S.health = await run("health", {}, { quiet });
+  S.health = await run("health", {}, { quiet, onLog });
   S.healthAt = Date.now();
 }
 async function loadBalances() {
@@ -436,6 +644,7 @@ function acknowledgeModels() {
 
 // ---------- shell ----------
 const ROUTES = [["overview", "Overview"], ["setup", "Setup guide"], ["models", "Models"], ["jobs", "Job history"], ["earnings", "Earnings"], ["keys", "API keys"], ["worker", "Worker"], ["help", "Help"]];
+const NAV_GROUPS = [["Operate", ["overview", "models", "jobs", "earnings"]], ["Configure", ["setup", "keys", "worker"]], ["Support", ["help"]]];
 const OFFER_FILTERS = [["ready", "Ready for my keys"], ["active", "My active offers"], ["not-offered", "Not offered"], ["all", "All models"], ["candidate", "Unavailable"]];
 function route() { const m = location.hash.match(/^#\/(\w+)/); return m && ROUTES.some(([r]) => r === m[1]) ? m[1] : null; }
 function currentRoute() { return route() || (S.overview?.initialized ? "overview" : "setup"); }
@@ -475,7 +684,7 @@ function renderMeta() {
   const [label, tone] = workerState();
   $("#meta").replaceChildren(...[
     h("span", { class: "pill brand-pill" }, (s.network === "testnet" ? "Testnet · SN" : "Mainnet · SN") + s.netuid),
-    o?.initialized ? h("span", { class: "pill " + tone }, h("span", { class: "dot" }), "Worker: " + label) : null,
+    o?.initialized ? h("span", { class: "pill worker-pill " + tone }, h("span", { class: "dot" }), "Worker: " + label) : null,
     h("span", { class: "pill hide-sm" }, "everycli " + s.version),
     S.cliUpdate && value(S.cliUpdate)?.updateAvailable ? h("span", { class: "pill warn" }, h("span", { class: "dot" }), "CLI update available") : null].filter(Boolean));
 }
@@ -483,9 +692,12 @@ function renderNav() {
   const current = currentRoute();
   const steps = S.overview?.steps || [];
   const done = steps.filter((x) => stepDone(x)).length;
-  $("#nav").replaceChildren(...ROUTES.map(([r, label]) => h("a", { href: "#/" + r, class: r === current ? "active" : "" },
-    label, r === "models" && S.newModels.size ? h("span", { class: "count", "aria-label": S.newModels.size + " new models" }, S.newModels.size) : null,
-    r === "setup" && steps.length ? h("span", { class: "count" }, done + "/" + steps.length) : null)));
+  const labels = Object.fromEntries(ROUTES);
+  $("#nav").replaceChildren(...NAV_GROUPS.map(([group, routes]) => h("div", { class: "nav-group" }, h("div", { class: "nav-title", "aria-hidden": "true" }, group),
+    routes.map(r => h("a", { href: "#/" + r, class: r === current ? "active" : "", "aria-current": r === current ? "page" : null },
+      icon(r), h("span", { class: "nav-label" }, labels[r]),
+      r === "models" && S.newModels.size ? h("span", { class: "count new", "aria-label": S.newModels.size + " new models" }, S.newModels.size) : null,
+      r === "setup" && steps.length ? h("span", { class: "count" + (done === steps.length ? " complete" : "") }, done + "/" + steps.length) : null)))));
 }
 function render() {
   if (!S.token) return renderUnpaired();
@@ -537,7 +749,7 @@ function renameForm() {
 }
 function workerStat(phase, tone) {
   const full = S.overview?.profile?.workerName || "";
-  return h("div", { class: "stat " + (tone || "") },
+  return h("div", { class: "stat " + (tone || "") }, icon("worker", "stat-icon"),
     h("div", { class: "label" }, "Worker"),
     h("div", { class: "value" }, phase),
     S.renaming ? renameForm() : [h("div", { class: "sub ellipsis", title: full }, displayName() || "—"),
@@ -559,41 +771,66 @@ function minerIdentity() {
   const r = o.registration;
   const matched = r?.registered === true && r.hotkey === key && r.network === o.network;
   const uid = matched && Number.isInteger(r.uid) && r.uid >= 0 && r.uid <= 65535 ? r.uid : null;
-  const copy = button("Copy hotkey", async (b) => {
-    try { await navigator.clipboard.writeText(key); b.textContent = "Copied"; }
-    catch { b.after(copyBox(key)); b.textContent = "Select and copy"; }
-  }, "small");
+  const copy = h("button", { class: "copy-icon", type: "button", title: "Copy hotkey", "aria-label": "Copy hotkey" }, icon("copy"));
+  copy.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(key);
+      copy.replaceChildren(icon("check")); copy.classList.add("copied"); copy.title = "Copied"; copy.setAttribute("aria-label", "Hotkey copied");
+      setTimeout(() => { copy.replaceChildren(icon("copy")); copy.classList.remove("copied"); copy.title = "Copy hotkey"; copy.setAttribute("aria-label", "Copy hotkey"); }, 1600);
+    } catch { if (!copy.closest(".miner-identity").nextElementSibling?.matches(".copy")) { const box = copyBox(key); box.classList.add("plain"); copy.closest(".miner-identity").after(box); } }
+  });
   return h("div", { class: "row miner-identity", "aria-label": "Miner identity" },
-    h("span", { class: "pill", title: uid == null ? "Refresh registration to look up the current UID" : "Registration last checked " + fmtTime(r.checkedAt) }, uid == null ? "UID not checked" : "UID " + uid),
-    h("code", { title: key, "aria-label": "Public hotkey " + key }, key.slice(0, 6) + "…" + key.slice(-6)), copy,
-    button("Refresh UID", async () => { await run("register-hotkey", { hotkeySs58: key }); await loadOverview(); render(); }, "small"));
+    h("span", { class: "pill", title: uid == null ? "Run everycli register-hotkey to look up the current UID" : "Registration last checked " + fmtTime(r.checkedAt) }, uid == null ? "UID not checked" : "UID " + uid),
+    h("span", { class: "hotkey" }, h("code", { title: key, "aria-label": "Public hotkey " + key }, key.slice(0, 6) + "…" + key.slice(-6)), copy));
 }
 function reconnectButton() {
   return button("Reconnect profile", async () => { await run("reconnect", S.hotkeySel || {}); await refreshAll(); });
 }
-function workStatusStat() {
-  if (!S.health) return stat("Status", "Checking…", "Fetching worker status");
+function workStatus() {
+  if (!S.health) return ["Checking…", "Fetching worker status", ""];
   const health = value(S.health), checks = health?.checks || [];
-  if (errorOf(S.health) || !health || !checks.some(c => c.name === "Accepting new work")) {
-    return stat("Status", "Unknown", "Could not verify availability", "warn");
-  }
+  if (errorOf(S.health) || !health || !checks.some(c => c.name === "Accepting new work")) return ["Unknown", "Could not verify availability", "warn"];
   const accepting = checks.find(c => c.name === "Accepting new work");
-  if (checks.some(c => c.name !== "Accepting new work" && checkState(c) === "FAIL")) {
-    return stat("Status", "Needs attention", "See health checks below", "warn");
+  if (checks.some(c => c.name !== "Accepting new work" && checkState(c) === "FAIL")) return ["Needs attention", "See health checks below", "warn"];
+  if (!accepting.ok) return ["Paused", "Not accepting new jobs", "warn"];
+  if (health.ok !== true) return ["Needs attention", "See health checks below", "warn"];
+  return health.activity?.activeJobs > 0 ? ["Working", "Processing jobs", "ok"] : ["Ready", "Accepting new jobs", "ok"];
+}
+function workStatusStat() { const [state, sub, tone] = workStatus(); return stat("Status", state, sub, tone, "pulse"); }
+function statusHero() {
+  const [state, sub, tone] = workStatus(), checks = value(S.health)?.checks || [];
+  const passing = checks.filter(c => checkState(c) === "PASS").length;
+  return h("section", { class: "status-hero " + (tone || "idle"), "aria-label": "Miner status" },
+    h("a", { class: "hero-ring", href: "#/overview", title: checks.length ? passing + " of " + checks.length + " health checks pass" : "Health checks running",
+      onclick: (e) => { e.preventDefault(); $("#overview-health")?.scrollIntoView({ behavior: "smooth", block: "start" }); } },
+      h("span", { class: "ping", "aria-hidden": "true" }), h("span", { class: "ping", "aria-hidden": "true" }),
+      ringMeter(checks.length ? passing / checks.length : null),
+      checks.length ? h("span", { class: "ring-num" }, h("b", null, passing + "/" + checks.length), "checks") : h("span", { class: "ring-num" }, h("b", null, "…"), "checking")),
+    h("div", { class: "hero-main" },
+      h("div", { class: "eyebrow" }, (S.session?.network === "testnet" ? "Testnet · " : "") + "Subnet " + (S.session?.netuid ?? 117),
+        S.session?.version ? h("span", { class: "eyebrow-ver" }, " · v" + S.session.version) : null),
+      h("div", { class: "hero-title" }, displayName() || "Your miner"),
+      h("div", { class: "hero-state" }, h("b", null, state), " · " + sub),
+      minerIdentity()),
+    h("div", { class: "hero-side", id: "hero-side", "data-shown": S.bootShown ? "1" : null }, ...heroSide()));
+}
+function ringMeter(frac) {
+  const ns = "http://www.w3.org/2000/svg", svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 44 44"); svg.setAttribute("aria-hidden", "true"); svg.setAttribute("class", frac == null ? "ring spin" : "ring");
+  for (const [cls, dash] of [["track", 100], ["fill", frac == null ? 22 : Math.round(Math.max(0, Math.min(1, frac)) * 100)]]) {
+    const c = document.createElementNS(ns, "circle");
+    for (const [k, v] of [["cx", 22], ["cy", 22], ["r", 18], ["pathLength", 100], ["class", cls], ["stroke-dasharray", dash + " 100"]]) c.setAttribute(k, v);
+    svg.append(c);
   }
-  if (!accepting.ok) return stat("Status", "Paused", "Not accepting new jobs", "warn");
-  if (health.ok !== true) return stat("Status", "Needs attention", "See health checks below", "warn");
-  return health.activity?.activeJobs > 0
-    ? stat("Status", "Working", "Processing jobs", "ok")
-    : stat("Status", "Ready", "Accepting new jobs", "ok");
+  return svg;
 }
 function pageOverview() {
   const o = S.overview;
   const root = h("div", null, h("h1", null, "Overview"),
     h("p", { class: "lede" }, "Live status of your miner. Refreshes every 30 seconds while this tab is open."));
   if (!o) return root;
-  root.append(...[minerIdentity()].filter(Boolean));
   if (!o.initialized) {
+    root.append(...[minerIdentity()].filter(Boolean));
     const steps = o.steps || [], done = steps.filter(stepDone).length;
     root.append(h("div", { class: "hero" },
       h("h2", null, "Let's get your miner running"),
@@ -608,23 +845,26 @@ function pageOverview() {
     root.append(notice("warn", "Reconnect your saved profile", h("div", null,
       h("p", null, "Refresh miner authorization using the same local hotkey. Your API keys and deployment history are kept; no VM is deployed automatically."), reconnectButton())));
   }
+  root.append(statusHero());
   const [phase, tone] = workerState();
   const activity = health?.activity || {};
   const activeOffers = checks.filter((c) => (c.name || "").startsWith("Model: ")).length;
-  const offersStat = stat("Active offers", String(activeOffers), activeOffers ? "" : "Choose models to serve", activeOffers ? "ok" : "warn");
+  const offersStat = stat("Active offers", String(activeOffers), activeOffers ? "" : "Choose models to serve", activeOffers ? "ok" : "warn", "offers");
   if (Array.isArray(S.offers?.offers)) offersStat.append(h("div", { class: "sub" }, modelViewLink(S.offers.offers.filter(r => integratedModel(r) && !r.offered && r.catalogGroup !== "candidate" && !["removed", "deprecated"].includes(r.providerAvailability?.status)).length + " not offered", "not-offered")));
   root.append(h("div", { class: "grid overview-stats", "aria-label": "Miner overview summary" },
     workerStat(phase, tone),
     workStatusStat(),
     offersStat,
-    stat("Jobs", activity.activeJobs == null ? "Unknown" : activity.activeJobs + " active", activity.acceptedJobs == null ? "Accepted count not reported" : activity.acceptedJobs + " accepted so far")));
+    stat("Jobs", activity.activeJobs == null ? "Unknown" : activity.activeJobs + " active", activity.acceptedJobs == null ? "Accepted count not reported" : activity.acceptedJobs.toLocaleString() + " accepted so far", "", "bolt")));
   if (S.workloads?.length) root.append(notice("warn", "A worker for this miner runs in your Phala account, but this computer doesn't manage it",
     h("div", null, "It was probably deployed from another computer. Keep managing it there, or delete or replace it from the ", h("a", { href: "#/worker" }, "Worker page"), ".")));
   if (o.deployment.needsReconcile) root.append(notice("warn", "An operation was interrupted", "Your last change didn't finish cleanly. Re-sync it from the Worker page before anything else; never deploy a second worker."));
-  root.append(card("Health checks", [button("Refresh", async () => { await loadHealth(false); render(); })],
+  const healthCard = card("Health checks", [button("Refresh", recheckHealth)],
     S.health ? (errorOf(S.health) ? errorView(errorOf(S.health)) : healthList(checks)) : h("p", { class: "muted" }, "Checking…"),
-    h("p", { class: "small muted" }, "All green means the current readiness checks passed. It does not guarantee traffic, provider funds or earnings.")));
+    h("p", { class: "small muted" }, "All green means the current readiness checks passed. It does not guarantee traffic, provider funds or earnings."));
+  healthCard.id = "overview-health"; root.append(healthCard);
   const jobs = activity.jobsByModel;
+  const topCompleted = Math.max(1, ...(Array.isArray(jobs) ? jobs.map(j => Number.isSafeInteger(j.completed) ? j.completed : 0) : [0]));
   root.append(card("Jobs by model", [h("a", { class: "btn small", href: "#/jobs" }, "Individual job history"), h("span", { class: "small muted" }, "All time")],
     errorOf(S.health) ? errorView(errorOf(S.health)) : !Array.isArray(jobs)
       ? h("p", { class: "empty" }, "Per-model job counts have not been reported yet.")
@@ -632,7 +872,8 @@ function pageOverview() {
         h("thead", null, h("tr", null, ["Model", "Completed", "Active", "Failed attempts", "Cancelled / expired"].map(label => h("th", null, label)))),
         h("tbody", null, jobs.map(j => h("tr", null,
           h("td", { "data-label": "Model" }, h("b", null, S.offers?.offers?.find(r => r.model === j.model)?.name || j.model)),
-          ...[["Completed", j.completed], ["Active", j.active], ["Failed attempts", j.failed], ["Cancelled / expired", j.cancelled]].map(([label, n]) => h("td", { "data-label": label }, Number.isSafeInteger(n) ? n.toLocaleString() : "—")))))))
+          ...[["Completed", j.completed], ["Active", j.active], ["Failed attempts", j.failed], ["Cancelled / expired", j.cancelled]].map(([label, n]) => h("td", { "data-label": label, class: "num" },
+            Number.isSafeInteger(n) ? n.toLocaleString() : "—", label === "Completed" && Number.isSafeInteger(n) ? meter(n / topCompleted) : null)))))))
         : h("p", { class: "empty" }, "No jobs yet. Your completed jobs will appear here."),
     h("p", { class: "small muted" }, "Completed means accepted, verified output—not a payment or an alpha reward. Failed and cancelled counts describe attempts.")));
   root.append(balancesCard(), earningsCard());
@@ -780,7 +1021,7 @@ function setupCompleteNotice() {
   return notice(health?.ok === true ? "ok" : "warn", "Setup complete", h("div", null,
     h("p", null, health?.ok === true ? "Your worker is ready to accept work. Jobs depend on customer demand and your offers."
       : "All setup steps are confirmed. Some health checks still need attention; completing setup does not mean every model is ready to serve."),
-    problems.length ? h("details", null, h("summary", null, "Review " + problems.length + " health checks"), checksList(problems)) : null,
+    problems.length ? h("details", null, h("summary", null, "Review " + problems.length + " health checks"), checksList(problems, true)) : null,
     h("a", { href: "#/overview" }, "View worker readiness")));
 }
 async function startAcceptingWork() {
@@ -1064,9 +1305,10 @@ function checkMessage(provider, check, saving) {
   if (check.result === "rejected") return { kind: "bad", text: name + " rejected the saved key. Replace it with a working key." };
   return { kind: "warn", text: (saving ? "Saved, but not verified: " : "Not verified: ") + (CHECK_REASONS[check.reason] || check.reason) + ". It will be used as entered." };
 }
-function keyForm(provider, after, stayOn) {
+// `extra` (e.g. Remove) sits in the same row as Save/Test so the buttons line up.
+function keyForm(provider, after, stayOn, extra = null) {
   const saved = (S.overview?.keys || []).find((k) => k.provider === provider)?.saved;
-  const input = h("input", { type: "password", autocomplete: "off", spellcheck: "false", placeholder: saved ? "Saved · paste a new key to replace" : "Paste key", "aria-label": providerName(provider) + " key" });
+  const input = h("input", { type: "password", autocomplete: "off", spellcheck: "false", placeholder: saved ? "Paste to replace" : "Paste key", "aria-label": providerName(provider) + " key" });
   const finish = async () => {
     if (stayOn) S.openStep = stayOn;
     await loadOverview();
@@ -1095,7 +1337,7 @@ function keyForm(provider, after, stayOn) {
     if (err?.error === "credential_rejected" && provider !== "fal-billing") err.message = providerName(provider) + " rejected this key, so it was not saved.";
     S.keyStatus[provider] = r.ok ? checkMessage(provider, r.data.check, true) : { kind: "error", error: err };
     await finish();
-  }, "primary");
+  }, "primary small");
   const test = saved ? button("Test", async () => {
     S.keyStatus[provider] = { kind: "muted", text: "Checking the saved key…" };
     status.replaceChildren(keyStatusView(provider));
@@ -1106,7 +1348,7 @@ function keyForm(provider, after, stayOn) {
   input.addEventListener("keydown", (e) => { if (e.key === "Enter") save.click(); });
   const status = h("div", { class: "key-status-wrap" }, keyStatusView(provider));
   const form = h("div", { class: "keyform" },
-    h("div", { class: "row" }, h("span", { class: "badge " + (saved ? "ok" : "") }, saved ? "SAVED" : "NOT SAVED"), input, save, test),
+    h("div", { class: "row" }, h("span", { class: "badge " + (saved ? "ok" : "") }, saved ? "SAVED" : "NOT SAVED"), input, save, test, extra),
     status);
   return form;
 }
@@ -1119,7 +1361,7 @@ function providerKeyItem(k) {
   if (!k) return h("li");
   return h("li", { "data-provider-key": k.provider },
     h("div", null, h("b", null, providerName(k.provider)), h("div", { class: "small muted" }, (PROVIDERS[k.provider] || [, ""])[1])),
-    h("div", { class: "row" }, keyForm(k.provider), k.saved ? button("Remove", async () => {
+    keyForm(k.provider, null, null, k.saved ? button("Remove", async () => {
       const job = await run("remove-api-key", { provider: k.provider });
       if (job.state !== "done") return;
       await loadOverview(); await loadBalances();
@@ -1139,7 +1381,8 @@ function pageKeys() {
   root.append(balancesCard());
   for (const [kind, title] of groups) {
     const rows = keys.filter((k) => k.kind === kind).sort((a,b) => compareProviders(a.provider,b.provider));
-    root.append(card(title, null, h("ul", { class: "keylist" }, rows.map(providerKeyItem))));
+    const group = card(title, null, h("ul", { class: "keylist" }, rows.map(providerKeyItem)));
+    group.id = "keys-" + kind; root.append(group);
   }
   return root;
 }
@@ -1184,7 +1427,8 @@ function pageModels() {
   if (S.offerFilter === "not-offered") root.append(notice("", "Models without an active offer", "New models start at 0% discount. Review a model and turn its offer on when you want to serve it."));
   if (S.offerFilter === "candidate") root.append(notice("", "Not available for new offers", "These models need attention before they can be offered. Existing offers can still be withdrawn."));
   const body = h("div", { id: "model-list" });
-  root.append(card("Offers", [seg, refresh], h("div", { class: "row model-filters" }, search, provider, kind), body));
+  const offersCard = card("Offers", [seg, refresh], h("div", { class: "row model-filters" }, search, provider, kind), body);
+  offersCard.id = "offers-table"; root.append(offersCard);
   fillModels(body);
   return root;
 }
@@ -1202,7 +1446,7 @@ function visibleOffers() {
 }
 function fillModels(body) {
   const rows = visibleOffers();
-  body.replaceChildren(h("p", { class: "small muted" }, rows.length + " models shown"),
+  body.replaceChildren(h("p", { class: "small muted" }, rows.length + (rows.length === 1 ? " model shown" : " models shown")),
     S.overview?.initialized ? batchToolbar(rows) : h("span"),
     S.batchReport ? batchReportView() : h("span"),
     rows.length ? h("div", { class: "table-wrap" }, h("table", { class: "cards-sm" },
@@ -1227,7 +1471,7 @@ function providerOffersCard() {
     return h("div", { class: "provider-offer", "data-offer-provider": provider },
       h("div", { class: "row" }, h("b", null, providerName(provider)), toggle),
       h("div", { class: "small" }, modelViewLink(active.length + " offered", "active", provider), " · ", modelViewLink(inactive.length + " not offered", "not-offered", provider)),
-      h("div", { class: "small muted" }, on ? "Turn off to withdraw this provider's offers." : eligible.length ? eligible.length + " models can be turned on." : "No models ready to offer. Check the provider key and model readiness."));
+      h("div", { class: "small muted" }, on ? "Turn off to withdraw this provider's offers." : eligible.length ? eligible.length + (eligible.length === 1 ? " model can" : " models can") + " be turned on." : "No models ready to offer. Check the provider key and model readiness."));
   });
   return card("Provider offers", [], h("p", { class: "small muted" }, "Switches apply to all models for that provider, across filters. Turning on keeps saved discounts and uses 0% for new models. Turning off keeps discounts for later and lets current jobs finish."), h("div", { class: "provider-offers" }, controls));
 }
@@ -1402,8 +1646,8 @@ function offerRow(r) {
     : modelViewLink("Not offered · " + discountLabel, "not-offered", "", { class: "badge neutral", title: "Show models without an active offer" });
   const apply = button(r.offered ? "Update" : "Offer", async () => { const job = await run("offer", { model: r.model, discountPct: disc.value }); if (job.state === "done") S.offerDrafts.delete(r.model); await loadOffers(); await loadHealth(); render(); }, "small primary");
   apply.disabled = !canApplyOffer(r); disc.disabled = !canApplyOffer(r);
-  return h("tr", null,
-    h("td", { "data-label": "Model" }, h("label", { class: "row" }, S.overview?.initialized ? h("input", { type: "checkbox", checked: S.selectedOffers.has(r.model), disabled: S.batchBusy || !selectableOffer(r), "aria-label": "Select " + (r.name || r.model), onchange: e => { if (e.target.checked) S.selectedOffers.add(r.model); else S.selectedOffers.delete(r.model); patchModels(); } }) : null, h("b", null, r.name || r.model)), h("details", { class: "model-details" }, h("summary", null, "Model details"), h("span", { class: "id" }, "Everyframe contract: " + r.model), h("span", { class: "id" }, "Provider API ID: " + (r.providerApiId || "Not reported")), googleCapabilityDetails(r), nativeCapabilityDetails(r))),
+  return h("tr", { "data-model": r.model },
+    h("td", { "data-label": "Model" }, h("label", { class: "row" }, S.overview?.initialized ? h("input", { type: "checkbox", checked: S.selectedOffers.has(r.model), disabled: S.batchBusy || !selectableOffer(r), "aria-label": "Select " + (r.name || r.model), onchange: e => { if (e.target.checked) S.selectedOffers.add(r.model); else S.selectedOffers.delete(r.model); patchModels(); } }) : null, h("b", null, r.name || r.model)), h("details", { class: "model-details" }, h("summary", null, "Model details"), h("span", { class: "id" }, "EveryFrame contract: " + r.model), h("span", { class: "id" }, "Provider API ID: " + (r.providerApiId || "Not reported")), googleCapabilityDetails(r), nativeCapabilityDetails(r))),
     h("td", { "data-label": "Provider" }, providerName(r.provider || ""), r.localKeyConfigured === false ? h("div", { class: "small muted" }, "No key saved") : null),
     h("td", { "data-label": "Readiness" }, h("span", { class: "badge " + tone }, ready)),
     h("td", { "data-label": "Your offer" }, yours),
@@ -1522,7 +1766,8 @@ function updateSummary(job, worker = false) {
   const available = v.state === "available" || v.updateAvailable === true;
   const current = v.state === "current" || v.updateAvailable === false;
   const rows = worker ? [["Installed release", S.overview?.profile?.release], ["Available release", typeof v.release === "string" ? v.release : v.newRelease]]
-    : [["Installed version", v.installedVersion || v.currentVersion || S.session?.version], ["Latest version", v.latestVersion || v.latest]];
+    : [["Installed version", v.installedVersion || v.currentVersion || S.session?.version], ["Latest version", v.latestVersion || v.latest]]
+      .map(([k, ver]) => [k, typeof ver === "string" ? ver.replace(/^v/, "") : ver]);
   return h("div", { class: "stack" }, h("b", null, available ? "Update available" : current ? "Up to date" : v.state === "unavailable" ? "No compatible update" : "Update check finished"),
     h("dl", { class: "kv" }, rows.filter(([,v]) => typeof v === "string").flatMap(([k,v]) => [h("dt", null, k), h("dd", { class: "wrap" }, v)])),
     v.next ? h("p", { class: "small muted" }, v.next) : null);
@@ -1555,13 +1800,13 @@ function pageWorker() {
       when(controls.resume,
         button("Resume", startAcceptingWork, "primary"), "Already accepting work, or the worker isn't ready.")],
     ["Pause new work", "Finishes current jobs, then stops taking new ones. The machine keeps running and billing.",
-      when(controls.pause, button("Pause", async () => { await run("stop", { drainOnly: true }); await refreshAll(); }), "Only a running worker can be paused.")],
+      when(controls.pause, button("Pause", async () => { await run("stop", { drainOnly: true }, { label: "Pause new work" }); await refreshAll(); }), "Only a running worker can be paused.")],
     ["Apply saved keys", "Pushes keys you changed on the API keys page to this worker (pauses, restarts, re-attests).",
       when(controls.apply, button("Apply keys", async () => { await run("apply-api-keys"); await refreshAll(); }), "No running worker.")],
     ["Shut down", "Drains work, then shuts the machine down. Storage may still be billed; nothing is deleted.",
       when(controls.shutdown, button("Shut down", async () => { await run("stop"); await refreshAll(); }, "danger"), "No running worker.")],
     ["Emergency shutdown", "Use if the coordinator is unavailable. Can interrupt paid jobs; storage remains billable. The CLI still verifies the exact VM.",
-      when(controls.exists, button("Emergency shutdown", async () => { await run("stop", { force: true }); await refreshAll(); }, "danger"), "No deployment recorded.")],
+      when(controls.exists, button("Emergency shutdown", async () => { await run("stop", { force: true }, { label: "Emergency shutdown" }); await refreshAll(); }, "danger"), "No deployment recorded.")],
     ["Delete worker", "Permanently deletes this VM and its storage. Billing for it stops; jobs in progress are lost. You can deploy a new worker afterwards.",
       when(controls.exists, button(["deleting", "delete_intent"].includes(ph) ? "Check deletion" : "Delete", async () => { await removeWorker(d.appId, true, null); }, "danger"), "No worker recorded on this computer.")],
     ["Redeploy", "Deletes this worker, waits until Phala removes it, then deploys a fresh one at up to the price below.",
@@ -1569,13 +1814,15 @@ function pageWorker() {
     ["Start a stopped worker", "Starts the same machine again at up to this compute price.", h("div", { class: "row" }, startLimit, h("span", { class: "small muted" }, "USD/h max"),
       when(controls.start, button("Start", async () => { await run("start", { maxHourlyUsd: startLimit.value }); await refreshAll(); }), "Only a stopped worker without an unresolved start can be started."))],
   ];
-  const renderActions = rows => h("ul", { class: "checks" }, rows.map(([t, desc, ctl]) => h("li", { class: "action-row" },
+  const renderActions = rows => h("ul", { class: "checks" }, rows.map(([t, desc, ctl]) => h("li", { class: "action-row", "data-action": t },
     h("span"), h("div", { class: "row" }, h("div", { class: "grow" }, h("div", { class: "name" }, t), h("div", { class: "detail" }, desc)), ctl))));
   const advanced = new Set(["Emergency shutdown", "Delete worker", "Redeploy"]);
   root.append(card("Actions", null, renderActions(actions.filter(([t]) => !advanced.has(t)))));
-  root.append(h("details", { class: "card" }, h("summary", null, "Advanced · emergency shutdown, deletion and redeploy"), renderActions(actions.filter(([t]) => advanced.has(t)))));
-  root.append(card("Worker logs", [button("Read logs", async () => { await run("logs"); })],
-    h("p", { class: "small muted" }, "Read bounded, sanitized worker events. Private logs may require the Phala console.")));
+  // Stays open across refreshes, e.g. after cancelling an emergency shutdown.
+  root.append(h("details", { class: "card", open: S.advancedOpen, ontoggle: e => { S.advancedOpen = e.target.open; } }, h("summary", null, "Advanced · emergency shutdown, deletion and redeploy"), renderActions(actions.filter(([t]) => advanced.has(t)))));
+  const logs = card("Worker logs", [button("Read logs", async () => { await run("logs"); })],
+    h("p", { class: "small muted" }, "Read bounded, sanitized worker events. Private logs may require the Phala console."));
+  logs.id = "worker-logs"; root.append(logs);
   root.append(card("Profile", null, h("dl", { class: "kv" },
     h("dt", null, "Miner"), h("dd", { class: "mono" }, p.minerId || "—"),
     h("dt", null, "Hotkey"), h("dd", { class: "mono" }, p.hotkey || "—"),
@@ -1600,7 +1847,7 @@ function pageHelp() {
     h("dt", null, "Terminal instead?"), h("dd", null, "Every action here is an everycli command; the terminal and this page share the same profile.")),
     h("p", { class: "small" }, h("a", { href: "https://docs.everyframe.studio/mining/", target: "_blank", rel: "noopener noreferrer" }, "Mining docs"), " · ",
       h("a", { href: "https://github.com/everyframe-studio/everyframe-miner", target: "_blank", rel: "noopener noreferrer" }, "everyframe-miner on GitHub"))));
-  const q = h("input", { type: "text", placeholder: "Search error codes or messages", "aria-label": "Search errors" });
+  const q = h("input", { type: "text", placeholder: "Search errors", "aria-label": "Search errors" });
   const list = h("ul", { class: "checks" });
   const draw = () => {
     const term = q.value.trim().toLowerCase();
@@ -1633,19 +1880,28 @@ async function pairFromLink() {
 async function boot() {
   await pairFromLink();
   if (!S.token) { if (!$("#main .notice")) renderUnpaired(); return; }
+  Boot.begin("Checking your miner");
+  // The version and UID already show in the card, so these two only get a row when they go wrong.
   const s = await api("/api/session");
-  if (!s.ok) return;
+  if (!s.ok) { Object.assign(Boot.step("session", "Connecting to everycli on this computer"), { short: "everycli" }).fail(s.data?.error?.message || "The local everycli UI did not answer."); Boot.finish(); return; }
   S.session = s.data;
   restorePendingOperations();
   await loadOverview();
+  const prof = () => Object.assign(Boot.step("profile", "Loading your miner profile"), { short: "Miner profile" });
+  if (!S.overview) prof().fail("Could not read the local miner profile.");
+  else if (!S.overview.initialized) { const st = S.overview.steps || []; prof().warn(st.filter(stepDone).length + " of " + st.length + " setup steps done"); }
   readModelsRoute();
   const w = await api("/api/wallets"); if (w.ok) S.wallets = w.data;
   render();
-  if (!managedHere()) { await loadWorkloads(); if (currentRoute() === "overview" && !S.renaming) render(); }
+  if (!managedHere() && S.overview?.initialized && (S.overview?.keys || []).some((k) => k.provider === "phala" && k.saved)) {
+    await Boot.track(Boot.step("workloads", "Phala workers"), loadWorkloads, () => S.workloads?.length ? ["warn", S.workloads.length + " not managed here"] : ["ok", "none unmanaged"]);
+    if (currentRoute() === "overview" && !S.renaming) render();
+  } else if (!managedHere()) await loadWorkloads();
   if (S.overview?.initialized) {
-    await Promise.all([loadHealth(), loadBalances(), loadEarnings(), loadOffers()]);
+    await bootSteps();
     if (["overview", "earnings"].includes(currentRoute()) && !S.renaming) render(); else { renderMeta(); renderNav(); patchSetupProgress(); patchWorkerView(); }
   }
+  Boot.finish();
   if (!S.overview?.initialized && currentRoute() === "keys") loadBalances();
   if (S.overview?.initialized && currentRoute() === "worker") loadWorkerTools();
   run("cli-update-check", {}, { quiet: true }).then((j) => { S.cliUpdate = j; renderMeta(); });
