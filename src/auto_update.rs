@@ -319,7 +319,7 @@ mod tests {
     fn successful_update_history_survives_later_checks_and_notifies_once() {
         let dir = tempfile::tempdir().unwrap();
         let s = State {
-            directory: dir.path().join("updater"),
+            directory: fs::canonicalize(dir.path()).unwrap().join("updater"),
         };
         let v = json!({"updated":true,"previous":"0.9.3","version":"v0.9.5",
             "upgrade":crate::upgrade_notes::bundled("0.9.3","v0.9.5")});
@@ -351,7 +351,7 @@ mod tests {
     fn a_receipt_for_a_future_invocation_is_not_announced_by_the_old_cli() {
         let dir = tempfile::tempdir().unwrap();
         let s = State {
-            directory: dir.path().join("updater"),
+            directory: fs::canonicalize(dir.path()).unwrap().join("updater"),
         };
         remember_at(
             &s,

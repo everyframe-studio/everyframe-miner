@@ -80,5 +80,6 @@ Recommended UI presentation:
 - Preserve the existing operation ID and reconcile uncertain cloud operations.
 
 The v1.0.0 entry combines this PR with the dashboard changes documented in
-`feat/ui-redesign` at `ac518be`. Recheck that entry if the final UI scope changes. No version bump, tag,
-release publication, worker deployment, or production restart is part of this PR.
+`feat/ui-redesign` at `956472d`. Recheck that entry if the final UI scope changes.
+No version bump, tag, release publication, worker deployment, or production restart
+is part of this PR.
