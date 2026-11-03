@@ -670,6 +670,34 @@ fn a_billing_refusal_pauses_that_providers_models_for_fifteen_minutes() {
 }
 
 #[test]
+fn unusable_bfl_response_stops_paid_work_until_operator_intervention() {
+    for reason in ["bfl_polling_url_rejected", "bfl_delivery_url_rejected"] {
+        let spec =
+            models::spec(&json!({"model":"studio/native/bfl/flux-3-image","prompt":"A river"}))
+                .unwrap();
+        let (mut worker, f) = fixture(
+            Options {
+                poll_error: Some(reason),
+                ..Default::default()
+            },
+            json!({"spec":spec,"inputHash":protocol::digest(&spec).unwrap()}),
+        );
+        assert_eq!(worker.step().unwrap()["state"], "failed");
+        assert_eq!(f.submits.get(), 1);
+        assert_eq!(
+            f.submitted.get(),
+            1,
+            "accepted task reference is recorded before polling"
+        );
+        assert_eq!(worker.provider_pause.get("bfl"), Some(&i64::MAX));
+        assert_eq!(
+            f.failure_reports.borrow().last().unwrap()["reason"],
+            "provider_unavailable"
+        );
+    }
+}
+
+#[test]
 fn upload_timeout_grows_with_the_output() {
     assert_eq!(complete_timeout_secs(0), 180);
     assert_eq!(complete_timeout_secs(100_000_000), 520);

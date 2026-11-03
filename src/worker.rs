@@ -68,7 +68,11 @@ pub const PROVIDER_PAUSE_MS: i64 = 15 * 60 * 1000;
 pub fn pauses_provider(category: &str) -> bool {
     matches!(
         category,
-        "provider_billing_required" | "provider_auth_rejected" | "provider_key_required"
+        "provider_billing_required"
+            | "provider_auth_rejected"
+            | "provider_key_required"
+            | crate::bfl::POLLING_REJECTED
+            | crate::bfl::DELIVERY_REJECTED
     )
 }
 /// The coordinator refused the uploaded output itself (validation). The same
@@ -347,12 +351,21 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
             .and_then(|id| models::info(id).ok())
             .and_then(|m| m["provider"].as_str())
         {
+            let operator_required = crate::bfl::needs_operator(category);
             eprintln!(
                 "{}",
-                json!({"event":"provider_paused","provider":provider,"reason":category,"minutes":PROVIDER_PAUSE_MS/60000})
+                json!({"event":"provider_paused","provider":provider,"reason":category,
+                    "minutes":if operator_required { None } else { Some(PROVIDER_PAUSE_MS/60000) },
+                    "operatorRequired":operator_required})
             );
-            self.provider_pause
-                .insert(provider.into(), self.runtime.now() + PROVIDER_PAUSE_MS);
+            self.provider_pause.insert(
+                provider.into(),
+                if operator_required {
+                    i64::MAX
+                } else {
+                    self.runtime.now() + PROVIDER_PAUSE_MS
+                },
+            );
         }
     }
     fn fail_generation(&mut self, work: &Value, reason: &str, deadline: i64) -> Result<Value> {
@@ -360,6 +373,9 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
             "{}",
             json!({"event":"generation_failed","jobId":work["jobId"],"attemptId":work["attemptId"],"reason":reason})
         );
+        if crate::bfl::needs_operator(reason) {
+            self.pause_provider_for(&work["spec"], reason);
+        }
         // Never downgrade to a reasonless report: transport errors (or a generic
         // HTTP 400) do not prove legacy compatibility, and losing a moderation
         // category can trigger an inappropriate paid fallback. An incompatible
@@ -721,6 +737,8 @@ pub fn report_category(reason: &str) -> &'static str {
         "provider_key_required" => "provider_key_required",
         "provider_timeout" => "provider_timeout",
         "provider_unavailable"
+        | crate::bfl::POLLING_REJECTED
+        | crate::bfl::DELIVERY_REJECTED
         | "vivix_unavailable"
         | "kling_unavailable"
         | "provider_model_unavailable" => "provider_unavailable",

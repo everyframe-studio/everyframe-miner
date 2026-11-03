@@ -1,5 +1,6 @@
 pub mod auto_update;
 pub mod balances;
+pub mod bfl;
 pub mod cli;
 pub mod cli_errors;
 pub mod cli_help;

@@ -26,6 +26,16 @@ Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
 
+### v0.9.4 — BFL polling and result recovery
+
+BFL jobs follow the regional polling location returned by the provider and support
+its current delivery hosts. Accepted task IDs are retained when a response needs
+operator review, and ambiguous submissions are protected from automatic replay.
+
+Run `everycli update`, reopen `everycli ui`, then choose **Update worker** (or run
+`everycli worker-update`). Existing keys, offers and discounts are preserved.
+Previously failed jobs are not automatically submitted again.
+
 ### v0.9.2 — Direct providers first
 
 Models, provider switches, API keys and setup list direct providers before Fal,
