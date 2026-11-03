@@ -26,6 +26,14 @@ Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
 
+### v1.0.0 — A redesigned miner dashboard
+
+`everycli ui` has a new layout and icon. The miner card shows your health ring,
+subnet and everycli version, and lists each startup check as it runs, with its
+result and time. See [the release notes](RELEASE-NOTES-v1.0.0.md).
+
+Run `everycli update`, then `everycli ui`. No worker update is needed.
+
 ### v0.9.6 — More OpenRouter video models
 
 OpenRouter offers now include Grok Imagine Video 1.5 and Lite, H3 Max, Wan 3.0
