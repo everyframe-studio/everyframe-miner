@@ -336,15 +336,7 @@ impl Router<'_> {
                 _ => Err(Error("invalid_provider_status")),
             };
         }
-        match d["status"].as_str() {
-            Some("Ready") => Ok("COMPLETED".into()),
-            Some("Pending" | "Running" | "Processing") => Ok("IN_PROGRESS".into()),
-            Some("Content Moderated" | "Request Moderated") => {
-                Err(Error("provider_content_rejected"))
-            }
-            Some("Error" | "Task not found") => Err(Error("provider_generation_failed")),
-            _ => Err(Error("invalid_provider_status")),
-        }
+        crate::bfl::poll_status(&d["status"]).map(str::to_owned)
     }
     pub(crate) fn schema_result(
         &self,

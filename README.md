@@ -26,7 +26,11 @@ Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
 
-### v0.9.4 — BFL polling and result recovery
+### v0.9.5 — BFL polling and result recovery
+
+FLUX 3's Reasoning and Generating states now remain in progress while the
+worker waits for the completed image. Empty results and moderation are handled
+as terminal outcomes. Polling and recovery use the same BFL status handling.
 
 BFL jobs follow the regional polling location returned by the provider and support
 its current delivery hosts. Accepted task IDs are retained when a response needs

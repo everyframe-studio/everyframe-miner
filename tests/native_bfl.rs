@@ -107,6 +107,7 @@ struct RegionalApi {
     polling: String,
     delivery: String,
     calls: RefCell<Vec<Request>>,
+    states: RefCell<Vec<&'static str>>,
 }
 impl Http for RegionalApi {
     fn bytes(&self, r: Request) -> Result<Vec<u8>> {
@@ -126,7 +127,12 @@ impl Http for RegionalApi {
                     .iter()
                     .any(|(k, v)| k == "x-key" && v == "fixture-secret")
             );
-            json!({"id":"task_123","status":"Ready","result":{"sample":self.delivery}})
+            let status = if self.states.borrow().is_empty() {
+                "Ready"
+            } else {
+                self.states.borrow_mut().remove(0)
+            };
+            json!({"id":"task_123","status":status,"result":{"sample":self.delivery}})
                 .to_string()
                 .into_bytes()
         };
@@ -142,6 +148,7 @@ fn regional_tasks_resume_on_the_returned_cluster_and_download_without_credential
             polling: format!("https://api.{region}.bfl.ai/v1/get_result?id=task_123"),
             delivery: format!("https://delivery.{region}.bfl.ai/output.jpg?sig=fixture"),
             calls: RefCell::default(),
+            states: RefCell::default(),
         };
         let spec =
             models::spec(&json!({"model":"studio/native/bfl/flux-3-image","prompt":"A river"}))
@@ -170,6 +177,7 @@ fn unsafe_response_preserves_paid_task_id_without_following_or_reposting() {
         polling: "https://evil.example/v1/get_result?id=task_123&key=secret".into(),
         delivery: "https://delivery.us.bfl.ai/output.jpg".into(),
         calls: RefCell::default(),
+        states: RefCell::default(),
     };
     let spec = models::spec(&json!({"model":"studio/native/bfl/flux-3-image","prompt":"A river"}))
         .unwrap();
@@ -183,4 +191,31 @@ fn unsafe_response_preserves_paid_task_id_without_following_or_reposting() {
         "bfl_polling_url_rejected"
     );
     assert_eq!(api.calls.borrow().len(), 1);
+}
+
+#[test]
+fn flux3_reasoning_and_generation_resume_without_a_second_submission() {
+    let api = RegionalApi {
+        polling: "https://api.isr.bfl.ai/v1/get_result?id=task_123".into(),
+        delivery: "https://delivery.isr.bfl.ai/output.png".into(),
+        calls: RefCell::default(),
+        states: RefCell::new(vec!["Pending", "Reasoning", "Generating", "Ready"]),
+    };
+    let spec = models::spec(&json!({"model":"studio/native/bfl/flux-3-image","prompt":"A river"}))
+        .unwrap();
+    let key = json!({"BFL_API_KEY":"fixture-secret"});
+    let reference = Router::new(&api, key.clone()).submit(&spec).unwrap();
+    let mut resumed = Router::new(&api, key);
+    for expected in ["IN_PROGRESS", "IN_PROGRESS", "IN_PROGRESS", "COMPLETED"] {
+        assert_eq!(resumed.poll(&reference, &spec).unwrap(), expected);
+    }
+    assert!(!resumed.result(&reference, &spec).unwrap().media.is_empty());
+    assert_eq!(
+        api.calls
+            .borrow()
+            .iter()
+            .filter(|r| r.method == "POST")
+            .count(),
+        1
+    );
 }

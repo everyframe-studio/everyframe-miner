@@ -584,6 +584,9 @@ impl<'a> Router<'a> {
                 "IN_PROGRESS"
             });
         };
+        if p == "bfl" {
+            return crate::bfl::poll_status(&d["status"]);
+        }
         let st = s(if p == "luma" {
             &d["state"]
         } else {
@@ -607,18 +610,6 @@ impl<'a> Router<'a> {
                 &["in_progress"],
                 &["completed"],
                 &["failed", "cancelled", "expired"],
-            ),
-            "bfl" => (
-                &[],
-                &["Pending"],
-                &["Ready"],
-                &[
-                    "Error",
-                    "Failed",
-                    "Request Moderated",
-                    "Content Moderated",
-                    "Task not found",
-                ],
             ),
             "replicate" => (
                 &["starting"],
