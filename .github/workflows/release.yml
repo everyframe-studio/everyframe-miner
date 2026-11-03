@@ -120,6 +120,8 @@ jobs:
           [[ "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
           sed "s/@VERSION@/$RELEASE_TAG/g" scripts/everycli-installer.sh > dist/everycli-installer.sh
           sh -n dist/everycli-installer.sh
+          python3 scripts/check-upgrade-notes.py "$RELEASE_TAG"
+          cp config/upgrade-notes.json dist/everycli-upgrade-notes.json
           cp LICENSE LICENSE-NOTICE.md dist/
           cd dist
           sha256sum --check everycli-*.sha256
@@ -128,6 +130,7 @@ jobs:
           set -euo pipefail
           cd dist
           sha256sum everycli-installer.sh > everycli-installer.sh.sha256
+          sha256sum everycli-upgrade-notes.json > everycli-upgrade-notes.json.sha256
       - name: Create release draft, upload, then publish
         env:
           GH_TOKEN: ${{ github.token }}

@@ -148,8 +148,61 @@ pub fn settings(enable: bool, disable: bool) -> Result<Value> {
         "environmentDisabled":env_disabled(),"nativeInstallation":eligible(),
         "cargoInstall":std::env::current_exe().is_ok_and(|p| cargo_managed(&p)),"intervalHours":6,
         "lastAttempt":s.read("auto-update-result",true)?,
+        "lastUpdate":s.read("last-successful-update",true)?,
+        "currentRelease":crate::upgrade_notes::current_release(env!("CARGO_PKG_VERSION")),
         "note":"Interactive native CLI only; updates take effect on the next invocation. JSON, CI, help and version commands do not start background updates. Miner workers, keys and offers are unchanged."}),
     )
+}
+
+fn remember_at(s: &State, value: &Value, shown: bool) -> Result<()> {
+    if value["updated"] != true {
+        return Ok(());
+    }
+    let _guard = s.lock()?;
+    let previous = s.read("last-successful-update", true)?;
+    let old = previous["result"]["version"]
+        .as_str()
+        .and_then(|v| crate::update::version(&crate::update::display_version(v)).ok());
+    let new = value["version"]
+        .as_str()
+        .and_then(|v| crate::update::version(&crate::update::display_version(v)).ok());
+    if old.zip(new).is_some_and(|(old, new)| old > new) {
+        return Ok(());
+    }
+    s.write(
+        "last-successful-update",
+        &json!({"recordedAt":now(),"notificationShown":shown,"result":value}),
+    )
+}
+pub(crate) fn remember_update(value: &Value, shown: bool) -> Result<()> {
+    remember_at(&state()?, value, shown)
+}
+
+fn take_update_notice(s: &State) -> Result<Option<String>> {
+    let _guard = s.lock()?;
+    let mut receipt = s.read("last-successful-update", true)?;
+    if receipt["result"]["updated"] != true || receipt["notificationShown"] == true {
+        return Ok(None);
+    }
+    let Some(installed) = receipt["result"]["version"]
+        .as_str()
+        .and_then(|v| crate::update::version(&crate::update::display_version(v)).ok())
+    else {
+        return Ok(None);
+    };
+    if installed > crate::update::version(concat!("v", env!("CARGO_PKG_VERSION")))? {
+        return Ok(None);
+    }
+    let result = &receipt["result"];
+    let notice = format!(
+        "CLI updated: {} → {}.\n{}\nReview later: everycli auto-update\n",
+        crate::update::display_version(result["previous"].as_str().unwrap_or("—")),
+        crate::update::display_version(result["version"].as_str().unwrap_or("—")),
+        crate::upgrade_notes::render(&result["upgrade"])
+    );
+    receipt["notificationShown"] = json!(true);
+    s.write("last-successful-update", &receipt)?;
+    Ok(Some(notice))
 }
 
 pub fn internal(raw: &[String]) -> bool {
@@ -168,6 +221,7 @@ fn perform(s: &State, updater: impl FnOnce() -> Result<Value>) -> Result<()> {
     )?;
     let result = match updater() {
         Ok(v) => {
+            let _ = remember_at(s, &v, false);
             json!({"checkedAt":at,"finishedAt":now(),"state":if v["updated"]==true {"updated"} else {"current"},"result":v})
         }
         Err(e) => json!({"checkedAt":at,"finishedAt":now(),"state":"failed","code":e.0}),
@@ -203,6 +257,9 @@ pub fn maybe_launch(args: &Args) {
     }
     let _ = (|| -> Result<()> {
         let s = state()?;
+        if let Some(notice) = take_update_notice(&s)? {
+            eprintln!("{notice}");
+        }
         if !configured(&s)? {
             return Ok(());
         }
@@ -258,6 +315,56 @@ pub fn maybe_launch(args: &Args) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn successful_update_history_survives_later_checks_and_notifies_once() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = State {
+            directory: dir.path().join("updater"),
+        };
+        let v = json!({"updated":true,"previous":"0.9.3","version":"v0.9.5",
+            "upgrade":crate::upgrade_notes::bundled("0.9.3","v0.9.5")});
+        remember_at(&s, &v, false).unwrap();
+        s.write(
+            "auto-update-result",
+            &json!({"state":"current","result":{"updated":false}}),
+        )
+        .unwrap();
+        assert_eq!(
+            s.read("last-successful-update", false).unwrap()["result"],
+            v
+        );
+        let notice = take_update_notice(&s).unwrap().unwrap();
+        assert!(notice.contains("BFL") && notice.contains("everycli worker-update"));
+        assert!(take_update_notice(&s).unwrap().is_none());
+        assert_eq!(
+            s.read("last-successful-update", false).unwrap()["result"],
+            v
+        );
+        remember_at(&s, &json!({"updated":true,"version":"v0.9.2"}), false).unwrap();
+        assert_eq!(
+            s.read("last-successful-update", false).unwrap()["result"],
+            v
+        );
+    }
+
+    #[test]
+    fn a_receipt_for_a_future_invocation_is_not_announced_by_the_old_cli() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = State {
+            directory: dir.path().join("updater"),
+        };
+        remember_at(
+            &s,
+            &json!({"updated":true,"previous":"0.9.6","version":"v99.0.0"}),
+            false,
+        )
+        .unwrap();
+        assert!(take_update_notice(&s).unwrap().is_none());
+        assert_eq!(
+            s.read("last-successful-update", false).unwrap()["notificationShown"],
+            false
+        );
+    }
     #[test]
     fn native_paths_exclude_builds_packages_and_relative_overrides() {
         let h = Path::new("/home/miner");
