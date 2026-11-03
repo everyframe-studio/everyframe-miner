@@ -463,5 +463,62 @@
     "frames": 2,
     "mixed": false,
     "maxPrompt": 50000
+  },
+  "studio/openrouter/alibaba/wan-3.0": {
+    "provider": "openrouter",
+    "apiModel": "alibaba/wan-3.0",
+    "name": "Wan 3.0 (OpenRouter)",
+    "aspects": [
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+    ],
+    "min": 2,
+    "max": 30,
+    "resolutions": [
+      "480p",
+      "720p",
+      "1080p"
+    ],
+    "refs": {
+      "image": 0,
+      "video": 0,
+      "audio": 0
+    },
+    "frames": 2,
+    "mixed": false,
+    "maxPrompt": 4000,
+    "seed": true,
+    "schemaCheckedAt": "2026-11-03"
+  },
+  "studio/openrouter/x-ai/grok-imagine-video": {
+    "provider": "openrouter",
+    "apiModel": "x-ai/grok-imagine-video",
+    "name": "Grok Imagine Video (OpenRouter)",
+    "aspects": [
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+    ],
+    "min": 1,
+    "max": 15,
+    "resolutions": [
+      "480p",
+      "720p"
+    ],
+    "refs": {
+      "image": 0,
+      "video": 0,
+      "audio": 0
+    },
+    "frames": 1,
+    "mixed": false,
+    "maxPrompt": 4000,
+    "seed": false,
+    "schemaCheckedAt": "2026-11-03"
   }
 }
