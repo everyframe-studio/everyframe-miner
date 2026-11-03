@@ -34,7 +34,7 @@ do not claim that the old updater printed or saved a history receipt.
 ## v1.0.0 dashboard integration
 
 This change intentionally leaves the UI assets to the dashboard redesign.
-Existing CLI-update jobs expose the following additional JSON field:
+The existing `cli-update-check` action exposes the following additional JSON field:
 
 ```json
 {
@@ -64,12 +64,16 @@ When no update is available, the update check exposes `currentRelease`; the
 auto-update status always exposes it. This is the packaged entry for the
 running CLI and lets the v1.0.0 welcome panel show What's new even when an old
 updater did not save a receipt. It does not identify the previous CLI version.
+The read-only, profile-independent `cli-auto-status` UI action provides that
+status without needing a miner profile or passing profile flags to the CLI.
 
 Recommended UI presentation:
 
 - Show the cumulative history before confirming a CLI update.
 - Show required and conditional steps after it, including after background updates.
 - Keep CLI version, installed worker release, and worker readiness distinct.
+- Treat `not_required` as release guidance; it is not proof that an existing
+  worker is current or healthy. Use the signed worker update check for that.
 - Use the existing worker-update check/action and confirmation for any button;
   never execute the command string from release metadata.
 - Keep unknown/partial history visible and link to the official release page.
