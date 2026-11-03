@@ -622,6 +622,15 @@ pub fn render(command: &str, value: &Value) -> String {
                     version(&last["result"]["version"])
                 ));
             }
+            let receipt = &value["lastUpdate"]["result"];
+            if receipt["updated"] == true {
+                out.push_str(&format!(
+                    "\nLast successful CLI update: {} → {}\n",
+                    version(&receipt["previous"]),
+                    version(&receipt["version"])
+                ));
+                out.push_str(&crate::upgrade_notes::render(&receipt["upgrade"]));
+            }
             out.push_str("\nCLI only: deployed workers, keys and offers are unchanged.\nDisable: everycli auto-update --disable · Enable: everycli auto-update --enable\n");
             out
         }
@@ -724,9 +733,9 @@ pub fn render(command: &str, value: &Value) -> String {
             text(&value["next"])
         ),
         "self-update" => {
-            if value["updated"] == true {
+            let mut out = if value["updated"] == true {
                 format!(
-                    "Updated everycli from {} to {}.\nProfiles and deployed workers are unchanged.\nReopen everycli ui to use the new dashboard. If the coordinator rejects your saved authorization, run everycli reconnect with the same hotkey.",
+                    "Updated everycli from {} to {}.\nProfiles and deployed workers are unchanged.",
                     version(&value["previous"]),
                     version(&value["version"])
                 )
@@ -741,7 +750,9 @@ pub fn render(command: &str, value: &Value) -> String {
                         "No update available. The installed CLI was not changed."
                     }
                 )
-            }
+            };
+            out.push_str(&crate::upgrade_notes::render(&value["upgrade"]));
+            out
         }
         "providers" => {
             let data = rows("providers")

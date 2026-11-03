@@ -120,6 +120,7 @@ impl State {
                 "worker-auto-update",
                 "auto-update-settings",
                 "auto-update-result",
+                "last-successful-update",
                 "label",
                 "profile-recovery",
                 "deployment-recovery",
@@ -135,9 +136,20 @@ impl State {
         if optional && !p.exists() {
             return Ok(Value::Null);
         }
-        if name == "profile-recovery" {
-            serde_json::from_slice(&read(&p, true, 2_000_000)?)
-                .map_err(|_| Error("invalid_json_file").at_file(&p))
+        if matches!(
+            name,
+            "profile-recovery" | "last-successful-update" | "auto-update-result"
+        ) {
+            serde_json::from_slice(&read(
+                &p,
+                true,
+                if name == "profile-recovery" {
+                    2_000_000
+                } else {
+                    4_000_000
+                },
+            )?)
+            .map_err(|_| Error("invalid_json_file").at_file(&p))
         } else {
             read_json(&p, true)
         }
