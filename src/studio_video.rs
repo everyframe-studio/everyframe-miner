@@ -340,6 +340,9 @@ pub fn body(spec: &Value, urls: &[String]) -> Result<(String, Value)> {
     }
     if p["provider"] == "openrouter" {
         b["model"] = json!(model);
+        if let Some(resolution) = p["wireResolutions"][s(&v["resolution"])?].as_str() {
+            b["resolution"] = json!(resolution);
+        }
         if p["seed"] == false {
             b.as_object_mut().unwrap().remove("seed");
         }
