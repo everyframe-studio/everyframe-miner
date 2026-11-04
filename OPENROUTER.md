@@ -26,6 +26,7 @@ These independent OpenRouter contracts cover text generation and the keyframes l
 | --- | --- | --- | --- |
 | `x-ai/grok-imagine-video-1.5` | 1–15 seconds | 480p, 720p, 1080p | First |
 | `x-ai/grok-imagine-video-1.5-lite` | 1–15 seconds | 480p, 720p, 1080p | First |
+| `minimax/hailuo-3` | 5–15 seconds | 2K | First and last; generated audio |
 | `minimax/hailuo-3-max` | 5–15 seconds | 480p, 768p | First and last |
 | `alibaba/wan-3.0-prime` | 2–30 seconds | 480p, 720p, 1080p | First and last |
 | `runway/gen-4.5` | 2–10 seconds | 720p | First |
@@ -42,3 +43,20 @@ These independent OpenRouter contracts cover text generation and the keyframes l
 Kling 3.0 contracts explicitly request audio and use the audio-inclusive rate. Wan 2.6 reserves the image-to-video rate when a first frame is present. Grok 1.5 includes the image-input charge. A declared duration list is exact: a 5-or-10-second model does not accept 7 seconds. Reference-video, reference-audio, arbitrary provider parameters and FLUX 2K/4K continuation are not part of these contracts. Unsupported settings are rejected, never dropped.
 
 Sources: [OpenRouter video API](https://openrouter.ai/docs/guides/overview/multimodal/video-generation) and [video model catalog](https://openrouter.ai/api/v1/videos/models).
+
+## MiniMax H3 (OpenRouter)
+
+`studio/openrouter/minimax/hailuo-3` is a separate contract from H3 Max. It uses
+OpenRouter's `minimax/hailuo-3` model: 5–15 seconds, 2K output, six aspect ratios,
+text or first/last-frame guidance, with generated audio. Both signed EveryFrame requests and provider requests use `2K`, matching the
+existing Studio model selector. Seeds are
+not sent because this provider route does not support them.
+
+The published reference rate is $0.13 per output second: $0.65 for five seconds
+before your chosen discount. The two supported keyframe inputs are within the
+provider's first-five-images-free allowance. General image/video/audio reference
+modes are separate from keyframes and are not admitted by this contract.
+
+After the compatible signed worker is released, update the CLI and worker, then
+review and enable the separate **H3 (OpenRouter)** offer using your OpenRouter
+key. Existing H3 Max/Fal offers do not enable this model automatically.
