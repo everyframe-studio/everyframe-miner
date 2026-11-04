@@ -116,6 +116,7 @@ impl State {
                 "credentials",
                 "deployment",
                 "registration",
+                "terms-acceptance",
                 "worker-update",
                 "worker-auto-update",
                 "auto-update-settings",

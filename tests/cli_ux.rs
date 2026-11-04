@@ -303,6 +303,7 @@ fn setup_runs_in_order_and_never_auto_activates_or_resumes() {
             assert!(!a.flag("--yes"));
             Ok(match a.command.as_str() {
                 "register-hotkey" => json!({"registered":true}),
+                "terms" => json!({"accepted":true}),
                 "set-api-keys" | "init" => json!({}),
                 "status" => {
                     json!({"coordinator":{"appId":"0000000000000000000000000000000000000000"}})
@@ -320,6 +321,7 @@ fn setup_runs_in_order_and_never_auto_activates_or_resumes() {
         seen,
         [
             "register-hotkey:",
+            "terms:",
             "set-api-keys:phala",
             "set-api-keys:fal",
             "init:",
@@ -377,6 +379,7 @@ fn setup_stops_at_failures_cancellation_and_existing_workloads() {
             seen.push(a.command.clone());
             match a.command.as_str() {
                 "register-hotkey" => Ok(json!({"registered": failure != "unregistered"})),
+                "terms" => Ok(json!({"accepted":true})),
                 "set-api-keys" if failure == "keys" => Err(Error("interrupted")),
                 "init" if failure == "init" => Err(Error("request_timeout")),
                 "status" => Ok(if failure == "status" {
