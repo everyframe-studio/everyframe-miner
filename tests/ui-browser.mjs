@@ -1,7 +1,7 @@
 // Browser regression tests. Real loopback server/pairing, isolated profile,
 // mocked external command results. Never uses wallet files or cloud mutations.
 import assert from 'node:assert/strict';
-import { mkdtemp, realpath, rm } from 'node:fs/promises';
+import { mkdtemp, realpath, rm, writeFile, readFile, stat, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 import { spawn } from 'node:child_process';
@@ -31,7 +31,7 @@ try {
   page.on('pageerror', e => errors.push(e.message));
   await page.route('**/api/wallets', r => r.fulfill({ json: { wallets: [], root: '/fixture/wallets' } }));
   // The browser server is real, but no network-facing CLI command is executed.
-  await page.route('**/api/run', r => r.fulfill({ status: 202, json: { job: 'fixture' } }));
+  await page.route('**/api/run', r => r.request().postDataJSON()?.action === 'terms-accept' ? r.continue() : r.fulfill({ status: 202, json: { job: 'fixture' } }));
   await page.route('**/api/jobs/fixture', r => r.fulfill({ json: { state: 'done', result: { value: { updateAvailable: false }, text: 'fixture' } } }));
   await page.addInitScript(() => {
     window.reviewIntervals = [];
@@ -51,6 +51,50 @@ try {
   await page.reload();
   await page.getByRole('heading', { name: 'Setup guide', exact: true }).waitFor();
   assert.equal(await page.locator('h1').textContent(), 'Setup guide', 'paired tab survives refresh');
+
+  // Real local acceptance: no wallet secret, provider key or external command.
+  await page.evaluate(() => { S.openStep = 'terms'; render(); });
+  const agreement = page.getByRole('checkbox', { name: 'I accept the Miner Terms', exact: true });
+  const acceptTerms = page.getByRole('button', { name: 'Accept Miner Terms', exact: true });
+  assert.equal(await agreement.isChecked(), false);
+  assert.equal(await agreement.isDisabled(), true, 'select hotkey before acceptance');
+  assert.equal(await acceptTerms.isDisabled(), true);
+  await writeFile(join(scratch, 'profile', 'registration.json'), JSON.stringify({registered:true,network:'mainnet',hotkey:'5HQfvwpHm2njGiF716YwjdXgeeZoEiyFLZFvFAriZaiHNKc3'}), {mode:0o600});
+  await page.evaluate(async () => { S.hotkeySel=null; await refreshAll(); S.openStep='init'; render(); });
+  assert.equal(await page.getByRole('button', { name: 'Create miner profile', exact: true }).isDisabled(), true);
+  await page.evaluate(() => { S.openStep='terms'; render(); });
+  assert.equal(await agreement.isChecked(), false, 'never preselected');
+  assert.equal(await acceptTerms.isDisabled(), true);
+  assert.match(await page.locator('[data-step="terms"]').innerText(), /resale.*third-party/s);
+  await page.setViewportSize({width:390,height:900});
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'terms fit mobile');
+  if(process.env.EVERYCLI_QA_DIR)await page.screenshot({path:join(process.env.EVERYCLI_QA_DIR,'terms-390.png'),fullPage:true});
+  await page.setViewportSize({width:1440,height:1000});
+  await agreement.check();
+  assert.equal(await acceptTerms.isEnabled(), true);
+  await assert.rejects(access(join(scratch, 'profile', 'terms-acceptance.json')), 'checking is not acceptance');
+  // Changing the reviewed identity resets the checkbox draft.
+  await page.evaluate(() => { S.overview.terms.hotkey='5G67F1Aieac3h6VJnSMo9yjggDxCtVUXFaCQnMCjaNTGG2vX'; render(); });
+  assert.equal(await agreement.isChecked(), false);
+  await page.evaluate(async () => { await loadOverview(); render(); });
+  assert.equal(await agreement.isChecked(), false);
+  await agreement.check();
+  await acceptTerms.click();
+  await page.waitForFunction(() => S.overview?.terms?.accepted === true);
+  await page.evaluate(() => { S.openStep='terms'; render(); });
+  await page.getByText('Terms accepted on this device', {exact:true}).waitFor();
+  const receipt=JSON.parse(await readFile(join(scratch,'profile','terms-acceptance.json'),'utf8'));
+  assert.equal(receipt.acceptances.length,1);
+  assert.equal(receipt.acceptances[0].hotkey,'5HQfvwpHm2njGiF716YwjdXgeeZoEiyFLZFvFAriZaiHNKc3');
+  assert.equal(receipt.acceptances[0].termsVersion,'2026-11-04');
+  assert.equal((await stat(join(scratch,'profile','terms-acceptance.json'))).mode & 0o777,0o600);
+  for(const name of ['config','credentials','deployment']) await assert.rejects(access(join(scratch,'profile',name+'.json')));
+  await page.reload();
+  await page.getByRole('heading', {name:'Setup guide',exact:true}).waitFor();
+  await page.evaluate(() => { S.openStep='terms'; render(); });
+  await page.getByText('Terms accepted on this device', {exact:true}).waitFor();
+  await page.evaluate(() => { S.openStep='init'; render(); });
+  assert.equal(await page.getByRole('button', { name: 'Create miner profile', exact: true }).isEnabled(), true);
 
   // Drive browser rendering with the exact native balance/health schemas.
   await page.evaluate(() => {

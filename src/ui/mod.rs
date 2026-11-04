@@ -49,6 +49,8 @@ const MAX_JOBS: usize = 200;
 /// UI action → (CLI command words, extra flags, changes state or spends money).
 /// Anything not listed here cannot be reached from the browser.
 const ACTIONS: &[(&str, &[&str], &[&str], bool)] = &[
+    ("terms", &["terms"], &[], false),
+    ("terms-accept", &["terms"], &[], true),
     ("status", &["status"], &[], false),
     ("health", &["health"], &[], false),
     ("doctor", &["doctor"], &[], false),
@@ -109,6 +111,9 @@ const PARAMS: &[(&str, &str)] = &[
     ("hotkey", "--hotkey"),
     ("hotkeyFile", "--hotkey-file"),
     ("hotkeySs58", "--hotkey-ss58"),
+    ("acceptTerms", "--accept-terms"),
+    ("termsHotkey", "--terms-hotkey"),
+    ("termsSha256", "--terms-sha256"),
     ("model", "--model"),
     ("models", "--models"),
     ("discountPct", "--discount-pct"),
@@ -386,8 +391,15 @@ pub fn overview(sh: &Shared) -> Result<Value> {
         "updating",
     ]
     .contains(&phase);
+    let address = profile["hotkey"].as_str().or_else(|| {
+        (registration["network"] == sh.network && registration["registered"] == true)
+            .then(|| registration["hotkey"].as_str())
+            .flatten()
+    });
+    let terms = crate::terms::view(&state, &sh.network, address)?;
     let steps = json!([
         {"id":"hotkey","done":registration["registered"] == true || !config.is_null()},
+        {"id":"terms","done":terms["accepted"] == true},
         {"id":"phala","done":saved("PHALA_CLOUD_API_KEY")},
         {"id":"providers","done":generation},
         {"id":"init","done":!config.is_null()},
@@ -411,7 +423,7 @@ pub fn overview(sh: &Shared) -> Result<Value> {
             "needsReconcile":(phase.ends_with("_intent") && phase != "delete_intent") || ["provisioned","starting","stopping","updating"].contains(&phase)},
         "label":label["name"],
         "recoveryPending":!state.read("profile-recovery", true)?.is_null(),
-        "keys":keys,"steps":steps,"checkedAt":now()
+        "keys":keys,"steps":steps,"terms":terms,"checkedAt":now()
     }))
 }
 
@@ -591,6 +603,20 @@ pub fn action_args(sh: &Shared, action: &str, params: &Value) -> Result<(Args, b
                 return Err(Error("invalid_option").option(name));
             }
         }
+    }
+    if action == "terms" {
+        need(params.get("acceptTerms").is_none(), "invalid_option")?;
+    }
+    if action == "terms-accept" {
+        need(
+            params["termsHotkey"].is_string()
+                && params["termsSha256"].as_str() == Some(crate::terms::hash().as_str()),
+            "terms_review_changed",
+        )?;
+        need(
+            params["acceptTerms"].as_str() == Some(crate::terms::VERSION),
+            "terms_version_changed",
+        )?;
     }
     let args = cli::parse(&argv)?;
     cli::validate_args(&args)?;

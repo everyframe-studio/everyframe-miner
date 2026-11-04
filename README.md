@@ -19,6 +19,12 @@ provider contracts, flexible Studio video and media contracts, and fifteen
 provider integrations. See the [direct provider guide](DIRECT-PROVIDERS.md) and
 [additional provider models](PROVIDER-EXPANSION.md).
 
+Before joining, review and accept the [Miner Terms of Service](docs/miner-terms.md)
+in the setup guide or with `everycli terms`. Miners must obtain required provider
+permissions for resale and serving third-party requests, and contact providers
+directly for approvals and discounts. A working API key is not approval.
+See [acceptance and unattended setup](docs/miner-terms-acceptance.md).
+
 The direct Google integration adds Gemini Omni Flash, four Nano Banana image
 models, Lyria 3.5, and both Gemini 3.8 TTS models. See the [Google provider
 guide](GOOGLE.md) for supported settings, references and compatible-worker requirements.
@@ -664,8 +670,8 @@ For a new miner, use the interactive wizard:
 everycli setup --wallet my-wallet --hotkey default --max-hourly-usd 0.05
 ```
 
-It checks registration, prompts privately for keys, initializes the signed
-profile, then shows the live hosting quote for your explicit confirmation.
+It checks registration, asks you to accept the Miner Terms, prompts privately for
+keys, initializes the signed profile, then shows the live hosting quote for your explicit confirmation.
 Optionally add `--provider fal` (or another generation provider) to configure
 just that provider plus Phala. Use a Phala **workspace token from Settings →
 API Tokens**, not a Private AI inference key. The hourly ceiling excludes
@@ -849,7 +855,9 @@ Before deployment, you need:
 - A miner hotkey registered on SN117. `register-hotkey` checks and records subnet
   membership; on-chain registration is done separately using your wallet tool.
 - A funded Phala Cloud account and its API key for the attested workload.
-- At least one funded provider account supported by your deployment configuration.
+- At least one funded provider account supported by your deployment configuration,
+  with the permissions required to resell its services and serve third-party requests.
+- Acceptance of the current Miner Terms for your hotkey and network.
 - Your local miner hotkey file. No invitation file or `MINER_TOKEN` is needed.
 
 The downloads and public worker images do not require registry credentials.
@@ -877,6 +885,12 @@ were supplied, prints the `btcli subnet register` command for you to run yoursel
 It never creates a wallet, pays registration fees, or signs an on-chain transaction.
 This membership check is not proof of ownership or coordinator admission.
 For testnet SN566, pass `--network testnet` to each command; networks are not sticky.
+
+After checking your hotkey, run `everycli terms` to review the Miner Terms.
+Interactive enrollment asks you to accept them before contacting the coordinator.
+The setup wizard asks before saving keys. For unattended setup, explicitly accept
+the displayed version with `everycli terms --accept-terms 2026-11-04` in the same
+profile. `--yes` alone does not accept terms. See [the acceptance guide](docs/miner-terms-acceptance.md).
 
 ### 2. Set your API keys
 
