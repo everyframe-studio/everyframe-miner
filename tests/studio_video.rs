@@ -506,3 +506,112 @@ fn expanded_openrouter_contracts_preserve_audio_frames_and_discrete_durations() 
         studio_video::check(&request).unwrap();
     }
 }
+
+#[test]
+fn openrouter_h3_preserves_published_formats_audio_and_keyframes() {
+    let evidence: Value =
+        serde_json::from_str(include_str!("fixtures/openrouter-h3-20261104.json")).unwrap();
+    for vector in evidence["wireVectors"].as_array().unwrap() {
+        let spec = models::spec(&vector["request"]).unwrap();
+        assert_eq!(spec, vector["spec"]);
+        assert_eq!(
+            everyframe_miner::protocol::digest(&spec).unwrap(),
+            vector["sha256"]
+        );
+    }
+    let advertised = &evidence["data"][0];
+    let mut request = spec("openrouter", "minimax/hailuo-3");
+    assert_eq!(advertised["id"], "minimax/hailuo-3");
+    assert_eq!(
+        models::info(request["model"].as_str().unwrap()).unwrap()["seed"],
+        false
+    );
+    for duration in advertised["supported_durations"].as_array().unwrap() {
+        for aspect in advertised["supported_aspect_ratios"].as_array().unwrap() {
+            request["input"]["duration"] = duration.clone();
+            request["input"]["aspect"] = aspect.clone();
+            let (path, body) = studio_video::body(&request, &[]).unwrap();
+            assert_eq!(path, "/api/v1/videos");
+            assert_eq!(body["model"], "minimax/hailuo-3");
+            assert_eq!(body["duration"], *duration);
+            assert_eq!(body["aspect_ratio"], *aspect);
+            assert_eq!(body["resolution"], "2K");
+            assert_eq!(body["generate_audio"], true);
+            assert!(body.get("seed").is_none());
+            assert!(body.get("prompt_expansion_mode").is_none());
+        }
+    }
+    request["input"]["references"] = json!([asset("first"), asset("last")]);
+    let (_, body) = studio_video::body(&request, &["first".into(), "last".into()]).unwrap();
+    assert_eq!(body["frame_images"][0]["frame_type"], "first_frame");
+    assert_eq!(body["frame_images"][1]["frame_type"], "last_frame");
+    assert!(body.get("input_references").is_none());
+    request["input"]["references"] = json!([]);
+    for (field, value) in [
+        ("resolution", json!("768p")),
+        ("resolution", json!("2K")),
+        ("duration", json!(4)),
+        ("duration", json!(16)),
+        ("references", json!([asset("image")])),
+    ] {
+        let mut bad = request.clone();
+        bad["input"][field] = value;
+        assert!(studio_video::check(&bad).is_err());
+    }
+}
+
+#[test]
+fn openrouter_h3_submits_once_then_polls_and_downloads_through_the_existing_api() {
+    struct H3Api(RefCell<Vec<Request>>);
+    impl Http for H3Api {
+        fn bytes(&self, r: Request) -> Result<Vec<u8>> {
+            assert!(r.url.starts_with("https://openrouter.ai/api/v1/videos"));
+            assert!(
+                r.headers
+                    .iter()
+                    .any(|(k, v)| k == "authorization" && v == "Bearer fixture-openrouter-key")
+            );
+            assert!(
+                r.redirect_hosts.is_empty(),
+                "OpenRouter credentials cannot follow media redirects"
+            );
+            let response = if r.method == "POST" {
+                assert_eq!(r.url, "https://openrouter.ai/api/v1/videos");
+                let body: Value = serde_json::from_slice(r.body.as_ref().unwrap()).unwrap();
+                assert_eq!(body["model"], "minimax/hailuo-3");
+                assert_eq!(body["resolution"], "2K");
+                assert_eq!(body["generate_audio"], true);
+                assert!(body.get("seed").is_none());
+                json!({"id":"job_h3"}).to_string().into_bytes()
+            } else if r.url.ends_with("/content?index=0") {
+                b"fixture H3 video".to_vec()
+            } else {
+                assert_eq!(r.url, "https://openrouter.ai/api/v1/videos/job_h3");
+                json!({"id":"job_h3","model":"minimax/hailuo-3","status":"completed"})
+                    .to_string()
+                    .into_bytes()
+            };
+            self.0.borrow_mut().push(r);
+            Ok(response)
+        }
+    }
+    let api = H3Api(RefCell::default());
+    let mut router = Router::new(&api, json!({"OPENROUTER_API_KEY":"fixture-openrouter-key"}));
+    let request = spec("openrouter", "minimax/hailuo-3");
+    assert!(
+        router
+            .models()
+            .contains(&request["model"].as_str().unwrap().to_string())
+    );
+    let reference = router.submit(&request).unwrap();
+    assert_eq!(reference, "openrouter_job_h3");
+    assert_eq!(router.poll(&reference, &request).unwrap(), "COMPLETED");
+    assert_eq!(
+        router.result(&reference, &request).unwrap().media,
+        b"fixture H3 video"
+    );
+    assert_eq!(
+        api.0.borrow().iter().filter(|r| r.method == "POST").count(),
+        1
+    );
+}
