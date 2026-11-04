@@ -202,7 +202,7 @@ pub fn render(command: &str) -> String {
             "auto-update --disable",
         ),
         "update" => (
-            "Upgrade this CLI to the latest stable release. Shows download progress and a readable summary; --json emits only the structured result. No miner login needed; profiles and deployed workers are unchanged.",
+            "Upgrade this CLI to the latest stable release. Shows the intervening release history and any worker-update or other follow-up steps; --check previews them without installing. --json includes the same structured upgrade data. No miner login needed; profiles and deployed workers are unchanged.",
             "  --check  Check the available version without installing",
             "update --check",
         ),

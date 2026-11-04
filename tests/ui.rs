@@ -294,6 +294,10 @@ fn actions_go_through_the_cli_parser() {
     let (args, changes) = ui::action_args(&sh, "cli-update-check", &json!({})).unwrap();
     assert_eq!((args.command.as_str(), changes), ("self-update", false));
     assert!(args.flag("--check") && args.get("--network").is_none());
+    let (args, changes) = ui::action_args(&sh, "cli-auto-status", &json!({})).unwrap();
+    assert_eq!((args.command.as_str(), changes), ("auto-update", false));
+    assert!(args.get("--network").is_none() && args.get("--state-dir").is_none());
+    assert!(ui::action_args(&sh, "cli-auto-status", &json!({"enable":true})).is_err());
     let (args, _) = ui::action_args(&sh, "worker-update-check", &json!({})).unwrap();
     assert_eq!(args.command, "update");
     assert!(args.flag("--check"));

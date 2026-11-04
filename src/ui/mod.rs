@@ -67,6 +67,7 @@ const ACTIONS: &[(&str, &[&str], &[&str], bool)] = &[
         false,
     ),
     ("cli-update-check", &["update"], &["--check"], false),
+    ("cli-auto-status", &["auto-update"], &[], false),
     ("init", &["init"], &[], true),
     ("reconnect", &["reconnect"], &[], true),
     ("offer", &["offer"], &[], true),
@@ -575,8 +576,8 @@ pub fn action_args(sh: &Shared, action: &str, params: &Value) -> Result<(Args, b
         .ok_or(Error("ui_unknown_action"))?;
     let mut argv: Vec<String> = words.iter().map(|w| w.to_string()).collect();
     argv.extend(flags.iter().map(|f| f.to_string()));
-    // The CLI self-update check is profile-independent and takes no profile options.
-    if words != &["update"] {
+    // CLI upgrade checks and receipts are global and take no profile options.
+    if words != &["update"] && words != &["auto-update"] {
         argv.extend(["--network".into(), sh.network.clone()]);
         if let Some(dir) = &sh.state_dir {
             argv.extend(["--state-dir".into(), dir.clone()]);
