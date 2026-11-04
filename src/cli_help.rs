@@ -2,6 +2,7 @@
 pub const COMMANDS: &[&str] = &[
     "help",
     "setup",
+    "terms",
     "register-hotkey",
     "set-api-keys",
     "remove-api-key",
@@ -50,6 +51,11 @@ pub fn render(command: &str) -> String {
             "  --enable   Enroll the isolated updater (one-time VM restart)\n  --disable  Disable further automatic stages remotely; hosting continues\n  No flags   Show coordinator-reported automation status",
             "worker-auto-update --enable",
         ),
+        "terms" => (
+            "Read the Miner Terms of Service and this profile's acceptance status. Miners obtain provider resale permissions and negotiate discounts directly. Acceptance never deploys or resumes a worker.",
+            "  --accept-terms VERSION  Explicitly accept the displayed current version for this hotkey\n  --wallet NAME --hotkey NAME | --hotkey-file FILE\n  Saved profile or registration can supply the public hotkey. --yes alone never accepts terms.",
+            "terms",
+        ),
         "setup" => (
             "Guided first-time setup: check registration, save keys, initialize, then review deployment. Interactive only. Existing deployment records stop the wizard; it never activates or resumes paid work automatically.",
             "  --wallet NAME --hotkey NAME | --hotkey-file FILE\n  --max-hourly-usd N  Optional compute ceiling; prompted if omitted\n  --provider NAME     Optional generation provider to configure (Phala is also prompted)\n  --continue          Show the numbered checklist for an existing local deployment; no paid operations",
@@ -66,8 +72,8 @@ pub fn render(command: &str) -> String {
             "reconnect --wallet my-wallet --hotkey default",
         ),
         "init" => (
-            "Verify registration and prove hotkey ownership locally to fetch the signed profile. No VM is created.",
-            "  --wallet NAME --hotkey NAME | --hotkey-file FILE\n  Saved registration can supply the signer.\n  --invitation FILE   Optional legacy signed configuration\n  --secrets-file FILE Optional owner-only credential import",
+            "Accept the Miner Terms, verify registration and prove hotkey ownership locally to fetch the signed profile. No VM is created.",
+            "  --wallet NAME --hotkey NAME | --hotkey-file FILE\n  Saved registration can supply the signer.\n  --accept-terms VERSION  Explicit agreement for noninteractive enrollment; read everycli terms first\n  --invitation FILE   Optional legacy signed configuration\n  --secrets-file FILE Optional owner-only credential import",
             "init --wallet my-wallet --hotkey default",
         ),
         "set-api-keys" => (

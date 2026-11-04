@@ -531,6 +531,18 @@ pub fn render(command: &str, value: &Value) -> String {
     }
     let rows = |key: &str| value[key].as_array().cloned().unwrap_or_default();
     match command {
+        "terms" => format!(
+            "{}\nAcceptance: {}\nHotkey: {}\nNetwork: {}\n\nRead these terms, then accept explicitly with everycli terms --accept-terms {} in the same profile.\n",
+            crate::terms::TEXT,
+            if value["accepted"] == true {
+                "accepted on this device"
+            } else {
+                "required"
+            },
+            text(&value["hotkey"]),
+            text(&value["network"]),
+            crate::terms::VERSION
+        ),
         "jobs" if value["historyAvailable"].is_boolean() => history_table(value),
         "jobs" => format!(
             "Jobs by model · all time\n\n{}\n\nCompleted means accepted, verified output. Failed/cancelled counts describe attempts, not payments or alpha rewards.\n",

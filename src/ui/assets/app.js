@@ -5,6 +5,7 @@
 // Only non-secret model notification acknowledgments are kept in localStorage.
 
 const S = {
+  termsDraft: null,
   token: null, session: null, overview: null, wallets: null, help: null,
   health: null, healthAt: 0, offers: null, offersError: null, balances: null, earnings: null,
   history: null, historyBusy: false, historyRequest: 0, historyStatus: "all", historyModel: "", historyModelDraft: "", historyCursors: [null], historyPage: 0, openAttempt: null, earningsBusy: false,
@@ -70,6 +71,7 @@ function forgetToken() { S.token = null; try { sessionStorage.removeItem("everyc
 const LABELS = {
   "status": "Status", "health": "Health check", "doctor": "Doctor", "providers": "Providers", "balances": "Balances",
   "offers": "Model offers", "earnings": "Earnings", "register-hotkey": "Check hotkey registration",
+  "terms-accept": "Accept Miner Terms",
   "worker-update-check": "Check for worker update", "cli-update-check": "Check for CLI update", "init": "Create miner profile",
   "offer": "Update model offer", "deploy": "Deploy worker", "start": "Start worker", "activate": "Activate keys",
   "offer-batch": "Update model offers", "jobs": "Job history",
@@ -84,7 +86,7 @@ const LABELS = {
 // Runs a CLI command. Questions come back to the browser; approving one re-runs
 // the command with that exact question allowed.
 async function run(action, params = {}, opts = {}) {
-  const changes = new Set(["register-hotkey", "init", "reconnect", "reconcile", "offer", "offer-batch", "deploy", "start", "activate", "apply-api-keys", "resume", "stop", "label", "delete", "worker-update", "worker-update-abort", "worker-auto-enable", "worker-auto-disable", "remove-api-key", "balances-publish"]);
+  const changes = new Set(["terms-accept", "register-hotkey", "init", "reconnect", "reconcile", "offer", "offer-batch", "deploy", "start", "activate", "apply-api-keys", "resume", "stop", "label", "delete", "worker-update", "worker-update-abort", "worker-auto-enable", "worker-auto-disable", "remove-api-key", "balances-publish"]);
   if (changes.has(action) && action !== "reconcile" && !(action === "stop" && params.force) && S.pendingOperations.size) {
     const job = { state: "unknown", result: { error: { code: "ui_operation_unconfirmed", message: "Check the existing operation before starting another change." } } };
     if (!opts.quiet) Activity.add(opts.label || LABELS[action] || action).finish(job);
@@ -493,6 +495,11 @@ function render() {
   const r = currentRoute();
   const page = { overview: pageOverview, setup: pageSetup, models: pageModels, jobs: pageJobs, earnings: pageEarnings, keys: pageKeys, worker: pageWorker, help: pageHelp }[r];
   $("#main").replaceChildren(page());
+  if (S.overview?.terms?.accepted === false && r !== "setup") {
+    $("#main").prepend(notice("warn", "Miner Terms acceptance required", h("div", null,
+      h("p", null, "Before joining or enabling new work, agree that you obtain provider resale permissions and negotiate provider discounts directly."),
+      h("a", { href: "#/setup", onclick: () => { S.openStep = "terms"; } }, "Review and accept Miner Terms"))));
+  }
   patchPendingBanner();
 }
 function renderUnpaired() {
@@ -763,6 +770,7 @@ function pageEarnings() {
 
 // ---------- Setup guide ----------
 const STEP_INFO = {
+  terms: "Accept the Miner Terms",
   hotkey: "Select your hotkey", phala: "Add your Phala hosting token", providers: "Add a provider API key",
   init: "Create your miner profile", deploy: "Deploy your worker", activate: "Activate your keys",
   offers: "Choose models to serve", resume: "Start accepting work",
@@ -842,10 +850,37 @@ async function refreshAll() {
   if (currentRoute() === "worker") await loadWorkerAuto();
   render();
 }
+function termsForm(o) {
+  const t = o?.terms;
+  if (!t) return h("p", null, "Loading Miner Terms…");
+  const paragraphs = String(t.text || "").trim().split(/\n\n/).map(text => h("p", null, text));
+  const review = h("details", { open: !t.accepted }, h("summary", null, "Read Miner Terms · " + t.termsVersion), ...paragraphs);
+  const identity = h("dl", { class: "kv small" }, h("dt", null, "Hotkey"), h("dd", null, t.hotkey || "Select and check your hotkey first"), h("dt", null, "Network"), h("dd", null, t.network));
+  if (t.accepted) return h("div", { class: "stack" }, notice("ok", "Terms accepted on this device", "Version " + t.termsVersion + " for this hotkey. You remain responsible for required provider approvals and your commercial arrangements."), identity, review, continueButton("terms"));
+  // Drafts live only in memory and are reset for a different identity or document.
+  const scope = [t.termsVersion, t.documentSha256, t.network, t.hotkey].join(":");
+  if (S.termsDraft !== scope) S.termsDraft = null;
+  const checked = S.termsDraft === scope;
+  const submit = h("button", { class: "btn primary", disabled: !checked || !t.hotkey, onclick: async () => {
+    if (S.termsDraft !== scope || !t.hotkey) return;
+    const job = await run("terms-accept", { acceptTerms: t.termsVersion, termsHotkey: t.hotkey, termsSha256: t.documentSha256 });
+    if (job.state === "done") { S.termsDraft = null; S.openStep = null; }
+    await refreshAll();
+  } }, "Accept Miner Terms");
+  const checkbox = h("input", { type: "checkbox", checked, disabled: !t.hotkey, "aria-label": "I accept the Miner Terms", onchange: e => {
+    S.termsDraft = e.target.checked ? scope : null; submit.disabled = !e.target.checked || !t.hotkey;
+  } });
+  return h("div", { class: "stack" },
+    h("p", null, "You must obtain and maintain all required provider permissions for resale and serving third-party requests, and contact providers directly for approvals and discounts. A working API key does not grant these rights."),
+    identity, review,
+    h("label", { class: "row" }, checkbox, "I accept Miner Terms " + t.termsVersion + " and confirm that I am responsible for obtaining required provider permissions and negotiating provider discounts directly."),
+    h("p", { class: "small muted" }, "Acceptance is recorded in this profile. This does not deploy a VM, change offers or submit a paid generation."), submit);
+}
 function stepBody(id) {
   const o = S.overview;
   switch (id) {
     case "hotkey": return stepHotkey(o);
+    case "terms": return termsForm(o);
     case "phala": return h("div", null,
       h("p", null, "Your worker runs in a sealed, verifiable machine (a TEE) on Phala Cloud. Phala bills your own account for hosting, usually a few cents per hour."),
       h("ol", { class: "small" },
@@ -855,7 +890,7 @@ function stepBody(id) {
       keyForm("phala", refreshAll, "phala"),
       continueButton("phala"));
     case "providers": return h("div", null,
-      h("p", null, "The worker generates with your own provider account, so each job is billed there. Add at least one key. You can add more later on the API keys page."),
+      h("p", null, "The worker generates with your own provider account, so each job is billed there. You must obtain required provider resale approvals and negotiate discounts directly. Add at least one key. You can add more later on the API keys page."),
       h("h3", null, "Direct providers"), setupProviders(true).map((p) => keyRow(p, "providers")),
       h("details", { open: setupProviders(false).some((p) => S.keyStatus[p]) },
         h("summary", null, "Other model providers"), setupProviders(false).map((p) => keyRow(p, "providers"))),
@@ -863,11 +898,12 @@ function stepBody(id) {
     case "init": return h("div", null,
       h("p", null, "everycli proves you own the hotkey by signing a challenge on this computer, then downloads your signed worker configuration. No machine is created and nothing is paid."),
       S.hotkeySel ? h("p", { class: "small muted" }, "Using " + describeHotkey(S.hotkeySel) + ".") : o?.registration ? h("p", { class: "small muted" }, "Using the hotkey checked in step 1.") : null,
-      button("Create miner profile", async () => {
+      o?.terms?.accepted !== true ? h("p", { class: "warn" }, "Accept the Miner Terms for this hotkey first." ) : null,
+      h("button", { class: "btn primary", disabled: o?.terms?.accepted !== true, onclick: async () => {
         const job = await run("init", S.hotkeySel || {});
         if (job.state === "done") S.openStep = null;
         await refreshAll();
-      }, "primary"));
+      } }, "Create miner profile"));
     case "deploy": return stepDeploy(o);
     case "activate": {
       const attest = findCheck("Workload attestation");
@@ -1535,7 +1571,7 @@ function pageWorker() {
   if (!o?.initialized) { root.append(notice("warn", "No miner profile yet", "Finish the setup guide first.")); return root; }
   if (S.removal) root.append(removalView());
   else if (S.workloads?.length) root.append(workloadsNotice(null));
-  else if (!managedHere()) root.append(notice("", "No worker deployed from this computer", h("div", null, "Deploy one from step 5 of the ", h("a", { href: "#/setup" }, "setup guide"), ".")));
+  else if (!managedHere()) root.append(notice("", "No worker deployed from this computer", h("div", null, "Deploy one from the worker deployment step of the ", h("a", { href: "#/setup" }, "setup guide"), ".")));
   root.append(h("div", { class: "grid" },
     workerStateSummary(),
     nameStat(),

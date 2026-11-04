@@ -328,8 +328,8 @@ fn keys_are_saved_but_never_echoed() {
         .find(|k| k["provider"] == "fal")
         .unwrap();
     assert_eq!(fal["saved"], true);
-    assert_eq!(v["steps"][2]["done"], true);
-    assert_eq!(v["steps"][3]["done"], false);
+    assert_eq!(v["steps"][3]["done"], true);
+    assert_eq!(v["steps"][4]["done"], false);
     let short = call(
         &sh,
         "POST",
@@ -484,7 +484,7 @@ fn overview_exposes_lifecycle_reconciliation_and_local_label() {
         .unwrap();
     let o = ui::overview(&sh).unwrap();
     assert!(o["deployment"]["appId"].is_null());
-    assert_eq!(o["steps"][4]["done"], false);
+    assert_eq!(o["steps"][5]["done"], false);
     state
         .write(
             "deployment",
