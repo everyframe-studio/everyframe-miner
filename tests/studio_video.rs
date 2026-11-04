@@ -549,7 +549,7 @@ fn openrouter_h3_preserves_published_formats_audio_and_keyframes() {
     request["input"]["references"] = json!([]);
     for (field, value) in [
         ("resolution", json!("768p")),
-        ("resolution", json!("2K")),
+        ("resolution", json!("2k")),
         ("duration", json!(4)),
         ("duration", json!(16)),
         ("references", json!([asset("image")])),

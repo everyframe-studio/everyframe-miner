@@ -48,8 +48,8 @@ Sources: [OpenRouter video API](https://openrouter.ai/docs/guides/overview/multi
 
 `studio/openrouter/minimax/hailuo-3` is a separate contract from H3 Max. It uses
 OpenRouter's `minimax/hailuo-3` model: 5–15 seconds, 2K output, six aspect ratios,
-text or first/last-frame guidance, with generated audio. The worker sends the
-provider's `2K` spelling while the signed EveryFrame request uses `2k`. Seeds are
+text or first/last-frame guidance, with generated audio. Both signed EveryFrame requests and provider requests use `2K`, matching the
+existing Studio model selector. Seeds are
 not sent because this provider route does not support them.
 
 The published reference rate is $0.13 per output second: $0.65 for five seconds

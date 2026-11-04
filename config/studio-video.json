@@ -1041,7 +1041,7 @@
     "min": 5,
     "max": 15,
     "resolutions": [
-      "2k"
+      "2K"
     ],
     "refs": {
       "image": 0,
@@ -1053,9 +1053,6 @@
     "maxPrompt": 4000,
     "seed": false,
     "generateAudio": true,
-    "wireResolutions": {
-      "2k": "2K"
-    },
     "schemaCheckedAt": "2026-11-04",
     "deadlineMs": 1200000
   }

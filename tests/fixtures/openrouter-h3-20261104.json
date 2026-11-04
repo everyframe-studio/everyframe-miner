@@ -58,7 +58,7 @@
         "prompt": "A cinematic coastal landscape",
         "seed": 42,
         "duration": 5,
-        "resolution": "2k",
+        "resolution": "2K",
         "aspect": "16:9",
         "references": [],
         "promptExpansion": "balanced"
@@ -69,13 +69,13 @@
           "prompt": "A cinematic coastal landscape",
           "seed": 42,
           "duration": 5,
-          "resolution": "2k",
+          "resolution": "2K",
           "aspect": "16:9",
           "references": [],
           "promptExpansion": "balanced"
         }
       },
-      "sha256": "3d829334321d65f13191428d574170e8bcd9e10a438e64570c10e1269d4867e6"
+      "sha256": "e843d274ba31e2be8a6fb7ac8c5eb3075849ad97bef37c1e8d0518dfb53de667"
     },
     {
       "request": {
@@ -83,7 +83,7 @@
         "prompt": "A cinematic coastal landscape",
         "seed": 42,
         "duration": 15,
-        "resolution": "2k",
+        "resolution": "2K",
         "aspect": "9:16",
         "references": [
           {
@@ -115,7 +115,7 @@
           "prompt": "A cinematic coastal landscape",
           "seed": 42,
           "duration": 15,
-          "resolution": "2k",
+          "resolution": "2K",
           "aspect": "9:16",
           "references": [
             {
@@ -142,7 +142,7 @@
           "promptExpansion": "balanced"
         }
       },
-      "sha256": "3c637dd037160b774bc47f4a771840910b2602ce901443ee84615c54264b3be6"
+      "sha256": "cd069ad704a84287808b61e39b8d865d962622293a95abf8f1c6d96d79ec09a1"
     }
   ]
 }
