@@ -162,3 +162,137 @@ fn failure_messages_do_not_invent_billing_from_generic_resource_errors() {
         );
     }
 }
+
+#[test]
+fn provider_refusals_become_fixed_codes() {
+    use everyframe_miner::providers::refusal;
+    // Seedance through OpenRouter and fal: the real-person check.
+    assert_eq!(
+        refusal(
+            "openrouter",
+            &json!({"error":{"code":"InputImageSensitiveContentDetected.PrivacyInformation","message":"The request failed because the input image 'content[1]' may contain real person."}})
+        ),
+        Some("real_person")
+    );
+    assert_eq!(
+        refusal(
+            "fal",
+            &json!({"detail":[{"msg":"The images or videos provided may contain likenesses of real people or other private information that cannot be processed.","type":"content_policy_violation"}]})
+        ),
+        Some("real_person")
+    );
+    // OpenRouter wraps the upstream body as a string in metadata.raw.
+    assert_eq!(
+        refusal(
+            "openrouter",
+            &json!({"error":{"code":400,"message":"Provider returned error","metadata":{"raw":"{\"error\":{\"code\":\"InputImageSensitiveContentDetected.PrivacyInformation\"}}"}}})
+        ),
+        Some("real_person")
+    );
+    assert_eq!(
+        refusal(
+            "fal",
+            &json!({"error":"The request failed because the output video may be related to copyright restrictions."})
+        ),
+        Some("copyright")
+    );
+    assert_eq!(
+        refusal(
+            "fal",
+            &json!({"detail":[{"msg":"Video pixel count must be greater than or equal to 407696","type":"value_error"}]})
+        ),
+        Some("reference_too_small")
+    );
+    assert_eq!(
+        refusal(
+            "fal",
+            &json!({"detail":[{"type":"string_too_long","loc":["body","prompt"],"msg":"String should have at most 4000 characters","input":"x"}]})
+        ),
+        Some("prompt_too_long")
+    );
+    assert_eq!(
+        refusal(
+            "fal",
+            &json!({"detail":[{"msg":"The content could not be processed because it contained material flagged by a content checker.","type":"content_policy_violation"}]})
+        ),
+        Some("content_policy")
+    );
+    assert_eq!(
+        refusal(
+            "pika",
+            &json!({"status":"failed","error":{"code":"content_moderation","message":"real person"}})
+        ),
+        Some("content_policy")
+    );
+    // Pika prose never picks a code; neither do ordinary failures.
+    assert_eq!(
+        refusal(
+            "pika",
+            &json!({"status":"failed","error":{"code":"invalid_input","message":"may contain real person"}})
+        ),
+        None
+    );
+    assert_eq!(refusal("fal", &json!({"error":"Internal error"})), None);
+    assert_eq!(
+        refusal(
+            "openrouter",
+            &json!({"error":{"code":"invalid_value","message":"aspect_ratio must be one of 16:9, 9:16"}})
+        ),
+        None
+    );
+}
+
+#[test]
+fn refusals_ignore_echoed_request_fields() {
+    use everyframe_miner::providers::refusal;
+    // The prompt echoed in `input` must not choose the customer message.
+    assert_eq!(
+        refusal(
+            "fal",
+            &json!({"detail":[{"type":"value_error","msg":"Invalid duration","input":"a celebrity look-alike, copyright free"}]})
+        ),
+        None
+    );
+}
+
+#[test]
+fn a_refusal_never_changes_the_failure_category() {
+    use everyframe_miner::submission::with_body_refusal;
+    let body = br#"{"error":{"code":"InputImageSensitiveContentDetected.PrivacyInformation","message":"may contain real person"}}"#;
+    let e = with_body_refusal(
+        everyframe_miner::Error("http_400"),
+        400,
+        "openrouter.ai",
+        body,
+    );
+    assert_eq!(e.0, "http_400");
+    assert_eq!(e.refusal(), Some("real_person"));
+    // 5xx, rate limits, oversize or malformed bodies are never tagged.
+    for (status, bytes) in [
+        (500u16, &body[..]),
+        (429, &body[..]),
+        (400, &b"not json"[..]),
+    ] {
+        assert_eq!(
+            with_body_refusal(
+                everyframe_miner::Error("http_x"),
+                status,
+                "openrouter.ai",
+                bytes
+            )
+            .refusal(),
+            None
+        );
+    }
+    let big = vec![b' '; 64001];
+    assert_eq!(
+        with_body_refusal(
+            everyframe_miner::Error("http_400"),
+            400,
+            "openrouter.ai",
+            &big
+        )
+        .refusal(),
+        None
+    );
+}

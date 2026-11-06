@@ -322,30 +322,33 @@ impl Http for PublicHttp {
                         .map_err(|_| Error("response_read_failed"))?;
                     return Err(batch_offer_error(status, &bytes));
                 }
+                let host = u.host_str().unwrap_or_default();
                 if matches!(
-                    u.host_str(),
-                    Some(
-                        "api.vivix.ai"
-                            | "queue.fal.run"
-                            | "api-singapore.klingai.com"
-                            | "api.dev.pika.art"
-                    )
-                ) {
+                    host,
+                    "api.vivix.ai"
+                        | "queue.fal.run"
+                        | "api-singapore.klingai.com"
+                        | "api.dev.pika.art"
+                ) || crate::submission::PROVIDER_ERROR_HOSTS.contains(&host)
+                {
                     let status = response.status().as_u16();
                     let mut bytes = Vec::new();
                     response
                         .take(64001)
                         .read_to_end(&mut bytes)
                         .map_err(|_| Error("response_read_failed"))?;
-                    return Err(if u.host_str() == Some("queue.fal.run") {
-                        crate::submission::fal_http_error(status, &bytes)
-                    } else if u.host_str() == Some("api-singapore.klingai.com") {
-                        crate::submission::kling_http_error(status, &bytes)
-                    } else if u.host_str() == Some("api.dev.pika.art") {
-                        crate::submission::pika_http_error(status, &bytes)
-                    } else {
-                        crate::submission::vivix_http_error(status, &bytes)
-                    });
+                    let error = match host {
+                        "queue.fal.run" => crate::submission::fal_http_error(status, &bytes),
+                        "api-singapore.klingai.com" => {
+                            crate::submission::kling_http_error(status, &bytes)
+                        }
+                        "api.dev.pika.art" => crate::submission::pika_http_error(status, &bytes),
+                        "api.vivix.ai" => crate::submission::vivix_http_error(status, &bytes),
+                        _ => crate::diagnostics::http_error(status),
+                    };
+                    return Err(crate::submission::with_body_refusal(
+                        error, status, host, &bytes,
+                    ));
                 }
                 return Err(crate::diagnostics::http_error(response.status().as_u16()));
             }

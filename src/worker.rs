@@ -224,22 +224,29 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                     } else {
                         "submission_uncertain"
                     };
+                    // A refusal code only describes a confirmed rejection.
+                    let refusal = rejected.and(error.refusal());
                     // Only fixed codes and public job/attempt identifiers; no keys,
                     // prompts, upstream bodies or credential-bearing URLs.
                     eprintln!(
                         "{}",
-                        json!({"event":action,"jobId":work["jobId"],"attemptId":attempt,"reason":reason})
+                        json!({"event":action,"jobId":work["jobId"],"attemptId":attempt,"reason":reason,"refusal":refusal})
                     );
                     self.pause_provider_for(&work["spec"], reason);
+                    let mut with_refusal = refusal.is_some();
                     while self.runtime.now() < deadline {
-                        if self
-                            .call(action, json!({"attemptId":attempt,"reason":reason}))
-                            .is_ok()
-                        {
+                        let mut payload = json!({"attemptId":attempt,"reason":reason});
+                        if with_refusal {
+                            payload["refusal"] = json!(refusal);
+                        }
+                        if self.call(action, payload).is_ok() {
                             return Ok(
                                 json!({"state":if rejected.is_some(){"rejected"}else{"unknown"},"reason":reason}),
                             );
                         }
+                        // A coordinator without refusal support refuses the extra
+                        // field: the category alone is still the right report.
+                        with_refusal = false;
                         self.runtime.sleep(1000);
                     }
                     return Ok(json!({"state":"reconcile","reason":reason}));
@@ -278,11 +285,11 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                         self.runtime.sleep(3000);
                         continue;
                     }
-                    return self.fail_generation(&work, e.0, deadline);
+                    return self.fail_generation(&work, e.0, e.refusal(), deadline);
                 }
             };
             if status == "FAILED" {
-                return self.fail_generation(&work, "provider_generation_failed", deadline);
+                return self.fail_generation(&work, "provider_generation_failed", None, deadline);
             };
             if status != "COMPLETED" {
                 self.runtime.sleep(1000);
@@ -295,7 +302,7 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                         self.runtime.sleep(3000);
                         continue;
                     }
-                    return self.fail_generation(&work, e.0, deadline);
+                    return self.fail_generation(&work, e.0, e.refusal(), deadline);
                 }
             };
             let value = json!({"protocol":1,"sessionId":self.session["sessionId"],"minerId":self.miner_id,"jobId":work["jobId"],"attemptId":attempt,"inputHash":work["inputHash"],"grantNonce":grant,"providerRef":reference,"outputHash":protocol::sha(&output.media),"bytes":output.media.len(),"providerResponseHash":output.response_hash});
@@ -325,6 +332,7 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                             return self.fail_generation(
                                 &work,
                                 "output_refused_by_coordinator",
+                                None,
                                 deadline,
                             );
                         }
@@ -368,10 +376,16 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
             );
         }
     }
-    fn fail_generation(&mut self, work: &Value, reason: &str, deadline: i64) -> Result<Value> {
+    fn fail_generation(
+        &mut self,
+        work: &Value,
+        reason: &str,
+        refusal: Option<&'static str>,
+        deadline: i64,
+    ) -> Result<Value> {
         eprintln!(
             "{}",
-            json!({"event":"generation_failed","jobId":work["jobId"],"attemptId":work["attemptId"],"reason":reason})
+            json!({"event":"generation_failed","jobId":work["jobId"],"attemptId":work["attemptId"],"reason":reason,"refusal":refusal})
         );
         if crate::bfl::needs_operator(reason) {
             self.pause_provider_for(&work["spec"], reason);
@@ -387,17 +401,20 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
         }
         let category = report_category(reason);
         self.pause_provider_for(&work["spec"], category);
+        // A refusal code is only meaningful with a provider failure category.
+        let mut refusal = refusal.filter(|_| category.starts_with("provider_"));
         // Never repeat the provider POST or keep fetching a terminal result.
         while self.runtime.now() < deadline {
-            if self
-                .call(
-                    "failed",
-                    json!({"attemptId":work["attemptId"],"reason":category}),
-                )
-                .is_ok()
-            {
+            let mut payload = json!({"attemptId":work["attemptId"],"reason":category});
+            if let Some(r) = refusal {
+                payload["refusal"] = json!(r);
+            }
+            if self.call("failed", payload).is_ok() {
                 return Ok(json!({"state":"failed","reason":reason}));
             }
+            // A coordinator without refusal support refuses the extra field;
+            // the category alone is still the right report.
+            refusal = None;
             self.runtime.sleep(3000);
         }
         Ok(json!({"state":"reconcile","reason":reason}))

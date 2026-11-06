@@ -31,6 +31,10 @@ struct Options {
     threaded_heartbeat: bool,
     blocking_ms: u64,
     retired_models: Option<Value>,
+    /// Refusal tag on submit_code / poll_error failures.
+    refusal: Option<&'static str>,
+    /// Behave like a coordinator without refusal support.
+    refuse_refusal_field: bool,
 }
 struct Fixture {
     key: Keys,
@@ -41,6 +45,7 @@ struct Fixture {
     calls: RefCell<Vec<String>>,
     receipts: RefCell<Vec<Value>>,
     failure_reports: RefCell<Vec<Value>>,
+    rejections: RefCell<Vec<Value>>,
     submits: Cell<u32>,
     submitted: Cell<u32>,
     reports: Cell<u32>,
@@ -148,6 +153,14 @@ impl Runtime for Handle {
                         json!({"jobId":receipt["jobId"],"outputHash":receipt["outputHash"]})
                     }
                     "submission_rejected" | "submission_uncertain" => {
+                        self.rejections
+                            .borrow_mut()
+                            .push(request["payload"].clone());
+                        if self.options.refuse_refusal_field
+                            && request["payload"].get("refusal").is_some()
+                        {
+                            return Err(Error("http_400"));
+                        }
                         self.reports.set(self.reports.get() + 1);
                         if self.reports.get() <= self.options.report_failures {
                             return Err(Error("lost_ack"));
@@ -158,6 +171,11 @@ impl Runtime for Handle {
                     "failed" => {
                         let mut reports = self.failure_reports.borrow_mut();
                         reports.push(request["payload"].clone());
+                        if self.options.refuse_refusal_field
+                            && request["payload"].get("refusal").is_some()
+                        {
+                            return Err(Error("http_400"));
+                        }
                         if reports.len() <= self.options.failed_report_failures as usize {
                             return Err(Error(
                                 self.options
@@ -188,7 +206,7 @@ impl Provider for Handle {
         std::thread::sleep(std::time::Duration::from_millis(self.options.blocking_ms));
         self.submits.set(self.submits.get() + 1);
         if let Some(code) = self.options.submit_code {
-            Err(Error(code))
+            Err(Error(code).with_refusal(self.options.refusal))
         } else if self.options.submit_error {
             Err(Error("ambiguous"))
         } else {
@@ -198,7 +216,7 @@ impl Provider for Handle {
     fn poll(&mut self, _: &str, _: &Value) -> Result<String> {
         std::thread::sleep(std::time::Duration::from_millis(self.options.blocking_ms));
         if let Some(code) = self.options.poll_error {
-            return Err(Error(code));
+            return Err(Error(code).with_refusal(self.options.refusal));
         }
         Ok(if self.options.failed {
             "FAILED"
@@ -266,6 +284,7 @@ fn fixture(options: Options, patch: Value) -> (Worker<Handle, Handle>, Rc<Fixtur
         calls: RefCell::default(),
         receipts: RefCell::default(),
         failure_reports: RefCell::default(),
+        rejections: RefCell::default(),
         submits: Cell::new(0),
         submitted: Cell::new(0),
         reports: Cell::new(0),
@@ -776,4 +795,98 @@ fn claim_renews_a_session_that_cannot_cover_a_long_studio_job() {
     worker.claim().unwrap();
     assert_eq!(worker.session["expires"], 9999999);
     assert_eq!(f.submits.get(), 0);
+}
+
+#[test]
+fn a_rejected_submission_reports_its_refusal_code() {
+    let (mut w, f) = fixture(
+        Options {
+            submit_code: Some("http_400"),
+            refusal: Some("real_person"),
+            ..Default::default()
+        },
+        json!({}),
+    );
+    assert_eq!(w.step().unwrap()["state"], "rejected");
+    assert_eq!(
+        *f.rejections.borrow(),
+        vec![
+            json!({"attemptId":"attempt","reason":"provider_invalid_request","refusal":"real_person"})
+        ]
+    );
+}
+
+#[test]
+fn an_uncertain_submission_never_claims_a_refusal() {
+    let (mut w, f) = fixture(
+        Options {
+            submit_code: Some("http_500"),
+            refusal: Some("real_person"),
+            ..Default::default()
+        },
+        json!({}),
+    );
+    w.step().unwrap();
+    let rejections = f.rejections.borrow();
+    assert!(!rejections.is_empty());
+    assert!(
+        rejections.iter().all(|r| r.get("refusal").is_none()),
+        "{rejections:?}"
+    );
+}
+
+#[test]
+fn a_failed_generation_reports_its_refusal_code() {
+    let (mut w, f) = fixture(
+        Options {
+            poll_error: Some("provider_content_rejected"),
+            refusal: Some("copyright"),
+            ..Default::default()
+        },
+        json!({}),
+    );
+    assert_eq!(w.step().unwrap()["state"], "failed");
+    assert_eq!(
+        *f.failure_reports.borrow(),
+        vec![
+            json!({"attemptId":"attempt","reason":"provider_content_rejected","refusal":"copyright"})
+        ]
+    );
+}
+
+#[test]
+fn an_older_coordinator_still_gets_the_category_without_the_refusal() {
+    let (mut w, f) = fixture(
+        Options {
+            submit_code: Some("http_400"),
+            refusal: Some("real_person"),
+            refuse_refusal_field: true,
+            ..Default::default()
+        },
+        json!({}),
+    );
+    assert_eq!(w.step().unwrap()["state"], "rejected");
+    let rejections = f.rejections.borrow();
+    assert_eq!(rejections.len(), 2);
+    assert_eq!(
+        rejections[1],
+        json!({"attemptId":"attempt","reason":"provider_invalid_request"})
+    );
+
+    let (mut w, f) = fixture(
+        Options {
+            poll_error: Some("provider_content_rejected"),
+            refusal: Some("copyright"),
+            refuse_refusal_field: true,
+            ..Default::default()
+        },
+        json!({}),
+    );
+    assert_eq!(w.step().unwrap()["state"], "failed");
+    let reports = f.failure_reports.borrow();
+    assert_eq!(reports.len(), 2);
+    assert_eq!(
+        reports[1],
+        json!({"attemptId":"attempt","reason":"provider_content_rejected"})
+    );
 }

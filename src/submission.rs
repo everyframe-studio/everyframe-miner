@@ -100,6 +100,43 @@ pub fn pika_http_error(status: u16, bytes: &[u8]) -> crate::Error {
     }
     crate::diagnostics::http_error(status)
 }
+/// Hosts whose 4xx error bodies are read for a refusal code. The failure code
+/// itself still comes from the status (or the provider-specific parsers above).
+pub const PROVIDER_ERROR_HOSTS: &[&str] = &[
+    "openrouter.ai",
+    "api.minimax.io",
+    "api.bfl.ai",
+    "api.replicate.com",
+    "generativelanguage.googleapis.com",
+    "api.dev.runwayml.com",
+    "api.lumalabs.ai",
+    "api.elevenlabs.io",
+];
+/// Tags a provider's 4xx failure with the refusal its body states. A 5xx, a
+/// timeout or a rate limit stays untagged: those are not the provider's verdict
+/// on the request.
+pub fn with_body_refusal(
+    error: crate::Error,
+    status: u16,
+    host: &str,
+    bytes: &[u8],
+) -> crate::Error {
+    if !(400..500).contains(&status) || matches!(status, 408 | 429) || bytes.len() > 64000 {
+        return error;
+    }
+    match serde_json::from_slice::<serde_json::Value>(bytes) {
+        Ok(v) => {
+            let provider = if host == "api.dev.pika.art" {
+                "pika"
+            } else {
+                ""
+            };
+            let refusal = crate::providers::refusal(provider, &v);
+            error.with_refusal(refusal)
+        }
+        Err(_) => error,
+    }
+}
 /// Only the documented account-lock billing response is safe to fail over.
 /// Generic 403 (including moderation) and 5xx are deliberately not reclassified.
 pub fn fal_http_error(status: u16, bytes: &[u8]) -> crate::Error {

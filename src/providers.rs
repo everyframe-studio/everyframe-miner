@@ -133,7 +133,8 @@ impl<'a> Router<'a> {
             if data["status"] == "failed" {
                 return Err(crate::submission::pika_error(
                     data["error"]["code"].as_str().unwrap_or(""),
-                ));
+                )
+                .with_refusal(refusal("pika", &data)));
             }
             need(
                 matches!(
@@ -914,7 +915,7 @@ impl Provider for Router<'_> {
         if state == "FAILED" {
             // Report a fixed category so the coordinator can tell a content block
             // from a billing or provider fault. Provider text never leaves the TEE.
-            return Err(Error(failure_category(&p, &data)));
+            return Err(Error(failure_category(&p, &data)).with_refusal(refusal(&p, &data)));
         }
         Ok(state.into())
     }
@@ -991,10 +992,9 @@ impl Provider for Router<'_> {
         let r = self.native(r, &p)?;
         if p == "fal" {
             let data = self.api(&p, &format!("/{}/requests/{r}", s(&m["app"])?), None)?;
-            need(
-                data["error"].is_null() && data["detail"].is_null(),
-                failure_category(&p, &data),
-            )?;
+            if !(data["error"].is_null() && data["detail"].is_null()) {
+                return Err(Error(failure_category(&p, &data)).with_refusal(refusal(&p, &data)));
+            }
             let url = match m["kind"].as_str() {
                 Some("image") => {
                     need(
@@ -1251,6 +1251,83 @@ pub fn failure_category(provider: &str, data: &Value) -> &'static str {
         "provider_timeout"
     } else {
         "provider_generation_failed"
+    }
+}
+
+/// Why a provider refused a job, as one of the coordinator's fixed refusal codes
+/// (real_person, copyright, reference_too_small, prompt_too_long, content_policy).
+/// Only the code leaves the TEE, and it never changes the failure category, so
+/// pausing and failover decide exactly as before. Matching reads the provider's
+/// error fields only (never request echoes such as input or loc); an error that
+/// quotes the prompt can at worst pick a different fixed customer message.
+pub fn refusal(provider: &str, data: &Value) -> Option<&'static str> {
+    if provider == "pika" {
+        // Pika: documented machine codes only, as in failure_category.
+        return match data["error"]["code"].as_str() {
+            Some("content_moderation") => Some("content_policy"),
+            _ => None,
+        };
+    }
+    let mut codes = Vec::new();
+    let mut messages = Vec::new();
+    failure_fields(data, 0, &mut codes, &mut messages);
+    // OpenRouter relays the upstream provider's own error as a string here.
+    for raw in [&data["error"]["metadata"]["raw"], &data["metadata"]["raw"]] {
+        if let Some(text) = raw.as_str() {
+            messages.push(text.chars().take(4096).collect::<String>().to_lowercase());
+        }
+    }
+    let code = |words: &[&str]| codes.iter().any(|c| words.iter().any(|w| c.contains(w)));
+    let text = messages.join(" ");
+    let has = |words: &[&str]| words.iter().any(|w| text.contains(w));
+    if code(&["privacyinformation"])
+        || has(&[
+            "privacyinformation",
+            "real person",
+            "real people",
+            "real human",
+            "likeness",
+            "celebrit",
+            "public figure",
+        ])
+    {
+        Some("real_person")
+    } else if code(&["copyright"]) || has(&["copyright"]) {
+        Some("copyright")
+    } else if has(&["image", "video", "reference"])
+        && has(&[
+            "pixel count",
+            "too small",
+            "resolution is too low",
+            "minimum resolution",
+        ])
+    {
+        Some("reference_too_small")
+    } else if code(&["string_too_long"])
+        || has(&["prompt"]) && has(&["too long", "exceeds the maximum", "maximum length"])
+    {
+        Some("prompt_too_long")
+    } else if code(&[
+        "content_policy",
+        "content_blocked",
+        "moderation",
+        "safety",
+        "nsfw",
+        "sensitive",
+    ]) || has(&[
+        "content_policy",
+        "content policy",
+        "content checker",
+        "moderat",
+        "nsfw",
+        "safety system",
+        "sensitive",
+        "prohibited",
+        "flagged",
+    ]) {
+        Some("content_policy")
+    } else {
+        None
     }
 }
 
