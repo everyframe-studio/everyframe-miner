@@ -793,5 +793,48 @@
       "audio/alaw",
       "audio/mulaw"
     ]
+  },
+  "direct/google/gemini-omni-1.2-flash": {
+    "kind": "video",
+    "inputTokens": 1048576,
+    "outputTokens": 1048576,
+    "imageReferences": 6,
+    "videoReferences": 3,
+    "documentReferences": false,
+    "search": false,
+    "speech": false,
+    "resolutions": [
+      "360p",
+      "720p",
+      "1080p",
+      "4k"
+    ],
+    "aspects": [
+      "16:9",
+      "9:16"
+    ],
+    "durationRange": [
+      3,
+      15
+    ],
+    "tasks": [
+      "text_to_video",
+      "image_to_video",
+      "reference_to_video",
+      "edit",
+      "extend"
+    ],
+    "wholeSeconds": true,
+    "frameDurationMax": 10,
+    "longDurationVideoReferences": 1,
+    "editVideoDurationMs": 15000,
+    "extendVideoDurationMs": 30000,
+    "extensionDurationMax": 10,
+    "unsupportedOptions": [
+      "system_instruction",
+      "temperature",
+      "top_p",
+      "stop_sequences"
+    ]
   }
 }
