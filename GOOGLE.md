@@ -5,6 +5,7 @@ The defaults below are starting settings; callers can change them for each job.
 
 | Model ID | Supported controls |
 |---|---|
+| `direct/google/gemini-omni-1.2-flash` | 360p–4K; landscape/portrait; 3–15 whole seconds; six images, three short video references (one for 11–15 seconds); first/last interpolation up to 10 seconds; editing and extension up to 30 seconds total. See [Omni 1.2](GEMINI-OMNI12.md). |
 | `direct/google/gemini-omni-flash` | 360p–4K; landscape/portrait; 3–10-second generation; image/video references; first/last frames; video editing and extension up to Google's 40-second total |
 | `direct/google/nano-banana-2.1` | 1K/2K/4K; 14 aspect ratios; up to 14 image references; video/PDF inputs; Search grounding |
 | `direct/google/nano-banana-2-lite` | 1K; aspect-ratio selection; image/video/PDF inputs |

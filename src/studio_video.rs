@@ -198,6 +198,12 @@ pub fn check(spec: &Value) -> Result<()> {
             "kling_end_frame_with_references",
         )?;
     }
+    if let Some(max) = p["frameDurationMax"].as_i64() {
+        need(
+            counts[4] == 0 || n(&v["duration"])? <= max,
+            "invalid_omni_frame_duration",
+        )?;
+    }
     if p["requiresVisual"] == true {
         need(counts[0] + counts[3] > 0, "visual_reference_required")?;
     }
@@ -376,7 +382,11 @@ pub fn body(spec: &Value, urls: &[String]) -> Result<(String, Value)> {
         }
         return Ok(("/api/v1/videos".into(), b));
     }
-    let omni = model == "google/gemini-omni-flash/v1.1/text-to-video";
+    let omni = [
+        "google/gemini-omni-flash/v1.1/text-to-video",
+        "google/gemini-omni-flash/v1.2/text-to-video",
+    ]
+    .contains(&model);
     let heygen = model == "heygen/heygen-video/text-to-video";
     let vidu = model == "fal-ai/vidu/q4/image-to-video";
     if omni || heygen || vidu {

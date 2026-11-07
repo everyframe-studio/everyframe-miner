@@ -359,5 +359,50 @@
     "maxDurationMs": 180000,
     "description": "Gemini 3.8 Flash-Lite TTS (Google direct) with provider-supported settings and reference inputs.",
     "flexibleGoogle": true
+  },
+  "direct/google/gemini-omni-1.2-flash": {
+    "provider": "google",
+    "vendor": "Google",
+    "deadlineMs": 1200000,
+    "seed": false,
+    "maxPrompt": 8388608,
+    "feeMultiplier": 1,
+    "interaction": true,
+    "schemaUrl": "https://ai.google.dev/api/interactions-api",
+    "schemaCheckedAt": "2026-11-07",
+    "documentationCheckedAt": "2026-11-07",
+    "validationStatus": "documentation-reviewed",
+    "apiModel": "gemini-omni-1.2-flash",
+    "name": "Gemini Omni 1.2 Flash (Google direct)",
+    "kind": "video",
+    "family": "Gemini Omni 1.2 Flash",
+    "params": {
+      "response_format": {
+        "type": "video",
+        "duration": "5s",
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "delivery": "uri"
+      },
+      "store": true,
+      "background": true
+    },
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "audio": true,
+    "description": "Gemini Omni 1.2 Flash with native audio, 3–15 second generation, image/video references, editing and extension.",
+    "flexibleGoogle": true
   }
 }
