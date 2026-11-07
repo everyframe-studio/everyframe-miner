@@ -45,17 +45,18 @@ fn skipped_versions_show_the_entire_published_range_in_version_order() {
 }
 
 #[test]
-fn ui_release_does_not_blanket_require_worker_or_authorization_changes() {
+fn v100_new_models_require_a_conditional_worker_update_and_offer_review() {
     let upgrade = upgrade_notes::bundled("0.9.6", "v1.0.0");
-    assert_eq!(upgrade["workerUpdate"], "not_required");
+    assert_eq!(upgrade["workerUpdate"], "conditional");
     assert_eq!(upgrade["history"].as_array().unwrap().len(), 1);
-    assert_eq!(upgrade["actions"].as_array().unwrap().len(), 1);
+    assert_eq!(upgrade["actions"].as_array().unwrap().len(), 3);
     let text = display::render(
         "self-update",
         &json!({"current":"0.9.6","latest":"v1.0.0","updateAvailable":true,"updated":false,"upgrade":upgrade}),
     );
-    assert!(text.contains("everycli ui") && text.contains("No new worker image"));
-    assert!(!text.contains("everycli reconnect") && !text.contains("everycli worker-update"));
+    assert!(text.contains("everycli ui") && text.contains("everycli worker-update"));
+    assert!(text.contains("everycli offers") && text.contains("Gemini Omni 1.2"));
+    assert!(!text.contains("everycli reconnect"));
 }
 
 #[test]
