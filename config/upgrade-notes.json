@@ -140,7 +140,7 @@
       "version": "v0.3.3",
       "title": "CLI improvements",
       "changes": [
-        "Short API keys now explain: “That key looks too short (minimum 10 characters).” Invalid input does not replace an existing key.",
+        "Short API keys now explain: \u201cThat key looks too short (minimum 10 characters).\u201d Invalid input does not replace an existing key.",
         "A missing wallet is named explicitly, with available local wallet names. Discovery reads directory names, never private key contents.",
         "Registration prints its fee/transaction notice once and shows placeholder instructions only when placeholders remain."
       ],
@@ -313,7 +313,7 @@
       "title": "CLI improvements",
       "changes": [
         "Dashboard identity: miner UID from the last finalized registration check, shortened hotkey, full-address tooltip/copy and a read-only Refresh UID action. UID 0 is valid; missing or mismatched lookups are never presented as known UIDs.",
-        "everycli reconnect and Worker → Reconnect profile recover superseded local miner authorization with proof from the same hotkey and confirmation. Exact signed identity/workload checks preserve API keys, labels and deployment history. A durable owner-only journal permits interrupted local commits to finish without repeating remote requests. Uncertain cloud operations remain blocked; no VM is created, deleted, updated or started by reconnect.",
+        "everycli reconnect and Worker \u2192 Reconnect profile recover superseded local miner authorization with proof from the same hotkey and confirmation. Exact signed identity/workload checks preserve API keys, labels and deployment history. A durable owner-only journal permits interrupted local commits to finish without repeating remote requests. Uncertain cloud operations remain blocked; no VM is created, deleted, updated or started by reconnect.",
         "Coordinator HTTP 401 now identifies rejected miner authorization separately from Phala credential errors, with clock-check and reconnect guidance."
       ],
       "workerUpdate": "not_required",
@@ -436,7 +436,7 @@
       "version": "v0.6.2",
       "title": "CLI improvements",
       "changes": [
-        "Adds the Fal-backed FLUX 3 Max video contract: 5–20 seconds, 720p/1080p, landscape/portrait/square formats, generated audio, and first/last images.",
+        "Adds the Fal-backed FLUX 3 Max video contract: 5\u201320 seconds, 720p/1080p, landscape/portrait/square formats, generated audio, and first/last images.",
         "Uses FLUX-specific fields and low reasoning effort, not H3 request defaults.",
         "Reference video/audio and unordered image sets are rejected before billing."
       ],
@@ -619,7 +619,7 @@
       "title": "Pika H3 Flex",
       "changes": [
         "Adds the Pika API provider to everycli and the attested worker, including key validation and spendable USD balances in the CLI and browser UI.",
-        "Supports 5–15-second text, first/last-frame and image/video/audio reference generation with native audio. 480p/768p are native; 1080p, 2K and 4K use Pika's upscaler.",
+        "Supports 5\u201315-second text, first/last-frame and image/video/audio reference generation with native audio. 480p/768p are native; 1080p, 2K and 4K use Pika's upscaler.",
         "Uses Pika's exact aspect-ratio buckets and frame-grid duration when validating output and quoting miner work."
       ],
       "workerUpdate": "conditional",
@@ -850,10 +850,23 @@
       "changes": [
         "Redesigned miner dashboard, live startup checks, a health ring, clearer progress and a new EveryFrame Miner icon.",
         "Show every release between the installed and target CLI versions, with conditional worker-update and other follow-up steps.",
-        "Retain successful update history for dashboard notifications and automatic-update status."
+        "Retain successful update history for dashboard notifications and automatic-update status.",
+        "Add Gemini Omni 1.2 Flash through Google directly, Fal and OpenRouter, with native Google routing first when the request is compatible.",
+        "Add the separate MiniMax H3 offer through OpenRouter. Existing worker images and model offers remain unchanged until explicitly updated."
       ],
-      "workerUpdate": "not_required",
-      "actions": []
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If serving Gemini Omni 1.2 Flash or the new OpenRouter H3 contract, install the compatible signed worker after its release."
+        },
+        {
+          "kind": "review-offers",
+          "requirement": "conditional",
+          "when": "If adopting the new models, review their pricing and explicitly enable the offers you want to serve."
+        }
+      ]
     }
   ]
 }
