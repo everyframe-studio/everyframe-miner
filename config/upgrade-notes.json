@@ -852,14 +852,15 @@
         "Show every release between the installed and target CLI versions, with conditional worker-update and other follow-up steps.",
         "Retain successful update history for dashboard notifications and automatic-update status.",
         "Add Gemini Omni 1.2 Flash through Google directly, Fal and OpenRouter, with native Google routing first when the request is compatible.",
-        "Add the separate MiniMax H3 offer through OpenRouter. Existing worker images and model offers remain unchanged until explicitly updated."
+        "Add the separate MiniMax H3 offer through OpenRouter. Existing worker images and model offers remain unchanged until explicitly updated.",
+        "Report provider-defined failure codes and messages, including unfamiliar reasons, for API and website explanations with credential redaction."
       ],
       "workerUpdate": "conditional",
       "actions": [
         {
           "kind": "worker-update",
           "requirement": "conditional",
-          "when": "If serving Gemini Omni 1.2 Flash or the new OpenRouter H3 contract, install the compatible signed worker after its release."
+          "when": "If serving Gemini Omni 1.2 Flash or OpenRouter H3, or enabling provider error-message reporting, install the compatible signed worker after its release."
         },
         {
           "kind": "review-offers",
