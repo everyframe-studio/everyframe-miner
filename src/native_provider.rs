@@ -252,7 +252,13 @@ impl Router<'_> {
         }
         let data = self.native_read(reference, spec, model)?;
         let state = native_media::state(spec, id, &data)?;
-        need(state != "FAILED", "provider_generation_failed")?;
+        if state == "FAILED" {
+            return Err(self.provider_failure(
+                Error("provider_generation_failed"),
+                s(&model["provider"])?,
+                &data,
+            ));
+        }
         Ok(state.into())
     }
     pub(crate) fn native_result(

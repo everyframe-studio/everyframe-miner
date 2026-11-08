@@ -100,6 +100,61 @@ pub fn pika_http_error(status: u16, bytes: &[u8]) -> crate::Error {
     }
     crate::diagnostics::http_error(status)
 }
+/// Hosts whose 4xx error bodies are read for a refusal code. The failure code
+/// itself still comes from the status (or the provider-specific parsers above).
+pub const PROVIDER_ERROR_HOSTS: &[&str] = &[
+    "openrouter.ai",
+    "api.openai.com",
+    "api.x.ai",
+    "agents.lumalabs.ai",
+    "api.minimax.io",
+    "api.bfl.ai",
+    "api.replicate.com",
+    "generativelanguage.googleapis.com",
+    "api.dev.runwayml.com",
+    "api.lumalabs.ai",
+    "api.elevenlabs.io",
+];
+/// Tags a provider's 4xx failure with the refusal its body states. A 5xx, a
+/// timeout or a rate limit stays untagged: those are not the provider's verdict
+/// on the request.
+pub fn with_body_refusal(
+    error: crate::Error,
+    status: u16,
+    host: &str,
+    bytes: &[u8],
+) -> crate::Error {
+    with_body_provider_error(error, status, host, bytes, &[])
+}
+pub fn with_body_provider_error(
+    error: crate::Error,
+    status: u16,
+    host: &str,
+    bytes: &[u8],
+    secrets: &[String],
+) -> crate::Error {
+    if bytes.len() > 64000 {
+        return error;
+    }
+    let value = serde_json::from_slice::<serde_json::Value>(bytes)
+        .unwrap_or_else(|_| serde_json::Value::String(String::from_utf8_lossy(bytes).into_owned()));
+    let refusal = if (400..500).contains(&status) && !matches!(status, 408 | 429) {
+        crate::providers::refusal(
+            if host == "api.dev.pika.art" {
+                "pika"
+            } else {
+                ""
+            },
+            &value,
+        )
+    } else {
+        None
+    };
+    error
+        .with_refusal(refusal)
+        .with_provider_error(crate::provider_error::extract(&value, secrets))
+}
+
 /// Only the documented account-lock billing response is safe to fail over.
 /// Generic 403 (including moderation) and 5xx are deliberately not reclassified.
 pub fn fal_http_error(status: u16, bytes: &[u8]) -> crate::Error {

@@ -25,6 +25,7 @@ pub mod network;
 pub mod offer_catalog;
 pub mod onboarding;
 pub mod protocol;
+pub mod provider_error;
 pub mod providers;
 pub mod reconnect;
 mod schema_provider;
@@ -46,6 +47,13 @@ pub enum ErrorContext {
     File(std::path::PathBuf),
     Option(String),
     Command(String),
+    /// Why a provider refused a job, as a fixed code from
+    /// `providers::refusal`. Never provider text.
+    Refusal(&'static str),
+    Provider {
+        refusal: Option<&'static str>,
+        detail: Option<provider_error::ProviderError>,
+    },
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Failure(pub &'static str, pub Option<ErrorContext>);
@@ -68,6 +76,40 @@ impl Failure {
     pub fn command(mut self, command: &str) -> Self {
         self.1 = Some(ErrorContext::Command(command.into()));
         self
+    }
+    /// Tags a provider failure with its refusal code. The failure code itself is
+    /// unchanged, so classification, pausing and failover behave as before.
+    pub fn with_refusal(mut self, refusal: Option<&'static str>) -> Self {
+        if let Some(r) = refusal {
+            if let Some(ErrorContext::Provider { refusal, .. }) = &mut self.1 {
+                *refusal = Some(r);
+            } else {
+                self.1 = Some(ErrorContext::Refusal(r));
+            }
+        }
+        self
+    }
+    pub fn with_provider_error(mut self, detail: Option<provider_error::ProviderError>) -> Self {
+        if detail.is_some() {
+            self.1 = Some(ErrorContext::Provider {
+                refusal: self.refusal(),
+                detail,
+            });
+        }
+        self
+    }
+    pub fn provider_error(&self) -> Option<&provider_error::ProviderError> {
+        match &self.1 {
+            Some(ErrorContext::Provider { detail, .. }) => detail.as_ref(),
+            _ => None,
+        }
+    }
+    pub fn refusal(&self) -> Option<&'static str> {
+        match &self.1 {
+            Some(ErrorContext::Refusal(r)) => Some(*r),
+            Some(ErrorContext::Provider { refusal, .. }) => *refusal,
+            _ => None,
+        }
     }
 }
 impl std::fmt::Display for Error {
