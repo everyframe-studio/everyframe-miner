@@ -132,6 +132,24 @@ fn fields(
 pub fn extract(data: &Value, secrets: &[String]) -> Option<ProviderError> {
     let (mut codes, mut messages) = (vec![], vec![]);
     fields(data, 0, &mut 128, &mut codes, &mut messages);
+    if codes.is_empty() {
+        for status in [&data["error"]["status"], &data["status"], &data["state"]] {
+            if let Some(status) = status.as_str()
+                && ![
+                    "failed",
+                    "error",
+                    "cancelled",
+                    "incomplete",
+                    "requires_action",
+                    "requires_continuation",
+                ]
+                .contains(&status.to_ascii_lowercase().as_str())
+            {
+                codes.push(status.to_owned());
+                break;
+            }
+        }
+    }
     let (code, code_cut) = clean(codes.first().map_or("", String::as_str), 128, secrets);
     let mut unique = vec![];
     for message in messages {
