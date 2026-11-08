@@ -303,7 +303,11 @@ impl Router<'_> {
             return match d["status"].as_str() {
                 Some("PENDING" | "THROTTLED" | "RUNNING") => Ok("IN_PROGRESS".into()),
                 Some("SUCCEEDED") => Ok("COMPLETED".into()),
-                Some("FAILED" | "CANCELLED") => Err(Error("provider_generation_failed")),
+                Some("FAILED" | "CANCELLED") => Err(self.provider_failure(
+                    Error("provider_generation_failed"),
+                    s(&model["provider"])?,
+                    &d,
+                )),
                 _ => Err(Error("invalid_provider_status")),
             };
         }
@@ -311,7 +315,11 @@ impl Router<'_> {
             return match d["state"].as_str() {
                 Some("queued" | "processing") => Ok("IN_PROGRESS".into()),
                 Some("completed") => Ok("COMPLETED".into()),
-                Some("failed") => Err(Error("provider_generation_failed")),
+                Some("failed") => Err(self.provider_failure(
+                    Error("provider_generation_failed"),
+                    s(&model["provider"])?,
+                    &d,
+                )),
                 _ => Err(Error("invalid_provider_status")),
             };
         }
@@ -324,7 +332,11 @@ impl Router<'_> {
             return match status.as_str() {
                 Some("succeed" | "succeeded") => Ok("COMPLETED".into()),
                 Some("submitted" | "processing") => Ok("IN_PROGRESS".into()),
-                Some("failed") => Err(Error("provider_generation_failed")),
+                Some("failed") => Err(self.provider_failure(
+                    Error("provider_generation_failed"),
+                    s(&model["provider"])?,
+                    &d,
+                )),
                 _ => Err(Error("invalid_provider_status")),
             };
         }
@@ -332,11 +344,17 @@ impl Router<'_> {
             return match d["status"].as_str() {
                 Some("succeeded") => Ok("COMPLETED".into()),
                 Some("queued" | "running") => Ok("IN_PROGRESS".into()),
-                Some("failed" | "cancelled") => Err(Error("provider_generation_failed")),
+                Some("failed" | "cancelled") => Err(self.provider_failure(
+                    Error("provider_generation_failed"),
+                    s(&model["provider"])?,
+                    &d,
+                )),
                 _ => Err(Error("invalid_provider_status")),
             };
         }
-        crate::bfl::poll_status(&d["status"]).map(str::to_owned)
+        crate::bfl::poll_status(&d["status"])
+            .map(str::to_owned)
+            .map_err(|e| self.provider_failure(e, s(&model["provider"]).unwrap_or(""), &d))
     }
     pub(crate) fn schema_result(
         &self,

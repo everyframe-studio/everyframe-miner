@@ -41,7 +41,7 @@ fn provider_failures_map_to_fixed_categories() {
 }
 
 #[test]
-fn reports_never_carry_free_text() {
+fn routing_categories_remain_fixed_when_provider_text_is_unrecognized() {
     for reason in [
         "provider_content_rejected",
         "vivix_billing_required",

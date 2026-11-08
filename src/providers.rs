@@ -62,6 +62,24 @@ fn bfl_ref(r: &str) -> Result<(String, String)> {
     )
 }
 impl<'a> Router<'a> {
+    pub(crate) fn provider_failure(
+        &self,
+        error: crate::Error,
+        provider: &str,
+        data: &Value,
+    ) -> crate::Error {
+        let secrets: Vec<String> = self
+            .credentials
+            .as_object()
+            .into_iter()
+            .flat_map(|v| v.values())
+            .filter_map(Value::as_str)
+            .map(str::to_owned)
+            .collect();
+        error
+            .with_refusal(refusal(provider, data))
+            .with_provider_error(crate::provider_error::extract(data, &secrets))
+    }
     pub(crate) fn guard_submission(&self, req: &mut Request) -> Result<()> {
         if let Some(deadline) = self.submission_deadline {
             need(crate::now() < deadline, "submission_deadline_elapsed")?;
@@ -131,10 +149,11 @@ impl<'a> Router<'a> {
         let data = self.http.json(req)?;
         if p == "pika" && body.is_some() {
             if data["status"] == "failed" {
-                return Err(crate::submission::pika_error(
-                    data["error"]["code"].as_str().unwrap_or(""),
-                )
-                .with_refusal(refusal("pika", &data)));
+                return Err(self.provider_failure(
+                    crate::submission::pika_error(data["error"]["code"].as_str().unwrap_or("")),
+                    p,
+                    &data,
+                ));
             }
             need(
                 matches!(
@@ -164,22 +183,26 @@ impl<'a> Router<'a> {
                 .as_i64()
                 .ok_or(Error("invalid_provider_response"))?;
             if code != 0 {
-                return Err(Error(match code {
-                    10001 | 10003 => "vivix_auth_rejected",
-                    10004 | 10005 => "vivix_billing_required",
-                    10008 | 30008 => "vivix_capacity_limited",
-                    20004 => "vivix_invalid_parameters",
-                    20005 => "vivix_job_not_found",
-                    30001 => "vivix_content_rejected",
-                    50001 | 50003 => "vivix_unavailable",
-                    _ => "provider_rejected",
-                }));
+                return Err(self.provider_failure(
+                    Error(match code {
+                        10001 | 10003 => "vivix_auth_rejected",
+                        10004 | 10005 => "vivix_billing_required",
+                        10008 | 30008 => "vivix_capacity_limited",
+                        20004 => "vivix_invalid_parameters",
+                        20005 => "vivix_job_not_found",
+                        30001 => "vivix_content_rejected",
+                        50001 | 50003 => "vivix_unavailable",
+                        _ => "provider_rejected",
+                    }),
+                    p,
+                    &data,
+                ));
             }
             need(data["data"].is_object(), "invalid_provider_response")?;
             return Ok(data["data"].clone());
         }
-        if p == "minimax" {
-            need(data["base_resp"]["status_code"] == 0, "provider_rejected")?
+        if p == "minimax" && data["base_resp"]["status_code"] != 0 {
+            return Err(self.provider_failure(Error("provider_rejected"), p, &data));
         };
         Ok(data)
     }
@@ -894,7 +917,12 @@ impl Provider for Router<'_> {
             return self.native_poll(r, spec, m);
         }
         if p == "google" && m["interaction"] == true {
-            return Ok(crate::google::state(&self.google_read(r, spec, m)?)?.into());
+            let data = self.google_read(r, spec, m)?;
+            let state = crate::google::state(&data)?;
+            if state == "FAILED" {
+                return Err(self.provider_failure(Error(failure_category(&p, &data)), &p, &data));
+            }
+            return Ok(state.into());
         }
         if r.starts_with("openrouter_sync_") {
             need(
@@ -914,8 +942,8 @@ impl Provider for Router<'_> {
         let state = Self::state(&p, &data)?;
         if state == "FAILED" {
             // Report a fixed category so the coordinator can tell a content block
-            // from a billing or provider fault. Provider text never leaves the TEE.
-            return Err(Error(failure_category(&p, &data)).with_refusal(refusal(&p, &data)));
+            // from a billing or provider fault. Diagnostic text is separately redacted.
+            return Err(self.provider_failure(Error(failure_category(&p, &data)), &p, &data));
         }
         Ok(state.into())
     }
@@ -993,7 +1021,7 @@ impl Provider for Router<'_> {
         if p == "fal" {
             let data = self.api(&p, &format!("/{}/requests/{r}", s(&m["app"])?), None)?;
             if !(data["error"].is_null() && data["detail"].is_null()) {
-                return Err(Error(failure_category(&p, &data)).with_refusal(refusal(&p, &data)));
+                return Err(self.provider_failure(Error(failure_category(&p, &data)), &p, &data));
             }
             let url = match m["kind"].as_str() {
                 Some("image") => {
@@ -1172,7 +1200,7 @@ impl Provider for Router<'_> {
 }
 
 /// Classifies a provider's failure payload into one of the categories the
-/// coordinator accepts. Only the category is reported, never provider text.
+/// coordinator accepts. Diagnostic wording is reported separately and never changes it.
 pub fn failure_category(provider: &str, data: &Value) -> &'static str {
     if provider == "pika" {
         // Only documented machine codes classify Pika errors. Prompt-influenced
@@ -1256,7 +1284,7 @@ pub fn failure_category(provider: &str, data: &Value) -> &'static str {
 
 /// Why a provider refused a job, as one of the coordinator's fixed refusal codes
 /// (real_person, copyright, reference_too_small, prompt_too_long, content_policy).
-/// Only the code leaves the TEE, and it never changes the failure category, so
+/// This code never changes the failure category, so
 /// pausing and failover decide exactly as before. Matching reads the provider's
 /// error fields only (never request echoes such as input or loc); an error that
 /// quotes the prompt can at worst pick a different fixed customer message.
@@ -1365,7 +1393,7 @@ fn structured_failure_category(code: &str) -> Option<&'static str> {
 
 /// Visit only error schema fields, never arbitrary provider JSON or echoed
 /// request values. Bounds also prevent unusually nested errors from dominating
-/// classification work. All collected text stays local; only fixed codes leave.
+/// classification work. Reportable text is separately bounded and redacted.
 fn failure_fields(data: &Value, depth: usize, codes: &mut Vec<String>, messages: &mut Vec<String>) {
     if depth > 8 || codes.len() + messages.len() >= 128 {
         return;

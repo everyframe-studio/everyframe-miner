@@ -35,6 +35,8 @@ struct Options {
     refusal: Option<&'static str>,
     /// Behave like a coordinator without refusal support.
     refuse_refusal_field: bool,
+    provider_message: Option<&'static str>,
+    refuse_provider_error_field: bool,
 }
 struct Fixture {
     key: Keys,
@@ -156,6 +158,11 @@ impl Runtime for Handle {
                         self.rejections
                             .borrow_mut()
                             .push(request["payload"].clone());
+                        if self.options.refuse_provider_error_field
+                            && request["payload"].get("providerError").is_some()
+                        {
+                            return Err(Error("http_400"));
+                        }
                         if self.options.refuse_refusal_field
                             && request["payload"].get("refusal").is_some()
                         {
@@ -171,6 +178,11 @@ impl Runtime for Handle {
                     "failed" => {
                         let mut reports = self.failure_reports.borrow_mut();
                         reports.push(request["payload"].clone());
+                        if self.options.refuse_provider_error_field
+                            && request["payload"].get("providerError").is_some()
+                        {
+                            return Err(Error("http_400"));
+                        }
                         if self.options.refuse_refusal_field
                             && request["payload"].get("refusal").is_some()
                         {
@@ -206,7 +218,14 @@ impl Provider for Handle {
         std::thread::sleep(std::time::Duration::from_millis(self.options.blocking_ms));
         self.submits.set(self.submits.get() + 1);
         if let Some(code) = self.options.submit_code {
-            Err(Error(code).with_refusal(self.options.refusal))
+            Err(Error(code)
+                .with_refusal(self.options.refusal)
+                .with_provider_error(self.options.provider_message.and_then(|message| {
+                    everyframe_miner::provider_error::extract(
+                        &json!({"code":"NEW_PROVIDER_CODE","message":message}),
+                        &[],
+                    )
+                })))
         } else if self.options.submit_error {
             Err(Error("ambiguous"))
         } else {
@@ -216,7 +235,14 @@ impl Provider for Handle {
     fn poll(&mut self, _: &str, _: &Value) -> Result<String> {
         std::thread::sleep(std::time::Duration::from_millis(self.options.blocking_ms));
         if let Some(code) = self.options.poll_error {
-            return Err(Error(code).with_refusal(self.options.refusal));
+            return Err(Error(code)
+                .with_refusal(self.options.refusal)
+                .with_provider_error(self.options.provider_message.and_then(|message| {
+                    everyframe_miner::provider_error::extract(
+                        &json!({"code":"NEW_PROVIDER_CODE","message":message}),
+                        &[],
+                    )
+                })));
         }
         Ok(if self.options.failed {
             "FAILED"
@@ -889,4 +915,95 @@ fn an_older_coordinator_still_gets_the_category_without_the_refusal() {
         reports[1],
         json!({"attemptId":"attempt","reason":"provider_content_rejected"})
     );
+}
+
+#[test]
+fn unknown_provider_messages_are_signed_and_survive_report_transport_retries() {
+    let (mut w, f) = fixture(
+        Options {
+            submit_code: Some("http_422"),
+            provider_message: Some("A new anchor restriction"),
+            report_failures: 2,
+            ..Default::default()
+        },
+        json!({}),
+    );
+    assert_eq!(w.step().unwrap()["state"], "rejected");
+    assert_eq!(f.submits.get(), 1);
+    let reports = f.rejections.borrow();
+    assert_eq!(reports.len(), 3);
+    for report in reports.iter() {
+        assert_eq!(report["reason"], "provider_invalid_request");
+        assert_eq!(report["providerError"]["code"], "NEW_PROVIDER_CODE");
+        assert_eq!(
+            report["providerError"]["message"],
+            "A new anchor restriction"
+        );
+    }
+}
+#[test]
+fn failed_generations_preserve_provider_text_without_changing_failure_or_resubmitting() {
+    let (mut w, f) = fixture(
+        Options {
+            poll_error: Some("provider_generation_failed"),
+            provider_message: Some("Unknown provider policy"),
+            failed_report_failures: 1,
+            ..Default::default()
+        },
+        json!({}),
+    );
+    assert_eq!(w.step().unwrap()["state"], "failed");
+    assert_eq!(f.submits.get(), 1);
+    let reports = f.failure_reports.borrow();
+    assert_eq!(reports.len(), 2);
+    for report in reports.iter() {
+        assert_eq!(
+            report["providerError"]["message"],
+            "Unknown provider policy"
+        );
+    }
+}
+#[test]
+fn older_coordinators_can_decline_the_message_without_changing_the_failure_category() {
+    for failed in [false, true] {
+        let (mut w, f) = fixture(
+            Options {
+                submit_code: (!failed).then_some("http_422"),
+                poll_error: failed.then_some("provider_generation_failed"),
+                provider_message: Some("Unfamiliar rejection"),
+                refuse_provider_error_field: true,
+                refusal: Some("content_policy"),
+                ..Default::default()
+            },
+            json!({}),
+        );
+        let _ = w.step().unwrap();
+        assert_eq!(f.submits.get(), 1);
+        let reports = if failed {
+            f.failure_reports.borrow()
+        } else {
+            f.rejections.borrow()
+        };
+        assert_eq!(reports.len(), 2);
+        assert!(reports[0].get("providerError").is_some());
+        assert!(reports[1].get("providerError").is_none());
+        assert_eq!(reports[0]["reason"], reports[1]["reason"]);
+        assert_eq!(reports[1]["refusal"], "content_policy");
+    }
+}
+#[test]
+fn uncertain_submissions_keep_provider_diagnostics_without_claiming_a_confirmed_refusal() {
+    let (mut w, f) = fixture(
+        Options {
+            submit_code: Some("request_timeout"),
+            provider_message: Some("A provider explanation on an uncertain transport"),
+            ..Default::default()
+        },
+        json!({}),
+    );
+    assert_eq!(w.step().unwrap()["state"], "unknown");
+    for report in f.rejections.borrow().iter() {
+        assert!(report.get("providerError").is_some());
+        assert!(report.get("refusal").is_none());
+    }
 }

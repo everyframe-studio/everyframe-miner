@@ -330,6 +330,7 @@ impl Http for PublicHttp {
                         | "api-singapore.klingai.com"
                         | "api.dev.pika.art"
                 ) || crate::submission::PROVIDER_ERROR_HOSTS.contains(&host)
+                    || host.starts_with("api.") && host.ends_with(".bfl.ai")
                 {
                     let status = response.status().as_u16();
                     let mut bytes = Vec::new();
@@ -346,8 +347,18 @@ impl Http for PublicHttp {
                         "api.vivix.ai" => crate::submission::vivix_http_error(status, &bytes),
                         _ => crate::diagnostics::http_error(status),
                     };
-                    return Err(crate::submission::with_body_refusal(
-                        error, status, host, &bytes,
+                    let secrets: Vec<String> = r
+                        .headers
+                        .iter()
+                        .flat_map(|(_, v)| {
+                            [
+                                v.clone(),
+                                v.split_once(' ').map_or(v.as_str(), |(_, s)| s).to_owned(),
+                            ]
+                        })
+                        .collect();
+                    return Err(crate::submission::with_body_provider_error(
+                        error, status, host, &bytes, &secrets,
                     ));
                 }
                 return Err(crate::diagnostics::http_error(response.status().as_u16()));
