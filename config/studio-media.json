@@ -395,7 +395,7 @@
   "studio/media/openrouter/openai/gpt-image-2.6-sunburst": {
     "provider": "openrouter",
     "apiModel": "openai/gpt-image-2.6-sunburst",
-    "name": "GPT Image 2.6 Sunburst",
+    "name": "GPT Image 2.6 Sunburst (Studio)",
     "kind": "image",
     "maxReferences": 16,
     "path": "/api/v1/images",
@@ -429,7 +429,7 @@
   "studio/media/openrouter/openai/gpt-image-2.6-flare": {
     "provider": "openrouter",
     "apiModel": "openai/gpt-image-2.6-flare",
-    "name": "GPT Image 2.6 Flare",
+    "name": "GPT Image 2.6 Flare (Studio)",
     "kind": "image",
     "maxReferences": 16,
     "path": "/api/v1/images",
