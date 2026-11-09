@@ -531,6 +531,69 @@ pub fn render(command: &str, value: &Value) -> String {
     }
     let rows = |key: &str| value[key].as_array().cloned().unwrap_or_default();
     match command {
+        "auto-offers" => {
+            if value["preview"]["rows"].is_array() {
+                let data = value["preview"]["rows"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|r| {
+                        vec![
+                            text(&r["model"]),
+                            text(&r["status"]),
+                            r["estimatedCostMicrousd"]
+                                .as_u64()
+                                .map(|v| format!("${:.6}", v as f64 / 1e6))
+                                .unwrap_or_else(|| "—".into()),
+                            r["discountBp"]
+                                .as_u64()
+                                .map(|v| format!("{:.2}%", v as f64 / 100.))
+                                .unwrap_or_else(|| "—".into()),
+                            text(&r["reason"]),
+                        ]
+                    })
+                    .collect();
+                format!(
+                    "Automatic offer preview (read only)\n{}\nCosts are estimates, not bills. No offer was changed.\n",
+                    table(
+                        &["MODEL", "STATUS", "ESTIMATED COST", "DISCOUNT", "REASON"],
+                        data
+                    )
+                )
+            } else {
+                let data = value["automaticOffers"]["providers"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .flat_map(|p| {
+                        let mut rows = vec![vec![
+                            text(&p["provider"]),
+                            if p["enabled"] == true {
+                                "Enabled".into()
+                            } else {
+                                "Off".into()
+                            },
+                            format!(
+                                "${:.6} estimated exposure",
+                                p["estimatedExposureMicrousd"].as_f64().unwrap_or(0.) / 1e6
+                            ),
+                        ]];
+                        for m in p["models"].as_array().into_iter().flatten() {
+                            rows.push(vec![
+                                text(&m["model"]),
+                                text(&m["state"]),
+                                text(&m["reason"]),
+                            ]);
+                        }
+                        rows
+                    })
+                    .collect();
+                format!(
+                    "Automatic offers\n{}\nWork value is not cash or guaranteed profit. Limits cover only this policy; manual work, other account use and hosting are excluded.\n",
+                    table(&["PROVIDER / MODEL", "STATE", "DETAIL"], data)
+                )
+            }
+        }
         "terms" => format!(
             "{}\nAcceptance: {}\nHotkey: {}\nNetwork: {}\n\nRead these terms, then accept explicitly with everycli terms --accept-terms {} in the same profile.\n",
             crate::terms::TEXT,

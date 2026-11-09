@@ -254,3 +254,10 @@ input.tiny { width: 72px; }
 .card > summary { cursor: pointer; font-weight: 600; }
 .card > summary + .checks { margin-top: 14px; }
 @media (max-width: 600px) { .model-filters input, .model-filters select { flex: 1 1 100%; width: 100%; } }
+
+/* Automatic offers stay inside the existing Models layout. */
+.automatic-provider { border: 1px solid var(--line, #5555); border-radius: 8px; padding: 12px; }
+.automatic-provider summary { cursor: pointer; font-weight: 600; }
+.automatic-models { max-height: 240px; overflow-y: auto; margin: 12px 0; }
+.automatic-limits { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 12px 0; }
+.automatic-limits input { width: 100%; }

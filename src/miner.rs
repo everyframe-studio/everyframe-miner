@@ -322,6 +322,9 @@ impl Miner<'_> {
                 "resume",
                 "offer",
                 "offer-batch",
+                "automatic-offers",
+                "automatic-offers-preview",
+                "automatic-offers-policy",
                 "bind-app",
                 "balances",
                 "worker-update",
@@ -353,6 +356,7 @@ impl Miner<'_> {
             "worker-update",
             "jobs",
             "worker-auto-update",
+            "automatic-offers",
         ]
         .contains(&action)
         {
@@ -950,7 +954,7 @@ impl Miner<'_> {
                 .iter()
                 .find(|e| e["model"] == model)
                 .ok_or(Error("model_not_allowed"))?;
-            if (withdraw && entry["offered"] != true)
+            if (withdraw && entry["offered"] != true && entry["automaticOffer"]["managed"] != true)
                 || (keep_discounts && entry["offered"] == true)
             {
                 continue;

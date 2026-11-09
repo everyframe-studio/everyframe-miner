@@ -1,4 +1,5 @@
 pub mod auto_update;
+pub mod automatic_offers;
 pub mod balances;
 pub mod bfl;
 pub mod cli;
@@ -25,6 +26,7 @@ pub mod network;
 pub mod offer_catalog;
 pub mod onboarding;
 pub mod protocol;
+pub mod provider_prices;
 pub mod providers;
 pub mod reconnect;
 mod schema_provider;
@@ -38,6 +40,7 @@ pub mod worker;
 pub mod worker_auto_update;
 pub mod worker_balances;
 pub mod worker_heartbeat;
+pub mod worker_pricing;
 pub mod worker_update;
 pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug, Clone, PartialEq, Eq)]

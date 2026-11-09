@@ -35,7 +35,7 @@ hash requires a new acceptance. Existing records are preserved. Change the terms
 version whenever changing the agreement text.
 
 Missing acceptance blocks enrollment, deployment, starting, key activation,
-resuming and publishing or updating offers through this CLI. It does not stop
+resuming, publishing or updating offers, and enabling automatic offers through this CLI. It does not stop
 an already-running worker or prevent reading status, recovery, stopping, deleting,
 removing credentials or withdrawing offers. Acceptance itself makes no provider or
 cloud request and does not change keys, offers or worker state.

@@ -83,6 +83,9 @@ pub fn offers(status: &Value, invitation: &Value, credentials: &Value) -> Value 
 }
 
 pub fn readiness(row: &Value) -> &'static str {
+    if row["automaticOffer"]["managed"] == true && row["automaticOffer"]["state"] != "active" {
+        return "Automatic offers paused";
+    }
     for key in ["providerAvailability", "workerAvailability"] {
         if let Some(status) = row[key]["status"].as_str()
             && [

@@ -4466,3 +4466,185 @@ fn manual_controller_migration_requires_explicit_consent_before_any_mutation() {
     assert_eq!(r.state().read("deployment", false).unwrap(), before);
     assert!(r.calls.borrow().iter().all(|(p, _)| p.starts_with("GET ")));
 }
+
+// These owner-policy tests use signed mock responses and never contact a
+// provider, mutate a deployment or submit generation work.
+struct AutomaticApi<'a> {
+    rig: &'a Rig,
+    policy: RefCell<Value>,
+    lost_ack: Cell<bool>,
+}
+impl Http for AutomaticApi<'_> {
+    fn bytes(&self, r: Request) -> Result<Vec<u8>> {
+        let url = url::Url::parse(&r.url).unwrap();
+        let path = url.path();
+        if url.host_str() == Some("api.fal.ai") {
+            self.rig
+                .calls
+                .borrow_mut()
+                .push((format!("{} {path}", r.method), "read-only-price".into()));
+            return Ok(if r.method=="GET"{json!({"has_more":false,"prices":[{"endpoint_id":"xai/grok-imagine-image","unit":"images","currency":"USD"}]})}else{json!({"estimate_type":"unit_price","currency":"USD","total_cost":"0.01"})}.to_string().into_bytes());
+        }
+        if !path.contains("automatic-offers") {
+            return self.rig.bytes(r);
+        }
+        self.rig
+            .calls
+            .borrow_mut()
+            .push((format!("{} {path}", r.method), "owner-policy".into()));
+        let body: Value = r
+            .body
+            .as_ref()
+            .map(|b| serde_json::from_slice(b).unwrap())
+            .unwrap_or(Value::Null);
+        assert!(!body.to_string().contains("synthetic-provider-key"));
+        let action = path.rsplit('/').next().unwrap();
+        let nonce = if r.method == "GET" {
+            json!(url.query_pairs().find(|(k, _)| k == "nonce").unwrap().1)
+        } else {
+            body["nonce"].clone()
+        };
+        let mut out = json!({"protocol":1,"action":action,"nonce":nonce,"at":now(),"minerId":"test-miner","activeJobs":0,"draining":false});
+        if action == "automatic-offers-preview" {
+            out["preview"] = json!({"rows":[{"model":"studio/media/fal/xai/grok-imagine-image","status":"ready","estimatedCostMicrousd":10000,"discountBp":2000}]});
+        } else {
+            if action == "automatic-offers-policy" {
+                let revision = self.policy.borrow()["revision"].as_u64().unwrap_or(0);
+                assert_eq!(body["expectedPolicyRevision"], revision);
+                *self.policy.borrow_mut() = json!({"provider":"fal","revision":revision+1,"enabled":body["enabled"],"policy":body["policy"],"models":[]});
+                if self.lost_ack.get() {
+                    return Err(Error("ambiguous_network_error"));
+                }
+            }
+            out["automaticOffers"] = json!({"providers":[if self.policy.borrow().is_null(){json!({"provider":"fal","revision":0,"enabled":false,"policy":null})}else{self.policy.borrow().clone()}]});
+            out["catalog"] = json!([{"model":"studio/media/fal/xai/grok-imagine-image","provider":"fal","apiModel":"xai/grok-imagine-image","supported":true,"pricingHash":"a".repeat(64),"expectedRevision":0}]);
+        }
+        Ok(self.rig.sign(&out).to_string().into_bytes())
+    }
+}
+fn automatic_args(action: &str) -> everyframe_miner::cli::Args {
+    everyframe_miner::cli::parse(
+        &[
+            "auto-offers",
+            action,
+            "--provider",
+            "fal",
+            "--models",
+            "studio/media/fal/xai/grok-imagine-image",
+            "--max-discount-pct",
+            "20",
+            "--max-daily-usd",
+            "1",
+            "--max-job-usd",
+            "0.1",
+        ]
+        .map(str::to_owned),
+    )
+    .unwrap()
+}
+#[test]
+fn automatic_owner_preview_and_decline_do_not_change_offers_or_worker() {
+    let rig = Rig::new();
+    let api = AutomaticApi {
+        rig: &rig,
+        policy: RefCell::new(Value::Null),
+        lost_ack: Cell::new(false),
+    };
+    let mut miner = rig.miner();
+    miner.http = &api;
+    let preview = miner
+        .automatic_offers(&automatic_args("--preview"), &|_| {
+            panic!("Preview must not request permission")
+        })
+        .unwrap();
+    assert_eq!(preview["preview"]["rows"][0]["status"], "ready");
+    assert!(api.policy.borrow().is_null());
+    let question = RefCell::new(String::new());
+    assert_eq!(
+        miner
+            .automatic_offers(&automatic_args("--enable"), &|q| {
+                *question.borrow_mut() = q.into();
+                Err(Error("declined"))
+            })
+            .unwrap_err()
+            .0,
+        "declined"
+    );
+    assert!(question.borrow().contains("rolling 24 hours"));
+    assert!(
+        question
+            .borrow()
+            .contains("studio/media/fal/xai/grok-imagine-image")
+    );
+    assert!(api.policy.borrow().is_null());
+    assert!(rig.envs.borrow().is_empty());
+    assert!(
+        !rig.calls
+            .borrow()
+            .iter()
+            .any(|(c, _)| c.ends_with("automatic-offers-policy"))
+    );
+}
+#[test]
+fn lost_automatic_policy_ack_is_reconciled_by_read_without_replaying_mutation() {
+    let rig = Rig::new();
+    let api = AutomaticApi {
+        rig: &rig,
+        policy: RefCell::new(Value::Null),
+        lost_ack: Cell::new(true),
+    };
+    let mut miner = rig.miner();
+    miner.http = &api;
+    assert_eq!(
+        miner
+            .automatic_offers(&automatic_args("--enable"), &|_| Ok(()))
+            .unwrap_err()
+            .0,
+        "automatic_offer_result_unknown"
+    );
+    assert_eq!(api.policy.borrow()["enabled"], true);
+    let read = everyframe_miner::cli::parse(&["auto-offers".into()]).unwrap();
+    let status = miner
+        .automatic_offers(&read, &|_| panic!("Status never mutates"))
+        .unwrap();
+    assert_eq!(status["automaticOffers"]["providers"][0]["revision"], 1);
+    assert_eq!(
+        rig.calls
+            .borrow()
+            .iter()
+            .filter(|(c, _)| c.ends_with("automatic-offers-policy"))
+            .count(),
+        1
+    );
+    assert!(rig.envs.borrow().is_empty());
+}
+#[test]
+fn automatic_policy_enable_checks_ack_and_disable_withdraws_managed_scope() {
+    let rig = Rig::new();
+    let api = AutomaticApi {
+        rig: &rig,
+        policy: RefCell::new(Value::Null),
+        lost_ack: Cell::new(false),
+    };
+    let mut miner = rig.miner();
+    miner.http = &api;
+    let enabled = miner
+        .automatic_offers(&automatic_args("--enable"), &|_| Ok(()))
+        .unwrap();
+    assert_eq!(enabled["automaticOffers"]["providers"][0]["enabled"], true);
+    let args = everyframe_miner::cli::parse(
+        &["auto-offers", "--disable", "--provider", "fal"].map(str::to_owned),
+    )
+    .unwrap();
+    let disabled = miner
+        .automatic_offers(&args, &|q| {
+            assert!(q.contains("only models still managed"));
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(
+        disabled["automaticOffers"]["providers"][0]["enabled"],
+        false
+    );
+    assert_eq!(disabled["automaticOffers"]["providers"][0]["revision"], 2);
+}

@@ -5,6 +5,7 @@
 // Only non-secret model notification acknowledgments are kept in localStorage.
 
 const S = {
+  autoOffers: null, autoError: null, autoBusy: false, autoRequest: 0, autoDrafts: new Map(), autoExpanded: new Set(),
   termsDraft: null,
   token: null, session: null, overview: null, wallets: null, help: null,
   health: null, healthAt: 0, offers: null, offersError: null, balances: null, earnings: null,
@@ -74,6 +75,7 @@ const LABELS = {
   "terms-accept": "Accept Miner Terms",
   "worker-update-check": "Check for worker update", "cli-update-check": "Check for CLI update", "init": "Create miner profile",
   "offer": "Update model offer", "deploy": "Deploy worker", "start": "Start worker", "activate": "Activate keys",
+  "auto-offers-status": "Automatic offer status", "auto-offers-preview": "Provider price preview", "auto-offers-enable": "Enable automatic offers", "auto-offers-disable": "Disable automatic offers",
   "offer-batch": "Update model offers", "jobs": "Job history",
   "apply-api-keys": "Apply keys to worker", "resume": "Start accepting work", "stop": "Stop worker",
   "worker-update": "Update worker", "reconcile": "Re-sync operation", "remove-api-key": "Remove key",
@@ -86,7 +88,7 @@ const LABELS = {
 // Runs a CLI command. Questions come back to the browser; approving one re-runs
 // the command with that exact question allowed.
 async function run(action, params = {}, opts = {}) {
-  const changes = new Set(["terms-accept", "register-hotkey", "init", "reconnect", "reconcile", "offer", "offer-batch", "deploy", "start", "activate", "apply-api-keys", "resume", "stop", "label", "delete", "worker-update", "worker-update-abort", "worker-auto-enable", "worker-auto-disable", "remove-api-key", "balances-publish"]);
+  const changes = new Set(["auto-offers-enable", "auto-offers-disable", "terms-accept", "register-hotkey", "init", "reconnect", "reconcile", "offer", "offer-batch", "deploy", "start", "activate", "apply-api-keys", "resume", "stop", "label", "delete", "worker-update", "worker-update-abort", "worker-auto-enable", "worker-auto-disable", "remove-api-key", "balances-publish"]);
   if (changes.has(action) && action !== "reconcile" && !(action === "stop" && params.force) && S.pendingOperations.size) {
     const job = { state: "unknown", result: { error: { code: "ui_operation_unconfirmed", message: "Check the existing operation before starting another change." } } };
     if (!opts.quiet) Activity.add(opts.label || LABELS[action] || action).finish(job);
@@ -1216,7 +1218,7 @@ function pageModels() {
     h("option", { value: "" }, "All providers"), providers.map(p => h("option", { value: p }, providerName(p)))); provider.value = S.modelProvider;
   const kind = h("select", { "aria-label": "Filter model type", disabled: S.batchBusy, onchange: e => { S.modelKind = e.target.value; patchModels(); } },
     h("option", { value: "" }, "All types"), ["video", "image", "audio"].map(v => h("option", { value: v }, v[0].toUpperCase() + v.slice(1)))); kind.value = S.modelKind;
-  if (S.overview?.initialized) root.append(providerOffersCard());
+  if (S.overview?.initialized) root.append(providerOffersCard(), automaticOffersCard());
   if (S.offerFilter === "not-offered") root.append(notice("", "Models without an active offer", "New models start at 0% discount. Review a model and turn its offer on when you want to serve it."));
   if (S.offerFilter === "candidate") root.append(notice("", "Not available for new offers", "These models need attention before they can be offered. Existing offers can still be withdrawn."));
   const body = h("div", { id: "model-list" });
@@ -1255,7 +1257,7 @@ function providerOffersCard() {
     const models = rows.filter(r => r.provider === provider), active = models.filter(r => r.offered);
     const inactive = models.filter(r => !r.offered && r.catalogGroup !== "candidate" && !["removed", "deprecated"].includes(r.providerAvailability?.status));
     const eligible = inactive.filter(r => canApplyOffer(r) && r.localKeyConfigured !== false);
-    const on = active.length > 0;
+    const on = active.length > 0 || models.some(r => r.automaticOffer?.managed);
     const toggle = h("button", { type: "button", role: "switch", "aria-checked": String(on), "aria-label": providerName(provider) + " offers",
       class: "offer-switch" + (on ? " on" : ""), disabled: S.batchBusy || S.pendingOperations.size > 0 || (!on && !eligible.length),
       title: on ? "Turn off all offers for " + providerName(provider) : "Turn on eligible offers for " + providerName(provider),
@@ -1338,7 +1340,7 @@ async function changeProviderOffers(provider, enabled) {
     await loadOffers(false);
     if (S.offersError || !Array.isArray(S.offers?.offers)) throw Error("Could not refresh offers. No provider offers were changed.");
     const rows = (S.offers?.offers || []).filter(r => integratedModel(r) && r.provider === provider);
-    const changes = rows.filter(r => enabled ? !r.offered && canApplyOffer(r) && r.localKeyConfigured !== false : r.offered);
+    const changes = rows.filter(r => enabled ? !r.offered && canApplyOffer(r) && r.localKeyConfigured !== false : r.offered || r.automaticOffer?.managed);
     if (enabled) for (const row of rows.filter(r => !r.offered && !changes.includes(r))) report.push({ model: row.name || row.model, ok: false, skipped: true,
       message: "Skipped: " + (row.localKeyConfigured === false ? "No provider key saved." : offerBlocker(row) || "Not ready to offer.") });
     if (changes.length) {
@@ -1434,7 +1436,7 @@ function offerRow(r) {
   const baseMicrousd = r.baseMinerRewardMicrousd ?? r.pricing?.minerRewardMicrousd;
   const base = typeof baseMicrousd === "number" ? baseMicrousd / 1e6 : null;
   const discountLabel = ((r.discountBp || 0) / 100).toFixed(2) + "% off";
-  const yours = r.offered ? h("span", { class: "badge " + (r.pricingCurrent ? r.discountBp > 0 ? "ok" : "neutral" : "warn") }, r.pricingCurrent ? "Active · " + discountLabel : "Stale pricing")
+  const yours = r.automaticOffer?.managed ? h("span", { class: "badge " + (r.automaticOffer.state === "active" ? "info" : "warn"), title: r.automaticOffer.reason ? automaticReason(r.automaticOffer.reason) : "Uses verified price reports and your policy limits" }, r.automaticOffer.state === "active" ? "Automatic · " + discountLabel : "Automatic paused") : r.offered ? h("span", { class: "badge " + (r.pricingCurrent ? r.discountBp > 0 ? "ok" : "neutral" : "warn") }, r.pricingCurrent ? "Active · " + discountLabel : "Stale pricing")
     : modelViewLink("Not offered · " + discountLabel, "not-offered", "", { class: "badge neutral", title: "Show models without an active offer" });
   const apply = button(r.offered ? "Update" : "Offer", async () => { const job = await run("offer", { model: r.model, discountPct: disc.value }); if (job.state === "done") S.offerDrafts.delete(r.model); await loadOffers(); await loadHealth(); render(); }, "small primary");
   apply.disabled = !canApplyOffer(r); disc.disabled = !canApplyOffer(r);
@@ -1446,7 +1448,102 @@ function offerRow(r) {
     h("td", { "data-label": "Base reward" }, base != null ? fmtUsd(base, base < 1 ? 3 : 2) : "—"),
     h("td", { "data-label": "Change" }, !S.overview?.initialized ? h("a", { href: "#/setup" }, "Set up to offer") : h("div", { class: "row nowrap" }, disc, h("span", { class: "small muted" }, "% off"),
       apply,
-      r.offered ? button("Withdraw", async () => { await run("offer", { model: r.model, withdraw: true }); await loadOffers(); await loadHealth(); render(); }, "small") : null)));
+      r.offered || r.automaticOffer?.managed ? button("Withdraw", async () => { await run("offer", { model: r.model, withdraw: true }); await loadOffers(); await loadHealth(); render(); }, "small") : null)));
+}
+
+// ---------- Automatic provider-price offers (explicit opt-in) ----------
+function automaticReason(code) {
+  return ({ automatic_offer_price_unavailable: "Waiting for a fresh worker price check", automatic_offer_price_stale: "Price check expired; new work paused",
+    automatic_offer_price_incomplete: "Not all billing components have verified prices", automatic_offer_unit_unsupported: "Provider billing unit needs review",
+    automatic_offer_pricing_unsupported: "Automatic pricing is not available for this contract", automatic_offer_cost_above_work_value: "Waiting for a lower provider price",
+    automatic_offer_job_limit: "Estimated job cost exceeds your limit", automatic_offer_daily_limit: "Rolling exposure limit reached",
+    automatic_offer_pricing_changed: "Contract pricing changed; review the policy again", automatic_offer_disabled: "Automatic offers are off",
+    automatic_offer_discount_limit: "Offer exceeds your maximum discount", provider_model_unavailable: "Model retired by provider" })[code] || "Price check unavailable; new work paused";
+}
+async function loadAutomaticOffers() {
+  if (S.autoBusy) return;
+  const request = ++S.autoRequest;
+  S.autoBusy = true;
+  try {
+    const job = await run("auto-offers-status", {}, { quiet: true });
+    if (request === S.autoRequest) { S.autoOffers = value(job); S.autoError = errorOf(job); }
+  } finally { if (request === S.autoRequest) S.autoBusy = false; }
+}
+function automaticDraft(provider, policy) {
+  if (!S.autoDrafts.has(provider)) S.autoDrafts.set(provider, {
+    models: new Set((policy?.models || []).map(m => m.model)), maxDiscountPct: policy ? String(policy.maxDiscountBp / 100) : "",
+    bufferPct: policy ? String(policy.bufferBp / 100) : "20", maxDailyUsd: policy ? String(policy.dailyCapMicrousd / 1e6) : "",
+    maxJobUsd: policy ? String(policy.jobCapMicrousd / 1e6) : "", preview: null,
+  });
+  return S.autoDrafts.get(provider);
+}
+function automaticOffersCard() {
+  const refresh = button(S.autoOffers ? "Refresh automatic offers" : "Configure automatic offers", async () => { await loadAutomaticOffers(); if (currentRoute() === "models") render(); }, "small");
+  refresh.disabled = S.autoBusy || S.batchBusy;
+  const body = h("div", { class: "stack" }, h("p", { class: "small muted" },
+    "Off by default. Your worker can check provider prices and adjust only the models you select. Set a maximum discount, cost buffer and estimated exposure limits. It keeps running when this dashboard is closed. Work value is not a cash payout or guaranteed profit."));
+  if (S.autoError) body.append(errorView(S.autoError));
+  if (!S.autoOffers?.automaticOffers) body.append(h("p", { class: "small muted" }, S.autoBusy ? "Loading policies…" : "Configure to review eligible Fal and OpenRouter models. Other providers and incomplete billing units keep manual offers."));
+  else for (const p of S.autoOffers.automaticOffers.providers || []) {
+    const provider = p.provider, draft = automaticDraft(provider, p.policy);
+    const rows = (S.autoOffers.catalog || []).filter(m => m.provider === provider);
+    const local = new Map((S.offers?.offers || []).map(m => [m.model, m]));
+    const supported = rows.filter(m => m.supported);
+    const ready = supported.filter(m => local.get(m.model)?.localKeyConfigured !== false);
+    const busy = S.autoBusy || S.batchBusy || S.pendingOperations.size > 0;
+    const details = h("details", { class: "automatic-provider", "data-automatic-provider": provider, open: S.autoExpanded.has(provider), ontoggle: e => {
+      if (e.currentTarget.open) S.autoExpanded.add(provider); else S.autoExpanded.delete(provider);
+    } }, h("summary", null, providerName(provider), " · ", p.enabled ? "Monitoring on" : "Off"));
+    details.append(h("p", { class: "small muted" }, fmtUsd(p.estimatedExposureMicrousd / 1e6, 6) + " estimated exposure in the rolling 24-hour window. Limits cover only this policy; manual offers, other account use and hosting are excluded."),
+      h("p", { class: "small muted" }, provider === "fal" ? "Uses your deployed generation key's unit-price estimate. Jobs with unquoted billing components pause. No billing or admin key is sent to the worker." : "Uses OpenRouter's public video price catalog. Private account discounts are not assumed."));
+    const list = h("div", { class: "automatic-models", role: "group", "aria-label": providerName(provider) + " automatic models" });
+    for (const row of supported) {
+      const available = local.get(row.model)?.localKeyConfigured !== false;
+      list.append(h("label", { class: "row small" }, h("input", { type: "checkbox", checked: draft.models.has(row.model), disabled: busy || !available,
+        "aria-label": "Automate " + row.model, onchange: e => { if (e.target.checked) draft.models.add(row.model); else draft.models.delete(row.model); draft.preview = null; } }),
+        local.get(row.model)?.name || row.model, available ? null : h("span", { class: "muted" }, "No local key saved")));
+    }
+    const select = button("Select eligible models", () => { draft.models = new Set(ready.map(m => m.model)); draft.preview = null; render(); }, "small");
+    select.disabled = busy || !ready.length;
+    details.append(h("div", { class: "row" }, select, h("span", { class: "small muted" }, rows.length - supported.length + " contracts need complete pricing before automation.")), list);
+    const fields = h("div", { class: "automatic-limits" });
+    for (const [key, label, max, step] of [["maxDiscountPct", "Maximum discount %", "99.9", "0.01"], ["bufferPct", "Cost buffer %", "1000", "0.01"], ["maxDailyUsd", "Rolling 24-hour estimated USD limit", "1000000", "0.000001"], ["maxJobUsd", "Per-job estimated USD limit", "1000000", "0.000001"]]) {
+      fields.append(h("label", { class: "stack small" }, label, h("input", { type: "number", min: "0", max, step, value: draft[key], disabled: busy,
+        "aria-label": providerName(provider) + " " + label, oninput: e => { draft[key] = e.target.value; draft.preview = null; } })));
+    }
+    details.append(fields);
+    const preview = button("Preview prices", () => changeAutomaticOffers(provider, "preview"), "small");
+    const enable = button(p.enabled ? "Review policy changes" : "Review and enable", () => changeAutomaticOffers(provider, "enable"), "primary small");
+    const disable = button("Disable automatic offers", () => changeAutomaticOffers(provider, "disable"), "small");
+    preview.disabled = enable.disabled = busy || !ready.length; disable.disabled = busy || !p.enabled;
+    details.append(h("div", { class: "row" }, preview, enable, disable), h("p", { class: "small muted" }, "A compatible worker with fresh price reports is required. Disabling withdraws managed offers. Manual edits remove a model from automation. Started jobs keep their agreed price."));
+    if (draft.preview) details.append(h("div", { "data-automatic-preview": provider }, draft.preview.error ? errorView(draft.preview.error) : h("ul", { class: "small" }, (draft.preview.rows || []).map(r => h("li", null,
+      (local.get(r.model)?.name || r.model) + ": " + (r.status === "ready" ? "Ready · " + (r.discountBp / 100).toFixed(2) + "% off" : automaticReason(r.reason)),
+      typeof r.estimatedCostMicrousd === "number" ? " · estimated " + fmtUsd(r.estimatedCostMicrousd / 1e6, 6) : "", r.checkedAt ? " · checked " + fmtTime(r.checkedAt) : "")))));
+    if (p.models?.length) details.append(h("ul", { class: "small" }, p.models.map(m => h("li", null, (local.get(m.model)?.name || m.model) + ": " + (m.state === "active" ? "Automatic offer active" : automaticReason(m.reason))))));
+    if (p.history?.length) details.append(h("details", null, h("summary", null, "Recent automatic offer changes"), h("ul", { class: "small" }, p.history.map(e => h("li", null, fmtTime(e.at) + " · " + (e.model || providerName(provider)) + " · " + (e.reason ? automaticReason(e.reason) : e.action))))));
+    body.append(details);
+  }
+  return card("Automatic offers", [refresh], body);
+}
+async function changeAutomaticOffers(provider, action) {
+  if (S.autoBusy || S.batchBusy || S.pendingOperations.size) return;
+  const p = S.autoOffers?.automaticOffers?.providers?.find(p => p.provider === provider), draft = automaticDraft(provider, p?.policy);
+  const params = action === "disable" ? { provider } : { provider, models: [...draft.models].sort().join(","), maxDiscountPct: draft.maxDiscountPct, bufferPct: draft.bufferPct, maxDailyUsd: draft.maxDailyUsd, maxJobUsd: draft.maxJobUsd };
+  if (action !== "disable" && (!params.models || !params.maxDiscountPct || !params.maxDailyUsd || !params.maxJobUsd)) {
+    draft.preview = { error: { message: "Select models and enter your maximum discount, rolling daily limit and per-job limit. A 0% maximum discount is allowed." } }; render(); return;
+  }
+  const epoch = S.navigationEpoch;
+  S.autoBusy = true; render();
+  try {
+    const job = await run("auto-offers-" + action, params, { quiet: action === "preview" });
+    if (action === "preview") draft.preview = errorOf(job) ? { error: errorOf(job) } : value(job)?.preview;
+    else if (job.state === "done") { S.autoDrafts.delete(provider); await loadOffers(); }
+  } finally {
+    S.autoBusy = false;
+    if (action !== "preview") await loadAutomaticOffers();
+    if (epoch === S.navigationEpoch && currentRoute() === "models") render();
+  }
 }
 
 // ---------- Worker ----------

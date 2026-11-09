@@ -453,6 +453,7 @@ impl Runtime for LiveRuntime {
                 id: id.into(),
                 expires,
                 signing: keys.signing.clone(),
+                automatic_offers: session["pricePolicy"] == 1,
             });
         }
     }
@@ -482,7 +483,7 @@ impl Runtime for LiveRuntime {
         } else {
             300000
         };
-        r.timeout = if ["balances", "heartbeat"]
+        r.timeout = if ["balances", "heartbeat", "price_plan", "prices"]
             .iter()
             .any(|action| body["value"]["action"] == *action)
         {
@@ -671,6 +672,23 @@ pub fn run_live() -> Result<()> {
     if !reporting {
         eprintln!("balance_reporter_unavailable");
     }
+    let price_reporting = crate::worker_pricing::start(
+        credentials.clone(),
+        LiveRuntime {
+            base: base.to_string(),
+            token: token.clone(),
+            auth: auth.clone(),
+            http: crate::network::PublicHttp,
+            balance_session: None,
+        },
+        balance_session.clone(),
+        s(&release["coordinatorSigningKey"])?.into(),
+        stop.clone(),
+    )
+    .is_ok();
+    if !price_reporting {
+        eprintln!("price_reporter_unavailable");
+    }
     let mut w = Worker {
         miner_id: miner,
         coordinator_key: s(&release["coordinatorSigningKey"])?.into(),
@@ -683,7 +701,7 @@ pub fn run_live() -> Result<()> {
             token,
             auth,
             http: crate::network::PublicHttp,
-            balance_session: reporting.then_some(balance_session),
+            balance_session: (reporting || price_reporting).then_some(balance_session),
         },
         provider: crate::providers::Router::new(&http, credentials),
     };
