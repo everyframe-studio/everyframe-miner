@@ -21,11 +21,14 @@ impl Http for Api {
             self.calls.borrow_mut().push(req);
             return Ok(b"tampered".to_vec());
         }
-        if url.host_str() == Some("imgen.x.ai") || url.host_str() == Some("vidgen.x.ai") {
+        if url.host_str() == Some("imgen.x.ai")
+            || url.host_str() == Some("vidgen.x.ai")
+            || url.host_str() == Some("v3.fal.media")
+        {
             assert!(req.headers.is_empty());
             assert!(req.redirect_hosts.is_empty());
             self.calls.borrow_mut().push(req);
-            return Ok(if adapter == "xai-images" {
+            return Ok(if adapter == "xai-images" || adapter == "gpt-image-26" {
                 PNG.to_vec()
             } else {
                 b"synthetic-mp4".to_vec()
@@ -33,17 +36,23 @@ impl Http for Api {
         }
         assert_eq!(
             url.host_str(),
-            Some(if self.model["provider"] == "openai" {
-                "api.openai.com"
-            } else {
-                "api.x.ai"
+            Some(match self.model["provider"].as_str().unwrap() {
+                "openai" => "api.openai.com",
+                "xai" => "api.x.ai",
+                "openrouter" => "openrouter.ai",
+                "fal" => "queue.fal.run",
+                other => panic!("Add a transport fixture for {other}"),
             })
         );
         assert!(
             req.headers
                 .iter()
                 .any(|(k, v)| k.eq_ignore_ascii_case("authorization")
-                    && v == "Bearer fixture-secret")
+                    && v == if self.model["provider"] == "fal" {
+                        "Key fixture-secret"
+                    } else {
+                        "Bearer fixture-secret"
+                    })
         );
         let response = if post {
             let body: Value = serde_json::from_slice(req.body.as_ref().unwrap()).unwrap();
@@ -52,7 +61,12 @@ impl Http for Api {
                 return Err(Error("network_timeout"));
             }
             match adapter {
-                "openai-images" => {
+                "gpt-image-26" if self.model["provider"] == "fal" => {
+                    assert_eq!(body["num_images"], 1);
+                    assert_eq!(body["reasoning_effort"], "high");
+                    json!({"request_id":"job_123"})
+                }
+                "openai-images" | "gpt-image-26" => {
                     assert_eq!(body["model"], self.model["apiModel"]);
                     json!({"data":[{"b64_json":b64(PNG)}]})
                 }
@@ -70,6 +84,14 @@ impl Http for Api {
                     }
                     json!({"request_id":"job_123"})
                 }
+            }
+        } else if self.model["provider"] == "fal" {
+            if url.path().ends_with("/status") {
+                assert!(url.path().ends_with("/requests/job_123/status"));
+                json!({"request_id":"job_123","status":"COMPLETED"})
+            } else {
+                assert!(url.path().ends_with("/requests/job_123"));
+                json!({"images":[{"url":"https://v3.fal.media/image.png","content_type":"image/png"}]})
             }
         } else {
             assert!(url.path().ends_with("/job_123"));
@@ -97,7 +119,7 @@ fn api(id: &str, mode: &'static str) -> Api {
     }
 }
 fn credentials() -> Value {
-    json!({"OPENAI_API_KEY":"fixture-secret","XAI_API_KEY":"fixture-secret"})
+    json!({"OPENAI_API_KEY":"fixture-secret","XAI_API_KEY":"fixture-secret","OPENROUTER_API_KEY":"fixture-secret","FAL_KEY":"fixture-secret"})
 }
 fn spec(id: &str) -> Value {
     models::spec(&json!({"model":id,"prompt":"A quiet lake"})).unwrap()
@@ -144,7 +166,9 @@ fn deferred_jobs_recover_with_get_only_but_sync_results_are_never_replayed() {
         let spec = spec(id);
         let r = Router::new(&api, credentials()).submit(&spec).unwrap();
         let mut restarted = Router::new(&api, credentials());
-        if ["xai-images", "xai-videos"].contains(&model["adapter"].as_str().unwrap()) {
+        if ["xai-images", "xai-videos"].contains(&model["adapter"].as_str().unwrap())
+            || model["provider"] == "fal"
+        {
             assert_eq!(restarted.poll(&r, &spec).unwrap(), "COMPLETED");
             restarted.result(&r, &spec).unwrap();
         } else {
