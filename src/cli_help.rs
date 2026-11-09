@@ -128,7 +128,7 @@ pub fn render(command: &str) -> String {
         ),
         "jobs" => (
             "Read your individual attempts, newest first, including verification, review status and safe failure reasons. No prompts, media or other miners' history. Completed means verified output, not payment. No generation is submitted.",
-            "  --limit N      Page size, 1–100 (default 20)\n  --status NAME  all, active, completed, failed or cancelled\n  --model ID     Filter by EveryFrame contract ID\n  --cursor VALUE Next-page cursor; keep the same status/model filters\n  --summary      All-time per-model counts; cannot combine with filters",
+            "  --limit N      Page size, 1–100 (default 20)\n  --status NAME  all, active, completed, failed or cancelled\n  --model ID     Filter by EveryFrame contract ID\n  --job-id ID    Detailed private timeline for one job (48 hex characters)\n  --cursor VALUE Next-page cursor; keep the same filters\n  --summary      All-time per-model counts; cannot combine with filters",
             "jobs --status failed --limit 20",
         ),
         "offer-batch" => (

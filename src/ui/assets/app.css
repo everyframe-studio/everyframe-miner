@@ -445,3 +445,5 @@ tr.spotlight { animation: none; }
 tr.spotlight td { animation: spotlight-row 2.6s ease-out; }
 @keyframes spotlight { 0%, 55% { box-shadow: 0 0 0 3px var(--accent), 0 0 28px color-mix(in srgb, var(--accent) 45%, transparent); } 100% { box-shadow: 0 0 0 0 transparent; } }
 @keyframes spotlight-row { 0%, 55% { background: color-mix(in srgb, var(--accent) 22%, transparent); } 100% { background: transparent; } }
+/* Job evidence remains readable at narrow viewport widths. */
+.job-timeline{padding-left:20px;overflow-wrap:anywhere}.job-timeline li{margin-block:8px}

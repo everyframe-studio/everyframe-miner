@@ -42,6 +42,7 @@ pub mod worker;
 pub mod worker_auto_update;
 pub mod worker_balances;
 pub mod worker_heartbeat;
+pub mod worker_progress;
 pub mod worker_update;
 pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug, Clone, PartialEq, Eq)]

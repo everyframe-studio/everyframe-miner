@@ -260,6 +260,35 @@ fn history_table(value: &Value) -> String {
         if r["failureReason"].is_string() {
             out.push_str(&format!("Failure: {}\n", text(&r["failureReason"])));
         }
+        if r["progress"]["phase"].is_string() {
+            out.push_str(&format!(
+                "Last phase: {}{}\n",
+                text(&r["progress"]["phase"]),
+                if r["progress"]["stale"] == true {
+                    " (no recent progress report)"
+                } else {
+                    ""
+                }
+            ));
+        }
+        if let Some(events) = r["progress"]["timeline"].as_array() {
+            out.push_str("Timeline (worker phases are reported evidence):\n");
+            for event in events.iter().take(132) {
+                out.push_str(&format!(
+                    "  {} · {} · {}{}\n",
+                    text(&event["at"]),
+                    text(&event["source"]),
+                    text(&event["phase"]),
+                    event["code"]
+                        .as_str()
+                        .map(|s| format!(" · {s}"))
+                        .unwrap_or_default()
+                ));
+            }
+            if r["progress"]["workerEvidence"] != true {
+                out.push_str("Detailed provider phases were not reported for this attempt.\n");
+            }
+        }
     }
     if value["history"]["nextCursor"].is_string() {
         let filters = &value["history"]["filters"];
@@ -267,10 +296,15 @@ fn history_table(value: &Value) -> String {
             .as_str()
             .map(|m| format!(" --model {m}"))
             .unwrap_or_default();
+        let job = filters["jobId"]
+            .as_str()
+            .map(|v| format!(" --job-id {v}"))
+            .unwrap_or_default();
         out.push_str(&format!(
-            "\nNext page: everycli jobs --status {}{} --limit {} --cursor {}\n",
+            "\nNext page: everycli jobs --status {}{}{} --limit {} --cursor {}\n",
             text(&filters["status"]),
             model,
+            job,
             value["history"]["limit"],
             value["history"]["nextCursor"].as_str().unwrap_or("")
         ));
