@@ -118,6 +118,7 @@ impl Miner<'_> {
         )?;
         if enabled {
             for key in [
+                "credentialRef",
                 "maxDiscountBp",
                 "bufferBp",
                 "dailyCapMicrousd",
@@ -219,6 +220,15 @@ impl Miner<'_> {
         policy["models"] = json!(scope);
         let prices =
             provider_prices::collect(self.http, &c.credentials, provider, &requests, now());
+        let fingerprint = prices
+            .first()
+            .and_then(|p| p["credentialRef"].as_str())
+            .ok_or(Error("automatic_offer_preview_blocked"))?;
+        need(
+            prices.iter().all(|p| p["credentialRef"] == fingerprint),
+            "automatic_offer_preview_blocked",
+        )?;
+        policy["credentialRef"] = json!(fingerprint);
         let preview = self.api(
             &c,
             "automatic-offers-preview",

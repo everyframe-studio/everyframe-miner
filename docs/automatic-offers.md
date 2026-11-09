@@ -54,7 +54,9 @@ previews do not require accepting new terms; enabling does.
 
 Normal generation keys stay in their existing local profile and attested worker.
 No billing, administrative, hosting or hotkey credential is added to the worker.
-Only fixed-point price observations and a credential fingerprint are reported;
+The policy binds the provider-key fingerprint used for its preview. A different
+deployed key pauses automation until you apply the intended key or explicitly review
+a new policy. Only fixed-point price observations and a credential fingerprint are reported;
 provider keys and raw provider responses are not included.
 
 ## Pauses and manual control
