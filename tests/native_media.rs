@@ -19,7 +19,7 @@ fn every_native_model_has_a_valid_default_and_locked_provider_endpoint() {
             .values()
             .filter(|m| !m["nativeSchema"].is_object())
             .count(),
-        10
+        16
     );
     for (model, contract) in MODELS
         .as_object()
@@ -29,9 +29,12 @@ fn every_native_model_has_a_valid_default_and_locked_provider_endpoint() {
     {
         let value = spec(model, json!({}), json!([]));
         let (path, body) = native_media::body(&value, &[]).unwrap();
-        assert!(path.starts_with("/v1/"), "{model}");
+        assert!(
+            path.starts_with("/v1/") || contract["gptImage26"] == true,
+            "{model}"
+        );
         assert!(body.get("api_key").is_none());
-        if contract["adapter"] != "xai-tts" {
+        if contract["adapter"] != "xai-tts" && contract["provider"] != "fal" {
             assert_eq!(body["model"], contract["apiModel"]);
         }
         assert!(native_media::spec(&json!({"model":model,"prompt":"hi","parameters":{"endpoint":"https://evil.example"}})).is_err());

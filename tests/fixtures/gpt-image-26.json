@@ -1,0 +1,1056 @@
+[
+  {
+    "input": {
+      "model": "direct/openai/gpt-image-2.6-sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {},
+      "references": []
+    },
+    "valid": true,
+    "spec": {
+      "model": "direct/openai/gpt-image-2.6-sunburst",
+      "input": {
+        "prompt": "A blue ocean",
+        "parameters": {
+          "size": "1024x1024",
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "png",
+          "n": 1,
+          "complexity": "high"
+        },
+        "references": []
+      }
+    },
+    "hash": "c0151b1b429040cf6501b587b67580aa079d003ad32778bd09f47ac22b17dde5"
+  },
+  {
+    "input": {
+      "model": "direct/openai/gpt-image-2.6-sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "quality": "max",
+        "n": 10
+      },
+      "references": []
+    },
+    "valid": true,
+    "spec": {
+      "model": "direct/openai/gpt-image-2.6-sunburst",
+      "input": {
+        "prompt": "A blue ocean",
+        "parameters": {
+          "size": "1024x1024",
+          "quality": "max",
+          "background": "auto",
+          "output_format": "png",
+          "n": 10,
+          "complexity": "high"
+        },
+        "references": []
+      }
+    },
+    "hash": "e7c156f5386983e7378664d38d9a7135595c3a0bdfb85838694ae0a68a141398"
+  },
+  {
+    "input": {
+      "model": "direct/openai/gpt-image-2.6-sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "output_format": "gif"
+      },
+      "references": []
+    },
+    "valid": true,
+    "spec": {
+      "model": "direct/openai/gpt-image-2.6-sunburst",
+      "input": {
+        "prompt": "A blue ocean",
+        "parameters": {
+          "size": "auto",
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "gif",
+          "n": 1,
+          "complexity": "high"
+        },
+        "references": []
+      }
+    },
+    "hash": "842fc318d3e0db7802b08bee2ce8e2cb8411f1301ba9fe19bfcdff2436e9b166"
+  },
+  {
+    "input": {
+      "model": "direct/openai/gpt-image-2.6-sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "output_format": "svg"
+      },
+      "references": []
+    },
+    "valid": true,
+    "spec": {
+      "model": "direct/openai/gpt-image-2.6-sunburst",
+      "input": {
+        "prompt": "A blue ocean",
+        "parameters": {
+          "size": "1024x1024",
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "svg",
+          "n": 1,
+          "complexity": "high"
+        },
+        "references": []
+      }
+    },
+    "hash": "a861495a5af91a4889133f559a8592ef0fa58a1561c3074c0b8f919f276c24ef"
+  },
+  {
+    "input": {
+      "model": "direct/openai/gpt-image-2.6-sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "output_format": "gif",
+        "frame_count": 4,
+        "frame_duration_ms": 200
+      },
+      "references": []
+    },
+    "valid": true,
+    "spec": {
+      "model": "direct/openai/gpt-image-2.6-sunburst",
+      "input": {
+        "prompt": "A blue ocean",
+        "parameters": {
+          "size": "auto",
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "gif",
+          "n": 1,
+          "complexity": "high",
+          "frame_count": 4,
+          "frame_duration_ms": 200
+        },
+        "references": []
+      }
+    },
+    "hash": "ef3866ddf72d5c99e34daf261382c2fddc4449945988eacb0eb4d7c221cac45d"
+  },
+  {
+    "input": {
+      "model": "direct/openai/gpt-image-2.6-sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "quality": "ultra"
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "direct/openai/gpt-image-2.6-sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "complexity": "max"
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "direct/openai/gpt-image-2.6-sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "output_format": "svg",
+        "n": 2
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "direct/openai/gpt-image-2.6-sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "output_format": "gif",
+        "output_compression": 20
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "direct/openai/gpt-image-2.6-sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "url": "https://evil.invalid"
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {},
+      "references": []
+    },
+    "valid": true,
+    "spec": {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-sunburst",
+      "input": {
+        "prompt": "A blue ocean",
+        "parameters": {
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "png",
+          "n": 1,
+          "complexity": "high",
+          "aspect_ratio": "1:1"
+        },
+        "references": []
+      }
+    },
+    "hash": "12fd6c528d7c5f94bdd4bb67fba5a41d0341249aaab4786d70b6e90b7ca2a5d6"
+  },
+  {
+    "input": {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "quality": "max",
+        "n": 10
+      },
+      "references": []
+    },
+    "valid": true,
+    "spec": {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-sunburst",
+      "input": {
+        "prompt": "A blue ocean",
+        "parameters": {
+          "quality": "max",
+          "background": "auto",
+          "output_format": "png",
+          "n": 10,
+          "complexity": "high",
+          "aspect_ratio": "1:1"
+        },
+        "references": []
+      }
+    },
+    "hash": "f883a189274e19b5cf7b55e3917fa750249f2e1dbf9e3224dc71dcbe8e864ddf"
+  },
+  {
+    "input": {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "output_format": "gif"
+      },
+      "references": []
+    },
+    "valid": true,
+    "spec": {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-sunburst",
+      "input": {
+        "prompt": "A blue ocean",
+        "parameters": {
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "gif",
+          "n": 1,
+          "complexity": "high",
+          "aspect_ratio": "1:1"
+        },
+        "references": []
+      }
+    },
+    "hash": "91b510522240d220ccd05abcb3ba552c76191cc92ddb643ff06caa11700ea9fb"
+  },
+  {
+    "input": {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "quality": "ultra"
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "complexity": "max"
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "output_format": "svg",
+        "n": 2
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "output_format": "gif",
+        "output_compression": 20
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "url": "https://evil.invalid"
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {},
+      "references": []
+    },
+    "valid": true,
+    "spec": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/sunburst",
+      "input": {
+        "prompt": "A blue ocean",
+        "parameters": {
+          "size": "1024x1024",
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "png",
+          "n": 1,
+          "complexity": "high"
+        },
+        "references": []
+      }
+    },
+    "hash": "7032613e4b873c2f9bf2afbcd497e7087e5f9785b1d9dd5645fb8960ca8b7c63"
+  },
+  {
+    "input": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "quality": "max",
+        "n": 10
+      },
+      "references": []
+    },
+    "valid": true,
+    "spec": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/sunburst",
+      "input": {
+        "prompt": "A blue ocean",
+        "parameters": {
+          "size": "1024x1024",
+          "quality": "max",
+          "background": "auto",
+          "output_format": "png",
+          "n": 10,
+          "complexity": "high"
+        },
+        "references": []
+      }
+    },
+    "hash": "28688b96610d1ac5843d3b34fabaf6e0aaec5b377ae209341a5f2596d56f3d14"
+  },
+  {
+    "input": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "output_format": "gif"
+      },
+      "references": []
+    },
+    "valid": true,
+    "spec": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/sunburst",
+      "input": {
+        "prompt": "A blue ocean",
+        "parameters": {
+          "size": "auto",
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "gif",
+          "n": 1,
+          "complexity": "high"
+        },
+        "references": []
+      }
+    },
+    "hash": "5eeec46ca5cfcc86282ea1d89cb65cfaf1a0187daba996ff358e2ce3bea122cb"
+  },
+  {
+    "input": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "output_format": "svg"
+      },
+      "references": []
+    },
+    "valid": true,
+    "spec": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/sunburst",
+      "input": {
+        "prompt": "A blue ocean",
+        "parameters": {
+          "size": "1024x1024",
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "svg",
+          "n": 1,
+          "complexity": "high"
+        },
+        "references": []
+      }
+    },
+    "hash": "cf0aad6901cf857a29bed939afedb61e75c22c4ca46a7f32262e02f6cb7bae9e"
+  },
+  {
+    "input": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "output_format": "gif",
+        "frame_count": 4,
+        "frame_duration_ms": 200
+      },
+      "references": []
+    },
+    "valid": true,
+    "spec": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/sunburst",
+      "input": {
+        "prompt": "A blue ocean",
+        "parameters": {
+          "size": "auto",
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "gif",
+          "n": 1,
+          "complexity": "high",
+          "frame_count": 4,
+          "frame_duration_ms": 200
+        },
+        "references": []
+      }
+    },
+    "hash": "c9212628bff5ab315c179c6a820dab22e0fde67f13d26d228a1ab169b43d2443"
+  },
+  {
+    "input": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "quality": "ultra"
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "complexity": "max"
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "output_format": "svg",
+        "n": 2
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "output_format": "gif",
+        "output_compression": 20
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/sunburst",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "url": "https://evil.invalid"
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "direct/openai/gpt-image-2.6-flare",
+      "prompt": "A blue ocean",
+      "parameters": {},
+      "references": []
+    },
+    "valid": true,
+    "spec": {
+      "model": "direct/openai/gpt-image-2.6-flare",
+      "input": {
+        "prompt": "A blue ocean",
+        "parameters": {
+          "size": "1024x1024",
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "png",
+          "n": 1,
+          "complexity": "high"
+        },
+        "references": []
+      }
+    },
+    "hash": "e8a27a3eab909068fa06b139b29c972ff342a14900785d62149cb32d8333b790"
+  },
+  {
+    "input": {
+      "model": "direct/openai/gpt-image-2.6-flare",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "quality": "max",
+        "n": 10
+      },
+      "references": []
+    },
+    "valid": true,
+    "spec": {
+      "model": "direct/openai/gpt-image-2.6-flare",
+      "input": {
+        "prompt": "A blue ocean",
+        "parameters": {
+          "size": "1024x1024",
+          "quality": "max",
+          "background": "auto",
+          "output_format": "png",
+          "n": 10,
+          "complexity": "high"
+        },
+        "references": []
+      }
+    },
+    "hash": "2e42bd2d28fdc7ea9cc071699b94aab5b5f53b91a64249ee40f0516cd2d6a528"
+  },
+  {
+    "input": {
+      "model": "direct/openai/gpt-image-2.6-flare",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "output_format": "gif"
+      },
+      "references": []
+    },
+    "valid": true,
+    "spec": {
+      "model": "direct/openai/gpt-image-2.6-flare",
+      "input": {
+        "prompt": "A blue ocean",
+        "parameters": {
+          "size": "auto",
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "gif",
+          "n": 1,
+          "complexity": "high"
+        },
+        "references": []
+      }
+    },
+    "hash": "e4e8842e8a5504a28f09b6884afc5167c5b2fcec8f8f9695776a364ff220ec24"
+  },
+  {
+    "input": {
+      "model": "direct/openai/gpt-image-2.6-flare",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "output_format": "svg"
+      },
+      "references": []
+    },
+    "valid": true,
+    "spec": {
+      "model": "direct/openai/gpt-image-2.6-flare",
+      "input": {
+        "prompt": "A blue ocean",
+        "parameters": {
+          "size": "1024x1024",
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "svg",
+          "n": 1,
+          "complexity": "high"
+        },
+        "references": []
+      }
+    },
+    "hash": "06c87b2614f64b66ba31d04af875078cc232502ddac6f7e594a39fdb045d8785"
+  },
+  {
+    "input": {
+      "model": "direct/openai/gpt-image-2.6-flare",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "output_format": "gif",
+        "frame_count": 4,
+        "frame_duration_ms": 200
+      },
+      "references": []
+    },
+    "valid": true,
+    "spec": {
+      "model": "direct/openai/gpt-image-2.6-flare",
+      "input": {
+        "prompt": "A blue ocean",
+        "parameters": {
+          "size": "auto",
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "gif",
+          "n": 1,
+          "complexity": "high",
+          "frame_count": 4,
+          "frame_duration_ms": 200
+        },
+        "references": []
+      }
+    },
+    "hash": "f592e59f9a0516095fadea263af261875405c2ca9ef6195541dd789709c22d3d"
+  },
+  {
+    "input": {
+      "model": "direct/openai/gpt-image-2.6-flare",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "quality": "ultra"
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "direct/openai/gpt-image-2.6-flare",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "complexity": "max"
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "direct/openai/gpt-image-2.6-flare",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "output_format": "svg",
+        "n": 2
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "direct/openai/gpt-image-2.6-flare",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "output_format": "gif",
+        "output_compression": 20
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "direct/openai/gpt-image-2.6-flare",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "url": "https://evil.invalid"
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-flare",
+      "prompt": "A blue ocean",
+      "parameters": {},
+      "references": []
+    },
+    "valid": true,
+    "spec": {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-flare",
+      "input": {
+        "prompt": "A blue ocean",
+        "parameters": {
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "png",
+          "n": 1,
+          "complexity": "high",
+          "aspect_ratio": "1:1"
+        },
+        "references": []
+      }
+    },
+    "hash": "49dc65d7008f8917f0db816032c0bdd551f06fd592216f4090fa0a535befc03a"
+  },
+  {
+    "input": {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-flare",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "quality": "max",
+        "n": 10
+      },
+      "references": []
+    },
+    "valid": true,
+    "spec": {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-flare",
+      "input": {
+        "prompt": "A blue ocean",
+        "parameters": {
+          "quality": "max",
+          "background": "auto",
+          "output_format": "png",
+          "n": 10,
+          "complexity": "high",
+          "aspect_ratio": "1:1"
+        },
+        "references": []
+      }
+    },
+    "hash": "0b38949b12b73f1515f8fbeec6663d9d4b747e7fd281301aaef39251e323db8b"
+  },
+  {
+    "input": {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-flare",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "output_format": "gif"
+      },
+      "references": []
+    },
+    "valid": true,
+    "spec": {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-flare",
+      "input": {
+        "prompt": "A blue ocean",
+        "parameters": {
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "gif",
+          "n": 1,
+          "complexity": "high",
+          "aspect_ratio": "1:1"
+        },
+        "references": []
+      }
+    },
+    "hash": "30561c090e3ec01f7710696fff07ed0ba5515d095f9dd78cda58beaba5ae47bd"
+  },
+  {
+    "input": {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-flare",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "quality": "ultra"
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-flare",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "complexity": "max"
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-flare",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "output_format": "svg",
+        "n": 2
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-flare",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "output_format": "gif",
+        "output_compression": 20
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-flare",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "url": "https://evil.invalid"
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/flare",
+      "prompt": "A blue ocean",
+      "parameters": {},
+      "references": []
+    },
+    "valid": true,
+    "spec": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/flare",
+      "input": {
+        "prompt": "A blue ocean",
+        "parameters": {
+          "size": "1024x1024",
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "png",
+          "n": 1,
+          "complexity": "high"
+        },
+        "references": []
+      }
+    },
+    "hash": "402c4f1172a40c9291a844ec8976398012646ccee3843553fac3a6dd1d5e0142"
+  },
+  {
+    "input": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/flare",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "quality": "max",
+        "n": 10
+      },
+      "references": []
+    },
+    "valid": true,
+    "spec": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/flare",
+      "input": {
+        "prompt": "A blue ocean",
+        "parameters": {
+          "size": "1024x1024",
+          "quality": "max",
+          "background": "auto",
+          "output_format": "png",
+          "n": 10,
+          "complexity": "high"
+        },
+        "references": []
+      }
+    },
+    "hash": "82bbbcce1ff83588fd00287bb34d5f63c92fc24c0745c4d427033033f61046da"
+  },
+  {
+    "input": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/flare",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "output_format": "gif"
+      },
+      "references": []
+    },
+    "valid": true,
+    "spec": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/flare",
+      "input": {
+        "prompt": "A blue ocean",
+        "parameters": {
+          "size": "auto",
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "gif",
+          "n": 1,
+          "complexity": "high"
+        },
+        "references": []
+      }
+    },
+    "hash": "9ad31ae51bfbcc7fd1c357f6b5f153594086f4ed9a19ae68af3736aba7c85316"
+  },
+  {
+    "input": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/flare",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "output_format": "svg"
+      },
+      "references": []
+    },
+    "valid": true,
+    "spec": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/flare",
+      "input": {
+        "prompt": "A blue ocean",
+        "parameters": {
+          "size": "1024x1024",
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "svg",
+          "n": 1,
+          "complexity": "high"
+        },
+        "references": []
+      }
+    },
+    "hash": "58e8cfe69040720284a5350757c475c098a4c859b3d5517b7da2b4301406008b"
+  },
+  {
+    "input": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/flare",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "output_format": "gif",
+        "frame_count": 4,
+        "frame_duration_ms": 200
+      },
+      "references": []
+    },
+    "valid": true,
+    "spec": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/flare",
+      "input": {
+        "prompt": "A blue ocean",
+        "parameters": {
+          "size": "auto",
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "gif",
+          "n": 1,
+          "complexity": "high",
+          "frame_count": 4,
+          "frame_duration_ms": 200
+        },
+        "references": []
+      }
+    },
+    "hash": "68bff345094f7ef3bc0685276883da98efac461121c4b2b1e41aebb7fd086c10"
+  },
+  {
+    "input": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/flare",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "quality": "ultra"
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/flare",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "complexity": "max"
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/flare",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "output_format": "svg",
+        "n": 2
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/flare",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "output_format": "gif",
+        "output_compression": 20
+      },
+      "references": []
+    },
+    "valid": false
+  },
+  {
+    "input": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/flare",
+      "prompt": "A blue ocean",
+      "parameters": {
+        "url": "https://evil.invalid"
+      },
+      "references": []
+    },
+    "valid": false
+  }
+]
