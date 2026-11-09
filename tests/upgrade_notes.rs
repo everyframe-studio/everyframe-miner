@@ -56,6 +56,7 @@ fn v100_new_models_require_a_conditional_worker_update_and_offer_review() {
     );
     assert!(text.contains("everycli ui") && text.contains("everycli worker-update"));
     assert!(text.contains("everycli offers") && text.contains("Gemini Omni 1.2"));
+    assert!(text.contains("automatic offers") && text.contains("Off by default"));
     assert!(!text.contains("everycli reconnect"));
 }
 
