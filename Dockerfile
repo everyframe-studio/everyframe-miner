@@ -7,6 +7,7 @@ WORKDIR /build
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
 COPY config ./config
+COPY docs/miner-terms.md ./docs/miner-terms.md
 RUN cargo build --release --locked --bins
 
 FROM ${RUNTIME_IMAGE} AS cli

@@ -16,6 +16,8 @@
 !config/release.json
 !config/mainnet.json
 !config/testnet.json
+!docs/
+!docs/miner-terms.md
 !Dockerfile
 !LICENSE
 !LICENSE-NOTICE.md
