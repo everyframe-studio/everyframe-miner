@@ -199,6 +199,8 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
         let keepalive =
             self.runtime
                 .keepalive(&self.session, &self.keys, &self.coordinator_key, deadline)?;
+        let mut progress = crate::worker_progress::Reporter::new(&work, &keepalive);
+        let mut retries = 0_u64;
         if work["state"] == "offered" {
             let (start, _) = self.call("start", json!({"attemptId":attempt}))?;
             if start["permitted"] != true {
@@ -209,6 +211,7 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                 "invalid_start_grant",
             )?;
             grant = start["grantNonce"].clone();
+            progress.emit("submitting", json!({}), self.runtime.now());
             let submission = if self.runtime.now() >= deadline {
                 Err(Error("submission_deadline_elapsed"))
             } else {
@@ -294,6 +297,12 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                 Ok(v) => v,
                 Err(e) => {
                     if crate::submission::transient_poll(e.0) {
+                        retries += 1;
+                        progress.emit(
+                            "provider_poll_retry",
+                            json!({"code":e.0,"retries":retries}),
+                            self.runtime.now(),
+                        );
                         self.runtime.sleep(3000);
                         continue;
                     }
@@ -306,6 +315,13 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                     );
                 }
             };
+            let phase = match status.as_str() {
+                "IN_QUEUE" => "provider_queued",
+                "IN_PROGRESS" => "provider_processing",
+                "COMPLETED" => "provider_completed",
+                _ => "provider_waiting",
+            };
+            progress.emit(phase, json!({"status":status}), self.runtime.now());
             if status == "FAILED" {
                 return self.fail_generation(
                     &work,
@@ -319,10 +335,17 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                 self.runtime.sleep(1000);
                 continue;
             };
+            progress.emit("retrieving_output", json!({}), self.runtime.now());
             let output = match self.provider.result(s(&reference)?, &work["spec"]) {
                 Ok(v) => v,
                 Err(e) => {
                     if crate::submission::transient_poll(e.0) {
+                        retries += 1;
+                        progress.emit(
+                            "output_fetch_retry",
+                            json!({"code":e.0,"retries":retries}),
+                            self.runtime.now(),
+                        );
                         self.runtime.sleep(3000);
                         continue;
                     }
@@ -338,9 +361,23 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
             let value = json!({"protocol":1,"sessionId":self.session["sessionId"],"minerId":self.miner_id,"jobId":work["jobId"],"attemptId":attempt,"inputHash":work["inputHash"],"grantNonce":grant,"providerRef":reference,"outputHash":protocol::sha(&output.media),"bytes":output.media.len(),"providerResponseHash":output.response_hash});
             let receipt = protocol::signed(&value, &self.keys.signing)?;
             let payload = json!({"receipt":receipt,"video":protocol::b64(&output.media)});
+            progress.emit(
+                "uploading_output",
+                json!({"bytes":output.media.len()}),
+                self.runtime.now(),
+            );
             let mut refused = 0;
             while self.runtime.now() < deadline {
-                match self.call("complete", payload.clone()) {
+                let completion = self.call("complete", payload.clone());
+                if let Err(e) = &completion {
+                    retries += 1;
+                    progress.emit(
+                        "upload_retry",
+                        json!({"code":e.0,"retries":retries,"bytes":output.media.len()}),
+                        self.runtime.now(),
+                    );
+                }
+                match completion {
                     Ok((out, _))
                         if out["outputHash"] == value["outputHash"]
                             && out["jobId"] == value["jobId"] =>
@@ -490,13 +527,32 @@ impl Runtime for LiveRuntime {
         let session = session.clone();
         let signing = keys.signing.clone();
         let coordinator_key = coordinator_key.to_string();
-        crate::worker_heartbeat::Guard::spawn(
+        let enabled = session["progressPolicy"] == 1;
+        crate::worker_heartbeat::Guard::spawn_reporting(
             Duration::from_secs(15),
             Duration::from_millis(remaining as u64),
-            move || {
+            enabled,
+            move |progress| {
                 // Liveness failures never replay a provider call or expose secrets.
-                let _ =
-                    crate::worker_heartbeat::send(&runtime, &session, &signing, &coordinator_key);
+                match crate::worker_heartbeat::send_progress(
+                    &runtime,
+                    &session,
+                    &signing,
+                    &coordinator_key,
+                    progress,
+                ) {
+                    Ok(()) => true,
+                    Err(e) if e.0 == "http_400" && progress.is_some() => {
+                        let _ = crate::worker_heartbeat::send(
+                            &runtime,
+                            &session,
+                            &signing,
+                            &coordinator_key,
+                        );
+                        true
+                    }
+                    Err(_) => false,
+                }
             },
         )
     }

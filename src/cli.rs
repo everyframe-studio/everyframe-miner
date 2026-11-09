@@ -82,6 +82,7 @@ const VALUE_OPTIONS: &[&str] = &[
     "--name",
     "--limit",
     "--cursor",
+    "--job-id",
     "--status",
 ];
 
@@ -300,7 +301,14 @@ pub fn parse(args: &[String]) -> Result<Args> {
         "set-api-keys" => vec!["--provider", "--stdin"],
         "remove-api-key" => vec!["--provider"],
         "balances" => vec!["--publish"],
-        "jobs" => vec!["--limit", "--cursor", "--status", "--model", "--summary"],
+        "jobs" => vec![
+            "--limit",
+            "--cursor",
+            "--status",
+            "--model",
+            "--summary",
+            "--job-id",
+        ],
         "offer" => vec!["--model", "--discount-pct", "--withdraw"],
         "offer-batch" => vec![
             "--models",

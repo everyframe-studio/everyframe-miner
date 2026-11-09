@@ -7,6 +7,7 @@ pub fn query(args: &Args) -> Result<Value> {
     for (flag, key) in [
         ("--limit", "limit"),
         ("--cursor", "cursor"),
+        ("--job-id", "jobId"),
         ("--status", "status"),
         ("--model", "model"),
     ] {
@@ -45,6 +46,12 @@ pub fn validate_query(value: &Value) -> Result<()> {
                         .all(|c| c.is_ascii_alphanumeric() || b"._/-".contains(&c)),
                 "invalid_history_model",
             )?,
+            "jobId" => need(
+                s.len() == 48
+                    && s.bytes()
+                        .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)),
+                "invalid_history_job",
+            )?,
             "cursor" => need(
                 !s.is_empty()
                     && s.len() <= 300
@@ -62,6 +69,9 @@ pub fn validate_page(history: &Value) -> Result<()> {
     let mut filters = json!({"status":history["filters"]["status"]});
     if !history["filters"]["model"].is_null() {
         filters["model"] = history["filters"]["model"].clone();
+    }
+    if !history["filters"]["jobId"].is_null() {
+        filters["jobId"] = history["filters"]["jobId"].clone();
     }
     validate_query(&filters).map_err(|_| Error("invalid_job_history"))?;
     need(

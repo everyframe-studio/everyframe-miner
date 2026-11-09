@@ -118,6 +118,7 @@ const PARAMS: &[(&str, &str)] = &[
     ("appId", "--app-id"),
     ("limit", "--limit"),
     ("cursor", "--cursor"),
+    ("jobId", "--job-id"),
     ("status", "--status"),
 ];
 const FLAG_PARAMS: &[(&str, &str)] = &[

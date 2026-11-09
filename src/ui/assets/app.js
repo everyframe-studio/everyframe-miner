@@ -7,7 +7,7 @@
 const S = {
   token: null, session: null, overview: null, wallets: null, help: null,
   health: null, healthAt: 0, offers: null, offersError: null, balances: null, earnings: null,
-  history: null, historyBusy: false, historyRequest: 0, historyStatus: "all", historyModel: "", historyModelDraft: "", historyCursors: [null], historyPage: 0, openAttempt: null, earningsBusy: false,
+  jobDetail: null, jobDetailBusy: false, jobDetailRequest: 0, history: null, historyBusy: false, historyRequest: 0, historyStatus: "all", historyModel: "", historyModelDraft: "", historyCursors: [null], historyPage: 0, openAttempt: null, earningsBusy: false,
   cliUpdate: null, workerUpdate: null, workerUpdateBusy: false, workerUpdateRunning: false, workerUpdateAt: 0, resumeResult: null, hotkeySel: null, registration: null,
   workerAuto: null, workerAutoBusy: false, pendingOperations: new Map(),
   offerDrafts: new Map(), modelQuery: "", modelProvider: "", modelKind: "", computeLimit: "10",
@@ -679,7 +679,18 @@ const FAILURE_LABELS = { provider_auth_rejected: "Provider rejected the API key"
 function reportUsd(v, amount) { return v?.currency === "USD" && v?.unit === "microusd" && Number.isSafeInteger(amount) && amount >= 0 ? new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 6 }).format(amount / 1e6) : "Not reported"; }
 function reportDate(t) { return Number.isSafeInteger(t) && t > 0 ? new Date(t).toLocaleString(undefined, { timeZone: "UTC" }) + " UTC" : "Not recorded"; }
 function historyUsd(amount) { return reportUsd({ currency: "USD", unit: "microusd" }, amount); }
+async function loadJobDetail(row) {
+  const request=++S.jobDetailRequest;S.jobDetail=null;S.jobDetailBusy=true;
+  try {
+    const result=await run("jobs",{jobId:row.jobId,limit:"100"});
+    if(request!==S.jobDetailRequest||S.openAttempt!==row.attemptId)return;
+    const rows=value(result)?.history?.rows;S.jobDetail=Array.isArray(rows)?rows.find(x=>x.attemptId===row.attemptId)??null:null;
+  } catch { /* Basic attempt facts remain available on older coordinators. */ }
+  finally {if(request===S.jobDetailRequest&&S.openAttempt===row.attemptId){S.jobDetailBusy=false;if(currentRoute()==="jobs")render();}}
+}
+const PHASE_LABELS={queued:"Job queued",start_authorized:"Worker authorized to start",submitting:"Submitting to provider",submitted:"Provider request recorded",provider_queued:"Waiting in provider queue",provider_processing:"Provider generating",provider_waiting:"Waiting for provider status",provider_poll_retry:"Retrying provider status",provider_completed:"Provider reported completion",retrieving_output:"Retrieving output",output_fetch_retry:"Retrying output retrieval",uploading_output:"Uploading output",upload_retry:"Retrying output delivery",upload_received:"Output received",validating_output:"Verifying output",validation_busy:"Verification capacity busy",completion_error:"Output delivery or verification error",output_rejected:"Output rejected",output_accepted:"Output verified and accepted",worker_failed:"Worker reported failure",deadline_reached:"Job deadline reached"};
 function historyDetail(row) {
+  if(S.jobDetail?.attemptId===row.attemptId)row=S.jobDetail;
   const processing = Number.isSafeInteger(row.startedAt) && Number.isSafeInteger(row.completedAt) && row.completedAt >= row.startedAt ? ((row.completedAt - row.startedAt) / 1000).toFixed(1) + " seconds (start grant to accepted output)" : "Not recorded";
   const details = card("Attempt details", [button("Close details", () => { S.openAttempt = null; render(); }, "small")],
     h("dl", { class: "kv job-kv" }, ...[
@@ -694,6 +705,10 @@ function historyDetail(row) {
       ["Failure reason", row.failureReason ? ({ miner_silent: "Worker heartbeat stopped", submission_timeout: "Worker did not confirm submission in time", attempt_timed_out: "Attempt timed out; exact cause not recorded", offer_lease_expired: "Assignment was not accepted in time" }[row.failureReason] || FAILURE_LABELS[row.failureReason] || "Failure reported (see code below)") : "Not reported"],
     ].flatMap(([label, text]) => [h("dt", null, label), h("dd", null, text || "Not reported")])),
     row.failureReason ? h("p", { class: "small muted mono" }, "Failure code: " + row.failureReason) : null,
+    S.jobDetailBusy ? h("p",{role:"status"},"Loading job timeline…") : null,
+    row.progress?.last ? h("p",null,"Last reported phase: "+(PHASE_LABELS[row.progress.last.phase]||row.progress.last.phase)+" · "+reportDate(row.progress.last.receivedAt)) : null,
+    Array.isArray(row.progress?.timeline) ? h("ol",{class:"job-timeline"},row.progress.timeline.map(event=>h("li",null,reportDate(event.at)+" · "+(event.source==="worker"?"Worker report":"Coordinator")+" · "+(PHASE_LABELS[event.phase]||event.phase)+(event.code?" · "+event.code:"")+(event.retries?" · retries: "+event.retries:"")))) : null,
+    !row.progress?.workerEvidence ? h("p",{class:"small muted"},"Detailed provider phases were not reported or retained for this attempt. Basic timestamps and recorded failure codes remain available.") : null,
     h("p", { class: "small muted" }, "Provider quote estimates are not bills. A failed or uncertain generation may still incur charges. Review flags do not prove epoch inclusion or alpha payment."));
   details.id = "job-detail"; details.tabIndex = -1; return details;
 }
@@ -720,7 +735,7 @@ function pageJobs() {
         h("td", { "data-label": "Attempt" }, h("span", { class: "badge " + (row.state === "accepted" ? "ok" : ["failed", "rejected", "timed_out"].includes(row.state) ? "bad" : "warn") }, ATTEMPT_LABELS[row.state] || "Not reported")),
         h("td", { "data-label": "Review" }, REVIEW_LABELS[row.reviewState] || "Not reported"),
         h("td", { "data-label": "Work value" }, row.recordedWorkValueMicrousd == null ? "—" : historyUsd(row.recordedWorkValueMicrousd)),
-        h("td", { "data-label": "Inspect" }, h("button", { class: "btn small", "aria-label": "View attempt " + row.attemptId, onclick: () => { S.openAttempt = row.attemptId; render(); $("#job-detail")?.focus({ preventScroll: true }); $("#job-detail")?.scrollIntoView({ block: "nearest", behavior: "smooth" }); } }, "Details"))
+        h("td", { "data-label": "Inspect" }, h("button", { class: "btn small", "aria-label": "View attempt " + row.attemptId, onclick: () => { S.openAttempt = row.attemptId; S.jobDetail=null; render(); loadJobDetail(row); $("#job-detail")?.focus({ preventScroll: true }); $("#job-detail")?.scrollIntoView({ block: "nearest", behavior: "smooth" }); } }, "Details"))
       ))))) : h("p", { class: "empty" }, S.historyStatus === "all" && !S.historyModel ? "No attempts yet. Your miner's first assignment will appear here." : "No attempts match these filters."),
       h("div", { class: "row end" }, h("button", { class: "btn small", disabled: S.historyPage === 0, onclick: () => { S.historyPage--; loadHistory(); } }, "Previous page"),
         h("button", { class: "btn small", disabled: !history.nextCursor, onclick: () => { S.historyCursors = [...S.historyCursors.slice(0, S.historyPage + 1), history.nextCursor]; S.historyPage++; loadHistory(); } }, "Next page")),
