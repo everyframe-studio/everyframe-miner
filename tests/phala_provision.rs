@@ -159,6 +159,40 @@ fn malformed_and_oversized_bodies_do_not_replace_http_status() {
     assert_eq!(detail.request_id.as_deref(), Some("request-123"));
 }
 
+#[test]
+fn request_ids_cannot_bypass_credential_redaction() {
+    let request = Request::get("https://cloud-api.phala.com", &["cloud-api.phala.com"]);
+    for secret in [
+        "sk-testprivatecredential123456789",
+        "AIzaTestPrivateCredential1234567890",
+        "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJwcml2YXRlIn0.signature",
+    ] {
+        let body = json!({"message":"Invalid request", "request_id":secret});
+        for header in [None, Some(secret)] {
+            let error = phala_error::failure(422, body.to_string().as_bytes(), header, &request);
+            let output = cli_errors::diagnostic(&error, None);
+            assert!(output["phala"]["requestId"].is_null());
+            assert!(!output.to_string().contains(secret));
+        }
+    }
+}
+
+#[test]
+fn diagnostic_truncation_and_overlapping_inputs_cannot_expose_credentials() {
+    let secret = "private-credential-".repeat(24);
+    let request = Request::get("https://cloud-api.phala.com", &["cloud-api.phala.com"]).json(
+        "POST",
+        &json!({"a":"private-input", "b":"private-input-sensitive-suffix"}),
+    );
+    let mut request = request;
+    request.headers.push(("X-API-Key".into(), secret.clone()));
+    let body = json!({"code":secret,"message":"private-input-sensitive-suffix"});
+    let error = phala_error::failure(422, body.to_string().as_bytes(), None, &request);
+    let output = cli_errors::diagnostic(&error, None).to_string();
+    assert!(!output.contains("private-credential-"));
+    assert!(!output.contains("sensitive-suffix"));
+}
+
 struct Rejected(RefCell<usize>);
 impl Http for Rejected {
     fn bytes(&self, request: Request) -> Result<Vec<u8>> {

@@ -88,7 +88,7 @@ fn descriptions(
         return;
     }
     if let Some(v) = value.as_str() {
-        messages.push(v.chars().take(MAX_BODY).collect());
+        messages.push(v.to_owned());
     } else if let Some(values) = value.as_array() {
         for v in values.iter().take(16) {
             descriptions(v, depth + 1, messages, fields, codes);
@@ -98,7 +98,7 @@ fn descriptions(
             if let Some(v) = object.get(key).and_then(Value::as_str)
                 && codes.len() < 16
             {
-                codes.push(v.chars().take(256).collect());
+                codes.push(v.to_owned());
             }
         }
         let path = object
@@ -112,7 +112,7 @@ fn descriptions(
         }
         for key in ["message", "msg", "error_message"] {
             if let Some(v) = object.get(key).and_then(Value::as_str) {
-                let v: String = v.chars().take(MAX_BODY).collect();
+                let v = v.to_owned();
                 messages.push(path.as_ref().map_or(v.clone(), |p| format!("{p}: {v}")));
             }
         }
@@ -176,6 +176,10 @@ pub fn failure(
     {
         request_secrets(&value, 0, &mut secrets);
     }
+    // Redact a whole value before a shorter overlapping input can obscure it.
+    // Response bytes are bounded above; truncate only after redaction below.
+    secrets.sort_by_key(|value| std::cmp::Reverse(value.len()));
+    secrets.dedup();
     let (mut messages, mut fields, mut codes) = (Vec::new(), Vec::new(), Vec::new());
     let mut body_request_id = None;
     if bytes.len() <= MAX_BODY
@@ -201,6 +205,9 @@ pub fn failure(
                 && s.bytes()
                     .all(|c| c.is_ascii_alphanumeric() || b"-_.:".contains(&c))
         })
+        // Request IDs are remote text too: do not let this field bypass the
+        // credential-pattern filtering used for codes and messages.
+        .filter(|s| provider_error::clean(s, 128, &secrets).0 == *s)
         .map(str::to_owned)
         .filter(|s| !secrets.iter().any(|v| s.contains(v)));
     if message.is_empty() && code.is_empty() && request_id.is_none() {
