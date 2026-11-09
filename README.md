@@ -645,6 +645,14 @@ Catalog work values are not guaranteed earnings, provider prices, or alpha payou
 Logs never enable public logging and omit raw boot logs and secret-bearing URLs;
 use the authenticated Phala console for private/boot logs.
 
+Phala validation failures include its bounded, redacted reason, field path and
+request ID when available. New deployments omit the obsolete `tproxy_enabled`
+creation parameter when `gateway_enabled` is explicit. The signed configuration
+and expected compose hash remain unchanged, and the returned hash must still
+match before a VM is committed. Existing VM updates are unchanged.
+After a previously rejected deployment, run `everycli reconcile` in the original
+profile before retrying `everycli deploy`. Keep the profile and operation journal.
+
 ### Stop billing and uninstall
 
 ```sh

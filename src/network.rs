@@ -292,6 +292,28 @@ impl Http for PublicHttp {
                 return Err(enrollment_error(status, &bytes));
             }
             if !response.status().is_success() {
+                if u.host_str() == Some("cloud-api.phala.com") {
+                    let status = response.status().as_u16();
+                    let request_id = response
+                        .headers()
+                        .get("x-request-id")
+                        .and_then(|v| v.to_str().ok())
+                        .map(str::to_owned);
+                    let mut bytes = Vec::new();
+                    // A body-read error must not turn a known 422 into a timeout.
+                    let read = response
+                        .take(crate::phala_error::MAX_BODY as u64 + 1)
+                        .read_to_end(&mut bytes);
+                    if read.is_err() {
+                        bytes.clear();
+                    }
+                    return Err(crate::phala_error::failure(
+                        status,
+                        &bytes,
+                        request_id.as_deref(),
+                        &r,
+                    ));
+                }
                 if worker_update_endpoint(&u, &r.method) {
                     let status = response.status().as_u16();
                     let mut bytes = Vec::new();

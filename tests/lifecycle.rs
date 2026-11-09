@@ -188,6 +188,41 @@ struct Rig {
     operation_history: RefCell<Value>,
 }
 
+#[test]
+fn provision_hash_mismatch_never_commits_a_vm() {
+    struct ChangedHash<'a>(&'a Rig);
+    impl Http for ChangedHash<'_> {
+        fn bytes(&self, request: Request) -> Result<Vec<u8>> {
+            let provision = request.url.ends_with("/cvms/provision");
+            let bytes = self.0.bytes(request)?;
+            if !provision {
+                return Ok(bytes);
+            }
+            let mut value: Value = serde_json::from_slice(&bytes).unwrap();
+            value["compose_hash"] = json!("f".repeat(64));
+            Ok(value.to_string().into_bytes())
+        }
+    }
+    let r = Rig::new();
+    let http = ChangedHash(&r);
+    let miner = Miner {
+        state: r.state(),
+        trust: r.trust.clone(),
+        http: &http,
+    };
+    assert_eq!(
+        miner.deploy(0.06, &|_| Ok(())).unwrap_err().0,
+        "unexpected_provision"
+    );
+    assert!(
+        !r.calls
+            .borrow()
+            .iter()
+            .any(|(call, _)| call == "POST /api/v1/cvms")
+    );
+    assert_eq!(r.phase(), "provision_intent");
+}
+
 struct UpdateFault<'a> {
     rig: &'a Rig,
     stage: &'a str,

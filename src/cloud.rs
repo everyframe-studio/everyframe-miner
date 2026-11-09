@@ -189,7 +189,22 @@ impl<'a> Cloud<'a> {
         self.request(path, "GET", None, false, false)
     }
     pub fn mutate(&self, path: &str, method: &str, body: &Value, empty: bool) -> Result<Value> {
-        self.request(path, method, Some(body), false, empty)
+        if path == "/cvms/provision" && method == "POST" {
+            let mut wire = body.clone();
+            if let Some(compose) = wire.get_mut("compose_file").and_then(Value::as_object_mut)
+                && compose
+                    .get("gateway_enabled")
+                    .is_some_and(Value::is_boolean)
+            {
+                // Current Phala creation rejects this legacy alias, even when
+                // gateway_enabled is explicit. Omit it on the wire only. The
+                // signed invitation, compose hash and response checks stay exact.
+                compose.remove("tproxy_enabled");
+            }
+            self.request(path, method, Some(&wire), false, empty)
+        } else {
+            self.request(path, method, Some(body), false, empty)
+        }
     }
     pub fn app_path(id: &str) -> Result<String> {
         need(matches("[0-9a-f]{40}", &json!(id)), "invalid_app_id")?;
