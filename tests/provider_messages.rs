@@ -75,3 +75,10 @@ fn http_details_do_not_upgrade_a_timeout_or_server_error_into_a_confirmed_reject
         assert_eq!(error.refusal(), None);
     }
 }
+
+#[test]
+fn a_provider_status_that_is_the_only_failure_detail_is_retained() {
+    let detail = provider_error::extract(&json!({"status":"Content Moderated"}), &[]).unwrap();
+    assert_eq!(detail.code.as_deref(), Some("Content Moderated"));
+    assert!(provider_error::extract(&json!({"status":"failed"}), &[]).is_none());
+}
