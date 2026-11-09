@@ -851,6 +851,7 @@
         "Redesigned miner dashboard, live startup checks, a health ring, clearer progress and a new EveryFrame Miner icon.",
         "Show every release between the installed and target CLI versions, with conditional worker-update and other follow-up steps.",
         "Retain successful update history for dashboard notifications and automatic-update status.",
+        "Restore new Phala deployments with the current gateway parameter and show redacted validation reasons and request IDs. Existing signed configuration checks remain enforced.",
         "Add Gemini Omni 1.2 Flash through Google directly, Fal and OpenRouter, with native Google routing first when the request is compatible.",
         "Add the separate MiniMax H3 offer through OpenRouter. Existing worker images and model offers remain unchanged until explicitly updated.",
         "Report provider-defined failure codes and messages, including unfamiliar reasons, for API and website explanations with credential redaction.",
