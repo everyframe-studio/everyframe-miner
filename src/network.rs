@@ -115,6 +115,15 @@ fn batch_offer_error(status: u16, bytes: &[u8]) -> Error {
         && let Ok(v) = serde_json::from_slice::<Value>(bytes)
     {
         match (status, v["error"].as_str()) {
+            (409, Some("automatic_offer_policy_changed")) => {
+                return Error("automatic_offer_policy_changed");
+            }
+            (409, Some("automatic_offer_pricing_unsupported")) => {
+                return Error("automatic_offer_pricing_unsupported");
+            }
+            (400, Some("invalid_automatic_offer_limits")) => {
+                return Error("invalid_automatic_offer_limits");
+            }
             (409, Some("offer_revision_conflict")) => return Error("offer_revision_conflict"),
             (409, Some("offer_pricing_changed")) => return Error("offer_pricing_changed"),
             (409, Some("provider_model_unavailable")) => {
@@ -307,6 +316,10 @@ impl Http for PublicHttp {
                 if u.host_str() == Some("subnet.everyframe.studio")
                     && r.method == "POST"
                     && [
+                        "/v1/miner/automatic-offers-policy",
+                        "/mainnet/v1/miner/automatic-offers-policy",
+                        "/v1/miner/automatic-offers-preview",
+                        "/mainnet/v1/miner/automatic-offers-preview",
                         "/v1/miner/offer-batch",
                         "/mainnet/v1/miner/offer-batch",
                         "/v1/miner/offer",

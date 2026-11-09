@@ -609,3 +609,30 @@ fn overview_has_no_authorization_expiry_and_reports_the_label() {
     let (args, _) = ui::action_args(&sh, "label", &json!({"name":"x".repeat(65)})).unwrap();
     assert_eq!(ui::execute(&sh, "l2", &args, &[]).0, "failed");
 }
+
+#[test]
+fn automatic_offer_actions_separate_read_only_previews_from_reviewed_mutations() {
+    let dir = common::tempdir();
+    let sh = shared(dir.path());
+    let params = json!({"provider":"fal","models":"studio/media/fal/xai/grok-imagine-image","maxDiscountPct":"0","bufferPct":"20","maxDailyUsd":"1","maxJobUsd":"0.1"});
+    for (action, changes) in [("auto-offers-preview", false), ("auto-offers-enable", true)] {
+        let (args, actual) = ui::action_args(&sh, action, &params).unwrap();
+        assert_eq!(args.command, "auto-offers");
+        assert_eq!(actual, changes);
+        assert_eq!(args.get("--max-discount-pct"), Some("0"));
+        assert!(!args.flag("--yes"));
+    }
+    assert!(
+        !ui::action_args(&sh, "auto-offers-status", &json!({}))
+            .unwrap()
+            .1
+    );
+    assert!(
+        ui::action_args(&sh, "auto-offers-disable", &json!({"provider":"fal"}))
+            .unwrap()
+            .1
+    );
+    let mut bad = params;
+    bad["yes"] = json!(true);
+    assert!(ui::action_args(&sh, "auto-offers-enable", &bad).is_err());
+}

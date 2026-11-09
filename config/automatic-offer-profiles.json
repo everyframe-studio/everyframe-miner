@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "fal": {
+    "studio/media/fal/xai/grok-imagine-image": {
+      "apiModel": "xai/grok-imagine-image",
+      "meter": "image",
+      "baselineUnitMicrousd": 20000,
+      "mode": "fixed",
+      "units": 1
+    },
+    "studio/media/fal/blackforestlabs/flux-3": {
+      "apiModel": "blackforestlabs/flux-3",
+      "meter": "megapixel",
+      "baselineUnitMicrousd": 24000,
+      "mode": "fixed",
+      "units": 4
+    },
+    "studio/media/fal/fal-ai/elevenlabs/tts/eleven-v4": {
+      "apiModel": "fal-ai/elevenlabs/tts/eleven-v4",
+      "meter": "character",
+      "baselineUnitMicrousd": 80,
+      "mode": "proportional"
+    },
+    "studio/media/fal/minimax/music-3": {
+      "apiModel": "minimax/music-3",
+      "meter": "second",
+      "baselineUnitMicrousd": 2000,
+      "mode": "proportional"
+    },
+    "studio/media/fal/fal-ai/stable-audio-25/text-to-audio": {
+      "apiModel": "fal-ai/stable-audio-25/text-to-audio",
+      "meter": "audio",
+      "baselineUnitMicrousd": 200000,
+      "mode": "fixed",
+      "units": 1
+    },
+    "studio/media/fal/fal-ai/elevenlabs/sound-effects/v2": {
+      "apiModel": "fal-ai/elevenlabs/sound-effects/v2",
+      "meter": "second",
+      "baselineUnitMicrousd": 2000,
+      "mode": "proportional"
+    },
+    "studio/tool/fal/heygen/heygen-voice/turbo": {
+      "apiModel": "heygen/heygen-voice/turbo",
+      "meter": "character",
+      "baselineUnitMicrousd": 4,
+      "mode": "proportional"
+    },
+    "studio/tool/fal/heygen/heygen-voice": {
+      "apiModel": "heygen/heygen-voice",
+      "meter": "character",
+      "baselineUnitMicrousd": 30,
+      "mode": "proportional"
+    },
+    "studio/tool/fal/veed/dubbing": {
+      "apiModel": "veed/dubbing",
+      "meter": "second",
+      "baselineUnitMicrousd": 110000,
+      "mode": "proportional"
+    },
+    "studio/tool/fal/veed/dubbing/pro": {
+      "apiModel": "veed/dubbing/pro",
+      "meter": "second",
+      "baselineUnitMicrousd": 180000,
+      "mode": "proportional"
+    },
+    "studio/tool/fal/blackforestlabs/flux-3/klein/text-to-image/lora": {
+      "apiModel": "blackforestlabs/flux-3/klein/text-to-image/lora",
+      "meter": "megapixel",
+      "baselineUnitMicrousd": 12000,
+      "mode": "proportional"
+    },
+    "studio/tool/fal/blackforestlabs/flux-3/klein/edit-image/lora": {
+      "apiModel": "blackforestlabs/flux-3/klein/edit-image/lora",
+      "meter": "megapixel",
+      "baselineUnitMicrousd": 12000,
+      "mode": "proportional"
+    }
+  }
+}

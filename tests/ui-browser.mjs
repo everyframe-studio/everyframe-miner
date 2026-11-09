@@ -860,6 +860,45 @@ try {
       if(process.env.EVERYCLI_QA_DIR)await page.screenshot({path:join(process.env.EVERYCLI_QA_DIR,route+'-fixed-'+width+'.png'),fullPage:true});
     }
   }
+  // Automatic offers stay explicit, preserve drafts and expose paused state.
+  await page.evaluate(() => {
+    S.overview.initialized=true; S.autoDrafts.clear(); S.autoExpanded=new Set(['fal']); S.autoBusy=false;
+    S.offers={offers:[{model:'studio/media/fal/xai/grok-imagine-image',name:'Grok test',provider:'fal',offered:true,offerable:true,localKeyConfigured:true,discountBp:1000,pricingCurrent:true,automaticOffer:{managed:true,state:'paused',reason:'automatic_offer_price_stale'}}]};
+    S.autoOffers={catalog:[{model:'studio/media/fal/xai/grok-imagine-image',provider:'fal',supported:true},{model:'unknown-meter',provider:'fal',supported:false}],automaticOffers:{providers:[{provider:'fal',revision:0,enabled:false,policy:null,estimatedExposureMicrousd:0,models:[],history:[]}]}};
+    S.modelQuery=''; S.modelProvider=''; S.offerFilter='all'; history.replaceState(null,'','#/models'); render();
+  });
+  assert.equal(await page.getByText('Automatic paused',{exact:true}).count(),1,'paused managed offers never appear active');
+  assert.equal(await page.getByLabel('Automate studio/media/fal/xai/grok-imagine-image').isChecked(),false,'scope is empty by default');
+  assert.equal(await page.getByLabel('fal Maximum discount %').inputValue(),'');
+  assert.equal(await page.getByLabel('fal Rolling 24-hour estimated USD limit').inputValue(),'');
+  await page.getByRole('button',{name:'Preview prices',exact:true}).click();
+  await page.getByText('Select models and enter your maximum discount, rolling daily limit and per-job limit. A 0% maximum discount is allowed.',{exact:true}).waitFor();
+  await page.getByLabel('Automate studio/media/fal/xai/grok-imagine-image').check();
+  await page.getByLabel('fal Maximum discount %').fill('0');
+  await page.getByLabel('fal Rolling 24-hour estimated USD limit').fill('1');
+  await page.getByLabel('fal Per-job estimated USD limit').fill('0.1');
+  const automaticPreview = await page.evaluate(async()=>{
+    const original={run,loadOffers};const calls=[];
+    try{
+      run=async(action,params)=>{calls.push({action,params});return {state:'done',result:{value:{preview:{rows:[{model:'studio/media/fal/xai/grok-imagine-image',status:'ready',discountBp:0,estimatedCostMicrousd:10000,checkedAt:Date.now()}]}}}};};
+      loadOffers=async()=>{};
+      await changeAutomaticOffers('fal','preview');
+      return {calls,draft:[...S.autoDrafts.get('fal').models],limit:S.autoDrafts.get('fal').maxDailyUsd};
+    }finally{({run,loadOffers}=original);}
+  });
+  assert.equal(automaticPreview.calls.length,1);
+  assert.equal(automaticPreview.calls[0].action,'auto-offers-preview','preview never enables or submits generation');
+  assert.equal(automaticPreview.calls[0].params.maxDiscountPct,'0');
+  assert.equal(automaticPreview.limit,'1');
+  assert.deepEqual(automaticPreview.draft,['studio/media/fal/xai/grok-imagine-image']);
+  await page.getByText('Grok test: Ready · 0.00% off',{exact:false}).waitFor();
+  assert.equal(await page.getByLabel('fal Rolling 24-hour estimated USD limit').inputValue(),'1','preview redraw preserves limits');
+  for(const width of [1440,390,320]){
+    await page.setViewportSize({width,height:900});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'automatic offer form fits '+width);
+    if(process.env.EVERYCLI_QA_DIR)await page.screenshot({path:join(process.env.EVERYCLI_QA_DIR,'automatic-offers-'+width+'.png'),fullPage:true});
+  }
+
   assert.deepEqual(errors, []);
   console.log('UI browser regressions passed: pairing, drafts, lifecycle, readiness, W credits, diagnostics, history filters/pagination/details/races, earnings, mixed-offer batches, draft preservation, operation recovery and mobile.');
 } finally {

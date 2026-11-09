@@ -17,7 +17,7 @@ pub const HELP: &str = "everycli · EveryFrame miner tools
 Usage: everycli COMMAND [options]
 
 Setup: setup (guided), terms, register-hotkey, set-api-keys, remove-api-key, init, reconnect
-Manage: health, doctor, status, providers, balances, offers, offer, offer-batch, jobs, earnings, deploy, activate,
+Manage: health, doctor, status, providers, balances, offers, offer, offer-batch, auto-offers, jobs, earnings, deploy, activate,
         apply-api-keys, resume, worker-update, stop, start, reconcile, delete, logs, label
 Browser: ui (local setup guide and status dashboard on 127.0.0.1)
 CLI updates: update, auto-update (--enable / --disable)
@@ -81,6 +81,10 @@ const VALUE_OPTIONS: &[&str] = &[
     "--model",
     "--models",
     "--discount-pct",
+    "--max-discount-pct",
+    "--buffer-pct",
+    "--max-daily-usd",
+    "--max-job-usd",
     "--port",
     "--app-id",
     "--name",
@@ -183,6 +187,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
             "--force",
             "--abort",
             "--summary",
+            "--preview",
         ]
         .contains(&a)
         {
@@ -258,6 +263,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
             "offers",
             "offer",
             "offer-batch",
+            "auto-offers",
             "jobs",
             "earnings",
             "deploy",
@@ -284,6 +290,17 @@ pub fn parse(args: &[String]) -> Result<Args> {
     }
     let allowed = match out.command.as_str() {
         "auto-update" => vec!["--enable", "--disable"],
+        "auto-offers" => vec![
+            "--enable",
+            "--disable",
+            "--preview",
+            "--provider",
+            "--models",
+            "--max-discount-pct",
+            "--buffer-pct",
+            "--max-daily-usd",
+            "--max-job-usd",
+        ],
         "worker-auto-update" => vec!["--enable", "--disable"],
         "setup" => vec![
             "--continue",
@@ -496,6 +513,9 @@ pub fn key_prompt(provider: &str, saved: bool) -> String {
 pub fn validate_args(args: &Args) -> Result<()> {
     if args.flag("--help") || args.flag("--version") {
         return Ok(());
+    }
+    if args.command == "auto-offers" {
+        crate::automatic_offers::validate(args)?;
     }
     if args.command == "jobs" {
         crate::job_history::query(args)?;
@@ -857,6 +877,7 @@ pub fn run_with(
         args.command.as_str(),
         "deploy" | "start" | "activate" | "resume"
     ) || (matches!(args.command.as_str(), "offer" | "offer-batch") && !args.flag("--withdraw"))
+        || (args.command == "auto-offers" && args.flag("--enable"))
     {
         let address = terms_identity(args, &miner)?.ok_or(Error("terms_hotkey_required"))?;
         crate::terms::require(
@@ -1036,6 +1057,7 @@ pub fn run_with(
         "providers" => miner.providers(),
         "balances" => miner.balances(args.flag("--publish")),
         "offers" => miner.offers(),
+        "auto-offers" => miner.automatic_offers(args, confirm),
         "earnings" => miner.earnings(),
         "jobs" if args.flag("--summary") => miner.jobs(),
         "jobs" => miner.job_history(crate::job_history::query(args)?),

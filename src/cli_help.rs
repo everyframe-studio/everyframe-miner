@@ -16,6 +16,7 @@ pub const COMMANDS: &[&str] = &[
     "offers",
     "offer",
     "offer-batch",
+    "auto-offers",
     "jobs",
     "earnings",
     "deploy",
@@ -196,6 +197,11 @@ pub fn render(command: &str) -> String {
             "  --port N    Local port (default 47117, or the next free one)\n  --no-open   Print the link without opening a browser\n  --network / --state-dir select the profile, as for other commands",
             "ui",
         ),
+        "auto-offers" => (
+            "Preview provider costs or explicitly enable scoped automatic offers. Off by default. The attested worker refreshes prices and the coordinator enforces conservative estimated exposure limits. Only reviewed Fal units and complete OpenRouter video prices are eligible. Work value is not cash or guaranteed profit. Manual offer changes remove a model from automation. A compatible worker update is required; closing the dashboard does not stop automation.",
+            "  --preview | --enable | --disable\n  --provider fal|openrouter\n  --models ID,ID (preview/enable; exact selection, maximum 64)\n  --max-discount-pct PCT (required for preview/enable, 0-99.9)\n  --buffer-pct PCT (default 20; cost buffer, not profit)\n  --max-daily-usd USD (required; estimated exposure per rolling 24 hours)\n  --max-job-usd USD (required; estimated cost per job)\n  No flags: read current policies and status. Disable withdraws managed offers; existing started jobs keep their locked price. Limits exclude manual offers, other provider account use and hosting. No generation is submitted for a preview.",
+            "auto-offers --preview --provider fal --models studio/media/fal/xai/grok-imagine-image --max-discount-pct 20 --buffer-pct 20 --max-daily-usd 1 --max-job-usd 0.10",
+        ),
         "auto-update" => (
             "Show automatic CLI update settings and the last attempt. Native user installs check in the background after successful interactive commands and when the UI starts, at most once every six hours. Downloads are checksum-verified and installed atomically for the next invocation; reopen the UI after an update. Never updates workers or changes offers. JSON/CI/help/version invocations do not launch the updater.",
             "  --enable   Enable automatic CLI updates (default)\n  --disable  Disable automatic CLI updates; manual everycli update still works\n  EVERYCLI_DISABLE_AUTO_UPDATE=1 disables background updates for this environment.\n  No flags: show status. Settings apply across miner profiles.",
@@ -229,6 +235,7 @@ pub fn render(command: &str) -> String {
         "stop",
         "offer",
         "offer-batch",
+        "auto-offers",
         "remove-api-key",
     ]
     .contains(&name)

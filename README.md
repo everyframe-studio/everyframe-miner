@@ -25,6 +25,8 @@ permissions for resale and serving third-party requests, and contact providers
 directly for approvals and discounts. A working API key is not approval.
 See [acceptance and unattended setup](docs/miner-terms-acceptance.md).
 
+The v1.0.0 integration also includes optional [automatic provider-price offers](docs/automatic-offers.md): explicit model selection, price previews, discount ceilings and estimated exposure limits. It stays off until enabled.
+
 The direct Google integration adds Gemini Omni Flash, four Nano Banana image
 models, Lyria 3.5, and both Gemini 3.8 TTS models. See the [Google provider
 guide](GOOGLE.md) for supported settings, references and compatible-worker requirements.
