@@ -82,3 +82,19 @@ fn a_provider_status_that_is_the_only_failure_detail_is_retained() {
     assert_eq!(detail.code.as_deref(), Some("Content Moderated"));
     assert!(provider_error::extract(&json!({"status":"failed"}), &[]).is_none());
 }
+
+#[test]
+fn non_json_diagnostics_are_forwarded_without_inventing_a_recognized_refusal() {
+    let error = submission::with_body_provider_error(
+        Error("http_400"),
+        400,
+        "api.openai.com",
+        b"Unknown content policy service response",
+        &[],
+    );
+    assert_eq!(error.refusal(), None);
+    assert_eq!(
+        error.provider_error().unwrap().message.as_deref(),
+        Some("Unknown content policy service response")
+    );
+}

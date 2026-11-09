@@ -350,6 +350,17 @@ impl Http for PublicHttp {
                     let secrets: Vec<String> = r
                         .headers
                         .iter()
+                        .filter(|(key, _)| {
+                            matches!(
+                                key.to_ascii_lowercase().as_str(),
+                                "authorization"
+                                    | "x-key"
+                                    | "x-api-key"
+                                    | "x-goog-api-key"
+                                    | "xi-api-key"
+                                    | "api-key"
+                            )
+                        })
                         .flat_map(|(_, v)| {
                             [
                                 v.clone(),

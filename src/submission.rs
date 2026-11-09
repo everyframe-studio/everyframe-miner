@@ -136,17 +136,21 @@ pub fn with_body_provider_error(
     if bytes.len() > 64000 {
         return error;
     }
-    let value = serde_json::from_slice::<serde_json::Value>(bytes)
-        .unwrap_or_else(|_| serde_json::Value::String(String::from_utf8_lossy(bytes).into_owned()));
+    let parsed = serde_json::from_slice::<serde_json::Value>(bytes).ok();
+    let value = parsed
+        .clone()
+        .unwrap_or_else(|| serde_json::Value::String(String::from_utf8_lossy(bytes).into_owned()));
     let refusal = if (400..500).contains(&status) && !matches!(status, 408 | 429) {
-        crate::providers::refusal(
-            if host == "api.dev.pika.art" {
-                "pika"
-            } else {
-                ""
-            },
-            &value,
-        )
+        parsed.as_ref().and_then(|value| {
+            crate::providers::refusal(
+                if host == "api.dev.pika.art" {
+                    "pika"
+                } else {
+                    ""
+                },
+                value,
+            )
+        })
     } else {
         None
     };
