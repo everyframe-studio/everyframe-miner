@@ -26,6 +26,7 @@ fn docker_context_includes_every_embedded_registry_but_excludes_private_state() 
         assert!(ignore.lines().any(|line| line == license));
     }
     for file in [
+        "automatic-offer-profiles.json",
         "models.json",
         "provider-expansion.json",
         "provider-model-status.json",
