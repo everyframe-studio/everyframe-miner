@@ -191,6 +191,14 @@ pub fn diagnostic(error: &Error, args: Option<&Args>) -> Value {
         _ => (format!("{}.", error.0.replace('_', " ")), help),
     };
     let mut out = json!({"ok":false,"error":error.0,"message":message,"next":next});
+    if let Some(ErrorContext::Phala(detail)) = &error.1 {
+        out["phala"] = detail.value();
+        out["message"] = json!(format!(
+            "{}\n{}",
+            out["message"].as_str().unwrap_or(""),
+            detail.summary()
+        ));
+    }
     if let Some(ErrorContext::File(path)) = &error.1 {
         out["file"] = json!(clean(&path.to_string_lossy()));
     }
