@@ -30,6 +30,36 @@ pub fn check(spec: &Value) -> Result<()> {
         ],
     )?;
     let prompt = s(&v["prompt"])?;
+    if p["apiModel"]
+        .as_str()
+        .is_some_and(|s| s.starts_with("openai/gpt-image-2.6-"))
+    {
+        let hint = match s(&v["aspect"])? {
+            "16:9" => "Widescreen 16:9 landscape orientation.",
+            "9:16" => {
+                "Vertical 9:16 portrait orientation, tall aspect ratio, framed for a phone screen."
+            }
+            "1:1" => "Square 1:1 aspect ratio.",
+            "4:5" => "Portrait 4:5 aspect ratio.",
+            "21:9" => "Ultra-wide 21:9 landscape orientation.",
+            _ => "Widescreen 16:9 landscape orientation.",
+        };
+        let negative = v["parameters"]["negative"].as_str().unwrap_or("");
+        let mut parts = vec![];
+        if v["references"].as_array().is_some_and(|r| !r.is_empty()) {
+            parts.push("Use the attached reference images in their numbered order:".to_string());
+        }
+        parts.push(prompt.to_string());
+        parts.push(hint.to_string());
+        if !negative.is_empty() {
+            parts.push(format!("Avoid: {negative}."));
+        }
+        need(
+            parts.join(" ").chars().count() <= 32000,
+            "invalid_media_prompt",
+        )?;
+    }
+
     need(
         !prompt.trim().is_empty()
             && prompt.len() <= 150000
@@ -364,8 +394,14 @@ pub fn body(spec: &Value, urls: &[String]) -> Result<(String, Value)> {
             parts.push(format!("Avoid: {negative}."));
         }
         let prompt = parts.join(" ");
-        if model == "openai/gpt-image-2.5-sunburst" {
+        if model == "openai/gpt-image-2.5-sunburst" || model.starts_with("openai/gpt-image-2.6-") {
             let mut b = json!({"model":model,"prompt":prompt,"n":1,"aspect_ratio":if aspect=="4:5"{"3:4"}else{aspect}});
+            if model.starts_with("openai/gpt-image-2.6-") {
+                b["quality"] = par["quality"].clone();
+                b["output_format"] = json!("png");
+                b["background"] = json!("auto");
+                b["provider"] = json!({"only":["openai"],"allow_fallbacks":false,"options":{"openai":{"complexity":"high"}}});
+            }
             if !images.is_empty() {
                 b["input_references"] = json!(
                     images

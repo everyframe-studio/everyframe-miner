@@ -15,6 +15,8 @@ const JSON_LIMIT: usize = OUTPUT_LIMIT * 4 / 3 + 1024 * 1024;
 fn origin(model: &Value) -> Result<&'static str> {
     match s(&model["provider"])? {
         "openai" => Ok("api.openai.com"),
+        "openrouter" => Ok("openrouter.ai"),
+        "fal" => Ok("queue.fal.run"),
         "xai" => Ok("api.x.ai"),
         "bfl" => Ok("api.bfl.ai"),
         "minimax" => Ok("api.minimax.io"),
@@ -97,7 +99,7 @@ impl Router<'_> {
         }
         Ok(request)
     }
-    fn native_references(&self, spec: &Value) -> Result<Vec<String>> {
+    pub(crate) fn native_references(&self, spec: &Value) -> Result<Vec<String>> {
         let mut urls = vec![];
         for reference in spec["input"]["references"].as_array().unwrap() {
             let mut request = Request::get(
@@ -135,6 +137,9 @@ impl Router<'_> {
         Ok(urls)
     }
     pub(crate) fn native_submit(&mut self, spec: &Value, model: &Value) -> Result<String> {
+        if model["gptImage26"] == true {
+            return self.gpt26_submit(spec, model);
+        }
         let urls = self.native_references(spec)?;
         let (path, body) = native_media::body(spec, &urls)?;
         if model["nativeSchema"].is_object() {
@@ -236,6 +241,9 @@ impl Router<'_> {
         spec: &Value,
         model: &Value,
     ) -> Result<String> {
+        if model["gptImage26"] == true {
+            return self.gpt26_poll(reference, spec, model);
+        }
         if model["nativeSchema"].is_object() {
             return self.schema_poll(reference, spec, model);
         }
@@ -267,6 +275,9 @@ impl Router<'_> {
         spec: &Value,
         model: &Value,
     ) -> Result<Output> {
+        if model["gptImage26"] == true {
+            return self.gpt26_result(reference, spec, model);
+        }
         if model["nativeSchema"].is_object() {
             return self.schema_result(reference, spec, model);
         }

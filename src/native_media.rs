@@ -14,6 +14,12 @@ pub static MODELS: LazyLock<Value> = LazyLock::new(|| {
         .as_object_mut()
         .unwrap()
         .extend(additions.as_object().unwrap().clone());
+    let gpt: Value = serde_json::from_str(include_str!("../config/gpt-image-26.json"))
+        .expect("reviewed GPT Image 2.6 models");
+    models
+        .as_object_mut()
+        .unwrap()
+        .extend(gpt.as_object().unwrap().clone());
     models
 });
 
@@ -113,6 +119,13 @@ pub fn spec(value: &Value) -> Result<Value> {
                 parameters[k] = v.clone();
             }
         }
+    }
+    if policy["gptImage26"] == true
+        && policy["provider"] != "openrouter"
+        && parameters["output_format"] == "gif"
+        && value["parameters"].get("size").is_none()
+    {
+        parameters["size"] = json!("auto");
     }
     if parameters["output_format"].is_object()
         && parameters["output_format"]["codec"] != "mp3"
@@ -243,6 +256,9 @@ pub fn check(value: &Value) -> Result<()> {
             .collect::<Result<Vec<_>>>()?;
         crate::native_schema::body(value, policy, &urls)?;
         return Ok(());
+    }
+    if policy["gptImage26"] == true {
+        return crate::gpt_image26::check(p, policy, references);
     }
     match s(&policy["adapter"])? {
         "openai-images" => {
@@ -562,6 +578,9 @@ pub fn body(spec: &Value, urls: &[String]) -> Result<(String, Value)> {
             s(&m["apiPath"])?.to_string(),
             crate::native_schema::body(spec, m, urls)?,
         ));
+    }
+    if m["gptImage26"] == true {
+        return crate::gpt_image26::body(spec, m, urls);
     }
     let x = &spec["input"];
     let refs = x["references"].as_array().unwrap();
