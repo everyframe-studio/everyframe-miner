@@ -1,0 +1,146 @@
+[
+  {
+    "model": "direct/openai/gpt-image-2.6-sunburst",
+    "provider": "openai",
+    "request": {
+      "model": "direct/openai/gpt-image-2.6-sunburst",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "direct/openai/gpt-image-2.6-sunburst",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "parameters": {
+          "size": "1024x1024",
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "png",
+          "n": 1,
+          "complexity": "high"
+        },
+        "references": []
+      }
+    },
+    "hash": "f98cb0cd5db23d1361d525f8faf43404916bf6fb354b00428c1f08bfdb4351db"
+  },
+  {
+    "model": "studio/native/openrouter/openai/gpt-image-2.6-sunburst",
+    "provider": "openrouter",
+    "request": {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-sunburst",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-sunburst",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "parameters": {
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "png",
+          "n": 1,
+          "complexity": "high",
+          "aspect_ratio": "1:1"
+        },
+        "references": []
+      }
+    },
+    "hash": "7bb823bc42c5b99b9e46f92937e92b50152c2067764d61e79e83c7a9591405d6"
+  },
+  {
+    "model": "studio/native/fal/openai/gpt-image-2.6/sunburst",
+    "provider": "fal",
+    "request": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/sunburst",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/sunburst",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "parameters": {
+          "size": "1024x1024",
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "png",
+          "n": 1,
+          "complexity": "high"
+        },
+        "references": []
+      }
+    },
+    "hash": "67400e02c49cf4212a9ba5f60f59a2df1fc9dd7eacf9e24dbb9d3dfddddc2171"
+  },
+  {
+    "model": "direct/openai/gpt-image-2.6-flare",
+    "provider": "openai",
+    "request": {
+      "model": "direct/openai/gpt-image-2.6-flare",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "direct/openai/gpt-image-2.6-flare",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "parameters": {
+          "size": "1024x1024",
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "png",
+          "n": 1,
+          "complexity": "high"
+        },
+        "references": []
+      }
+    },
+    "hash": "eb2171f073f0b46d46ef6742ea2565a636d5d9072875dab2340f7b88faeda6cc"
+  },
+  {
+    "model": "studio/native/openrouter/openai/gpt-image-2.6-flare",
+    "provider": "openrouter",
+    "request": {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-flare",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-flare",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "parameters": {
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "png",
+          "n": 1,
+          "complexity": "high",
+          "aspect_ratio": "1:1"
+        },
+        "references": []
+      }
+    },
+    "hash": "2a8362549b4d30d79deff0b92f9a9da834ffe1ff7f50698386709ae69ecb0879"
+  },
+  {
+    "model": "studio/native/fal/openai/gpt-image-2.6/flare",
+    "provider": "fal",
+    "request": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/flare",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "studio/native/fal/openai/gpt-image-2.6/flare",
+      "input": {
+        "prompt": "All providers: offline contract fixture.",
+        "parameters": {
+          "size": "1024x1024",
+          "quality": "medium",
+          "background": "auto",
+          "output_format": "png",
+          "n": 1,
+          "complexity": "high"
+        },
+        "references": []
+      }
+    },
+    "hash": "94aae19b7875d5a7228b648c42857b0d69f3f56e2962d314eb81930694a321bb"
+  }
+]
