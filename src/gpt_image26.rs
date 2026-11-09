@@ -74,6 +74,10 @@ pub fn check(p: &Value, m: &Value, refs: &[Value]) -> Result<()> {
         need(p.get("aspect_ratio").is_none(), "invalid_native_image_size")?;
         let size = s(&p["size"])?;
         if size != "auto" {
+            need(
+                crate::matches("[0-9]+x[0-9]+", &p["size"]),
+                "invalid_native_image_size",
+            )?;
             let (w, h) = size
                 .split_once('x')
                 .ok_or(Error("invalid_native_image_size"))?;
