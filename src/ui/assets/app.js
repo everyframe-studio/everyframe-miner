@@ -7,7 +7,7 @@
 const S = {
   token: null, session: null, overview: null, wallets: null, help: null,
   health: null, healthAt: 0, offers: null, offersError: null, balances: null, earnings: null,
-  jobDetail: null, jobDetailBusy: false, jobDetailRequest: 0, history: null, historyBusy: false, historyRequest: 0, historyStatus: "all", historyModel: "", historyModelDraft: "", historyCursors: [null], historyPage: 0, openAttempt: null, earningsBusy: false,
+  jobDetail: null, jobDetailError: false, jobDetailBusy: false, jobDetailRequest: 0, history: null, historyBusy: false, historyRequest: 0, historyStatus: "all", historyModel: "", historyModelDraft: "", historyCursors: [null], historyPage: 0, openAttempt: null, earningsBusy: false,
   cliUpdate: null, workerUpdate: null, workerUpdateBusy: false, workerUpdateRunning: false, workerUpdateAt: 0, resumeResult: null, hotkeySel: null, registration: null,
   workerAuto: null, workerAutoBusy: false, pendingOperations: new Map(),
   offerDrafts: new Map(), modelQuery: "", modelProvider: "", modelKind: "", computeLimit: "10",
@@ -680,12 +680,12 @@ function reportUsd(v, amount) { return v?.currency === "USD" && v?.unit === "mic
 function reportDate(t) { return Number.isSafeInteger(t) && t > 0 ? new Date(t).toLocaleString(undefined, { timeZone: "UTC" }) + " UTC" : "Not recorded"; }
 function historyUsd(amount) { return reportUsd({ currency: "USD", unit: "microusd" }, amount); }
 async function loadJobDetail(row) {
-  const request=++S.jobDetailRequest;S.jobDetail=null;S.jobDetailBusy=true;
+  const request=++S.jobDetailRequest;S.jobDetail=null;S.jobDetailError=false;S.jobDetailBusy=true;
   try {
     const result=await run("jobs",{jobId:row.jobId,limit:"100"});
     if(request!==S.jobDetailRequest||S.openAttempt!==row.attemptId)return;
-    const rows=value(result)?.history?.rows;S.jobDetail=Array.isArray(rows)?rows.find(x=>x.attemptId===row.attemptId)??null:null;
-  } catch { /* Basic attempt facts remain available on older coordinators. */ }
+    const rows=value(result)?.history?.rows;S.jobDetail=Array.isArray(rows)?rows.find(x=>x.attemptId===row.attemptId)??null:null;S.jobDetailError=result.state!=="done"||!Array.isArray(rows);
+  } catch { if(request===S.jobDetailRequest&&S.openAttempt===row.attemptId)S.jobDetailError=true; }
   finally {if(request===S.jobDetailRequest&&S.openAttempt===row.attemptId){S.jobDetailBusy=false;if(currentRoute()==="jobs")render();}}
 }
 const PHASE_LABELS={queued:"Job queued",start_authorized:"Worker authorized to start",submitting:"Submitting to provider",submitted:"Provider request recorded",provider_queued:"Waiting in provider queue",provider_processing:"Provider generating",provider_waiting:"Waiting for provider status",provider_poll_retry:"Retrying provider status",provider_completed:"Provider reported completion",retrieving_output:"Retrieving output",output_fetch_retry:"Retrying output retrieval",uploading_output:"Uploading output",upload_retry:"Retrying output delivery",upload_received:"Output received",validating_output:"Verifying output",validation_busy:"Verification capacity busy",completion_error:"Output delivery or verification error",output_rejected:"Output rejected",output_accepted:"Output verified and accepted",worker_failed:"Worker reported failure",deadline_reached:"Job deadline reached"};
@@ -706,9 +706,10 @@ function historyDetail(row) {
     ].flatMap(([label, text]) => [h("dt", null, label), h("dd", null, text || "Not reported")])),
     row.failureReason ? h("p", { class: "small muted mono" }, "Failure code: " + row.failureReason) : null,
     S.jobDetailBusy ? h("p",{role:"status"},"Loading job timeline…") : null,
+    S.jobDetailError ? h("p",{role:"status",class:"muted"},"Timeline details are temporarily unavailable. Basic attempt facts remain available. Reopen details to retry.") : null,
     row.progress?.last ? h("p",null,"Last reported phase: "+(PHASE_LABELS[row.progress.last.phase]||row.progress.last.phase)+" · "+reportDate(row.progress.last.receivedAt)) : null,
     Array.isArray(row.progress?.timeline) ? h("ol",{class:"job-timeline"},row.progress.timeline.map(event=>h("li",null,reportDate(event.at)+" · "+(event.source==="worker"?"Worker report":"Coordinator")+" · "+(PHASE_LABELS[event.phase]||event.phase)+(event.code?" · "+event.code:"")+(event.retries?" · retries: "+event.retries:"")))) : null,
-    !row.progress?.workerEvidence ? h("p",{class:"small muted"},"Detailed provider phases were not reported or retained for this attempt. Basic timestamps and recorded failure codes remain available.") : null,
+    !S.jobDetailBusy&&!S.jobDetailError&&!row.progress?.workerEvidence ? h("p",{class:"small muted"},"Detailed provider phases were not reported or retained for this attempt. Basic timestamps and recorded failure codes remain available.") : null,
     h("p", { class: "small muted" }, "Provider quote estimates are not bills. A failed or uncertain generation may still incur charges. Review flags do not prove epoch inclusion or alpha payment."));
   details.id = "job-detail"; details.tabIndex = -1; return details;
 }
