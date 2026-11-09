@@ -4,8 +4,27 @@ use std::collections::BTreeSet;
 
 #[test]
 fn every_direct_catalog_contract_matches_the_coordinator() {
-    let rows: Vec<Value> =
+    let mut rows: Vec<Value> =
         serde_json::from_str(include_str!("fixtures/provider-catalog.json")).unwrap();
+    // Keep historical coordinator vectors unchanged. Each model addition has
+    // a separate, coordinator-generated fixture file; the complete catalog
+    // still requires exactly one vector per registered direct contract.
+    let directory = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let mut additions = std::fs::read_dir(directory)
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .filter(|path| {
+            path.file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.starts_with("provider-catalog-") && n.ends_with(".json"))
+        })
+        .collect::<Vec<_>>();
+    additions.sort();
+    for path in additions {
+        rows.extend(
+            serde_json::from_str::<Vec<Value>>(&std::fs::read_to_string(path).unwrap()).unwrap(),
+        );
+    }
     assert_eq!(rows.len(), models::MODELS.as_object().unwrap().len());
     let mut seen = BTreeSet::new();
     for row in rows {
