@@ -446,7 +446,16 @@ tr.spotlight td { animation: spotlight-row 2.6s ease-out; }
 @keyframes spotlight { 0%, 55% { box-shadow: 0 0 0 3px var(--accent), 0 0 28px color-mix(in srgb, var(--accent) 45%, transparent); } 100% { box-shadow: 0 0 0 0 transparent; } }
 @keyframes spotlight-row { 0%, 55% { background: color-mix(in srgb, var(--accent) 22%, transparent); } 100% { background: transparent; } }
 /* Job evidence remains readable at narrow viewport widths. */
-.job-timeline{padding-left:20px;overflow-wrap:anywhere}.job-timeline li{margin-block:8px}
+.job-timeline { list-style: none; padding: 0; margin: 8px 0 0; overflow-wrap: anywhere; border-left: 2px solid var(--line); }
+.job-timeline li { display: grid; grid-template-columns: 72px 96px minmax(0, 1fr) max-content; gap: 12px; align-items: baseline; padding: 6px 0 6px 14px; position: relative; }
+.job-timeline li::before { content: ""; position: absolute; left: -5px; top: 12px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+@media (max-width: 640px) { .job-timeline li { grid-template-columns: max-content minmax(0, 1fr); gap: 2px 10px; } }
+h4 { font-size: 13.5px; margin: 14px 0 4px; }
+/* Miner Terms: readable sections and a checkbox beside its sentence. */
+.terms-text { max-height: 420px; overflow-y: auto; padding: 4px 16px 12px; margin-top: 8px; border: 1px solid var(--line); border-radius: 12px; }
+.terms-text h3 { margin: 12px 0 2px; } .terms-text h4 { margin: 16px 0 4px; } .terms-text p { margin: 0 0 6px; line-height: 1.55; }
+label.check { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+label.check input { margin-top: 3px; flex: none; }
 /* Automatic offers stay inside the existing Models layout. */
 .automatic-provider { border: 1px solid var(--line, #5555); border-radius: 8px; padding: 12px; }
 .automatic-provider summary { cursor: pointer; font-weight: 600; }

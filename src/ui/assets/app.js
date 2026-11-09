@@ -5,7 +5,7 @@
 // Only non-secret model notification acknowledgments are kept in localStorage.
 
 const S = {
-  autoOffers: null, autoError: null, autoBusy: false, autoRequest: 0, autoDrafts: new Map(), autoExpanded: new Set(),
+  autoOffers: null, autoTried: false, autoError: null, autoBusy: false, autoRequest: 0, autoDrafts: new Map(), autoExpanded: new Set(),
   termsDraft: null,
   token: null, session: null, overview: null, wallets: null, help: null,
   health: null, healthAt: 0, offers: null, offersError: null, balances: null, earnings: null,
@@ -710,9 +710,11 @@ function render() {
   const page = { overview: pageOverview, setup: pageSetup, models: pageModels, jobs: pageJobs, earnings: pageEarnings, keys: pageKeys, worker: pageWorker, help: pageHelp }[r];
   $("#main").replaceChildren(page());
   if (S.overview?.terms?.accepted === false && r !== "setup") {
-    $("#main").prepend(notice("warn", "Miner Terms acceptance required", h("div", null,
+    const banner = notice("warn", "Miner Terms acceptance required", h("div", null,
       h("p", null, "Before joining or enabling new work, agree that you obtain provider resale permissions and negotiate provider discounts directly."),
-      h("a", { href: "#/setup", onclick: () => { S.openStep = "terms"; } }, "Review and accept Miner Terms"))));
+      h("a", { href: "#/setup", onclick: () => { S.openStep = "terms"; } }, "Review and accept Miner Terms")));
+    const lede = $("#main .lede");
+    if (lede) lede.after(banner); else $("#main").prepend(banner);
   }
   patchPendingBanner();
 }
@@ -932,13 +934,24 @@ function historyUsd(amount) { return reportUsd({ currency: "USD", unit: "microus
 async function loadJobDetail(row) {
   const request=++S.jobDetailRequest;S.jobDetail=null;S.jobDetailError=false;S.jobDetailBusy=true;
   try {
-    const result=await run("jobs",{jobId:row.jobId,limit:"100"});
+    const result=await run("jobs",{jobId:row.jobId,limit:"100"},{quiet:true});
     if(request!==S.jobDetailRequest||S.openAttempt!==row.attemptId)return;
     const rows=value(result)?.history?.rows;S.jobDetail=Array.isArray(rows)?rows.find(x=>x.attemptId===row.attemptId)??null:null;S.jobDetailError=result.state!=="done"||!Array.isArray(rows);
   } catch { if(request===S.jobDetailRequest&&S.openAttempt===row.attemptId)S.jobDetailError=true; }
   finally {if(request===S.jobDetailRequest&&S.openAttempt===row.attemptId){S.jobDetailBusy=false;if(currentRoute()==="jobs")render();}}
 }
 const PHASE_LABELS={queued:"Job queued",start_authorized:"Worker authorized to start",submitting:"Submitting to provider",submitted:"Provider request recorded",provider_queued:"Waiting in provider queue",provider_processing:"Provider generating",provider_waiting:"Waiting for provider status",provider_poll_retry:"Retrying provider status",provider_completed:"Provider reported completion",retrieving_output:"Retrieving output",output_fetch_retry:"Retrying output retrieval",uploading_output:"Uploading output",upload_retry:"Retrying output delivery",upload_received:"Output received",validating_output:"Verifying output",validation_busy:"Verification capacity busy",completion_error:"Output delivery or verification error",output_rejected:"Output rejected",output_accepted:"Output verified and accepted",worker_failed:"Worker reported failure",deadline_reached:"Job deadline reached"};
+function timelineView(events) {
+  const first = events.find(e => Number.isSafeInteger(e.at))?.at;
+  const clock = t => new Date(t).toLocaleTimeString(undefined, { timeZone: "UTC", hourCycle: "h23", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const elapsed = t => { const s = Math.round((t - first) / 1000); return s < 60 ? "+" + s + " s" : "+" + Math.floor(s / 60) + " min " + (s % 60) + " s"; };
+  return h("div", null, h("h4", null, "Timeline"), first ? h("p", { class: "small muted" }, "Started " + reportDate(first) + ". Times are UTC.") : null,
+    h("ol", { class: "job-timeline" }, events.map(e => h("li", null,
+      h("span", { class: "mono small" }, Number.isSafeInteger(e.at) ? clock(e.at) : "—"),
+      h("span", { class: "small muted" }, first && Number.isSafeInteger(e.at) ? elapsed(e.at) : ""),
+      h("span", null, PHASE_LABELS[e.phase] || e.phase, e.code ? h("span", { class: "mono small muted" }, " " + e.code) : null, e.retries ? h("span", { class: "small muted" }, " · retries: " + e.retries) : null),
+      h("span", { class: "small muted" }, e.source === "worker" ? "Worker" : "Coordinator")))));
+}
 function historyDetail(row) {
   if(S.jobDetail?.attemptId===row.attemptId)row=S.jobDetail;
   const processing = Number.isSafeInteger(row.startedAt) && Number.isSafeInteger(row.completedAt) && row.completedAt >= row.startedAt ? ((row.completedAt - row.startedAt) / 1000).toFixed(1) + " seconds (start grant to accepted output)" : "Not recorded";
@@ -958,7 +971,7 @@ function historyDetail(row) {
     S.jobDetailBusy ? h("p",{role:"status"},"Loading job timeline…") : null,
     S.jobDetailError ? h("p",{role:"status",class:"muted"},"Timeline details are temporarily unavailable. Basic attempt facts remain available. Reopen details to retry.") : null,
     row.progress?.last ? h("p",null,"Last reported phase: "+(PHASE_LABELS[row.progress.last.phase]||row.progress.last.phase)+" · "+reportDate(row.progress.last.receivedAt)) : null,
-    Array.isArray(row.progress?.timeline) ? h("ol",{class:"job-timeline"},row.progress.timeline.map(event=>h("li",null,reportDate(event.at)+" · "+(event.source==="worker"?"Worker report":"Coordinator")+" · "+(PHASE_LABELS[event.phase]||event.phase)+(event.code?" · "+event.code:"")+(event.retries?" · retries: "+event.retries:"")))) : null,
+    Array.isArray(row.progress?.timeline) && row.progress.timeline.length ? timelineView(row.progress.timeline) : null,
     !S.jobDetailBusy&&!S.jobDetailError&&!row.progress?.workerEvidence ? h("p",{class:"small muted"},"Detailed provider phases were not reported or retained for this attempt. Basic timestamps and recorded failure codes remain available.") : null,
     h("p", { class: "small muted" }, "Provider quote estimates are not bills. A failed or uncertain generation may still incur charges. Review flags do not prove epoch inclusion or alpha payment."));
   details.id = "job-detail"; details.tabIndex = -1; return details;
@@ -1112,10 +1125,14 @@ async function refreshAll() {
 function termsForm(o) {
   const t = o?.terms;
   if (!t) return h("p", null, "Loading Miner Terms…");
-  const paragraphs = String(t.text || "").trim().split(/\n\n/).map(text => h("p", null, text));
-  const review = h("details", { open: !t.accepted }, h("summary", null, "Read Miner Terms · " + t.termsVersion), ...paragraphs);
+  // Blocks are separated by blank lines; a block's first line is its title.
+  const blocks = String(t.text || "").trim().split(/\n\s*\n/).map(block => block.split("\n"));
+  const paragraphs = blocks.map(([first, ...rest], i) => i === 0
+    ? h("div", { class: "terms-title" }, h("h3", null, first), rest.length ? h("p", { class: "small muted" }, rest.join(" ")) : null)
+    : rest.length ? h("section", null, h("h4", null, first), h("p", null, rest.join(" "))) : h("p", null, first));
+  const review = h("details", { class: "terms-review", open: !t.accepted }, h("summary", null, "Read Miner Terms · " + t.termsVersion), h("div", { class: "terms-text" }, ...paragraphs));
   const identity = h("dl", { class: "kv small" }, h("dt", null, "Hotkey"), h("dd", null, t.hotkey || "Select and check your hotkey first"), h("dt", null, "Network"), h("dd", null, t.network));
-  if (t.accepted) return h("div", { class: "stack" }, notice("ok", "Terms accepted on this device", "Version " + t.termsVersion + " for this hotkey. You remain responsible for required provider approvals and your commercial arrangements."), identity, review, continueButton("terms"));
+  if (t.accepted) return h("div", { class: "stack" }, notice("ok", "Terms accepted on this device", "Version " + t.termsVersion + " for this hotkey. You remain responsible for required provider approvals and your commercial arrangements."), identity, review, h("div", { class: "row" }, continueButton("terms")));
   // Drafts live only in memory and are reset for a different identity or document.
   const scope = [t.termsVersion, t.documentSha256, t.network, t.hotkey].join(":");
   if (S.termsDraft !== scope) S.termsDraft = null;
@@ -1132,8 +1149,8 @@ function termsForm(o) {
   return h("div", { class: "stack" },
     h("p", null, "You must obtain and maintain all required provider permissions for resale and serving third-party requests, and contact providers directly for approvals and discounts. A working API key does not grant these rights."),
     identity, review,
-    h("label", { class: "row" }, checkbox, "I accept Miner Terms " + t.termsVersion + " and confirm that I am responsible for obtaining required provider permissions and negotiating provider discounts directly."),
-    h("p", { class: "small muted" }, "Acceptance is recorded in this profile. This does not deploy a VM, change offers or submit a paid generation."), submit);
+    h("label", { class: "check" }, checkbox, h("span", null, "I accept Miner Terms " + t.termsVersion + " and confirm that I am responsible for obtaining required provider permissions and negotiating provider discounts directly.")),
+    h("p", { class: "small muted" }, "Acceptance is recorded in this profile. This does not deploy a VM, change offers or submit a paid generation."), h("div", { class: "row" }, submit));
 }
 function stepBody(id) {
   const o = S.overview;
@@ -1157,7 +1174,7 @@ function stepBody(id) {
     case "init": return h("div", null,
       h("p", null, "everycli proves you own the hotkey by signing a challenge on this computer, then downloads your signed worker configuration. No machine is created and nothing is paid."),
       S.hotkeySel ? h("p", { class: "small muted" }, "Using " + describeHotkey(S.hotkeySel) + ".") : o?.registration ? h("p", { class: "small muted" }, "Using the hotkey checked in step 1.") : null,
-      o?.terms?.accepted !== true ? h("p", { class: "warn" }, "Accept the Miner Terms for this hotkey first." ) : null,
+      o?.terms?.accepted !== true ? notice("warn", null, h("span", null, "Accept the Miner Terms for this hotkey first. ", h("a", { href: "#/setup", onclick: () => { S.openStep = "terms"; render(); } }, "Go to the Miner Terms step"))) : null,
       h("button", { class: "btn primary", disabled: o?.terms?.accepted !== true, onclick: async () => {
         const job = await run("init", S.hotkeySel || {});
         if (job.state === "done") S.openStep = null;
@@ -1737,7 +1754,14 @@ function automaticDraft(provider, policy) {
   });
   return S.autoDrafts.get(provider);
 }
+// Up to six decimals for sub-cent prices, without trailing zeros.
+function autoUsd(micro) {
+  if (typeof micro !== "number" || !isFinite(micro)) return "—";
+  const usd = micro / 1e6;
+  return "$" + (usd >= 1 || usd === 0 ? usd.toFixed(2) : usd.toFixed(6).replace(/0+$/, "").replace(/\.(\d)$/, ".$10"));
+}
 function automaticOffersCard() {
+  if (!S.autoTried) { S.autoTried = true; loadAutomaticOffers().then(() => { if (currentRoute() === "models") render(); }); }
   const refresh = button(S.autoOffers ? "Refresh automatic offers" : "Configure automatic offers", async () => { await loadAutomaticOffers(); if (currentRoute() === "models") render(); }, "small");
   refresh.disabled = S.autoBusy || S.batchBusy;
   const body = h("div", { class: "stack" }, h("p", { class: "small muted" },
@@ -1754,7 +1778,7 @@ function automaticOffersCard() {
     const details = h("details", { class: "automatic-provider", "data-automatic-provider": provider, open: S.autoExpanded.has(provider), ontoggle: e => {
       if (e.currentTarget.open) S.autoExpanded.add(provider); else S.autoExpanded.delete(provider);
     } }, h("summary", null, providerName(provider), " · ", p.enabled ? "Monitoring on" : "Off"));
-    details.append(h("p", { class: "small muted" }, fmtUsd(p.estimatedExposureMicrousd / 1e6, 6) + " estimated exposure in the rolling 24-hour window. Limits cover only this policy; manual offers, other account use and hosting are excluded."),
+    details.append(h("p", { class: "small muted" }, autoUsd(p.estimatedExposureMicrousd) + " estimated exposure in the rolling 24-hour window. Limits cover only this policy; manual offers, other account use and hosting are excluded."),
       h("p", { class: "small muted" }, provider === "fal" ? "Uses your deployed generation key's unit-price estimate. Jobs with unquoted billing components pause. No billing or admin key is sent to the worker." : "Uses OpenRouter's public video price catalog. Private account discounts are not assumed."));
     const list = h("div", { class: "automatic-models", role: "group", "aria-label": providerName(provider) + " automatic models" });
     for (const row of supported) {
@@ -1777,10 +1801,10 @@ function automaticOffersCard() {
     const disable = button("Disable automatic offers", () => changeAutomaticOffers(provider, "disable"), "small");
     preview.disabled = enable.disabled = busy || !ready.length; disable.disabled = busy || !p.enabled;
     details.append(h("div", { class: "row" }, preview, enable, disable), h("p", { class: "small muted" }, "A compatible worker with fresh price reports is required. Disabling withdraws managed offers. Manual edits remove a model from automation. Started jobs keep their agreed price."));
-    if (draft.preview) details.append(h("div", { "data-automatic-preview": provider }, draft.preview.error ? errorView(draft.preview.error) : h("ul", { class: "small" }, (draft.preview.rows || []).map(r => h("li", null,
+    if (draft.preview) details.append(h("div", { "data-automatic-preview": provider }, h("h4", null, "Price preview"), draft.preview.error ? errorView(draft.preview.error) : h("ul", { class: "small" }, (draft.preview.rows || []).map(r => h("li", null,
       (local.get(r.model)?.name || r.model) + ": " + (r.status === "ready" ? "Ready · " + (r.discountBp / 100).toFixed(2) + "% off" : automaticReason(r.reason)),
-      typeof r.estimatedCostMicrousd === "number" ? " · estimated " + fmtUsd(r.estimatedCostMicrousd / 1e6, 6) : "", r.checkedAt ? " · checked " + fmtTime(r.checkedAt) : "")))));
-    if (p.models?.length) details.append(h("ul", { class: "small" }, p.models.map(m => h("li", null, (local.get(m.model)?.name || m.model) + ": " + (m.state === "active" ? "Automatic offer active" : automaticReason(m.reason))))));
+      typeof r.estimatedCostMicrousd === "number" ? " · estimated " + autoUsd(r.estimatedCostMicrousd) + " per job" : "", r.checkedAt ? " · checked " + ago(r.checkedAt) : "")))));
+    if (p.models?.length) details.append(h("div", null, h("h4", null, "Current state"), h("ul", { class: "small" }, p.models.map(m => h("li", null, (local.get(m.model)?.name || m.model) + ": " + (m.state === "active" ? "Automatic offer active" : automaticReason(m.reason)))))));
     if (p.history?.length) details.append(h("details", null, h("summary", null, "Recent automatic offer changes"), h("ul", { class: "small" }, p.history.map(e => h("li", null, fmtTime(e.at) + " · " + (e.model || providerName(provider)) + " · " + (e.reason ? automaticReason(e.reason) : e.action))))));
     body.append(details);
   }
