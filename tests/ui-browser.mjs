@@ -156,7 +156,12 @@ try {
   }
   for (const [width, columns] of [[1000, 2], [390, 1], [1440, 4]]) {
     await page.setViewportSize({ width, height: 1000 });
-    assert.equal(await summary.evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length), columns);
+    // Resize can replace the card between locator resolution and evaluation.
+    await page.waitForFunction(({ width, columns }) => {
+      const card = document.querySelector('[aria-label="Miner overview summary"]');
+      return innerWidth === width && card?.isConnected
+        && getComputedStyle(card).gridTemplateColumns.trim().split(/\s+/).length === columns;
+    }, { width, columns });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'overview must fit viewport');
   }
   await page.setViewportSize({width:390,height:844});
@@ -778,6 +783,19 @@ try {
       if(process.env.EVERYCLI_QA_DIR)await page.screenshot({path:join(process.env.EVERYCLI_QA_DIR,route+'-fixed-'+width+'.png'),fullPage:true});
     }
   }
+  await page.evaluate(() => {
+    Activity.add('Phala validation').finish({ state: 'failed', result: { error: {
+      error: 'phala_http_422',
+      message: 'Phala: HTTP 422\nPhala code: ERR-03-041\nPhala reason: compose_file.tproxy_enabled: Use gateway_enabled instead. <img src=x onerror="window.phalaErrorExecuted=true">\nRequest ID: request-123',
+      next: 'Reconcile the original profile before retrying.'
+    } } });
+  });
+  const phalaFailure = page.locator('#activity .act').first();
+  assert.match(await phalaFailure.innerText(), /ERR-03-041/);
+  assert.match(await phalaFailure.innerText(), /compose_file\.tproxy_enabled/);
+  assert.match(await phalaFailure.innerText(), /Request ID: request-123/);
+  assert.equal(await phalaFailure.locator('img').count(), 0, 'remote diagnostics render as text');
+  assert.equal(await page.evaluate(() => window.phalaErrorExecuted), undefined);
   assert.deepEqual(errors, []);
   console.log('UI browser regressions passed: pairing, drafts, lifecycle, readiness, W credits, diagnostics, history filters/pagination/details/races, earnings, mixed-offer batches, draft preservation, operation recovery and mobile.');
 } finally {

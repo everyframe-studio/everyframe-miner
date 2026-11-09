@@ -24,6 +24,7 @@ mod native_websocket;
 pub mod network;
 pub mod offer_catalog;
 pub mod onboarding;
+pub mod phala_error;
 pub mod protocol;
 pub mod provider_error;
 pub mod providers;
@@ -46,6 +47,7 @@ pub enum ErrorContext {
     File(std::path::PathBuf),
     Option(String),
     Command(String),
+    Phala(Box<phala_error::PhalaError>),
     /// Why a provider refused a job, as a fixed code from
     /// `providers::refusal`. Never provider text.
     Refusal(&'static str),
@@ -57,8 +59,8 @@ pub enum ErrorContext {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Failure(pub &'static str, pub Option<ErrorContext>);
 pub type Error = Failure;
-// Keep the existing code-only constructor; context is explicit and local, never
-// copied from a provider response or credential value.
+// Keep the existing code-only constructor; context is explicit and bounded.
+// Raw provider responses and credential values are never retained here.
 #[allow(non_snake_case)]
 pub fn Error(code: &'static str) -> Error {
     Failure(code, None)
