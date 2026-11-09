@@ -260,6 +260,35 @@ fn history_table(value: &Value) -> String {
         if r["failureReason"].is_string() {
             out.push_str(&format!("Failure: {}\n", text(&r["failureReason"])));
         }
+        if r["progress"]["phase"].is_string() {
+            out.push_str(&format!(
+                "Last phase: {}{}\n",
+                text(&r["progress"]["phase"]),
+                if r["progress"]["stale"] == true {
+                    " (no recent progress report)"
+                } else {
+                    ""
+                }
+            ));
+        }
+        if let Some(events) = r["progress"]["timeline"].as_array() {
+            out.push_str("Timeline (worker phases are reported evidence):\n");
+            for event in events.iter().take(132) {
+                out.push_str(&format!(
+                    "  {} · {} · {}{}\n",
+                    text(&event["at"]),
+                    text(&event["source"]),
+                    text(&event["phase"]),
+                    event["code"]
+                        .as_str()
+                        .map(|s| format!(" · {s}"))
+                        .unwrap_or_default()
+                ));
+            }
+            if r["progress"]["workerEvidence"] != true {
+                out.push_str("Detailed provider phases were not reported for this attempt.\n");
+            }
+        }
     }
     if value["history"]["nextCursor"].is_string() {
         let filters = &value["history"]["filters"];
@@ -267,10 +296,15 @@ fn history_table(value: &Value) -> String {
             .as_str()
             .map(|m| format!(" --model {m}"))
             .unwrap_or_default();
+        let job = filters["jobId"]
+            .as_str()
+            .map(|v| format!(" --job-id {v}"))
+            .unwrap_or_default();
         out.push_str(&format!(
-            "\nNext page: everycli jobs --status {}{} --limit {} --cursor {}\n",
+            "\nNext page: everycli jobs --status {}{}{} --limit {} --cursor {}\n",
             text(&filters["status"]),
             model,
+            job,
             value["history"]["limit"],
             value["history"]["nextCursor"].as_str().unwrap_or("")
         ));
@@ -531,6 +565,81 @@ pub fn render(command: &str, value: &Value) -> String {
     }
     let rows = |key: &str| value[key].as_array().cloned().unwrap_or_default();
     match command {
+        "auto-offers" => {
+            if value["preview"]["rows"].is_array() {
+                let data = value["preview"]["rows"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|r| {
+                        vec![
+                            text(&r["model"]),
+                            text(&r["status"]),
+                            r["estimatedCostMicrousd"]
+                                .as_u64()
+                                .map(|v| format!("${:.6}", v as f64 / 1e6))
+                                .unwrap_or_else(|| "—".into()),
+                            r["discountBp"]
+                                .as_u64()
+                                .map(|v| format!("{:.2}%", v as f64 / 100.))
+                                .unwrap_or_else(|| "—".into()),
+                            text(&r["reason"]),
+                        ]
+                    })
+                    .collect();
+                format!(
+                    "Automatic offer preview (read only)\n{}\nCosts are estimates, not bills. No offer was changed.\n",
+                    table(
+                        &["MODEL", "STATUS", "ESTIMATED COST", "DISCOUNT", "REASON"],
+                        data
+                    )
+                )
+            } else {
+                let data = value["automaticOffers"]["providers"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .flat_map(|p| {
+                        let mut rows = vec![vec![
+                            text(&p["provider"]),
+                            if p["enabled"] == true {
+                                "Enabled".into()
+                            } else {
+                                "Off".into()
+                            },
+                            format!(
+                                "${:.6} estimated exposure",
+                                p["estimatedExposureMicrousd"].as_f64().unwrap_or(0.) / 1e6
+                            ),
+                        ]];
+                        for m in p["models"].as_array().into_iter().flatten() {
+                            rows.push(vec![
+                                text(&m["model"]),
+                                text(&m["state"]),
+                                text(&m["reason"]),
+                            ]);
+                        }
+                        rows
+                    })
+                    .collect();
+                format!(
+                    "Automatic offers\n{}\nWork value is not cash or guaranteed profit. Limits cover only this policy; manual work, other account use and hosting are excluded.\n",
+                    table(&["PROVIDER / MODEL", "STATE", "DETAIL"], data)
+                )
+            }
+        }
+        "terms" => format!(
+            "{}\nAcceptance: {}\nHotkey: {}\nNetwork: {}\n\nRead these terms, then accept explicitly with everycli terms --accept-terms {} in the same profile.\n",
+            crate::terms::TEXT,
+            if value["accepted"] == true {
+                "accepted on this device"
+            } else {
+                "required"
+            },
+            text(&value["hotkey"]),
+            text(&value["network"]),
+            crate::terms::VERSION
+        ),
         "jobs" if value["historyAvailable"].is_boolean() => history_table(value),
         "jobs" => format!(
             "Jobs by model · all time\n\n{}\n\nCompleted means accepted, verified output. Failed/cancelled counts describe attempts, not payments or alpha rewards.\n",
@@ -621,6 +730,15 @@ pub fn render(command: &str, value: &Value) -> String {
                     "\nInstalled {}. The new version is used on the next invocation.\n",
                     version(&last["result"]["version"])
                 ));
+            }
+            let receipt = &value["lastUpdate"]["result"];
+            if receipt["updated"] == true {
+                out.push_str(&format!(
+                    "\nLast successful CLI update: {} → {}\n",
+                    version(&receipt["previous"]),
+                    version(&receipt["version"])
+                ));
+                out.push_str(&crate::upgrade_notes::render(&receipt["upgrade"]));
             }
             out.push_str("\nCLI only: deployed workers, keys and offers are unchanged.\nDisable: everycli auto-update --disable · Enable: everycli auto-update --enable\n");
             out
@@ -724,9 +842,9 @@ pub fn render(command: &str, value: &Value) -> String {
             text(&value["next"])
         ),
         "self-update" => {
-            if value["updated"] == true {
+            let mut out = if value["updated"] == true {
                 format!(
-                    "Updated everycli from {} to {}.\nProfiles and deployed workers are unchanged.\nReopen everycli ui to use the new dashboard. If the coordinator rejects your saved authorization, run everycli reconnect with the same hotkey.",
+                    "Updated everycli from {} to {}.\nProfiles and deployed workers are unchanged.",
                     version(&value["previous"]),
                     version(&value["version"])
                 )
@@ -741,7 +859,9 @@ pub fn render(command: &str, value: &Value) -> String {
                         "No update available. The installed CLI was not changed."
                     }
                 )
-            }
+            };
+            out.push_str(&crate::upgrade_notes::render(&value["upgrade"]));
+            out
         }
         "providers" => {
             let data = rows("providers")

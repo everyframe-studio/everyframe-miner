@@ -16,6 +16,7 @@ pub struct BalanceSession {
     pub id: String,
     pub expires: i64,
     pub signing: SigningKey,
+    pub automatic_offers: bool,
 }
 pub type SharedSession = Arc<Mutex<Option<BalanceSession>>>;
 #[derive(Default)]

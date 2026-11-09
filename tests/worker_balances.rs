@@ -63,6 +63,7 @@ fn fixture() -> (Api, Transport, BalanceSession) {
     let keys = Keys::default();
     let now = everyframe_miner::now();
     let session = BalanceSession {
+        automatic_offers: false,
         id: "session-fixture".into(),
         expires: now + 2_000_000,
         signing: keys.signing.clone(),

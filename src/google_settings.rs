@@ -127,7 +127,11 @@ pub fn check(v: &Value) -> Result<()> {
                 let n = a.strip_suffix('s').and_then(|v| v.parse::<f64>().ok());
                 need(
                     crate::matches(r"\d+(\.\d{1,9})?s", d)
-                        && n.is_some_and(|n| (3.0..=10.0).contains(&n)),
+                        && n.is_some_and(|n| {
+                            n >= c["durationRange"][0].as_f64().unwrap_or(3.0)
+                                && n <= c["durationRange"][1].as_f64().unwrap_or(10.0)
+                                && (c["wholeSeconds"] != true || n.fract() == 0.0)
+                        }),
                     "invalid_google_duration",
                 )?;
             }
@@ -349,6 +353,15 @@ pub fn check(v: &Value) -> Result<()> {
             "invalid_google_previous_interaction",
         )?;
     }
+    if let Some(options) = c["unsupportedOptions"].as_array() {
+        for key in options {
+            let key = s(key)?;
+            need(
+                x.get(key).is_none() && g.get(key).is_none(),
+                "unsupported_google_option",
+            )?;
+        }
+    }
     references(x, c)?;
     Ok(())
 }
@@ -435,8 +448,10 @@ fn references(x: &Value, c: &Value) -> Result<()> {
                 if c["kind"] == "video" {
                     need(
                         n(&r["durationMs"])?
-                            <= if ["edit", "extend"].contains(&task) {
-                                10000
+                            <= if task == "edit" {
+                                c["editVideoDurationMs"].as_i64().unwrap_or(10000)
+                            } else if task == "extend" {
+                                c["extendVideoDurationMs"].as_i64().unwrap_or(10000)
                             } else {
                                 3000
                             },
@@ -459,6 +474,27 @@ fn references(x: &Value, c: &Value) -> Result<()> {
             && (last == 0 || first == 1),
         "invalid_google_references",
     )?;
+    if c["wholeSeconds"] == true {
+        let f = format(x, "video")?;
+        let duration = f["duration"]
+            .as_str()
+            .unwrap_or("10s")
+            .trim_end_matches('s')
+            .parse::<f64>()
+            .map_err(|_| Error("invalid_google_duration"))?;
+        need(
+            last == 0 || duration <= n(&c["frameDurationMax"])? as f64,
+            "invalid_omni_frame_duration",
+        )?;
+        need(
+            duration <= 10.0 || videos <= n(&c["longDurationVideoReferences"])?,
+            "invalid_google_references",
+        )?;
+        need(
+            task != "extend" || duration <= n(&c["extensionDurationMax"])? as f64,
+            "invalid_google_duration",
+        )?;
+    }
     match task {
         "text_to_video" => need(refs.is_empty(), "google_task_input_mismatch")?,
         "image_to_video" => need(

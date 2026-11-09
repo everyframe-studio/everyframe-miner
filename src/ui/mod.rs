@@ -49,12 +49,28 @@ const MAX_JOBS: usize = 200;
 /// UI action → (CLI command words, extra flags, changes state or spends money).
 /// Anything not listed here cannot be reached from the browser.
 const ACTIONS: &[(&str, &[&str], &[&str], bool)] = &[
+    ("terms", &["terms"], &[], false),
+    ("terms-accept", &["terms"], &[], true),
     ("status", &["status"], &[], false),
     ("health", &["health"], &[], false),
     ("doctor", &["doctor"], &[], false),
     ("providers", &["providers"], &[], false),
     ("balances", &["balances"], &[], false),
     ("offers", &["offers"], &[], false),
+    ("auto-offers-status", &["auto-offers"], &[], false),
+    (
+        "auto-offers-preview",
+        &["auto-offers"],
+        &["--preview"],
+        false,
+    ),
+    ("auto-offers-enable", &["auto-offers"], &["--enable"], true),
+    (
+        "auto-offers-disable",
+        &["auto-offers"],
+        &["--disable"],
+        true,
+    ),
     ("earnings", &["earnings"], &[], false),
     ("jobs", &["jobs"], &[], false),
     ("register-hotkey", &["register-hotkey"], &[], true),
@@ -65,6 +81,7 @@ const ACTIONS: &[(&str, &[&str], &[&str], bool)] = &[
         false,
     ),
     ("cli-update-check", &["update"], &["--check"], false),
+    ("cli-auto-status", &["auto-update"], &[], false),
     ("init", &["init"], &[], true),
     ("reconnect", &["reconnect"], &[], true),
     ("offer", &["offer"], &[], true),
@@ -109,15 +126,23 @@ const PARAMS: &[(&str, &str)] = &[
     ("hotkey", "--hotkey"),
     ("hotkeyFile", "--hotkey-file"),
     ("hotkeySs58", "--hotkey-ss58"),
+    ("acceptTerms", "--accept-terms"),
+    ("termsHotkey", "--terms-hotkey"),
+    ("termsSha256", "--terms-sha256"),
     ("model", "--model"),
     ("models", "--models"),
     ("discountPct", "--discount-pct"),
+    ("maxDiscountPct", "--max-discount-pct"),
+    ("bufferPct", "--buffer-pct"),
+    ("maxDailyUsd", "--max-daily-usd"),
+    ("maxJobUsd", "--max-job-usd"),
     ("maxHourlyUsd", "--max-hourly-usd"),
     ("provider", "--provider"),
     ("name", "--name"),
     ("appId", "--app-id"),
     ("limit", "--limit"),
     ("cursor", "--cursor"),
+    ("jobId", "--job-id"),
     ("status", "--status"),
 ];
 const FLAG_PARAMS: &[(&str, &str)] = &[
@@ -386,8 +411,15 @@ pub fn overview(sh: &Shared) -> Result<Value> {
         "updating",
     ]
     .contains(&phase);
+    let address = profile["hotkey"].as_str().or_else(|| {
+        (registration["network"] == sh.network && registration["registered"] == true)
+            .then(|| registration["hotkey"].as_str())
+            .flatten()
+    });
+    let terms = crate::terms::view(&state, &sh.network, address)?;
     let steps = json!([
         {"id":"hotkey","done":registration["registered"] == true || !config.is_null()},
+        {"id":"terms","done":terms["accepted"] == true},
         {"id":"phala","done":saved("PHALA_CLOUD_API_KEY")},
         {"id":"providers","done":generation},
         {"id":"init","done":!config.is_null()},
@@ -411,7 +443,7 @@ pub fn overview(sh: &Shared) -> Result<Value> {
             "needsReconcile":(phase.ends_with("_intent") && phase != "delete_intent") || ["provisioned","starting","stopping","updating"].contains(&phase)},
         "label":label["name"],
         "recoveryPending":!state.read("profile-recovery", true)?.is_null(),
-        "keys":keys,"steps":steps,"checkedAt":now()
+        "keys":keys,"steps":steps,"terms":terms,"checkedAt":now()
     }))
 }
 
@@ -563,8 +595,8 @@ pub fn action_args(sh: &Shared, action: &str, params: &Value) -> Result<(Args, b
         .ok_or(Error("ui_unknown_action"))?;
     let mut argv: Vec<String> = words.iter().map(|w| w.to_string()).collect();
     argv.extend(flags.iter().map(|f| f.to_string()));
-    // The CLI self-update check is profile-independent and takes no profile options.
-    if words != &["update"] {
+    // CLI upgrade checks and receipts are global and take no profile options.
+    if words != &["update"] && words != &["auto-update"] {
         argv.extend(["--network".into(), sh.network.clone()]);
         if let Some(dir) = &sh.state_dir {
             argv.extend(["--state-dir".into(), dir.clone()]);
@@ -591,6 +623,20 @@ pub fn action_args(sh: &Shared, action: &str, params: &Value) -> Result<(Args, b
                 return Err(Error("invalid_option").option(name));
             }
         }
+    }
+    if action == "terms" {
+        need(params.get("acceptTerms").is_none(), "invalid_option")?;
+    }
+    if action == "terms-accept" {
+        need(
+            params["termsHotkey"].is_string()
+                && params["termsSha256"].as_str() == Some(crate::terms::hash().as_str()),
+            "terms_review_changed",
+        )?;
+        need(
+            params["acceptTerms"].as_str() == Some(crate::terms::VERSION),
+            "terms_version_changed",
+        )?;
     }
     let args = cli::parse(&argv)?;
     cli::validate_args(&args)?;

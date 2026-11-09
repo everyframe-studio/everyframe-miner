@@ -199,6 +199,8 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
         let keepalive =
             self.runtime
                 .keepalive(&self.session, &self.keys, &self.coordinator_key, deadline)?;
+        let mut progress = crate::worker_progress::Reporter::new(&work, &keepalive);
+        let mut retries = 0_u64;
         if work["state"] == "offered" {
             let (start, _) = self.call("start", json!({"attemptId":attempt}))?;
             if start["permitted"] != true {
@@ -209,6 +211,7 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                 "invalid_start_grant",
             )?;
             grant = start["grantNonce"].clone();
+            progress.emit("submitting", json!({}), self.runtime.now());
             let submission = if self.runtime.now() >= deadline {
                 Err(Error("submission_deadline_elapsed"))
             } else {
@@ -224,21 +227,40 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                     } else {
                         "submission_uncertain"
                     };
+                    // A refusal code only describes a confirmed rejection.
+                    let refusal = rejected.and(error.refusal());
+                    let provider_error = error.provider_error().cloned();
                     // Only fixed codes and public job/attempt identifiers; no keys,
                     // prompts, upstream bodies or credential-bearing URLs.
                     eprintln!(
                         "{}",
-                        json!({"event":action,"jobId":work["jobId"],"attemptId":attempt,"reason":reason})
+                        json!({"event":action,"jobId":work["jobId"],"attemptId":attempt,"reason":reason,"refusal":refusal})
                     );
                     self.pause_provider_for(&work["spec"], reason);
+                    let mut with_refusal = refusal.is_some();
+                    let mut with_provider_error = provider_error.is_some();
                     while self.runtime.now() < deadline {
-                        if self
-                            .call(action, json!({"attemptId":attempt,"reason":reason}))
-                            .is_ok()
-                        {
+                        let mut payload = json!({"attemptId":attempt,"reason":reason});
+                        if with_refusal {
+                            payload["refusal"] = json!(refusal);
+                        }
+                        if with_provider_error {
+                            payload["providerError"] = provider_error.as_ref().unwrap().value();
+                        }
+                        let result = self.call(action, payload);
+                        if result.is_ok() {
                             return Ok(
                                 json!({"state":if rejected.is_some(){"rejected"}else{"unknown"},"reason":reason}),
                             );
+                        }
+                        // A coordinator without refusal support refuses the extra
+                        // field: the category alone is still the right report.
+                        if result.is_err_and(|e| e.0 == "http_400") {
+                            if with_provider_error {
+                                with_provider_error = false;
+                            } else {
+                                with_refusal = false;
+                            }
                         }
                         self.runtime.sleep(1000);
                     }
@@ -275,35 +297,87 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                 Ok(v) => v,
                 Err(e) => {
                     if crate::submission::transient_poll(e.0) {
+                        retries += 1;
+                        progress.emit(
+                            "provider_poll_retry",
+                            json!({"code":e.0,"retries":retries}),
+                            self.runtime.now(),
+                        );
                         self.runtime.sleep(3000);
                         continue;
                     }
-                    return self.fail_generation(&work, e.0, deadline);
+                    return self.fail_generation(
+                        &work,
+                        e.0,
+                        e.refusal(),
+                        e.provider_error().cloned(),
+                        deadline,
+                    );
                 }
             };
+            let phase = match status.as_str() {
+                "IN_QUEUE" => "provider_queued",
+                "IN_PROGRESS" => "provider_processing",
+                "COMPLETED" => "provider_completed",
+                _ => "provider_waiting",
+            };
+            progress.emit(phase, json!({"status":status}), self.runtime.now());
             if status == "FAILED" {
-                return self.fail_generation(&work, "provider_generation_failed", deadline);
+                return self.fail_generation(
+                    &work,
+                    "provider_generation_failed",
+                    None,
+                    None,
+                    deadline,
+                );
             };
             if status != "COMPLETED" {
                 self.runtime.sleep(1000);
                 continue;
             };
+            progress.emit("retrieving_output", json!({}), self.runtime.now());
             let output = match self.provider.result(s(&reference)?, &work["spec"]) {
                 Ok(v) => v,
                 Err(e) => {
                     if crate::submission::transient_poll(e.0) {
+                        retries += 1;
+                        progress.emit(
+                            "output_fetch_retry",
+                            json!({"code":e.0,"retries":retries}),
+                            self.runtime.now(),
+                        );
                         self.runtime.sleep(3000);
                         continue;
                     }
-                    return self.fail_generation(&work, e.0, deadline);
+                    return self.fail_generation(
+                        &work,
+                        e.0,
+                        e.refusal(),
+                        e.provider_error().cloned(),
+                        deadline,
+                    );
                 }
             };
             let value = json!({"protocol":1,"sessionId":self.session["sessionId"],"minerId":self.miner_id,"jobId":work["jobId"],"attemptId":attempt,"inputHash":work["inputHash"],"grantNonce":grant,"providerRef":reference,"outputHash":protocol::sha(&output.media),"bytes":output.media.len(),"providerResponseHash":output.response_hash});
             let receipt = protocol::signed(&value, &self.keys.signing)?;
             let payload = json!({"receipt":receipt,"video":protocol::b64(&output.media)});
+            progress.emit(
+                "uploading_output",
+                json!({"bytes":output.media.len()}),
+                self.runtime.now(),
+            );
             let mut refused = 0;
             while self.runtime.now() < deadline {
-                match self.call("complete", payload.clone()) {
+                let completion = self.call("complete", payload.clone());
+                if let Err(e) = &completion {
+                    retries += 1;
+                    progress.emit(
+                        "upload_retry",
+                        json!({"code":e.0,"retries":retries,"bytes":output.media.len()}),
+                        self.runtime.now(),
+                    );
+                }
+                match completion {
                     Ok((out, _))
                         if out["outputHash"] == value["outputHash"]
                             && out["jobId"] == value["jobId"] =>
@@ -325,6 +399,8 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                             return self.fail_generation(
                                 &work,
                                 "output_refused_by_coordinator",
+                                None,
+                                None,
                                 deadline,
                             );
                         }
@@ -368,10 +444,17 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
             );
         }
     }
-    fn fail_generation(&mut self, work: &Value, reason: &str, deadline: i64) -> Result<Value> {
+    fn fail_generation(
+        &mut self,
+        work: &Value,
+        reason: &str,
+        refusal: Option<&'static str>,
+        detail: Option<crate::provider_error::ProviderError>,
+        deadline: i64,
+    ) -> Result<Value> {
         eprintln!(
             "{}",
-            json!({"event":"generation_failed","jobId":work["jobId"],"attemptId":work["attemptId"],"reason":reason})
+            json!({"event":"generation_failed","jobId":work["jobId"],"attemptId":work["attemptId"],"reason":reason,"refusal":refusal})
         );
         if crate::bfl::needs_operator(reason) {
             self.pause_provider_for(&work["spec"], reason);
@@ -387,16 +470,30 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
         }
         let category = report_category(reason);
         self.pause_provider_for(&work["spec"], category);
+        // A refusal code is only meaningful with a provider failure category.
+        let mut refusal = refusal.filter(|_| category.starts_with("provider_"));
+        let mut detail = detail.filter(|_| category.starts_with("provider_"));
         // Never repeat the provider POST or keep fetching a terminal result.
         while self.runtime.now() < deadline {
-            if self
-                .call(
-                    "failed",
-                    json!({"attemptId":work["attemptId"],"reason":category}),
-                )
-                .is_ok()
-            {
+            let mut payload = json!({"attemptId":work["attemptId"],"reason":category});
+            if let Some(r) = refusal {
+                payload["refusal"] = json!(r);
+            }
+            if let Some(detail) = &detail {
+                payload["providerError"] = detail.value();
+            }
+            let result = self.call("failed", payload);
+            if result.is_ok() {
                 return Ok(json!({"state":"failed","reason":reason}));
+            }
+            // A coordinator without refusal support refuses the extra field;
+            // the category alone is still the right report.
+            if result.is_err_and(|e| e.0 == "http_400") {
+                if detail.is_some() {
+                    detail = None;
+                } else {
+                    refusal = None;
+                }
             }
             self.runtime.sleep(3000);
         }
@@ -430,13 +527,32 @@ impl Runtime for LiveRuntime {
         let session = session.clone();
         let signing = keys.signing.clone();
         let coordinator_key = coordinator_key.to_string();
-        crate::worker_heartbeat::Guard::spawn(
+        let enabled = session["progressPolicy"] == 1;
+        crate::worker_heartbeat::Guard::spawn_reporting(
             Duration::from_secs(15),
             Duration::from_millis(remaining as u64),
-            move || {
+            enabled,
+            move |progress| {
                 // Liveness failures never replay a provider call or expose secrets.
-                let _ =
-                    crate::worker_heartbeat::send(&runtime, &session, &signing, &coordinator_key);
+                match crate::worker_heartbeat::send_progress(
+                    &runtime,
+                    &session,
+                    &signing,
+                    &coordinator_key,
+                    progress,
+                ) {
+                    Ok(()) => true,
+                    Err(e) if e.0 == "http_400" && progress.is_some() => {
+                        let _ = crate::worker_heartbeat::send(
+                            &runtime,
+                            &session,
+                            &signing,
+                            &coordinator_key,
+                        );
+                        true
+                    }
+                    Err(_) => false,
+                }
             },
         )
     }
@@ -453,6 +569,7 @@ impl Runtime for LiveRuntime {
                 id: id.into(),
                 expires,
                 signing: keys.signing.clone(),
+                automatic_offers: session["pricePolicy"] == 1,
             });
         }
     }
@@ -482,7 +599,7 @@ impl Runtime for LiveRuntime {
         } else {
             300000
         };
-        r.timeout = if ["balances", "heartbeat"]
+        r.timeout = if ["balances", "heartbeat", "price_plan", "prices"]
             .iter()
             .any(|action| body["value"]["action"] == *action)
         {
@@ -671,6 +788,23 @@ pub fn run_live() -> Result<()> {
     if !reporting {
         eprintln!("balance_reporter_unavailable");
     }
+    let price_reporting = crate::worker_pricing::start(
+        credentials.clone(),
+        LiveRuntime {
+            base: base.to_string(),
+            token: token.clone(),
+            auth: auth.clone(),
+            http: crate::network::PublicHttp,
+            balance_session: None,
+        },
+        balance_session.clone(),
+        s(&release["coordinatorSigningKey"])?.into(),
+        stop.clone(),
+    )
+    .is_ok();
+    if !price_reporting {
+        eprintln!("price_reporter_unavailable");
+    }
     let mut w = Worker {
         miner_id: miner,
         coordinator_key: s(&release["coordinatorSigningKey"])?.into(),
@@ -683,7 +817,7 @@ pub fn run_live() -> Result<()> {
             token,
             auth,
             http: crate::network::PublicHttp,
-            balance_session: reporting.then_some(balance_session),
+            balance_session: (reporting || price_reporting).then_some(balance_session),
         },
         provider: crate::providers::Router::new(&http, credentials),
     };

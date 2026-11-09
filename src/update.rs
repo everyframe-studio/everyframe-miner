@@ -361,7 +361,45 @@ pub fn run(check_only: bool, json_mode: bool) -> Result<Value> {
     // End an in-place line even if a download failed. JSON mode emits nothing
     // here; main_entry owns its single structured success/error response.
     progress.finish();
+    if let Ok(value) = &result
+        && value["updated"] == true
+    {
+        let _ = crate::auto_update::remember_update(value, !json_mode);
+    }
     result
+}
+
+fn upgrade_notes(client: &Client, current: &str, target: &str) -> Value {
+    resolve_upgrade_notes(current, target, |name, limit| {
+        let url = format!("{REPO}/releases/download/{target}/{name}");
+        let response = client
+            .get(url)
+            .timeout(Duration::from_secs(5))
+            .send()
+            .map_err(|_| Error("upgrade_notes_unavailable"))?;
+        need(response.status().is_success(), "upgrade_notes_unavailable")?;
+        let length = response.content_length();
+        read_download(response, length, limit, &mut |_| {})
+    })
+}
+
+fn resolve_upgrade_notes(
+    current: &str,
+    target: &str,
+    mut fetch: impl FnMut(&str, u64) -> Result<Vec<u8>>,
+) -> Value {
+    let online = (|| -> Result<Value> {
+        let name = crate::upgrade_notes::ASSET;
+        let checksum = fetch(&format!("{name}.sha256"), 1024)?;
+        let bytes = fetch(name, crate::upgrade_notes::MAX_BYTES as u64)?;
+        verify(
+            &bytes,
+            std::str::from_utf8(&checksum).map_err(|_| Error("invalid_release_checksum"))?,
+            name,
+        )?;
+        crate::upgrade_notes::summarize(&bytes, current, target, "release_asset")
+    })();
+    online.unwrap_or_else(|_| crate::upgrade_notes::bundled(current, target))
 }
 
 pub(crate) fn background(allowed: &dyn Fn() -> bool) -> Result<Value> {
@@ -412,9 +450,16 @@ fn run_with_progress(
         .as_str()
         .ok_or(Error("invalid_release_version"))?;
     let newer = version(tag)? > version(concat!("v", env!("CARGO_PKG_VERSION")))?;
-    if check_only || !newer {
+    if !newer {
         return Ok(
-            json!({"current":env!("CARGO_PKG_VERSION"),"latest":tag,"updateAvailable":newer,"updated":false}),
+            json!({"current":env!("CARGO_PKG_VERSION"),"latest":tag,"updateAvailable":newer,"updated":false,
+                "currentRelease":crate::upgrade_notes::current_release(env!("CARGO_PKG_VERSION"))}),
+        );
+    }
+    let upgrade = upgrade_notes(&client, env!("CARGO_PKG_VERSION"), tag);
+    if check_only {
+        return Ok(
+            json!({"current":env!("CARGO_PKG_VERSION"),"latest":tag,"updateAvailable":true,"updated":false,"upgrade":upgrade}),
         );
     }
     let name = asset(std::env::consts::OS, std::env::consts::ARCH)?;
@@ -455,13 +500,54 @@ fn run_with_progress(
         Some(tag),
     )?;
     Ok(
-        json!({"previous":env!("CARGO_PKG_VERSION"),"version":tag,"updated":true,"message":"CLI updated. Miner profiles and deployed workers are unchanged."}),
+        json!({"previous":env!("CARGO_PKG_VERSION"),"version":tag,"updated":true,"upgrade":upgrade,"message":"CLI updated. Miner profiles and deployed workers are unchanged."}),
     )
 }
 
 #[cfg(test)]
 mod progress_tests {
     use super::*;
+    #[test]
+    fn release_notes_require_their_own_checksum_and_fail_to_explicit_unknown() {
+        let mut v =
+            crate::upgrade_notes::catalog(include_bytes!("../config/upgrade-notes.json")).unwrap();
+        let mut next = v["releases"].as_array().unwrap().last().unwrap().clone();
+        next["version"] = json!("v1.1.0");
+        v["releases"].as_array_mut().unwrap().push(next);
+        let bytes = serde_json::to_vec(&v).unwrap();
+        let checksum = format!(
+            "{}  {}\n",
+            hex::encode(Sha256::digest(&bytes)),
+            crate::upgrade_notes::ASSET
+        );
+        let notes = resolve_upgrade_notes("v1.0.0", "v1.1.0", |name, _| {
+            Ok(if name.ends_with(".sha256") {
+                checksum.as_bytes().to_vec()
+            } else {
+                bytes.clone()
+            })
+        });
+        assert_eq!(notes["status"], "complete");
+        assert_eq!(notes["source"], "release_asset");
+        let bad = resolve_upgrade_notes("v1.0.0", "v1.1.0", |name, _| {
+            Ok(if name.ends_with(".sha256") {
+                checksum.as_bytes().to_vec()
+            } else {
+                b"tampered".to_vec()
+            })
+        });
+        assert_eq!(bad["status"], "unavailable");
+        assert_eq!(bad["workerUpdate"], "unknown");
+        let missing = resolve_upgrade_notes("v1.0.0", "v1.1.0", |_, _| {
+            Err(Error("upgrade_notes_unavailable"))
+        });
+        assert_eq!(missing["workerUpdate"], "unknown");
+        let old_release = resolve_upgrade_notes("v0.8.4", "v0.9.6", |_, _| {
+            Err(Error("upgrade_notes_unavailable"))
+        });
+        assert_eq!(old_release["source"], "bundled");
+        assert_eq!(old_release["history"].as_array().unwrap().len(), 10);
+    }
 
     #[test]
     fn background_download_cannot_overwrite_a_concurrently_updated_binary() {

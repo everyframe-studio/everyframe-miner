@@ -294,6 +294,10 @@ fn actions_go_through_the_cli_parser() {
     let (args, changes) = ui::action_args(&sh, "cli-update-check", &json!({})).unwrap();
     assert_eq!((args.command.as_str(), changes), ("self-update", false));
     assert!(args.flag("--check") && args.get("--network").is_none());
+    let (args, changes) = ui::action_args(&sh, "cli-auto-status", &json!({})).unwrap();
+    assert_eq!((args.command.as_str(), changes), ("auto-update", false));
+    assert!(args.get("--network").is_none() && args.get("--state-dir").is_none());
+    assert!(ui::action_args(&sh, "cli-auto-status", &json!({"enable":true})).is_err());
     let (args, _) = ui::action_args(&sh, "worker-update-check", &json!({})).unwrap();
     assert_eq!(args.command, "update");
     assert!(args.flag("--check"));
@@ -328,8 +332,8 @@ fn keys_are_saved_but_never_echoed() {
         .find(|k| k["provider"] == "fal")
         .unwrap();
     assert_eq!(fal["saved"], true);
-    assert_eq!(v["steps"][2]["done"], true);
-    assert_eq!(v["steps"][3]["done"], false);
+    assert_eq!(v["steps"][3]["done"], true);
+    assert_eq!(v["steps"][4]["done"], false);
     let short = call(
         &sh,
         "POST",
@@ -484,7 +488,7 @@ fn overview_exposes_lifecycle_reconciliation_and_local_label() {
         .unwrap();
     let o = ui::overview(&sh).unwrap();
     assert!(o["deployment"]["appId"].is_null());
-    assert_eq!(o["steps"][4]["done"], false);
+    assert_eq!(o["steps"][5]["done"], false);
     state
         .write(
             "deployment",
@@ -604,4 +608,31 @@ fn overview_has_no_authorization_expiry_and_reports_the_label() {
     assert!(o.get("delegationExpiresAt").is_none());
     let (args, _) = ui::action_args(&sh, "label", &json!({"name":"x".repeat(65)})).unwrap();
     assert_eq!(ui::execute(&sh, "l2", &args, &[]).0, "failed");
+}
+
+#[test]
+fn automatic_offer_actions_separate_read_only_previews_from_reviewed_mutations() {
+    let dir = common::tempdir();
+    let sh = shared(dir.path());
+    let params = json!({"provider":"fal","models":"studio/media/fal/xai/grok-imagine-image","maxDiscountPct":"0","bufferPct":"20","maxDailyUsd":"1","maxJobUsd":"0.1"});
+    for (action, changes) in [("auto-offers-preview", false), ("auto-offers-enable", true)] {
+        let (args, actual) = ui::action_args(&sh, action, &params).unwrap();
+        assert_eq!(args.command, "auto-offers");
+        assert_eq!(actual, changes);
+        assert_eq!(args.get("--max-discount-pct"), Some("0"));
+        assert!(!args.flag("--yes"));
+    }
+    assert!(
+        !ui::action_args(&sh, "auto-offers-status", &json!({}))
+            .unwrap()
+            .1
+    );
+    assert!(
+        ui::action_args(&sh, "auto-offers-disable", &json!({"provider":"fal"}))
+            .unwrap()
+            .1
+    );
+    let mut bad = params;
+    bad["yes"] = json!(true);
+    assert!(ui::action_args(&sh, "auto-offers-enable", &bad).is_err());
 }

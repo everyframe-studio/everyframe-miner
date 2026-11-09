@@ -1025,5 +1025,108 @@
     "schemaCheckedAt": "2026-11-03",
     "deadlineMs": 1200000,
     "generateAudio": true
+  },
+  "studio/openrouter/minimax/hailuo-3": {
+    "provider": "openrouter",
+    "apiModel": "minimax/hailuo-3",
+    "name": "H3 (OpenRouter)",
+    "aspects": [
+      "21:9",
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+    ],
+    "min": 5,
+    "max": 15,
+    "resolutions": [
+      "2K"
+    ],
+    "refs": {
+      "image": 0,
+      "video": 0,
+      "audio": 0
+    },
+    "frames": 2,
+    "mixed": false,
+    "maxPrompt": 4000,
+    "seed": false,
+    "generateAudio": true,
+    "schemaCheckedAt": "2026-11-04",
+    "deadlineMs": 1200000
+  },
+  "studio/fal/google/gemini-omni-flash/v1.2/text-to-video": {
+    "provider": "fal",
+    "apiModel": "google/gemini-omni-flash/v1.2/text-to-video",
+    "name": "Gemini Omni 1.2 Flash (Fal)",
+    "aspects": [
+      "16:9",
+      "9:16"
+    ],
+    "min": 3,
+    "max": 15,
+    "resolutions": [
+      "360p",
+      "720p",
+      "1080p",
+      "4k"
+    ],
+    "refs": {
+      "image": 10,
+      "video": 3,
+      "audio": 0
+    },
+    "frames": 2,
+    "mixed": false,
+    "maxPrompt": 20000,
+    "maxReferences": 13,
+    "referenceDurationMs": 15000,
+    "referenceTotalDurationMs": 45000,
+    "frameDurationMax": 10,
+    "seed": false,
+    "deadlineMs": 1200000,
+    "schemaCheckedAt": "2026-11-07"
+  },
+  "studio/openrouter/google/gemini-omni-1.2-flash": {
+    "provider": "openrouter",
+    "apiModel": "google/gemini-omni-1.2-flash",
+    "name": "Gemini Omni 1.2 Flash (OpenRouter)",
+    "aspects": [
+      "16:9",
+      "9:16"
+    ],
+    "min": 3,
+    "max": 15,
+    "resolutions": [
+      "360p",
+      "720p",
+      "1080p",
+      "4K"
+    ],
+    "refs": {
+      "image": 0,
+      "video": 0,
+      "audio": 0
+    },
+    "frames": 2,
+    "mixed": false,
+    "maxPrompt": 20000,
+    "maxReferences": 2,
+    "frameDurationMax": 10,
+    "seed": true,
+    "generateAudio": true,
+    "deadlineMs": 1200000,
+    "schemaCheckedAt": "2026-11-07",
+    "outputSizes": [
+      "640x360",
+      "360x640",
+      "1280x720",
+      "720x1280",
+      "1920x1080",
+      "1080x1920",
+      "3840x2160",
+      "2160x3840"
+    ]
   }
 }

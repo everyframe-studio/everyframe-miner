@@ -1,4 +1,4 @@
-//! Fixed diagnostic vocabulary. Never include remote bodies, URLs or error strings.
+//! Fixed diagnostic vocabulary. Raw remote bodies and credential URLs are omitted.
 use crate::Error;
 use serde_json::{Value, json};
 
@@ -591,12 +591,11 @@ pub fn value(code: &str) -> Value {
     json!({"code":code,"message":message(code).unwrap(),"next":next})
 }
 
-pub fn phala_error(error: Error) -> Error {
-    REASONS
-        .iter()
-        .find(|(plain, _, _, _)| error.0 == *plain)
-        .map(|(_, scoped, _, _)| Error(scoped))
-        .unwrap_or(error)
+pub fn phala_error(mut error: Error) -> Error {
+    if let Some((_, scoped, _, _)) = REASONS.iter().find(|(plain, _, _, _)| error.0 == *plain) {
+        error.0 = scoped;
+    }
+    error
 }
 
 pub fn http_error(status: u16) -> Error {

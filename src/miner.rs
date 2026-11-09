@@ -322,6 +322,9 @@ impl Miner<'_> {
                 "resume",
                 "offer",
                 "offer-batch",
+                "automatic-offers",
+                "automatic-offers-preview",
+                "automatic-offers-policy",
                 "bind-app",
                 "balances",
                 "worker-update",
@@ -353,6 +356,7 @@ impl Miner<'_> {
             "worker-update",
             "jobs",
             "worker-auto-update",
+            "automatic-offers",
         ]
         .contains(&action)
         {
@@ -553,12 +557,17 @@ impl Miner<'_> {
             .collect())
     }
     pub fn doctor(&self) -> Result<Value> {
-        self.diagnose(false)
+        self.diagnose(false, &|_| {})
     }
     pub fn health(&self) -> Result<Value> {
-        self.diagnose(true)
+        self.diagnose(true, &|_| {})
     }
-    fn diagnose(&self, health: bool) -> Result<Value> {
+    /// Health with a line before each slow step, so `everycli ui` can show
+    /// what is being checked while the network calls run.
+    pub fn health_with_progress(&self, progress: &dyn Fn(&str)) -> Result<Value> {
+        self.diagnose(true, progress)
+    }
+    fn diagnose(&self, health: bool, progress: &dyn Fn(&str)) -> Result<Value> {
         let c = match self.load(false) {
             Ok(c) => c,
             Err(e) => {
@@ -567,6 +576,7 @@ impl Miner<'_> {
                 return Ok(out);
             }
         };
+        progress("Checking your local miner profile and keys…");
         let inv = &c.invitation;
         let providers = invitation::provider_summary(inv, &c.credentials);
         let mut snapshot = Value::Null;
@@ -637,6 +647,7 @@ impl Miner<'_> {
                 .ends_with("_intent"),
             "Unknown operations require reconciliation.",
         );
+        progress("Contacting the EveryFrame coordinator…");
         match self.api(&c, "status", json!({})) {
             Ok(v) => {
                 snapshot = v.clone();
@@ -695,6 +706,7 @@ impl Miner<'_> {
             }
             Err(e) => add("Coordinator", false, e.0),
         };
+        progress("Checking your worker in Phala Cloud…");
         let workload = self.target(&c, false);
         let cloud_status = workload
             .as_ref()
@@ -950,7 +962,7 @@ impl Miner<'_> {
                 .iter()
                 .find(|e| e["model"] == model)
                 .ok_or(Error("model_not_allowed"))?;
-            if (withdraw && entry["offered"] != true)
+            if (withdraw && entry["offered"] != true && entry["automaticOffer"]["managed"] != true)
                 || (keep_discounts && entry["offered"] == true)
             {
                 continue;

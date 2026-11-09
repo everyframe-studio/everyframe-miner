@@ -1,7 +1,7 @@
 // Browser regression tests. Real loopback server/pairing, isolated profile,
 // mocked external command results. Never uses wallet files or cloud mutations.
 import assert from 'node:assert/strict';
-import { mkdtemp, realpath, rm } from 'node:fs/promises';
+import { mkdtemp, realpath, rm, writeFile, readFile, stat, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 import { spawn } from 'node:child_process';
@@ -31,7 +31,7 @@ try {
   page.on('pageerror', e => errors.push(e.message));
   await page.route('**/api/wallets', r => r.fulfill({ json: { wallets: [], root: '/fixture/wallets' } }));
   // The browser server is real, but no network-facing CLI command is executed.
-  await page.route('**/api/run', r => r.fulfill({ status: 202, json: { job: 'fixture' } }));
+  await page.route('**/api/run', r => r.request().postDataJSON()?.action === 'terms-accept' ? r.continue() : r.fulfill({ status: 202, json: { job: 'fixture' } }));
   await page.route('**/api/jobs/fixture', r => r.fulfill({ json: { state: 'done', result: { value: { updateAvailable: false }, text: 'fixture' } } }));
   await page.addInitScript(() => {
     window.reviewIntervals = [];
@@ -51,6 +51,50 @@ try {
   await page.reload();
   await page.getByRole('heading', { name: 'Setup guide', exact: true }).waitFor();
   assert.equal(await page.locator('h1').textContent(), 'Setup guide', 'paired tab survives refresh');
+
+  // Real local acceptance: no wallet secret, provider key or external command.
+  await page.evaluate(() => { S.openStep = 'terms'; render(); });
+  const agreement = page.getByRole('checkbox', { name: 'I accept the Miner Terms', exact: true });
+  const acceptTerms = page.getByRole('button', { name: 'Accept Miner Terms', exact: true });
+  assert.equal(await agreement.isChecked(), false);
+  assert.equal(await agreement.isDisabled(), true, 'select hotkey before acceptance');
+  assert.equal(await acceptTerms.isDisabled(), true);
+  await writeFile(join(scratch, 'profile', 'registration.json'), JSON.stringify({registered:true,network:'mainnet',hotkey:'5HQfvwpHm2njGiF716YwjdXgeeZoEiyFLZFvFAriZaiHNKc3'}), {mode:0o600});
+  await page.evaluate(async () => { S.hotkeySel=null; await refreshAll(); S.openStep='init'; render(); });
+  assert.equal(await page.getByRole('button', { name: 'Create miner profile', exact: true }).isDisabled(), true);
+  await page.evaluate(() => { S.openStep='terms'; render(); });
+  assert.equal(await agreement.isChecked(), false, 'never preselected');
+  assert.equal(await acceptTerms.isDisabled(), true);
+  assert.match(await page.locator('[data-step="terms"]').innerText(), /resale.*third-party/s);
+  await page.setViewportSize({width:390,height:900});
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'terms fit mobile');
+  if(process.env.EVERYCLI_QA_DIR)await page.screenshot({path:join(process.env.EVERYCLI_QA_DIR,'terms-390.png'),fullPage:true});
+  await page.setViewportSize({width:1440,height:1000});
+  await agreement.check();
+  assert.equal(await acceptTerms.isEnabled(), true);
+  await assert.rejects(access(join(scratch, 'profile', 'terms-acceptance.json')), 'checking is not acceptance');
+  // Changing the reviewed identity resets the checkbox draft.
+  await page.evaluate(() => { S.overview.terms.hotkey='5G67F1Aieac3h6VJnSMo9yjggDxCtVUXFaCQnMCjaNTGG2vX'; render(); });
+  assert.equal(await agreement.isChecked(), false);
+  await page.evaluate(async () => { await loadOverview(); render(); });
+  assert.equal(await agreement.isChecked(), false);
+  await agreement.check();
+  await acceptTerms.click();
+  await page.waitForFunction(() => S.overview?.terms?.accepted === true);
+  await page.evaluate(() => { S.openStep='terms'; render(); });
+  await page.getByText('Terms accepted on this device', {exact:true}).waitFor();
+  const receipt=JSON.parse(await readFile(join(scratch,'profile','terms-acceptance.json'),'utf8'));
+  assert.equal(receipt.acceptances.length,1);
+  assert.equal(receipt.acceptances[0].hotkey,'5HQfvwpHm2njGiF716YwjdXgeeZoEiyFLZFvFAriZaiHNKc3');
+  assert.equal(receipt.acceptances[0].termsVersion,'2026-11-04');
+  assert.equal((await stat(join(scratch,'profile','terms-acceptance.json'))).mode & 0o777,0o600);
+  for(const name of ['config','credentials','deployment']) await assert.rejects(access(join(scratch,'profile',name+'.json')));
+  await page.reload();
+  await page.getByRole('heading', {name:'Setup guide',exact:true}).waitFor();
+  await page.evaluate(() => { S.openStep='terms'; render(); });
+  await page.getByText('Terms accepted on this device', {exact:true}).waitFor();
+  await page.evaluate(() => { S.openStep='init'; render(); });
+  assert.equal(await page.getByRole('button', { name: 'Create miner profile', exact: true }).isEnabled(), true);
 
   // Drive browser rendering with the exact native balance/health schemas.
   await page.evaluate(() => {
@@ -137,6 +181,43 @@ try {
   assert.match(await page.locator('#provider-balances').innerText(),/42\.50/);
   await page.evaluate(()=>{run=window.balanceTestOriginalRun;delete window.balanceTestOriginalRun;S.overview.keys=[];history.replaceState(null,'','#/overview');render();});
 
+  // Refreshing health re-runs only the health rows; the balances and offers rows stay in the card.
+  await page.evaluate(() => {
+    window.healthTestOriginalRun = run;
+    Boot.begin('Checking your miner');
+    Boot.step('balances', 'Provider balances').ok('1 providers ok'); Boot.step('offers', 'Model offers').ok('2 active'); Boot.finish(); render();
+    run = async (command, ...args) => command === 'health' ? { state: 'done', result: { value: { checks: [{ name: 'Coordinator', ok: true }, { name: 'Phala workload', ok: true }] } } } : window.healthTestOriginalRun(command, ...args);
+  });
+  await page.locator('#overview-health').getByRole('button', { name: 'Refresh', exact: true }).click();
+  await page.waitForFunction(() => S.boot?.finished);
+  const heroChecks = await page.locator('#hero-side').innerText();
+  assert.match(heroChecks, /Coordinator/);
+  assert.match(heroChecks, /Provider balances[\s\S]*1 providers ok/);
+  assert.match(heroChecks, /Model offers[\s\S]*2 active/);
+  await page.evaluate(() => { run = window.healthTestOriginalRun; delete window.healthTestOriginalRun; S.boot = null; render(); });
+
+  // Each failing or warning readiness check says how to fix it and links to the place that does.
+  await page.evaluate(() => {
+    window.fixTestHealth = S.health;
+    S.health = { state: 'done', result: { value: { checks: [
+      { name: 'Accepting new work', ok: false, detail: 'Miner is draining or paused. Review everycli health before choosing to resume provider-billed work.' },
+      { name: 'Model: fal/example/video', ok: false, state: 'WARN', detail: 'Coordinator did not report model capability evidence.' },
+      { name: 'Phala credential', ok: false, detail: 'Your Phala account pays hosting.' },
+      { name: 'Rust runtime', ok: true, detail: 'Native executable.' }] } } };
+    history.replaceState(null, '', '#/overview'); render();
+  });
+  const fixes = page.locator('#overview-health .fix');
+  assert.equal(await fixes.count(), 3);
+  assert.match(await fixes.nth(0).innerText(), /How to fix: Your worker is paused/);
+  assert.equal(await fixes.nth(0).getByRole('button', { name: 'Start accepting work', exact: true }).count(), 1);
+  assert.equal(await fixes.nth(1).getByRole('button', { name: 'Withdraw offer', exact: true }).count(), 1);
+  assert.equal(await fixes.nth(2).getByRole('link', { name: 'Add Phala token', exact: true }).getAttribute('href'), '#/keys');
+  await fixes.nth(1).getByRole('link', { name: 'Open in Models', exact: true }).click();
+  await page.waitForFunction(() => location.hash.startsWith('#/models'));
+  assert.equal(await page.evaluate(() => S.modelQuery), 'fal/example/video');
+  assert.equal(await page.evaluate(() => S.offerFilter), 'active');
+  await page.evaluate(() => { S.health = window.fixTestHealth; delete window.fixTestHealth; S.modelQuery = ''; S.offerFilter = 'ready'; history.replaceState(null, '', '#/overview'); render(); });
+
   const summary = page.getByLabel('Miner overview summary', { exact: true });
   assert.deepEqual(await summary.locator('.label').allTextContents(), ['Worker', 'Status', 'Active offers', 'Jobs']);
   assert.equal(await summary.locator('.stat').count(), 4);
@@ -154,9 +235,14 @@ try {
     await page.evaluate(health => { S.health = health; render(); }, test.health);
     assert.equal(await summary.locator('.stat').nth(1).locator('.value').textContent(), test.expected);
   }
-  for (const [width, columns] of [[1000, 2], [390, 1], [1440, 4]]) {
+  for (const [width, columns] of [[1000, 2], [390, 2], [340, 1], [1440, 4]]) {
     await page.setViewportSize({ width, height: 1000 });
-    assert.equal(await summary.evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length), columns);
+    // Resize can replace the card between locator resolution and evaluation.
+    await page.waitForFunction(({ width, columns }) => {
+      const card = document.querySelector('[aria-label="Miner overview summary"]');
+      return innerWidth === width && card?.isConnected
+        && getComputedStyle(card).gridTemplateColumns.trim().split(/\s+/).length === columns;
+    }, { width, columns });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'overview must fit viewport');
   }
   await page.setViewportSize({width:390,height:844});
@@ -176,6 +262,7 @@ try {
   assert.match(await identity.innerText(), /UID 0/);
   assert.match(await identity.innerText(), /5FW5r4…8quSvT/);
   assert.equal(await identity.locator('code').getAttribute('title'), '5FW5r4Hjpa7m2hsU5h3awcAwmErcfurCyFqB3Fi1fv8quSvT');
+  assert.equal(await identity.getByRole('button', { name: 'Copy hotkey', exact: true }).innerText(), '');
   await page.evaluate(() => { S.overview.registration.hotkey = 'wrong'; render(); });
   assert.match(await identity.innerText(), /UID not checked/);
   await page.evaluate(() => { S.overview.registration.hotkey = S.overview.profile.hotkey; S.overview.registration.uid = 127; S.overview.recoveryPending = true; render(); });
@@ -355,7 +442,7 @@ try {
       return {all,candidates,canUpdate,canWithdraw,report:S.batchReport};
     } finally {S.offers=original;S.offerFilter='all';S.selectedOffers.clear();clearBatchReport();render();}
   });
-  assert.match(availabilityUI.all,/Everyframe contract: studio\/openrouter\/example/);
+  assert.match(availabilityUI.all,/EveryFrame contract: studio\/openrouter\/example/);
   assert.match(availabilityUI.all,/Provider API ID: vendor\/example/);
   assert.match(availabilityUI.all,/Sizes: 360p, 720p, 1080p, 4k/);
   assert.match(availabilityUI.all,/Video generation, first\/last frames, editing and extension/);
@@ -778,6 +865,58 @@ try {
       if(process.env.EVERYCLI_QA_DIR)await page.screenshot({path:join(process.env.EVERYCLI_QA_DIR,route+'-fixed-'+width+'.png'),fullPage:true});
     }
   }
+  // Automatic offers stay explicit, preserve drafts and expose paused state.
+  await page.evaluate(() => {
+    S.overview.initialized=true; S.autoDrafts.clear(); S.autoExpanded=new Set(['fal']); S.autoBusy=false;
+    S.offers={offers:[{model:'studio/media/fal/xai/grok-imagine-image',name:'Grok test',provider:'fal',offered:true,offerable:true,localKeyConfigured:true,discountBp:1000,pricingCurrent:true,automaticOffer:{managed:true,state:'paused',reason:'automatic_offer_price_stale'}}]};
+    S.autoOffers={catalog:[{model:'studio/media/fal/xai/grok-imagine-image',provider:'fal',supported:true},{model:'unknown-meter',provider:'fal',supported:false}],automaticOffers:{providers:[{provider:'fal',revision:0,enabled:false,policy:null,estimatedExposureMicrousd:0,models:[],history:[]}]}};
+    S.modelQuery=''; S.modelProvider=''; S.offerFilter='all'; history.replaceState(null,'','#/models'); render();
+  });
+  assert.equal(await page.getByText('Automatic paused',{exact:true}).count(),1,'paused managed offers never appear active');
+  assert.equal(await page.getByLabel('Automate studio/media/fal/xai/grok-imagine-image').isChecked(),false,'scope is empty by default');
+  assert.equal(await page.getByLabel('fal Maximum discount %').inputValue(),'');
+  assert.equal(await page.getByLabel('fal Rolling 24-hour estimated USD limit').inputValue(),'');
+  await page.getByRole('button',{name:'Preview prices',exact:true}).click();
+  await page.getByText('Select models and enter your maximum discount, rolling daily limit and per-job limit. A 0% maximum discount is allowed.',{exact:true}).waitFor();
+  await page.getByLabel('Automate studio/media/fal/xai/grok-imagine-image').check();
+  await page.getByLabel('fal Maximum discount %').fill('0');
+  await page.getByLabel('fal Rolling 24-hour estimated USD limit').fill('1');
+  await page.getByLabel('fal Per-job estimated USD limit').fill('0.1');
+  const automaticPreview = await page.evaluate(async()=>{
+    const original={run,loadOffers};const calls=[];
+    try{
+      run=async(action,params)=>{calls.push({action,params});return {state:'done',result:{value:{preview:{rows:[{model:'studio/media/fal/xai/grok-imagine-image',status:'ready',discountBp:0,estimatedCostMicrousd:10000,checkedAt:Date.now()}]}}}};};
+      loadOffers=async()=>{};
+      await changeAutomaticOffers('fal','preview');
+      return {calls,draft:[...S.autoDrafts.get('fal').models],limit:S.autoDrafts.get('fal').maxDailyUsd};
+    }finally{({run,loadOffers}=original);}
+  });
+  assert.equal(automaticPreview.calls.length,1);
+  assert.equal(automaticPreview.calls[0].action,'auto-offers-preview','preview never enables or submits generation');
+  assert.equal(automaticPreview.calls[0].params.maxDiscountPct,'0');
+  assert.equal(automaticPreview.limit,'1');
+  assert.deepEqual(automaticPreview.draft,['studio/media/fal/xai/grok-imagine-image']);
+  await page.getByText('Grok test: Ready · 0.00% off',{exact:false}).waitFor();
+  assert.equal(await page.getByLabel('fal Rolling 24-hour estimated USD limit').inputValue(),'1','preview redraw preserves limits');
+  for(const width of [1440,390,320]){
+    await page.setViewportSize({width,height:900});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'automatic offer form fits '+width);
+    if(process.env.EVERYCLI_QA_DIR)await page.screenshot({path:join(process.env.EVERYCLI_QA_DIR,'automatic-offers-'+width+'.png'),fullPage:true});
+  }
+
+  await page.evaluate(() => {
+    Activity.add('Phala validation').finish({ state: 'failed', result: { error: {
+      error: 'phala_http_422',
+      message: 'Phala: HTTP 422\nPhala code: ERR-03-041\nPhala reason: compose_file.tproxy_enabled: Use gateway_enabled instead. <img src=x onerror="window.phalaErrorExecuted=true">\nRequest ID: request-123',
+      next: 'Reconcile the original profile before retrying.'
+    } } });
+  });
+  const phalaFailure = page.locator('#activity .act').first();
+  assert.match(await phalaFailure.innerText(), /ERR-03-041/);
+  assert.match(await phalaFailure.innerText(), /compose_file\.tproxy_enabled/);
+  assert.match(await phalaFailure.innerText(), /Request ID: request-123/);
+  assert.equal(await phalaFailure.locator('img').count(), 0, 'remote diagnostics render as text');
+  assert.equal(await page.evaluate(() => window.phalaErrorExecuted), undefined);
   assert.deepEqual(errors, []);
   console.log('UI browser regressions passed: pairing, drafts, lifecycle, readiness, W credits, diagnostics, history filters/pagination/details/races, earnings, mixed-offer batches, draft preservation, operation recovery and mobile.');
 } finally {

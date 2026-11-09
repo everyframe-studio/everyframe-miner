@@ -1,0 +1,26 @@
+[
+  {
+    "model": "direct/google/gemini-omni-1.2-flash",
+    "provider": "google",
+    "request": {
+      "model": "direct/google/gemini-omni-1.2-flash",
+      "prompt": "All providers: offline contract fixture."
+    },
+    "spec": {
+      "model": "direct/google/gemini-omni-1.2-flash",
+      "input": {
+        "response_format": {
+          "type": "video",
+          "duration": "5s",
+          "resolution": "720p",
+          "aspect_ratio": "16:9",
+          "delivery": "uri"
+        },
+        "store": true,
+        "background": true,
+        "prompt": "All providers: offline contract fixture."
+      }
+    },
+    "hash": "29c64a3a38c131f4380f9ba76122fc50ad6d0882b2803608744cf4864fa2cc80"
+  }
+]

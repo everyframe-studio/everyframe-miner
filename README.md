@@ -5,11 +5,11 @@ cloud worker. The worker receives jobs from the EveryFrame coordinator, calls
 your configured generation providers, and returns signed completion receipts.
 It does not run generation models locally, so you do not need a GPU.
 
-With **everycli v0.2.0+**, commands are direct: `everycli doctor`, `everycli status`,
+Commands are direct: `everycli doctor`, `everycli status`,
 `everycli balances`, and so on. No command prefix is needed. Existing scripts using
 the older namespace remain compatible. `everycli update` upgrades the CLI;
 `everycli worker-update` updates the existing worker using its latest compatible
-signed release (one-command flow in v0.3.7 and later).
+signed release.
 
 New to mining? Run `everycli ui` for a guided setup page and status dashboard
 in your browser (see [Set up in your browser](#set-up-in-your-browser-everycli-ui)).
@@ -19,6 +19,14 @@ provider contracts, flexible Studio video and media contracts, and fifteen
 provider integrations. See the [direct provider guide](DIRECT-PROVIDERS.md) and
 [additional provider models](PROVIDER-EXPANSION.md).
 
+Before joining, review and accept the [Miner Terms of Service](docs/miner-terms.md)
+in the setup guide or with `everycli terms`. Miners must obtain required provider
+permissions for resale and serving third-party requests, and contact providers
+directly for approvals and discounts. A working API key is not approval.
+See [acceptance and unattended setup](docs/miner-terms-acceptance.md).
+
+The v1.0.0 integration also includes optional [automatic provider-price offers](docs/automatic-offers.md): explicit model selection, price previews, discount ceilings and estimated exposure limits. It stays off until enabled.
+
 The direct Google integration adds Gemini Omni Flash, four Nano Banana image
 models, Lyria 3.5, and both Gemini 3.8 TTS models. See the [Google provider
 guide](GOOGLE.md) for supported settings, references and compatible-worker requirements.
@@ -26,432 +34,64 @@ Available jobs depend on the coordinator's
 enabled models, current pricing, your credentials, and your active offers—not
 every model in the registry is necessarily available for mining.
 
-### v0.9.6 — More OpenRouter video models
+## What's new
 
-OpenRouter offers now include Grok Imagine Video 1.5 and Lite, H3 Max, Wan 3.0
-Prime, Runway Gen-4.5, HappyHorse 1.0 and 1.1, Kling 3.0 Pro and Standard,
-Kling O1, Hailuo 2.3, Wan 2.7 and 2.6, and FLUX 3 Video. Each model has its own
-supported formats and price schedule. See [OpenRouter routes](OPENROUTER.md).
+See the [latest release](https://github.com/everyframe-studio/everyframe-miner/releases/latest)
+for what changed, how to upgrade and whether a worker update is needed. Notes for
+earlier releases are on the [releases page](https://github.com/everyframe-studio/everyframe-miner/releases).
 
-Run `everycli update`, then `everycli worker-update` on your existing management
-profile. Review and enable the new offers with your preferred discount.
-Existing offers and discounts are preserved; the new offers are opt-in.
+To upgrade, run `everycli update`, then reopen `everycli ui`. When a release needs
+a new worker, choose **Update worker** in the UI (or run `everycli worker-update`).
+Updating the CLI alone never changes a running worker. Saved keys, offers and
+discounts are kept; newly added models need their own offers.
 
-### v0.9.5 — BFL polling and result recovery
+Provider guides: [direct providers](DIRECT-PROVIDERS.md), [OpenRouter](OPENROUTER.md),
+[Google](GOOGLE.md), [Pika](PIKA.md), [Kling 4.0 through Fal](KLING4.md) and
+[additional provider models](PROVIDER-EXPANSION.md).
 
-FLUX 3's Reasoning and Generating states now remain in progress while the
-worker waits for the completed image. Empty results and moderation are handled
-as terminal outcomes. Polling and recovery use the same BFL status handling.
+### Model IDs
 
-BFL jobs follow the regional polling location returned by the provider and support
-its current delivery hosts. Accepted task IDs are retained when a response needs
-operator review, and ambiguous submissions are protected from automatic replay.
+The **EveryFrame contract ID** is used with `everycli offer --model`. The
+**Provider API ID** is the underlying provider's ID; for example,
+`direct/openrouter/veo-3.1` maps to `google/veo-3.1`. Never paste a
+`studio/` or `direct/` contract ID into the provider's API.
 
-Run `everycli update`, reopen `everycli ui`, then choose **Update worker** (or run
-`everycli worker-update`). Existing keys, offers and discounts are preserved.
-Previously failed jobs are not automatically submitted again.
+The Models page lists **Candidates / retired** separately from supported models.
+Retired models cannot receive new offers, but existing offers can still be
+withdrawn and past jobs stay readable. A listed model is not proof of adequate
+funds, capacity or successful generation.
 
-### v0.9.2 — Direct providers first
-
-Models, provider switches, API keys and setup list direct providers before Fal,
-OpenRouter and other intermediaries. Native model routes add OpenAI and xAI
-media, more Black Forest Labs and MiniMax models, Kling generation, flexible
-ElevenLabs voices, Runway, and the Luma Agents API.
-
-Choose each provider's offers explicitly. Provider order does not automatically
-switch a job to another provider. Saved offers and discounts stay in place.
-Run `everycli update`, reopen the UI, then use **Update worker** to install the
-compatible signed worker. See [v0.9.2 release notes](RELEASE-NOTES-v0.9.2.md).
-
-### v0.9.0 — Provider catalog and Google media
-
-The catalog adds reviewed pricing across the supported providers and direct
-Google media: Gemini Omni Flash, Nano Banana image models, Lyria music, and
-Gemini speech. Google supports selectable formats, references, editing, video
-extension, voices and multi-speaker output. Vivix base offers stay available
-after its reference promotion, and retired models stay out of new offers.
-
-Run `everycli update`, reopen the UI, update the worker, then refresh Models and
-choose your offers. Provider switches keep saved discounts; new offers default
-to a neutral 0%. See [v0.9.0 release notes](RELEASE-NOTES-v0.9.0.md) and
-[Google formats and setup](GOOGLE.md).
-
-### v0.8.9 — Recover deleted workers after OS retirement
-
-If Phala has retired the OS image of a deleted worker, `everycli reconnect`
-can fetch the current reviewed deployment after confirming the old VM is gone.
-Your saved keys, offers, discounts and deployment history are preserved.
-
-Run `everycli update`, then `everycli reconnect` in the same profile and reopen
-`everycli ui`. Review **Deploy worker** to create the new VM. No worker update is
-required. See [v0.8.9 release notes](RELEASE-NOTES-v0.8.9.md).
-
-### v0.8.8 — Model and provider offer controls
-
-New offers default to 0%, with a neutral badge. The **Not offered** tab and
-linked counts open models without an active bid. Provider switches turn offers
-on or off together: saved discounts are kept, and new models use 0%. Each batch
-is reviewed before it is submitted; existing jobs keep their locked price.
-
-Run `everycli update`, then restart `everycli ui`. No worker update is required.
-See [v0.8.8 release notes](RELEASE-NOTES-v0.8.8.md).
-
-### v0.8.7 — Wait through temporary worker-status failures
-
-Worker updates keep waiting through temporary gateway errors and delayed worker
-status. The saved update continues after recovery, and completion is shown only
-after the worker's intended accepting/paused state is confirmed.
-
-Run `everycli update`, then restart `everycli ui`. These CLI changes do not need
-a new generation-worker image. See [v0.8.7 release notes](RELEASE-NOTES-v0.8.7.md).
-
-### v0.8.6 — Worker updates and setup progress
-
-The Worker software panel provides update checks, installation, continuation and
-cancellation. Setup completion follows confirmed accepting-work status, with
-model health warnings shown separately. Updates can recover a verified Phala
-environment-key ordering change without replacing the VM.
-
-Run `everycli update`, then restart `everycli ui`. See the
-[v0.8.6 release notes](RELEASE-NOTES-v0.8.6.md) for recovery instructions.
-
-### v0.8.4 — UI reliability and model offers
-
-Batch discounts keep eligible models moving and explain skipped ones. Guided
-setup includes all generation providers, drafts survive unrelated edits, and interrupted
-operations can be checked without resubmitting them. The dashboard adds model
-search, clearer worker state, and automatic-update status.
-
-Run `everycli update`, then restart `everycli ui`. A worker update is not required
-for these CLI/UI fixes. See [v0.8.4 release notes](RELEASE-NOTES-v0.8.4.md).
-
-### v0.8.3 — Pika H3 Flex
-
-Use your Pika API key for text, first/last-frame and reference video generation,
-with native audio and native 480p/768p or upscaled 1080p/2K/4K output. The CLI and
-browser UI validate the key and show its spendable API balance. See the
-[v0.8.3 upgrade steps](RELEASE-NOTES-v0.8.3.md) and [Pika guide](PIKA.md).
-
-### Kling 4.0 through Fal
-
-The Kling 4.0 worker contract supports 3–30-second videos at 720p or 1080p,
-first/last frames, and image/video references using your Fal key. See
-[formats, pricing and worker setup](KLING4.md).
-
-### v0.7.3 — Ideogram Vector
-
-Generate editable SVG logos, icons and illustrations through Fal, with three
-quality levels and up to five reference images. Update the worker, then select
-**Ideogram Vector** in All models and set its discount. See the
-[v0.7.3 release notes](RELEASE-NOTES-v0.7.3.md).
-
-### v0.7.2 — Offline worker updates
-
-The signed worker bootstrap adds an isolated update supervisor inside the
-existing Phala VM. After one manual bootstrap and explicit enrollment, compatible
-signed worker updates can run while your management computer is offline.
-Existing miners remain opted out. See [offline worker updates](#offline-worker-updates-opt-in)
-and [v0.7.2 release notes](RELEASE-NOTES-v0.7.2.md).
-
-The coordinator now supports 14 additional direct-provider contracts: MiniMax
-Hailuo 02; BFL FLUX.2 Max, Flex, Klein 4B and Klein 9B; Replicate FLUX.2 Pro;
-Runway Veo 3.1 and Fast; OpenRouter Veo 3.1 Fast and Lite; and four ElevenLabs
-speech models. See [formats and setup](PROVIDER-EXPANSION.md).
-
-Install the compatible worker update, configure the corresponding provider key,
-then select the models and set their discounts in **All models**. Existing bids
-are preserved; each new model needs its own offer.
-
-### v0.6.2 — FLUX 3 Max
-
-FLUX 3 Max is a **video** model served through Fal (`FAL_KEY`). Its contract is
-`studio/fal/blackforestlabs/flux-3-max/text-to-video`: 5–20 seconds, 720p or 1080p,
-generated audio, text-to-video and first/last-frame guidance. It does not accept
-unordered image references, reference videos or reference audio. The worker uses
-low reasoning effort; generation time still depends on the provider's queue.
-
-Update the CLI, then review `everycli worker-update --check` and install the
-compatible signed worker update. Select FLUX 3 Max in **All models**, review its
-current price and set a discount. The model needs its own offer; existing bids
-are not copied. A Fal key and fresh TEE verification remain mandatory.
-Promotional pricing expires automatically; a price change requires a new offer.
-See [v0.6.2 release notes](RELEASE-NOTES-v0.6.2.md).
-
-### v0.6.0
-
-CLI downloads are checksum-verified (publisher signing is postponed); refused outputs fail fast;
-`worker-update --abort` and a stronger `reconcile` recover interrupted updates.
-See [v0.6.0 release notes](RELEASE-NOTES-v0.6.0.md). For each job, routing prefers
-eligible workers on the published major/minor (for example, 0.6.x). If none can
-serve that model, the previous published minor remains available as fallback,
-without a fixed expiry. Patch versions do not affect this preference.
-
-#### Individual job history and clearer earnings
-
-v0.6.0 adds **Job history** and **Earnings** to `everycli ui`.
+### Job history and earnings
 
 ```sh
 everycli jobs                            # newest 20 of your own attempts
 everycli jobs --status failed --limit 20
 everycli jobs --model direct/vivix/vivix-w1
-everycli jobs --summary                  # existing all-time model counts
+everycli jobs --summary                  # all-time counts by model
 everycli earnings
 ```
 
-History supports Previous/Next pages, status/model filters and attempt details:
-timestamps, settings, output verification, review status and fixed failure codes.
-Terminal output supplies a next-page cursor command; keep its model/status
-filters. `--json` includes full timestamps and IDs. The signed private endpoint
-does not expose prompts, media, customer references, provider request IDs,
-credentials or other miners' attempts. Older coordinators fall back explicitly
-to model counts; malformed signed history is rejected.
+The same views are under **Job history** and **Earnings** in `everycli ui`.
+Earnings separates pending review, approved work and reward-eligible value. The
+eligible value is part of approved work, not an extra payment, and estimated
+provider costs are not an invoice. These reports never approve work, change
+offers or repeat generations.
 
-Earnings separates pending review, approved work and marked reward-eligible
-value. The eligible value is a subset of approved work, not an extra payment.
-A review flag does not prove finalized epoch inclusion or alpha received.
-Provider exposure uses locked job quotes for confirmed/uncertain submissions,
-including failed attempts; it is not an invoice. Unpriced and uncertain attempts
-are counted separately. Actual provider bills, hosting costs, wallet payments,
-alpha received and net profit are not invented from balances or work value.
-These read-only reports never approve work, change offers, replay generations,
-or alter validator accounting. No worker update is needed for these views.
+### Recover a deleted worker or a rejected authorization
 
-### v0.5.8 model IDs and availability
-
-The **Everyframe contract ID** is used with `everycli offer --model`. The
-**Provider API ID** is the underlying provider's ID; for example,
-`direct/openrouter/veo-3.1` maps to `google/veo-3.1`. Never paste a
-`studio/` or `direct/` contract ID into the provider's API.
-
-The model dashboard separates **Candidates / retired** from supported models.
-Removed/deprecated models cannot receive new offers, but existing offers can
-still be withdrawn and historical jobs remain readable. Provider catalog checks
-run every 15 minutes; failed checks retry after one minute without paid requests.
-OpenRouter and Google use the deployed key's model list, Vivix uses its workspace
-model list, and Fal uses its public model catalog (not proof of account access).
-Other provider account access is explicitly unchecked. A listed model is not
-proof of adequate funds, capacity, or successful generation.
-
-These worker checks require the matching signed worker update; installing the
-CLI alone does not enable them. Catalog checks never expand signed permissions
-or silently switch the provider/model. Provider keys and raw errors are not
-included in availability reports.
-
-Unavailable offer pricing now explains the problem before confirmation; it never
-changes part of a batch or reports the misleading "invalid integer" error.
-See [v0.5.8 release notes](RELEASE-NOTES-v0.5.8.md).
-
-### v0.5.4 deleted-workload recovery
-
-If a deleted worker cannot be redeployed because its signed OS image was retired,
-run `everycli reconnect` in that same profile. It verifies the old VM is absent,
-asks before retiring its authorization, and fetches the current reviewed
-deployment. Then use **Deploy** again. Saved provider keys, offers, discounts
-and the deleted VM history are preserved. Reconnect creates no VM.
-
-Update with `everycli update`, then reopen `everycli ui`.
-
-- If you deleted a VM directly in Phala and have no local deployment record,
-  run `everycli reconnect` (or **Worker → Reconnect profile**). It checks your
-  Phala workspace and asks before retiring the old binding with your hotkey.
-  A 404 can mean the wrong workspace, so only approve if you deleted that VM.
-- Recovery revokes the old authorization, preserves the miner identity and
-  earnings history, and requires fresh attestation after deliberate redeployment.
-  Active or uncertain jobs and a fresh worker heartbeat block retirement.
-- New deployments can refresh an outdated unbound configuration before any
-  paid request. Production OS versions come from the pinned coordinator's signed
-  release; exact catalog hashes, TEE policy and development/GPU exclusions remain.
-- A missing or unreachable OS catalog has a specific error. An unavailable OS
-  must be reviewed server-side; the CLI never substitutes an arbitrary image.
-
-Recovery does not create or delete cloud resources, end storage billing, or
-resume jobs. Binary updates and automatic authorization repair do not silently
-retire VM bindings. See [v0.5.4 release notes](RELEASE-NOTES-v0.5.4.md).
-
-### v0.5.7 provider failure reporting
-
-Worker failure reports preserve moderation, invalid-input and billing categories,
-including Vivix and Fal errors. Retries never drop the reason or repeat the paid
-generation. Structured error codes take priority over message text; echoed input
-is excluded. Session renewal covers the coordinator's 12-minute maximum job.
-
-Run `everycli update` for the CLI. These worker fixes require a separately verified
-signed image: check `everycli worker-update --check`, then review and confirm
-`everycli worker-update` when available. Updating the CLI alone does not change
-your running VM. See [v0.5.7 release notes](RELEASE-NOTES-v0.5.7.md).
-
-### v0.5.6 recovery and provider balances
-
-Update with `everycli update`, then close and reopen `everycli ui` if running.
-Fal balances now work with the normal generation key; BFL and Runway account
-credits are also supported. Fal's generation-key balance endpoint is undocumented:
-an unavailable or changed response is reported as unavailable, never zero.
-
-An interrupted initial `provision_intent` with no app ID can now be recovered
-with `everycli reconcile` (or **Re-sync operation** in the UI). The CLI requires
-an unbound, idle coordinator and a successful Phala workspace inventory with no
-matching workload. It archives only the uncommitted preparation, preserves keys
-and the hotkey profile, and never retries VM creation. Afterwards, save any API
-key changes and run `everycli reconnect` to refresh the signed deployment.
-Do not delete profile files or bypass a refused recovery.
-
-Worker telemetry uses the keys deployed to the worker. Updating everycli alone
-does not update a running worker; check `everycli worker-update --check` for a
-separately verified signed worker update. See [v0.5.6 release notes](RELEASE-NOTES-v0.5.6.md).
-
-### v0.5.5 model dashboard and faster batches
-
-- Unintegrated catalog entries are hidden. Integrated models that still need
-  pricing, a worker update or a provider key keep their actionable readiness label.
-- Overview shows all-time completed jobs by model and readable serving-fee tables.
-  `everycli jobs` shows the same counts in the terminal; `--json` remains available.
-  Completed means an accepted, verified output, not a payment or alpha reward.
-- Models and **All models** show a badge when integrated models are added after
-  your first catalog visit. Viewing All models acknowledges them on this browser
-  and profile. Notification acknowledgments contain no keys.
-- Batch discounts use one reviewed, atomic submission instead of a submission
-  per model. Any changed pricing or revision rejects the whole batch. Unknown
-  results are never automatically retried; refresh offers before trying again.
-- Batch results can be dismissed, disappear after 12 seconds (30 seconds for
-  errors), and clear when navigating away or changing model tabs.
-
-Terminal batch example:
-
-```bash
-everycli offer-batch --models minimax/h3-max-turbo/text-to-video,minimax/h3-max/text-to-video --discount-pct 10
-everycli jobs
-```
-
-Update with `everycli update`, then close and reopen `everycli ui`. These features
-require the updated coordinator, already deployed on SN117. No worker redeployment
-is needed. See [v0.5.5 release notes](RELEASE-NOTES-v0.5.5.md).
-
-### v0.5.3 simpler setup and batch model editing
-
-After updating with `everycli update`, close and reopen `everycli ui`.
-
-- Setup shows **Select your hotkey**, then **Your hotkey** once attached, with
-  its public address and verified UID. **Check registration** remains read-only.
-- Deploy refreshes rejected authorization once with the attached, matching hotkey
-  before any paid cloud request. Older profiles can locate the same hotkey in
-  the standard wallet folder. Missing or mismatched keys still require attention;
-  no other identity is substituted. Hosting still requires live-price approval.
-- Attaching the same hotkey again with `init` refreshes an existing public profile
-  while preserving saved API keys and deployment history.
-- UI compute ceilings default to **$10/hour**, not a total spending cap. The
-  signed instance type is unchanged, and storage is billed separately.
-- Every Models tab supports selecting rows or all editable models in that tab,
-  applying one discount, or withdrawing offers. One review shows the exact quotes.
-  Changed quotes are not auto-approved. The original v0.5.3 batches were per-model;
-  v0.5.5 replaces them with atomic batches. Uncertain requests are never retried
-  automatically.
-- Overview has four cards: **Worker**, **Status**, **Active offers**, and **Jobs**.
-  Status distinguishes Ready, Working, Paused, Needs attention, and Unknown.
-  Detailed readiness and attestation checks remain under Health checks.
-
-See the [v0.5.3 release notes](RELEASE-NOTES-v0.5.3.md). This updates the local
-CLI and browser UI, not your deployed worker or model offers.
-
-### v0.5.2 dashboard and profile recovery
-
-Run `everycli update`, then close and reopen `everycli ui`. The dashboard shows
-your miner UID and a shortened hotkey with a copy button. UID is the last finalized
-chain lookup; **Refresh UID** checks it again without signing a transaction.
-Initialization and reconnect save this lookup automatically.
-
-If the coordinator rejects a saved miner authorization (HTTP 401), this is
-separate from a Phala API-token error. Check your computer's clock, then run:
+If you deleted a worker (including directly in Phala), or the coordinator rejects
+your saved miner authorization (HTTP 401), run `everycli reconnect` in the same
+profile, or use **Worker → Reconnect profile**:
 
 ```bash
 everycli reconnect --wallet your-wallet --hotkey default
 everycli doctor
 ```
 
-Or use **Worker → Reconnect profile** with your saved hotkey. Reconnect requires
-confirmation and a proof from the same local hotkey, verifies the current signed
-binding, and preserves API keys, labels and deployment history. It never creates,
-deletes, starts or updates a VM or resumes jobs. Interrupted local commits can be
-finished by rerunning reconnect; unresolved cloud operations must be reconciled
-first. A deleted worker remains deleted until you deliberately deploy again.
-
-Current miner authorizations do not expire. The separate signed setup configuration
-refreshes automatically before management changes; that refresh changes only its
-dates and preserves the workload. For a legacy authorization, reconnect with the
-same hotkey and run `everycli apply-api-keys` once to install the non-expiring
-worker authorization. Revocation remains enforced.
-
-CLI updates do not silently reconnect or redeploy. Eligible native installations
-also check for CLI updates when the UI starts (at most once per six hours); reopen
-the UI to run the installed version. Source builds remain opt-in. See the
-[v0.5.2 release notes](RELEASE-NOTES-v0.5.2.md).
-
-### v0.5.1 setup and worker management
-
-Update with `everycli update`, then open `everycli ui`. The UI checks keys with
-free read-only requests before saving, preserves your setup step, and displays
-compact worker names with local renaming. Rejected key replacements leave saved
-keys unchanged; inconclusive checks display an explicit warning.
-
-Both the CLI and UI can deliberately delete and replace a worker created on
-another computer, with exact signed identity checks, a durable deletion journal
-and fresh attestation before accepting work. See [replacement instructions](#move-management-to-another-computer)
-and the [v0.5.1 release notes](RELEASE-NOTES-v0.5.1.md). Deletion is irreversible.
-The worker runtime is unchanged from v0.5.0; do not replace a healthy VM just to
-upgrade the CLI.
-
-### v0.5.0 setup and reliability
-
-The browser UI and miner reliability fixes ship together: safer provider failure
-handling and balance checks, deadline-fenced submissions, longer media transfers,
-non-expiring revocable authorization, crash-safe locks, update rollback copies,
-local worker labels, logs, emergency stop and VM deletion. See the
-[release notes](RELEASE-NOTES-v0.5.0.md) for upgrade and authorization-migration steps.
-Update both the CLI and your existing worker; third-party VMs are not automatically
-restarted. No redeployment is needed.
-
-### v0.4.0 media coverage
-
-The new worker supports H3 Max image/video/audio references, including measured
-video frame counts for input-cost estimates; all seven Studio image models
-(with ordered references and Ideogram precision masks); and ElevenLabs voice-over
-and sound effects, MiniMax Music 3, and Stable Audio 2.5 instrumental scores.
-Image models use Fal or OpenRouter; these audio models use Fal.
-
-Run `everycli update`, then `everycli worker-update` to update the existing
-workload. Updating the CLI alone does not change a running worker. Check
-`everycli offers --json`, review the settings-specific price estimates, and
-declare offers for the new `studio/media/` models you want to serve.
-The new contracts require their own accepted offers; existing discounts are not
-automatically copied. Routing also requires fresh attestation, credentials,
-capacity, and budget. Local tools, unsupported models and unavailable miners may
-still use the app's direct fallback; this is not a promise that all app traffic
-will reach miners. Never deploy a second workload just to upgrade.
-
-**Public rollout snapshot — 13 October 2026:** the shared coordinator release
-contains 69 contracts, with 27 currently priced across Fal, OpenRouter and Vivix.
-Compatible existing public miners can discover their own signed update; no
-operator-provided invitation file is needed. Permissions change only after fresh
-verified attestation. This is not an automatic fleet-wide worker upgrade.
-
-From your original management profile:
-
-```sh
-everycli update
-everycli worker-update --check
-everycli worker-update
-everycli offers
-everycli doctor
-```
-
-If only three models remain available, check the **worker** release and current
-attestation, not just `everycli --version`. Preserve your profile and existing VM.
-An unbound or uncertain deployment must be reconciled before updating. Add the
-needed provider keys and explicit offers for new contracts; old offers and the
-worker's accepting/paused state are preserved.
-
-Paid website tests passed for H3 Max Turbo portrait video and Grok Imagine image
-through an updated owner miner. They do not certify all contracts or other miners.
-See [validation and limits](VALIDATION.md#v040-public-worker-and-website-verification--13-october-2026).
+Reconnect asks before retiring an old binding, needs a proof from the same local
+hotkey and keeps your API keys, offers, discounts and history. It never creates,
+deletes, starts or updates a VM. Afterwards, use **Deploy worker** if the old VM is
+gone. A 401 is separate from a Phala API-token error; check your computer's clock first.
 
 ## Worker failure diagnostics and safe failover
 
@@ -571,8 +211,8 @@ and installation stages. If the server does not provide a size, it shows bytes
 downloaded instead of guessing a percentage. Progress goes to stderr; redirected
 logs use plain milestone lines. `everycli update --json` and
 `everycli update --check --json` suppress progress and print one JSON result for scripts.
-Human-readable update messages consistently prefix versions with `v`, such as
-`v0.3.3 → v0.3.4`. JSON version fields retain their existing format.
+Human-readable update messages prefix versions with `v`; JSON version fields
+do not.
 
 An upgrade is performed by the **currently installed** CLI. Older versions may
 still print their old output during that one upgrade; the new display applies
@@ -584,7 +224,7 @@ updates a **deployed worker** using an approved signed release. If a documented 
 `update` command).
 
 Checksums detect corrupted or mismatched downloads, not a compromised publisher.
-CLI release signing is postponed: v0.6.0 does not download or require `.sig`
+CLI release signing is postponed: the CLI does not download or require `.sig`
 files, OpenSSL or a release signing secret. Trust currently rests on the official
 GitHub repository, HTTPS and release access controls. TEE attestation, signed
 worker configurations, session proofs and job receipts remain mandatory.
@@ -626,7 +266,7 @@ paused state, and require fresh attestation before returning to service. Failed
 admission can trigger a signed rollback; uncertain cloud operations are never
 blindly repeated. See [the recovery and security contract](AUTOMATIC-WORKER-UPDATES.md).
 
-### Automatic CLI updates (v0.3.8)
+### Automatic CLI updates
 
 Native user installations check for the latest stable release in the background
 after successful interactive commands, at most once every six hours. Downloads
@@ -656,7 +296,7 @@ discounts, running jobs and routing are never changed. Install this feature once
 using `everycli update` after its release; older CLIs cannot gain auto-update
 behavior without that first manual upgrade.
 
-## Guided setup and command help (v0.3.4)
+## Guided setup and command help
 
 For a new miner, use the interactive wizard:
 
@@ -664,8 +304,8 @@ For a new miner, use the interactive wizard:
 everycli setup --wallet my-wallet --hotkey default --max-hourly-usd 0.05
 ```
 
-It checks registration, prompts privately for keys, initializes the signed
-profile, then shows the live hosting quote for your explicit confirmation.
+It checks registration, asks you to accept the Miner Terms, prompts privately for
+keys, initializes the signed profile, then shows the live hosting quote for your explicit confirmation.
 Optionally add `--provider fal` (or another generation provider) to configure
 just that provider plus Phala. Use a Phala **workspace token from Settings →
 API Tokens**, not a Private AI inference key. The hourly ceiling excludes
@@ -720,7 +360,7 @@ across commands. JSON diagnostics contain `ok`, `error`, `message`, and `next`,
 with `file` when a local file is involved. No credential contents or raw provider
 responses are printed. `doctor` may also include its structured `checks` list.
 
-## Balances and offer tables (v0.1.5+)
+## Balances and offer tables
 
 ### Check whether your miner is ready
 
@@ -840,8 +480,7 @@ balance endpoint; reading still works against older coordinators with local keys
 
 ## Set up a miner
 
-Self-service onboarding requires **everycli v0.1.4 or later**. Run `everycli update`
-first if you installed an older release. Updating the CLI does not migrate an
+Run `everycli update` first so you have the latest everycli release. Updating the CLI does not migrate an
 existing token-based worker automatically.
 
 Before deployment, you need:
@@ -849,7 +488,9 @@ Before deployment, you need:
 - A miner hotkey registered on SN117. `register-hotkey` checks and records subnet
   membership; on-chain registration is done separately using your wallet tool.
 - A funded Phala Cloud account and its API key for the attested workload.
-- At least one funded provider account supported by your deployment configuration.
+- At least one funded provider account supported by your deployment configuration,
+  with the permissions required to resell its services and serve third-party requests.
+- Acceptance of the current Miner Terms for your hotkey and network.
 - Your local miner hotkey file. No invitation file or `MINER_TOKEN` is needed.
 
 The downloads and public worker images do not require registry credentials.
@@ -877,6 +518,12 @@ were supplied, prints the `btcli subnet register` command for you to run yoursel
 It never creates a wallet, pays registration fees, or signs an on-chain transaction.
 This membership check is not proof of ownership or coordinator admission.
 For testnet SN566, pass `--network testnet` to each command; networks are not sticky.
+
+After checking your hotkey, run `everycli terms` to review the Miner Terms.
+Interactive enrollment asks you to accept them before contacting the coordinator.
+The setup wizard asks before saving keys. For unattended setup, explicitly accept
+the displayed version with `everycli terms --accept-terms 2026-11-04` in the same
+profile. `--yes` alone does not accept terms. See [the acceptance guide](docs/miner-terms-acceptance.md).
 
 ### 2. Set your API keys
 
@@ -997,6 +644,14 @@ the signed Phala VM or change attestation. Use one management profile per worker
 Catalog work values are not guaranteed earnings, provider prices, or alpha payouts.
 Logs never enable public logging and omit raw boot logs and secret-bearing URLs;
 use the authenticated Phala console for private/boot logs.
+
+Phala validation failures include its bounded, redacted reason, field path and
+request ID when available. New deployments omit the obsolete `tproxy_enabled`
+creation parameter when `gateway_enabled` is explicit. The signed configuration
+and expected compose hash remain unchanged, and the returned hash must still
+match before a VM is committed. Existing VM updates are unchanged.
+After a previously rejected deployment, run `everycli reconcile` in the original
+profile before retrying `everycli deploy`. Keep the profile and operation journal.
 
 ### Stop billing and uninstall
 
@@ -1236,8 +891,7 @@ separately from moderation; lost submission responses are never blindly retried.
 
 ### Vivix W1
 
-Available in **everycli v0.2.4+**. Run `everycli update` first if you have
-v0.2.3 or earlier. Updating the CLI does not enable W1 on a deployed worker.
+Run `everycli update` first. Updating the CLI does not enable W1 on a deployed worker.
 
 Save your **Vivix API key**, not a Fal or OpenRouter key:
 
@@ -1271,8 +925,7 @@ everycli worker-update --check
 everycli worker-update
 ```
 
-The one-command flow is available in **everycli v0.3.7 and later**. It
-fetches a compatible signed package for your miner and app automatically: no
+The command fetches a compatible signed package for your miner and app automatically: no
 manual JSON download. After one confirmation it drains current jobs, updates the
 same VM, waits for verified attestation, reactivates previously enabled keys,
 waits for fresh post-restart attestation, and restores the previous accepting or
@@ -1283,8 +936,8 @@ or deleted, no stopped VM is started, and no paid test generation is submitted.
 Progress is readable by default; `--json` emits only the structured result.
 Non-interactive updates require `--yes`. Waiting is bounded to about ten minutes;
 rerun the same command with the same profile to continue a saved update. A lost
-cloud commit or key-activation response is not blindly replayed. v0.3.8
-also recovers v0.3.7's `update_provision_intent`: it verifies the exact old VM is
+cloud commit or key-activation response is not blindly replayed. An interrupted
+`update_provision_intent` is recovered too: the CLI verifies the exact old VM is
 still running the original signed configuration before retrying preparation.
 Preparation only caches a candidate; committing/restarting is a separate operation.
 Run `everycli reconcile` to perform that read-only cloud verification explicitly.
@@ -1292,7 +945,7 @@ A genuinely different VM/configuration still fails closed. Keep the profile and 
 The OS releases the operation lock after a process exits or crashes; a leftover
 lock file alone does not block the CLI. Never delete it to bypass a live operation.
 
-From v0.6.0, `everycli worker-update --abort` cancels an unfinished update. It
+`everycli worker-update --abort` cancels an unfinished update. It
 settles any recorded cloud step from what Phala and the coordinator actually
 report (never by repeating a request), keeps whichever signed release the VM is
 running, closes the saved update journal and prints what it did and what to run
@@ -1324,7 +977,7 @@ manual reconcile/activation steps. Do not redeploy a second VM or edit signed
 configurations to enable a key. Provider submissions are never automatically
 retried after an ambiguous response, preventing duplicate billable jobs.
 
-From v0.4.1, `everycli balances` reads Vivix's read-only `/v1/balance` endpoint
+`everycli balances` reads Vivix's read-only `/v1/balance` endpoint
 and displays **W credits**, not A credits or an inferred USD amount. The endpoint
 is undocumented: a missing/duplicate W entry, changed response shape or request
 failure is `unavailable`, never an invented zero. Workspace IDs and raw responses

@@ -1,0 +1,639 @@
+[
+  {
+    "request": {
+      "model": "direct/google/gemini-omni-1.2-flash",
+      "prompt": "A cinematic blue lake",
+      "duration": 3,
+      "resolution": "4k",
+      "aspect": "9:16"
+    },
+    "spec": {
+      "model": "direct/google/gemini-omni-1.2-flash",
+      "input": {
+        "response_format": {
+          "type": "video",
+          "duration": "3s",
+          "resolution": "4k",
+          "aspect_ratio": "9:16",
+          "delivery": "uri"
+        },
+        "store": true,
+        "background": true,
+        "prompt": "A cinematic blue lake"
+      }
+    },
+    "hash": "9db84a897e49c249cc105aa06f5000d1f2d1def6ccf9b50383e588504d5cfb79",
+    "body": {
+      "response_format": {
+        "type": "video",
+        "duration": "3s",
+        "resolution": "4k",
+        "aspect_ratio": "9:16",
+        "delivery": "uri"
+      },
+      "store": true,
+      "background": true,
+      "model": "gemini-omni-1.2-flash",
+      "input": [
+        {
+          "type": "user_input",
+          "content": [
+            {
+              "type": "text",
+              "text": "A cinematic blue lake"
+            }
+          ]
+        }
+      ]
+    },
+    "uploaded": []
+  },
+  {
+    "request": {
+      "model": "direct/google/gemini-omni-1.2-flash",
+      "prompt": "A cinematic blue lake",
+      "duration": 10,
+      "resolution": "4k",
+      "aspect": "9:16"
+    },
+    "spec": {
+      "model": "direct/google/gemini-omni-1.2-flash",
+      "input": {
+        "response_format": {
+          "type": "video",
+          "duration": "10s",
+          "resolution": "4k",
+          "aspect_ratio": "9:16",
+          "delivery": "uri"
+        },
+        "store": true,
+        "background": true,
+        "prompt": "A cinematic blue lake"
+      }
+    },
+    "hash": "d345275f6e1231daf458933d6c39c6468ac23e5699eb1ab854eaae19acabc313",
+    "body": {
+      "response_format": {
+        "type": "video",
+        "duration": "10s",
+        "resolution": "4k",
+        "aspect_ratio": "9:16",
+        "delivery": "uri"
+      },
+      "store": true,
+      "background": true,
+      "model": "gemini-omni-1.2-flash",
+      "input": [
+        {
+          "type": "user_input",
+          "content": [
+            {
+              "type": "text",
+              "text": "A cinematic blue lake"
+            }
+          ]
+        }
+      ]
+    },
+    "uploaded": []
+  },
+  {
+    "request": {
+      "model": "direct/google/gemini-omni-1.2-flash",
+      "prompt": "A cinematic blue lake",
+      "duration": 15,
+      "resolution": "4k",
+      "aspect": "9:16"
+    },
+    "spec": {
+      "model": "direct/google/gemini-omni-1.2-flash",
+      "input": {
+        "response_format": {
+          "type": "video",
+          "duration": "15s",
+          "resolution": "4k",
+          "aspect_ratio": "9:16",
+          "delivery": "uri"
+        },
+        "store": true,
+        "background": true,
+        "prompt": "A cinematic blue lake"
+      }
+    },
+    "hash": "30e7b8e071b0e88ab5bdc77f64864da527f836405e19721c6a299a3c91650f81",
+    "body": {
+      "response_format": {
+        "type": "video",
+        "duration": "15s",
+        "resolution": "4k",
+        "aspect_ratio": "9:16",
+        "delivery": "uri"
+      },
+      "store": true,
+      "background": true,
+      "model": "gemini-omni-1.2-flash",
+      "input": [
+        {
+          "type": "user_input",
+          "content": [
+            {
+              "type": "text",
+              "text": "A cinematic blue lake"
+            }
+          ]
+        }
+      ]
+    },
+    "uploaded": []
+  },
+  {
+    "request": {
+      "model": "studio/fal/google/gemini-omni-flash/v1.2/text-to-video",
+      "prompt": "A cinematic blue lake",
+      "seed": 42,
+      "duration": 3,
+      "resolution": "4k",
+      "aspect": "9:16",
+      "references": [],
+      "promptExpansion": "balanced"
+    },
+    "spec": {
+      "model": "studio/fal/google/gemini-omni-flash/v1.2/text-to-video",
+      "input": {
+        "prompt": "A cinematic blue lake",
+        "seed": 42,
+        "duration": 3,
+        "resolution": "4k",
+        "aspect": "9:16",
+        "references": [],
+        "promptExpansion": "balanced"
+      }
+    },
+    "hash": "b969f5b2e0fbb3b82a7c2465f36cb99f40dcbf2573baa63d7e8df35524dbc053"
+  },
+  {
+    "request": {
+      "model": "studio/fal/google/gemini-omni-flash/v1.2/text-to-video",
+      "prompt": "A cinematic blue lake",
+      "seed": 42,
+      "duration": 10,
+      "resolution": "4k",
+      "aspect": "9:16",
+      "references": [],
+      "promptExpansion": "balanced"
+    },
+    "spec": {
+      "model": "studio/fal/google/gemini-omni-flash/v1.2/text-to-video",
+      "input": {
+        "prompt": "A cinematic blue lake",
+        "seed": 42,
+        "duration": 10,
+        "resolution": "4k",
+        "aspect": "9:16",
+        "references": [],
+        "promptExpansion": "balanced"
+      }
+    },
+    "hash": "8785766001cae16ac1812b013262796a5a9be5d71bfa27c8840ea2066cf3b2a7"
+  },
+  {
+    "request": {
+      "model": "studio/fal/google/gemini-omni-flash/v1.2/text-to-video",
+      "prompt": "A cinematic blue lake",
+      "seed": 42,
+      "duration": 15,
+      "resolution": "4k",
+      "aspect": "9:16",
+      "references": [],
+      "promptExpansion": "balanced"
+    },
+    "spec": {
+      "model": "studio/fal/google/gemini-omni-flash/v1.2/text-to-video",
+      "input": {
+        "prompt": "A cinematic blue lake",
+        "seed": 42,
+        "duration": 15,
+        "resolution": "4k",
+        "aspect": "9:16",
+        "references": [],
+        "promptExpansion": "balanced"
+      }
+    },
+    "hash": "42669a039a561a1133a1987b7c2476e47233cc954b3aa25430ede21495d71721"
+  },
+  {
+    "request": {
+      "model": "studio/openrouter/google/gemini-omni-1.2-flash",
+      "prompt": "A cinematic blue lake",
+      "seed": 42,
+      "duration": 3,
+      "resolution": "4K",
+      "aspect": "9:16",
+      "references": [],
+      "promptExpansion": "balanced"
+    },
+    "spec": {
+      "model": "studio/openrouter/google/gemini-omni-1.2-flash",
+      "input": {
+        "prompt": "A cinematic blue lake",
+        "seed": 42,
+        "duration": 3,
+        "resolution": "4K",
+        "aspect": "9:16",
+        "references": [],
+        "promptExpansion": "balanced"
+      }
+    },
+    "hash": "b6e73725b517d50c32f8b2715fd25d3ba2bc7c0fbf67348d56639b936fcab56c"
+  },
+  {
+    "request": {
+      "model": "studio/openrouter/google/gemini-omni-1.2-flash",
+      "prompt": "A cinematic blue lake",
+      "seed": 42,
+      "duration": 10,
+      "resolution": "4K",
+      "aspect": "9:16",
+      "references": [],
+      "promptExpansion": "balanced"
+    },
+    "spec": {
+      "model": "studio/openrouter/google/gemini-omni-1.2-flash",
+      "input": {
+        "prompt": "A cinematic blue lake",
+        "seed": 42,
+        "duration": 10,
+        "resolution": "4K",
+        "aspect": "9:16",
+        "references": [],
+        "promptExpansion": "balanced"
+      }
+    },
+    "hash": "038fc8cb8a57c6759b87943e9cf524d5a4441e0ba4eb6327426d0e9529453c09"
+  },
+  {
+    "request": {
+      "model": "studio/openrouter/google/gemini-omni-1.2-flash",
+      "prompt": "A cinematic blue lake",
+      "seed": 42,
+      "duration": 15,
+      "resolution": "4K",
+      "aspect": "9:16",
+      "references": [],
+      "promptExpansion": "balanced"
+    },
+    "spec": {
+      "model": "studio/openrouter/google/gemini-omni-1.2-flash",
+      "input": {
+        "prompt": "A cinematic blue lake",
+        "seed": 42,
+        "duration": 15,
+        "resolution": "4K",
+        "aspect": "9:16",
+        "references": [],
+        "promptExpansion": "balanced"
+      }
+    },
+    "hash": "18ca933ffff4554ff231c37685cf058a3c32b7117f410856f2205cf1c1114cfe"
+  },
+  {
+    "request": {
+      "model": "studio/fal/google/gemini-omni-flash/v1.2/text-to-video",
+      "prompt": "A cinematic blue lake",
+      "seed": 42,
+      "duration": 10,
+      "resolution": "4k",
+      "aspect": "9:16",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_first?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "image/jpeg",
+          "role": "first",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_last?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "image/jpeg",
+          "role": "last",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0
+        }
+      ],
+      "promptExpansion": "balanced"
+    },
+    "spec": {
+      "model": "studio/fal/google/gemini-omni-flash/v1.2/text-to-video",
+      "input": {
+        "prompt": "A cinematic blue lake",
+        "seed": 42,
+        "duration": 10,
+        "resolution": "4k",
+        "aspect": "9:16",
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_first?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "image/jpeg",
+            "role": "first",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_last?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "image/jpeg",
+            "role": "last",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0
+          }
+        ],
+        "promptExpansion": "balanced"
+      }
+    },
+    "hash": "e143376f97b5b68b91a077adf217eb2da3186c9ec61d248fd0aee73eaeb9f4fa"
+  },
+  {
+    "request": {
+      "model": "studio/fal/google/gemini-omni-flash/v1.2/text-to-video",
+      "prompt": "A cinematic blue lake",
+      "seed": 42,
+      "duration": 10,
+      "resolution": "4k",
+      "aspect": "9:16",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_image?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_video?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "video/mp4",
+          "role": "video",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 15000
+        }
+      ],
+      "promptExpansion": "balanced"
+    },
+    "spec": {
+      "model": "studio/fal/google/gemini-omni-flash/v1.2/text-to-video",
+      "input": {
+        "prompt": "A cinematic blue lake",
+        "seed": 42,
+        "duration": 10,
+        "resolution": "4k",
+        "aspect": "9:16",
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_image?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_video?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "video/mp4",
+            "role": "video",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 15000
+          }
+        ],
+        "promptExpansion": "balanced"
+      }
+    },
+    "hash": "bdb752f490a58a4e54fff0294910229e66b01a7f5d79ece714df580bcd2f55de"
+  },
+  {
+    "request": {
+      "model": "direct/google/gemini-omni-1.2-flash",
+      "prompt": "A cinematic blue lake",
+      "duration": 10,
+      "resolution": "4k",
+      "aspect": "9:16",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_video?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "video/mp4",
+          "role": "video",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 15000,
+          "frameCount": 72
+        }
+      ],
+      "options": {
+        "generation_config": {
+          "video_config": {
+            "task": "edit"
+          }
+        }
+      }
+    },
+    "spec": {
+      "model": "direct/google/gemini-omni-1.2-flash",
+      "input": {
+        "response_format": {
+          "type": "video",
+          "duration": "10s",
+          "resolution": "4k",
+          "aspect_ratio": "9:16",
+          "delivery": "uri"
+        },
+        "store": true,
+        "background": true,
+        "prompt": "A cinematic blue lake",
+        "generation_config": {
+          "video_config": {
+            "task": "edit"
+          }
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_video?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "video/mp4",
+            "role": "video",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 15000,
+            "frameCount": 72
+          }
+        ]
+      }
+    },
+    "hash": "c89dc46a2ced1ca908450664b2372dcf210c5356b9ed36b090e0c891612e556d",
+    "body": {
+      "response_format": {
+        "type": "video",
+        "duration": "10s",
+        "resolution": "4k",
+        "aspect_ratio": "9:16",
+        "delivery": "uri"
+      },
+      "store": true,
+      "background": true,
+      "generation_config": {
+        "video_config": {
+          "task": "edit"
+        }
+      },
+      "model": "gemini-omni-1.2-flash",
+      "input": [
+        {
+          "type": "user_input",
+          "content": [
+            {
+              "type": "video",
+              "mime_type": "video/mp4",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref0"
+            },
+            {
+              "type": "text",
+              "text": "A cinematic blue lake"
+            }
+          ]
+        }
+      ]
+    },
+    "uploaded": [
+      {
+        "type": "video",
+        "mime_type": "video/mp4",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref0"
+      }
+    ]
+  },
+  {
+    "request": {
+      "model": "direct/google/gemini-omni-1.2-flash",
+      "prompt": "A cinematic blue lake",
+      "duration": 10,
+      "resolution": "4k",
+      "aspect": "9:16",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_video?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "video/mp4",
+          "role": "video",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 30000,
+          "frameCount": 72
+        }
+      ],
+      "options": {
+        "generation_config": {
+          "video_config": {
+            "task": "extend"
+          }
+        }
+      }
+    },
+    "spec": {
+      "model": "direct/google/gemini-omni-1.2-flash",
+      "input": {
+        "response_format": {
+          "type": "video",
+          "duration": "10s",
+          "resolution": "4k",
+          "aspect_ratio": "9:16",
+          "delivery": "uri"
+        },
+        "store": true,
+        "background": true,
+        "prompt": "A cinematic blue lake",
+        "generation_config": {
+          "video_config": {
+            "task": "extend"
+          }
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_video?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "video/mp4",
+            "role": "video",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 30000,
+            "frameCount": 72
+          }
+        ]
+      }
+    },
+    "hash": "820047bb1d7956d925c97a9acc8edd64e31c0f583569a83d0493042d7e15c024",
+    "body": {
+      "response_format": {
+        "type": "video",
+        "duration": "10s",
+        "resolution": "4k",
+        "aspect_ratio": "9:16",
+        "delivery": "uri"
+      },
+      "store": true,
+      "background": true,
+      "generation_config": {
+        "video_config": {
+          "task": "extend"
+        }
+      },
+      "model": "gemini-omni-1.2-flash",
+      "input": [
+        {
+          "type": "user_input",
+          "content": [
+            {
+              "type": "video",
+              "mime_type": "video/mp4",
+              "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref0"
+            },
+            {
+              "type": "text",
+              "text": "A cinematic blue lake"
+            }
+          ]
+        }
+      ]
+    },
+    "uploaded": [
+      {
+        "type": "video",
+        "mime_type": "video/mp4",
+        "uri": "https://generativelanguage.googleapis.com/v1beta/files/ref0"
+      }
+    ]
+  }
+]

@@ -115,6 +115,15 @@ fn batch_offer_error(status: u16, bytes: &[u8]) -> Error {
         && let Ok(v) = serde_json::from_slice::<Value>(bytes)
     {
         match (status, v["error"].as_str()) {
+            (409, Some("automatic_offer_policy_changed")) => {
+                return Error("automatic_offer_policy_changed");
+            }
+            (409, Some("automatic_offer_pricing_unsupported")) => {
+                return Error("automatic_offer_pricing_unsupported");
+            }
+            (400, Some("invalid_automatic_offer_limits")) => {
+                return Error("invalid_automatic_offer_limits");
+            }
             (409, Some("offer_revision_conflict")) => return Error("offer_revision_conflict"),
             (409, Some("offer_pricing_changed")) => return Error("offer_pricing_changed"),
             (409, Some("provider_model_unavailable")) => {
@@ -283,6 +292,28 @@ impl Http for PublicHttp {
                 return Err(enrollment_error(status, &bytes));
             }
             if !response.status().is_success() {
+                if u.host_str() == Some("cloud-api.phala.com") {
+                    let status = response.status().as_u16();
+                    let request_id = response
+                        .headers()
+                        .get("x-request-id")
+                        .and_then(|v| v.to_str().ok())
+                        .map(str::to_owned);
+                    let mut bytes = Vec::new();
+                    // A body-read error must not turn a known 422 into a timeout.
+                    let read = response
+                        .take(crate::phala_error::MAX_BODY as u64 + 1)
+                        .read_to_end(&mut bytes);
+                    if read.is_err() {
+                        bytes.clear();
+                    }
+                    return Err(crate::phala_error::failure(
+                        status,
+                        &bytes,
+                        request_id.as_deref(),
+                        &r,
+                    ));
+                }
                 if worker_update_endpoint(&u, &r.method) {
                     let status = response.status().as_u16();
                     let mut bytes = Vec::new();
@@ -307,6 +338,10 @@ impl Http for PublicHttp {
                 if u.host_str() == Some("subnet.everyframe.studio")
                     && r.method == "POST"
                     && [
+                        "/v1/miner/automatic-offers-policy",
+                        "/mainnet/v1/miner/automatic-offers-policy",
+                        "/v1/miner/automatic-offers-preview",
+                        "/mainnet/v1/miner/automatic-offers-preview",
                         "/v1/miner/offer-batch",
                         "/mainnet/v1/miner/offer-batch",
                         "/v1/miner/offer",
@@ -322,30 +357,55 @@ impl Http for PublicHttp {
                         .map_err(|_| Error("response_read_failed"))?;
                     return Err(batch_offer_error(status, &bytes));
                 }
+                let host = u.host_str().unwrap_or_default();
                 if matches!(
-                    u.host_str(),
-                    Some(
-                        "api.vivix.ai"
-                            | "queue.fal.run"
-                            | "api-singapore.klingai.com"
-                            | "api.dev.pika.art"
-                    )
-                ) {
+                    host,
+                    "api.vivix.ai"
+                        | "queue.fal.run"
+                        | "api-singapore.klingai.com"
+                        | "api.dev.pika.art"
+                ) || crate::submission::PROVIDER_ERROR_HOSTS.contains(&host)
+                    || host.starts_with("api.") && host.ends_with(".bfl.ai")
+                {
                     let status = response.status().as_u16();
                     let mut bytes = Vec::new();
                     response
                         .take(64001)
                         .read_to_end(&mut bytes)
                         .map_err(|_| Error("response_read_failed"))?;
-                    return Err(if u.host_str() == Some("queue.fal.run") {
-                        crate::submission::fal_http_error(status, &bytes)
-                    } else if u.host_str() == Some("api-singapore.klingai.com") {
-                        crate::submission::kling_http_error(status, &bytes)
-                    } else if u.host_str() == Some("api.dev.pika.art") {
-                        crate::submission::pika_http_error(status, &bytes)
-                    } else {
-                        crate::submission::vivix_http_error(status, &bytes)
-                    });
+                    let error = match host {
+                        "queue.fal.run" => crate::submission::fal_http_error(status, &bytes),
+                        "api-singapore.klingai.com" => {
+                            crate::submission::kling_http_error(status, &bytes)
+                        }
+                        "api.dev.pika.art" => crate::submission::pika_http_error(status, &bytes),
+                        "api.vivix.ai" => crate::submission::vivix_http_error(status, &bytes),
+                        _ => crate::diagnostics::http_error(status),
+                    };
+                    let secrets: Vec<String> = r
+                        .headers
+                        .iter()
+                        .filter(|(key, _)| {
+                            matches!(
+                                key.to_ascii_lowercase().as_str(),
+                                "authorization"
+                                    | "x-key"
+                                    | "x-api-key"
+                                    | "x-goog-api-key"
+                                    | "xi-api-key"
+                                    | "api-key"
+                            )
+                        })
+                        .flat_map(|(_, v)| {
+                            [
+                                v.clone(),
+                                v.split_once(' ').map_or(v.as_str(), |(_, s)| s).to_owned(),
+                            ]
+                        })
+                        .collect();
+                    return Err(crate::submission::with_body_provider_error(
+                        error, status, host, &bytes, &secrets,
+                    ));
                 }
                 return Err(crate::diagnostics::http_error(response.status().as_u16()));
             }

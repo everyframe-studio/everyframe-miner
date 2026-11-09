@@ -16,8 +16,8 @@ pub const HELP: &str = "everycli · EveryFrame miner tools
 
 Usage: everycli COMMAND [options]
 
-Setup: setup (guided), register-hotkey, set-api-keys, remove-api-key, init, reconnect
-Manage: health, doctor, status, providers, balances, offers, offer, offer-batch, jobs, earnings, deploy, activate,
+Setup: setup (guided), terms, register-hotkey, set-api-keys, remove-api-key, init, reconnect
+Manage: health, doctor, status, providers, balances, offers, offer, offer-batch, auto-offers, jobs, earnings, deploy, activate,
         apply-api-keys, resume, worker-update, stop, start, reconcile, delete, logs, label
 Browser: ui (local setup guide and status dashboard on 127.0.0.1)
 CLI updates: update, auto-update (--enable / --disable)
@@ -33,6 +33,7 @@ Options:
                    openrouter-billing; billing-only keys stay on this device)
   --publish (balances; sync amounts only for hotkey-only remote viewing)
   --stdin (set-api-keys --provider NAME; read one key from a pipe)
+  --accept-terms VERSION (init/terms; explicit agreement, separate from --yes)
   --invitation FILE (init; optional legacy deployment import)
   --secrets-file FILE (init; optional legacy credential import)
   --release FILE (worker-update)
@@ -65,6 +66,9 @@ pub const UPDATE_HELP: &str = "\nCLI upgrades (no login required):\n  everycli u
 const VALUE_OPTIONS: &[&str] = &[
     "--network",
     "--state-dir",
+    "--accept-terms",
+    "--terms-hotkey",
+    "--terms-sha256",
     "--invitation",
     "--secrets-file",
     "--hotkey-file",
@@ -77,11 +81,16 @@ const VALUE_OPTIONS: &[&str] = &[
     "--model",
     "--models",
     "--discount-pct",
+    "--max-discount-pct",
+    "--buffer-pct",
+    "--max-daily-usd",
+    "--max-job-usd",
     "--port",
     "--app-id",
     "--name",
     "--limit",
     "--cursor",
+    "--job-id",
     "--status",
 ];
 
@@ -178,6 +187,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
             "--force",
             "--abort",
             "--summary",
+            "--preview",
         ]
         .contains(&a)
         {
@@ -237,6 +247,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
     };
     need(
         [
+            "terms",
             "init",
             "reconnect",
             "setup",
@@ -252,6 +263,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
             "offers",
             "offer",
             "offer-batch",
+            "auto-offers",
             "jobs",
             "earnings",
             "deploy",
@@ -278,6 +290,17 @@ pub fn parse(args: &[String]) -> Result<Args> {
     }
     let allowed = match out.command.as_str() {
         "auto-update" => vec!["--enable", "--disable"],
+        "auto-offers" => vec![
+            "--enable",
+            "--disable",
+            "--preview",
+            "--provider",
+            "--models",
+            "--max-discount-pct",
+            "--buffer-pct",
+            "--max-daily-usd",
+            "--max-job-usd",
+        ],
         "worker-auto-update" => vec!["--enable", "--disable"],
         "setup" => vec![
             "--continue",
@@ -288,7 +311,16 @@ pub fn parse(args: &[String]) -> Result<Args> {
             "--max-hourly-usd",
         ],
         "reconnect" => vec!["--hotkey-file", "--wallet", "--hotkey"],
+        "terms" => vec![
+            "--accept-terms",
+            "--terms-hotkey",
+            "--terms-sha256",
+            "--wallet",
+            "--hotkey",
+            "--hotkey-file",
+        ],
         "init" => vec![
+            "--accept-terms",
             "--invitation",
             "--secrets-file",
             "--hotkey-file",
@@ -300,7 +332,14 @@ pub fn parse(args: &[String]) -> Result<Args> {
         "set-api-keys" => vec!["--provider", "--stdin"],
         "remove-api-key" => vec!["--provider"],
         "balances" => vec!["--publish"],
-        "jobs" => vec!["--limit", "--cursor", "--status", "--model", "--summary"],
+        "jobs" => vec![
+            "--limit",
+            "--cursor",
+            "--status",
+            "--model",
+            "--summary",
+            "--job-id",
+        ],
         "offer" => vec!["--model", "--discount-pct", "--withdraw"],
         "offer-batch" => vec![
             "--models",
@@ -383,6 +422,35 @@ fn local_hotkey(args: &Args) -> Result<Option<std::path::PathBuf>> {
     }
     Ok(None)
 }
+fn terms_identity(args: &Args, miner: &Miner<'_>) -> Result<Option<String>> {
+    let network = args.get("--network").unwrap_or("mainnet");
+    let config = miner.state.read("config", true)?;
+    let profile = if config.is_null() {
+        None
+    } else {
+        Some(
+            miner.validate(&config["invitation"], true)?["hotkey"]
+                .as_str()
+                .ok_or(Error("terms_hotkey_required"))?
+                .to_string(),
+        )
+    };
+    let selected = local_hotkey(args)?
+        .map(|p| onboarding::file_address(&p))
+        .transpose()?;
+    if let (Some(a), Some(b)) = (&profile, &selected) {
+        need(a == b, "hotkey_does_not_match_deployment")?;
+    }
+    if profile.is_some() || selected.is_some() {
+        return Ok(profile.or(selected));
+    }
+    let registration = miner.state.read("registration", true)?;
+    if registration["network"] == network && registration["registered"] == true {
+        return Ok(registration["hotkey"].as_str().map(str::to_string));
+    }
+    Ok(None)
+}
+
 fn set_keys(args: &Args, state: &State) -> Result<Value> {
     let selected = if let Some(provider) = args.get("--provider") {
         onboarding::credential_key(provider)?;
@@ -445,6 +513,9 @@ pub fn key_prompt(provider: &str, saved: bool) -> String {
 pub fn validate_args(args: &Args) -> Result<()> {
     if args.flag("--help") || args.flag("--version") {
         return Ok(());
+    }
+    if args.command == "auto-offers" {
+        crate::automatic_offers::validate(args)?;
     }
     if args.command == "jobs" {
         crate::job_history::query(args)?;
@@ -516,7 +587,7 @@ pub fn validate_args(args: &Args) -> Result<()> {
     if let Some(provider) = args.get("--provider") {
         onboarding::credential_key(provider)?;
     }
-    if ["init", "reconnect", "register-hotkey", "setup"].contains(&args.command.as_str()) {
+    if ["init", "terms", "reconnect", "register-hotkey", "setup"].contains(&args.command.as_str()) {
         local_hotkey(args)?;
     }
     Ok(())
@@ -595,6 +666,32 @@ pub fn setup_with(
             &Error("hotkey_not_registered"),
             Some(&base),
         ));
+    }
+    let mut terms_args = step("terms", &["--wallet", "--hotkey", "--hotkey-file"]);
+    let agreement = execute(&terms_args)?;
+    if agreement["accepted"] != true {
+        eprintln!("\n{}", crate::terms::TEXT);
+        need(
+            ask(&format!(
+                "Accept Miner Terms {} for this hotkey? Type yes: ",
+                crate::terms::VERSION
+            ))? == "yes",
+            "cancelled",
+        )?;
+        terms_args
+            .options
+            .insert("--accept-terms".into(), crate::terms::VERSION.into());
+        terms_args.options.insert(
+            "--terms-hotkey".into(),
+            agreement["hotkey"]
+                .as_str()
+                .ok_or(Error("terms_hotkey_required"))?
+                .into(),
+        );
+        terms_args
+            .options
+            .insert("--terms-sha256".into(), crate::terms::hash());
+        execute(&terms_args)?;
     }
     eprintln!(
         "Step 2/11 — Save API keys locally. Phala: Settings → API Tokens, not Private AI. Enter keeps saved keys or skips missing keys."
@@ -729,6 +826,7 @@ pub fn run_with(
         return setup(args, &miner);
     }
     if ![
+        "terms",
         "reconnect",
         "status",
         "doctor",
@@ -747,6 +845,7 @@ pub fn run_with(
     // Fail locally before any transport or paid-operation preparation. Providers
     // and key management intentionally remain usable before initialization.
     if ![
+        "terms",
         "register-hotkey",
         "set-api-keys",
         "remove-api-key",
@@ -774,7 +873,41 @@ pub fn run_with(
             ));
         }
     }
+    if matches!(
+        args.command.as_str(),
+        "deploy" | "start" | "activate" | "resume"
+    ) || (matches!(args.command.as_str(), "offer" | "offer-batch") && !args.flag("--withdraw"))
+        || (args.command == "auto-offers" && args.flag("--enable"))
+    {
+        let address = terms_identity(args, &miner)?.ok_or(Error("terms_hotkey_required"))?;
+        crate::terms::require(
+            &miner.state,
+            network,
+            &address,
+            None,
+            args.flag("--yes") || args.flag("--json"),
+            confirm,
+        )?;
+    }
     match args.command.as_str() {
+        "terms" => {
+            let address = terms_identity(args, &miner)?;
+            if let Some(version) = args.get("--accept-terms") {
+                if let Some(expected) = args.get("--terms-hotkey") {
+                    need(address.as_deref() == Some(expected), "terms_review_changed")?;
+                }
+                if let Some(expected) = args.get("--terms-sha256") {
+                    need(expected == crate::terms::hash(), "terms_review_changed")?;
+                }
+                crate::terms::accept(
+                    &miner.state,
+                    network,
+                    address.as_deref().ok_or(Error("terms_hotkey_required"))?,
+                    version,
+                )?;
+            }
+            crate::terms::view(&miner.state, network, address.as_deref())
+        }
         "reconnect" => miner.reconnect(local_hotkey(args)?.as_deref(), confirm),
         "register-hotkey" => {
             let path = local_hotkey(args)?;
@@ -836,6 +969,33 @@ pub fn run_with(
                     "hotkey_does_not_match_deployment",
                 )?;
             }
+            let legacy = args
+                .get("--invitation")
+                .map(|file| read_json(Path::new(file), false))
+                .transpose()?;
+            let address = if let Some(envelope) = &legacy {
+                miner.validate(envelope, false)?["hotkey"]
+                    .as_str()
+                    .ok_or(Error("terms_hotkey_required"))?
+                    .to_string()
+            } else {
+                terms_identity(args, &miner)?
+                    .ok_or(Error("local_hotkey_required_use_wallet_or_hotkey_file"))?
+            };
+            if let Some(path) = &path {
+                need(
+                    onboarding::file_address(path)? == address,
+                    "hotkey_does_not_match_deployment",
+                )?;
+            }
+            crate::terms::require(
+                &miner.state,
+                network,
+                &address,
+                args.get("--accept-terms"),
+                args.flag("--yes") || args.flag("--json"),
+                confirm,
+            )?;
             // Attaching the same hotkey to an existing public profile refreshes
             // it in place. Keep provider keys and the deployment journal intact.
             if args.get("--invitation").is_none()
@@ -845,8 +1005,8 @@ pub fn run_with(
                 return miner.reconnect_authorization(path.as_deref());
             }
             let mut fresh_receipt = None;
-            let envelope = if let Some(file) = args.get("--invitation") {
-                read_json(Path::new(file), false)?
+            let envelope = if let Some(envelope) = legacy {
+                envelope
             } else {
                 let (envelope, receipt) = onboarding::enroll_with_receipt(
                     miner.http,
@@ -892,11 +1052,12 @@ pub fn run_with(
             Ok(out)
         }
         "doctor" => miner.doctor(),
-        "health" => miner.health(),
+        "health" => miner.health_with_progress(progress),
         "status" => miner.status(),
         "providers" => miner.providers(),
         "balances" => miner.balances(args.flag("--publish")),
         "offers" => miner.offers(),
+        "auto-offers" => miner.automatic_offers(args, confirm),
         "earnings" => miner.earnings(),
         "jobs" if args.flag("--summary") => miner.jobs(),
         "jobs" => miner.job_history(crate::job_history::query(args)?),

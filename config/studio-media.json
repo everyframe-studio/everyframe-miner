@@ -391,5 +391,73 @@
     },
     "outputMime": "image/svg+xml",
     "maxPrompt": 9500
+  },
+  "studio/media/openrouter/openai/gpt-image-2.6-sunburst": {
+    "provider": "openrouter",
+    "apiModel": "openai/gpt-image-2.6-sunburst",
+    "name": "GPT Image 2.6 Sunburst (Studio)",
+    "kind": "image",
+    "maxReferences": 16,
+    "path": "/api/v1/images",
+    "deadlineMs": 480000,
+    "parameters": {
+      "negative": {
+        "type": "string",
+        "max": 50000
+      },
+      "quality": {
+        "enum": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "editPrecision": {
+        "enum": [
+          "none",
+          "high"
+        ]
+      },
+      "maskIndex": {
+        "type": "integer",
+        "min": -1,
+        "max": 15
+      }
+    },
+    "maxPrompt": 32000
+  },
+  "studio/media/openrouter/openai/gpt-image-2.6-flare": {
+    "provider": "openrouter",
+    "apiModel": "openai/gpt-image-2.6-flare",
+    "name": "GPT Image 2.6 Flare (Studio)",
+    "kind": "image",
+    "maxReferences": 16,
+    "path": "/api/v1/images",
+    "deadlineMs": 480000,
+    "parameters": {
+      "negative": {
+        "type": "string",
+        "max": 50000
+      },
+      "quality": {
+        "enum": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "editPrecision": {
+        "enum": [
+          "none",
+          "high"
+        ]
+      },
+      "maskIndex": {
+        "type": "integer",
+        "min": -1,
+        "max": 15
+      }
+    },
+    "maxPrompt": 32000
   }
 }

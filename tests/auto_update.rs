@@ -45,6 +45,11 @@ fn settings_are_global_human_by_default_and_json_only_on_request() {
         assert_eq!(v["enabled"], enabled);
         assert_eq!(v["nativeInstallation"], false);
         assert!(v["lastAttempt"].is_null());
+        assert!(v["lastUpdate"].is_null());
+        assert_eq!(
+            v["currentRelease"]["version"],
+            format!("v{}", env!("CARGO_PKG_VERSION"))
+        );
     }
     assert!(!home.path().join(".config/everycli-mainnet117").exists());
     let out = run(&["auto-update", "--enable", "--disable", "--json"]);

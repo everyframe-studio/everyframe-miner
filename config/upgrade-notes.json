@@ -1,0 +1,876 @@
+{
+  "schema": 1,
+  "firstRelease": "v0.1.1",
+  "releases": [
+    {
+      "version": "v0.1.1",
+      "title": "CLI improvements",
+      "changes": [
+        "Maintenance release; see the original release page for its change list."
+      ],
+      "workerUpdate": "unknown",
+      "actions": []
+    },
+    {
+      "version": "v0.1.3",
+      "title": "Miner onboarding",
+      "changes": [
+        "everycli miner register-hotkey: verify finalized subnet membership and save the public identity. No chain transaction or registration fee.",
+        "everycli miner set-api-keys: hidden prompts for Phala and nine generation providers; no dotenv file required.",
+        "remove-api-key and apply-api-keys: local credential management and explicit, guarded application to an attested worker."
+      ],
+      "workerUpdate": "not_required",
+      "actions": []
+    },
+    {
+      "version": "v0.1.4",
+      "title": "CLI improvements",
+      "changes": [
+        "Run everycli miner init after registering your hotkey and saving your API keys. The CLI proves ownership and fetches the signed deployment automatically.",
+        "No invitation file, miner token or registry login is needed for new public deployments. --invitation remains an optional legacy import.",
+        "Deployment binds the exact app automatically; hardware attestation is still required before provider activation."
+      ],
+      "workerUpdate": "not_required",
+      "actions": []
+    },
+    {
+      "version": "v0.1.5",
+      "title": "CLI improvements",
+      "changes": [
+        "everycli miner balances displays remaining account credits in USD, with source, age and stale indicators. Supports Fal, Phala credited funds and OpenRouter account credits; unavailable/unsupported checks never appear as a fabricated zero.",
+        "everycli miner offers now displays a readable model/status/discount-percentage table. --json remains machine-readable. Discounts apply to the base miner reward, not provider charges.",
+        "everycli miner balances --publish explicitly syncs amounts/statuses/timestamps to your miner's private coordinator view for hotkey-only access on a second device. Snapshots are owner-reported and stale after 15 minutes; there is no automatic background sync."
+      ],
+      "workerUpdate": "not_required",
+      "actions": []
+    },
+    {
+      "version": "v0.2.0",
+      "title": "Top-level miner commands",
+      "changes": [
+        "Moves miner setup, health, balances, offers and lifecycle commands to the top level while retaining namespaced compatibility aliases."
+      ],
+      "workerUpdate": "not_required",
+      "actions": []
+    },
+    {
+      "version": "v0.2.1",
+      "title": "CLI improvements",
+      "changes": [
+        "fix: actionable profile diagnostics (v0.2.1)"
+      ],
+      "workerUpdate": "not_required",
+      "actions": []
+    },
+    {
+      "version": "v0.2.2",
+      "title": "CLI improvements",
+      "changes": [
+        "fix(cli): explain missing workload deployment in doctor",
+        "fix(cli): actionable cloud and balance errors (v0.2.2)"
+      ],
+      "workerUpdate": "not_required",
+      "actions": []
+    },
+    {
+      "version": "v0.2.3",
+      "title": "CLI improvements",
+      "changes": [
+        "Replace misleading approval errors with actionable readiness diagnostics"
+      ],
+      "workerUpdate": "not_required",
+      "actions": []
+    },
+    {
+      "version": "v0.2.4",
+      "title": "CLI improvements",
+      "changes": [
+        "Vivix API key management: everycli set-api-keys --provider vivix stores VIVIX_API_KEY privately in the local profile.",
+        "Adds Vivix W1 task submission, polling, bounded result downloads and duplicate-submission protection.",
+        "Explicit unsupported status for Vivix USD balance queries; W credits are not converted into a fabricated USD balance."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If adopting Vivix or variable-duration generation on an existing worker."
+        }
+      ]
+    },
+    {
+      "version": "v0.2.5",
+      "title": "CLI improvements",
+      "changes": [
+        "fix: migrate everycli downloads to everyframe-studio"
+      ],
+      "workerUpdate": "not_required",
+      "actions": []
+    },
+    {
+      "version": "v0.3.0",
+      "title": "CLI improvements",
+      "changes": [
+        "feat(cli): guided setup, command help, and actionable diagnostics"
+      ],
+      "workerUpdate": "not_required",
+      "actions": []
+    },
+    {
+      "version": "v0.3.1",
+      "title": "CLI improvements",
+      "changes": [
+        "fix(cli): polish key management, errors and setup for v0.3.1"
+      ],
+      "workerUpdate": "not_required",
+      "actions": []
+    },
+    {
+      "version": "v0.3.2",
+      "title": "CLI improvements",
+      "changes": [
+        "Checking, downloading, checksum verification and installation stages.",
+        "Download percentage and transferred size when the server supplies a total; downloaded size otherwise.",
+        "A single updating line in terminals, or plain-text milestones in redirected logs."
+      ],
+      "workerUpdate": "not_required",
+      "actions": []
+    },
+    {
+      "version": "v0.3.3",
+      "title": "CLI improvements",
+      "changes": [
+        "Short API keys now explain: \u201cThat key looks too short (minimum 10 characters).\u201d Invalid input does not replace an existing key.",
+        "A missing wallet is named explicitly, with available local wallet names. Discovery reads directory names, never private key contents.",
+        "Registration prints its fee/transaction notice once and shows placeholder instructions only when placeholders remain."
+      ],
+      "workerUpdate": "not_required",
+      "actions": []
+    },
+    {
+      "version": "v0.3.4",
+      "title": "CLI improvements",
+      "changes": [
+        "fix(cli): consistent v-prefixed update messages; release v0.3.4"
+      ],
+      "workerUpdate": "not_required",
+      "actions": []
+    },
+    {
+      "version": "v0.3.5",
+      "title": "CLI improvements",
+      "changes": [
+        "Shows provider and readiness columns in signed model catalogs while preserving existing bids and older coordinator compatibility.",
+        "everycli doctor explains when a key is saved locally but excluded by the signed deployment. This is not an API authentication verdict.",
+        "The worker accepts Vivix results from its reviewed clipgen-us.vivi-x.ai CDN, without forwarding credentials or allowing arbitrary hosts/redirects."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If using a newly permitted provider key or the Vivix result-host fix."
+        }
+      ]
+    },
+    {
+      "version": "v0.3.6",
+      "title": "CLI improvements",
+      "changes": [
+        "everycli health: read-only, color-coded readiness tables with PASS, WARN and FAIL states. Checks include the local profile, release permissions, coordinator, cloud workload, fresh heartbeat and attestation session, routing, and worker support for active model offers.",
+        "everycli status now shows human-readable deployment, routing, offers and job-activity tables by default. everycli status --json retains the existing structured fields.",
+        "everycli health --json provides structured checks. Health exits with code 0 only when every readiness check passes; otherwise code 2."
+      ],
+      "workerUpdate": "not_required",
+      "actions": []
+    },
+    {
+      "version": "v0.3.7",
+      "title": "CLI improvements",
+      "changes": [
+        "feat(cli): one-command signed worker updates (v0.3.7)"
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If installing an available signed worker release on the existing VM."
+        }
+      ]
+    },
+    {
+      "version": "v0.3.8",
+      "title": "CLI improvements",
+      "changes": [
+        "Fix Phala preparation of signed worker updates that change permitted environment variables, including Vivix credentials. Exact compose-hash verification is preserved.",
+        "Safely recover a v0.3.7 update_provision_intent when the exact existing VM is still running its original signed configuration. Keep the original profile and journal; do not redeploy.",
+        "Allow safe shutdown after reconciling an uncommitted preparation. Uncertain commits and key activation remain fail-closed and are not blindly repeated."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If applying worker balance reporting or continuing an interrupted signed update."
+        }
+      ]
+    },
+    {
+      "version": "v0.3.9",
+      "title": "CLI improvements",
+      "changes": [
+        "feat: Studio video contracts and worker balance reporting (v0.3.9)"
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If using the expanded Studio video contracts or worker balance reporting."
+        }
+      ]
+    },
+    {
+      "version": "v0.4.0",
+      "title": "Studio media coverage",
+      "changes": [
+        "H3 Max image, video and audio references, including audio-only guidance. Video reference estimates bind measured source frame counts, not guessed FPS.",
+        "Seven Studio image models: Ideogram 4.5, Grok Imagine Image, Flux 3, Nano Banana 2.1, GPT Image 2.5 Sunburst, Gemini 3.1 Flash Lite Image and Gemini 3 Pro Image.",
+        "Ordered image references and Ideogram precision masks."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If serving the new Studio image, audio, video or reference-input models."
+        },
+        {
+          "kind": "review-offers",
+          "requirement": "conditional",
+          "when": "If adopting the added models, review and explicitly enable the offers you want to serve."
+        }
+      ]
+    },
+    {
+      "version": "v0.4.1",
+      "title": "Native Vivix W-credit balances",
+      "changes": [
+        "Reads the read-only GET https://api.vivix.ai/v1/balance endpoint with the deployed Vivix key.",
+        "Reports and displays native W credits. A credits are separate and never substituted; no USD conversion is invented.",
+        "Missing or duplicate W entries, endpoint errors and unexpected responses are unavailable, not zero. The endpoint is undocumented and may change."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If using worker-reported native Vivix W-credit balances."
+        }
+      ]
+    },
+    {
+      "version": "v0.5.0",
+      "title": "CLI improvements",
+      "changes": [
+        "Guided setup, API-key management, offers, health, balances and worker controls.",
+        "Loopback-only server, single-use pairing, private key storage and explicit paid-action confirmations.",
+        "Setup inputs survive background refresh. Pending starts/shutdowns have re-sync controls."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If applying the Fal, transfer or Vivix worker fixes."
+        },
+        {
+          "kind": "reconnect",
+          "requirement": "conditional",
+          "when": "If your existing profile still has expiring legacy authorization."
+        },
+        {
+          "kind": "apply-api-keys",
+          "requirement": "conditional",
+          "when": "After reconnecting a legacy authorization, apply it once and wait for fresh attestation."
+        }
+      ]
+    },
+    {
+      "version": "v0.5.1",
+      "title": "CLI improvements",
+      "changes": [
+        "Test API keys with free, read-only provider requests before saving in the UI. Rejected replacements leave existing keys untouched; restricted or unreachable checks are explicitly marked unverified, never falsely reported as accepted.",
+        "Keep setup on the selected step after saving keys. Preserve drafts during background refresh, shorten long worker names, and allow local renaming.",
+        "Remove expiry clutter from the dashboard without weakening authorization checks."
+      ],
+      "workerUpdate": "not_required",
+      "actions": []
+    },
+    {
+      "version": "v0.5.2",
+      "title": "CLI improvements",
+      "changes": [
+        "Dashboard identity: miner UID from the last finalized registration check, shortened hotkey, full-address tooltip/copy and a read-only Refresh UID action. UID 0 is valid; missing or mismatched lookups are never presented as known UIDs.",
+        "everycli reconnect and Worker \u2192 Reconnect profile recover superseded local miner authorization with proof from the same hotkey and confirmation. Exact signed identity/workload checks preserve API keys, labels and deployment history. A durable owner-only journal permits interrupted local commits to finish without repeating remote requests. Uncertain cloud operations remain blocked; no VM is created, deleted, updated or started by reconnect.",
+        "Coordinator HTTP 401 now identifies rejected miner authorization separately from Phala credential errors, with clock-check and reconnect guidance."
+      ],
+      "workerUpdate": "not_required",
+      "actions": [
+        {
+          "kind": "reconnect",
+          "requirement": "conditional",
+          "when": "If your saved authorization has been superseded; use the same hotkey."
+        }
+      ]
+    },
+    {
+      "version": "v0.5.3",
+      "title": "CLI improvements",
+      "changes": [
+        "Select your hotkey becomes Your hotkey once attached. Reopened setup shows the saved identity and its last verified UID; Check registration remains a read-only chain check.",
+        "Deploy automatically refreshes coordinator-rejected authorization once using the matching attached hotkey, before any paid cloud request. Legacy profiles without a saved signer path can find the same hotkey in the standard wallet directory. Missing, unreadable, or mismatched files still require attention.",
+        "Attaching the same hotkey again with init safely refreshes an existing public profile without discarding API keys or deployment history."
+      ],
+      "workerUpdate": "not_required",
+      "actions": [
+        {
+          "kind": "reconnect",
+          "requirement": "conditional",
+          "when": "If an attached public hotkey profile needs authorization recovery."
+        }
+      ]
+    },
+    {
+      "version": "v0.5.4",
+      "title": "CLI improvements",
+      "changes": [
+        "A fresh profile cannot create a paid second VM while another app is still bound.",
+        "An unbound deployment can refresh a newer reviewed server release before any paid submission. Signed identity and exact OS hash validation remain mandatory.",
+        "Production dstack versions are no longer hardcoded to 0.5.9. Development and GPU image names remain disallowed; the server must review and approve the OS."
+      ],
+      "workerUpdate": "not_required",
+      "actions": [
+        {
+          "kind": "reconnect",
+          "requirement": "conditional",
+          "when": "If recovering a public profile with no local VM record."
+        }
+      ]
+    },
+    {
+      "version": "v0.5.5",
+      "title": "CLI improvements",
+      "changes": [
+        "Hide unintegrated catalog entries in CLI/UI. Integrated models that need a provider key, current pricing or a worker update retain actionable labels.",
+        "Overview shows all-time jobs by model. Use everycli jobs in the terminal, or everycli jobs --json for structured output. Completed counts mean distinct accepted jobs; failed/cancelled columns count attempts, not wallet payments.",
+        "Overview and everycli earnings show readable serving-fee tables, not nested JSON. Serving fees are accounting, not proof of alpha or cash received."
+      ],
+      "workerUpdate": "not_required",
+      "actions": []
+    },
+    {
+      "version": "v0.5.6",
+      "title": "CLI improvements",
+      "changes": [
+        "Recover an interrupted initial VM preparation with everycli reconcile, also available as Re-sync operation in the browser UI.",
+        "Requires a verified, unbound, idle coordinator and a complete successful Phala inventory without the signed VM name or prepared app ID.",
+        "Archives the abandoned preparation before clearing it. Keeps credentials, registration, label and signed configuration. Performs no cloud mutation."
+      ],
+      "workerUpdate": "not_required",
+      "actions": []
+    },
+    {
+      "version": "v0.5.7",
+      "title": "CLI improvements",
+      "changes": [
+        "Reports fixed moderation, invalid-request, billing, timeout, provider and output failure categories instead of treating every terminal error as generic.",
+        "Preserves existing Vivix moderation/parameter errors and Fal exhausted-balance errors through the worker's signed failure report.",
+        "Retries retain the same attempt and failure category. Timeouts and generic HTTP errors never trigger a reasonless legacy fallback or another paid generation."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If applying provider-failure reporting to an existing worker."
+        }
+      ]
+    },
+    {
+      "version": "v0.5.8",
+      "title": "CLI improvements",
+      "changes": [
+        "Distinguish Everyframe contract IDs from actual provider API IDs in the CLI and model dashboard. Do not paste studio/ or direct/ IDs into provider APIs.",
+        "Separate candidates and retired models from supported models. Block new offers for removed/deprecated endpoints while preserving withdrawal and job history.",
+        "Check OpenRouter's key-filtered model list, Vivix's workspace list, and Fal's public catalog before advertising worker capabilities. Other account access is explicitly unchecked; catalog presence is not a paid-generation guarantee."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If applying the provider-availability worker fixes."
+        }
+      ]
+    },
+    {
+      "version": "v0.6.0",
+      "title": "CLI improvements",
+      "changes": [
+        "CLI release signing is postponed. Updates and fresh installs keep SHA-256 checksums, restricted HTTPS downloads and atomic replacement. They do not fetch .sig files or require OpenSSL or a signing secret. Checksums are not independent publisher authentication. TEE, worker configuration and job-receipt signatures are unchanged and remain enforced.",
+        "Publishing uses the GitHub release environment (configure required reviewers), and an older-line hotfix no longer becomes the \"latest\" release.",
+        "A cargo install build is never replaced by auto-update; everycli update tells you to run cargo install again instead."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If applying the updated worker behavior on the existing VM."
+        }
+      ]
+    },
+    {
+      "version": "v0.6.2",
+      "title": "CLI improvements",
+      "changes": [
+        "Adds the Fal-backed FLUX 3 Max video contract: 5\u201320 seconds, 720p/1080p, landscape/portrait/square formats, generated audio, and first/last images.",
+        "Uses FLUX-specific fields and low reasoning effort, not H3 request defaults.",
+        "Reference video/audio and unordered image sets are rejected before billing."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If serving FLUX 3 Max or the updated media and heartbeat behavior."
+        }
+      ]
+    },
+    {
+      "version": "v0.7.0",
+      "title": "Offline worker updates and Kling direct API",
+      "changes": [
+        "Kling developer API key setup in CLI and UI, with a free read-only key check.",
+        "Adds direct Kling key management and video task handling, with contracts kept separate from Fal-hosted models.",
+        "Explicit unsupported USD balance diagnostics for Kling; delayed resource-pack quantities are not presented as live cash balances."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If using the signed offline updater bootstrap or Kling direct provider."
+        }
+      ]
+    },
+    {
+      "version": "v0.7.1",
+      "title": "More models from existing providers",
+      "changes": [
+        "MiniMax: Hailuo 02.",
+        "BFL: FLUX.2 Max, Flex, Klein 4B and Klein 9B.",
+        "Replicate: FLUX.2 Pro."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If serving the additional provider models."
+        },
+        {
+          "kind": "review-offers",
+          "requirement": "conditional",
+          "when": "If adopting the added models, review and explicitly enable the offers you want to serve."
+        }
+      ]
+    },
+    {
+      "version": "v0.7.2",
+      "title": "CLI improvements",
+      "changes": [
+        "MiniMax: Hailuo 02.",
+        "BFL: FLUX.2 Max, Flex, Klein 4B and Klein 9B.",
+        "Replicate: FLUX.2 Pro."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If enabling the isolated automatic-update controller bootstrap."
+        }
+      ]
+    },
+    {
+      "version": "v0.7.3",
+      "title": "CLI improvements",
+      "changes": [
+        "Ideogram Vector adds editable SVG generation through your Fal API key. Choose low, medium or high quality and use up to five reference images. Each job returns one SVG; quality and references are included in its price."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If serving Ideogram Vector."
+        },
+        {
+          "kind": "review-offers",
+          "requirement": "conditional",
+          "when": "If adopting the added models, review and explicitly enable the offers you want to serve."
+        }
+      ]
+    },
+    {
+      "version": "v0.7.4",
+      "title": "CLI improvements",
+      "changes": [
+        "Kling 4.0, HeyGen Video, Gemini Omni Flash 1.1, and Vidu Q4 Preview join the miner model catalog. All four use your existing Fal key."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If serving Kling 4.0, HeyGen Video, Gemini Omni Flash or Vidu Q4."
+        },
+        {
+          "kind": "review-offers",
+          "requirement": "conditional",
+          "when": "If adopting the added models, review and explicitly enable the offers you want to serve."
+        }
+      ]
+    },
+    {
+      "version": "v0.8.0",
+      "title": "Director tools",
+      "changes": [
+        "Miners can offer discounts for the new Director tools: Kling 4.0 Edit, H3 Max Recast and Relight, VEED Dubbing, HeyGen Voice, FLUX Klein LoRA, and Motion-to-Code."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If serving the Director tool routes on an existing worker."
+        },
+        {
+          "kind": "review-offers",
+          "requirement": "conditional",
+          "when": "If adopting the added models, review and explicitly enable the offers you want to serve."
+        }
+      ]
+    },
+    {
+      "version": "v0.8.1",
+      "title": "Miner authorization and API balances",
+      "changes": [
+        "Miner authorizations do not expire. An outdated setup configuration refreshes automatically before management changes, using the existing authorization and preserving the worker.",
+        "Reconnecting a legacy enrollment now enables non-expiring authorization without changing its VM or offers.",
+        "The API Keys page shows provider balances, status and the last check time. Refreshing balances preserves key drafts, and saved keys can be checked before miner initialization."
+      ],
+      "workerUpdate": "not_required",
+      "actions": [
+        {
+          "kind": "reconnect",
+          "requirement": "conditional",
+          "when": "Only if status reports legacy expiring authorization; use the same hotkey."
+        },
+        {
+          "kind": "apply-api-keys",
+          "requirement": "conditional",
+          "when": "After reconnecting legacy authorization, apply it once and wait for fresh attestation."
+        }
+      ]
+    },
+    {
+      "version": "v0.8.2",
+      "title": "Fal availability and worker recovery",
+      "changes": [
+        "Restores Fal model availability after provider retirements. Confirmed models stay available when another catalog request fails or is rate-limited, and checks stop sending requests after a rate limit.",
+        "Recognizes LTX 2 Pro as retired. Workers also receive a signed list of retired models, allowing future retirements to be handled without another worker release. This list can only disable models.",
+        "Fixes stale-attestation errors for healthy workers with a valid admitted session and a fresh heartbeat. Expired sessions, workload binding and fresh attestation after a restart remain enforced."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If your worker uses Fal and needs the availability fix."
+        },
+        {
+          "kind": "reconnect",
+          "requirement": "conditional",
+          "when": "Only if status reports legacy expiring authorization; use the same hotkey."
+        },
+        {
+          "kind": "apply-api-keys",
+          "requirement": "conditional",
+          "when": "After reconnecting legacy authorization, apply it once and wait for fresh attestation."
+        }
+      ]
+    },
+    {
+      "version": "v0.8.3",
+      "title": "Pika H3 Flex",
+      "changes": [
+        "Adds the Pika API provider to everycli and the attested worker, including key validation and spendable USD balances in the CLI and browser UI.",
+        "Supports 5\u201315-second text, first/last-frame and image/video/audio reference generation with native audio. 480p/768p are native; 1080p, 2K and 4K use Pika's upscaler.",
+        "Uses Pika's exact aspect-ratio buckets and frame-grid duration when validating output and quoting miner work."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If serving Pika H3 Flex or applying the large-video delivery improvements."
+        },
+        {
+          "kind": "reconnect",
+          "requirement": "conditional",
+          "when": "Only if migrating an existing legacy expiring authorization."
+        },
+        {
+          "kind": "apply-api-keys",
+          "requirement": "conditional",
+          "when": "After reconnecting legacy authorization, apply it once and wait for fresh attestation."
+        },
+        {
+          "kind": "review-offers",
+          "requirement": "conditional",
+          "when": "If adopting the added models, review and explicitly enable the offers you want to serve."
+        }
+      ]
+    },
+    {
+      "version": "v0.8.4",
+      "title": "More reliable miner setup and controls",
+      "changes": [
+        "Batch discounts update eligible models together and name any skipped models. An unavailable existing offer can still be withdrawn, and a temporary worker check no longer prevents an authorized, priced bid.",
+        "Guided setup includes Pika and direct Kling alongside the other providers.",
+        "Worker labels follow the observed cloud state, and unavailable lifecycle actions stay disabled."
+      ],
+      "workerUpdate": "not_required",
+      "actions": []
+    },
+    {
+      "version": "v0.8.6",
+      "title": "Worker updates and setup progress",
+      "changes": [
+        "A dedicated Worker software panel shows the installed release and update status, with controls to check, install, continue or cancel a worker update.",
+        "Setup reaches 8/8 once accepting work is confirmed. Warnings about individual models remain visible separately.",
+        "Continue a saved update directly from the UI or CLI while preserving its reconciled signed release."
+      ],
+      "workerUpdate": "not_required",
+      "actions": [
+        {
+          "kind": "reconcile",
+          "requirement": "conditional",
+          "when": "If an earlier update stopped with unapproved_running_compose."
+        },
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "After reconciliation, continue the recorded update on the same profile."
+        }
+      ]
+    },
+    {
+      "version": "v0.8.7",
+      "title": "Worker updates wait for status recovery",
+      "changes": [
+        "Temporary gateway errors, including HTTP 502, during status checks no longer end an otherwise progressing worker update. The command waits and continues from its saved stage.",
+        "Temporary heartbeat, session and attestation delays are checked again before restoring work.",
+        "Completion requires confirmation of the intended accepting/paused state. If the wait limit is reached, progress stays saved for later continuation."
+      ],
+      "workerUpdate": "not_required",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If an update is already pending, continue it using the same profile."
+        }
+      ]
+    },
+    {
+      "version": "v0.8.8",
+      "title": "Easier model and provider offers",
+      "changes": [
+        "New model offers default to 0% discount. Zero-percent and inactive offers use a neutral color.",
+        "The Not offered tab shows models without an active offer. Model labels, provider counts and the overview link open that filtered view directly.",
+        "Provider switches turn offers on or off together. Turning on keeps saved discounts and uses 0% for new models; turning off withdraws offers and keeps their discounts for later."
+      ],
+      "workerUpdate": "not_required",
+      "actions": [
+        {
+          "kind": "review-offers",
+          "requirement": "conditional",
+          "when": "If adopting the added models, review and explicitly enable the offers you want to serve."
+        }
+      ]
+    },
+    {
+      "version": "v0.8.9",
+      "title": "Deleted worker recovery",
+      "changes": [
+        "everycli reconnect checks that the old VM is gone, asks before retiring its old authorization, and fetches the current reviewed deployment.",
+        "Deploy worker then creates a fresh VM using that approved OS image.",
+        "Saved API keys, model offers, discounts and deletion history are preserved."
+      ],
+      "workerUpdate": "not_required",
+      "actions": [
+        {
+          "kind": "reconnect",
+          "requirement": "conditional",
+          "when": "If a deleted VM remains bound or its approved OS image has retired; retain the original profile."
+        }
+      ]
+    },
+    {
+      "version": "v0.9.0",
+      "title": "Provider catalog and Google media",
+      "changes": [
+        "Adds reviewed pricing for 30 more catalog models across Fal, Kling, MiniMax, OpenRouter, Black Forest Labs, Replicate, Runway and ElevenLabs.",
+        "Restores the four Vivix base offers after the reference promotion ended.",
+        "Keeps retired models out of new offers."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If serving direct Google media or the expanded provider catalog."
+        },
+        {
+          "kind": "review-offers",
+          "requirement": "conditional",
+          "when": "If adopting the added models, review and explicitly enable the offers you want to serve."
+        }
+      ]
+    },
+    {
+      "version": "v0.9.1",
+      "title": "Enrollment reliability",
+      "changes": [
+        "Gives enrollment checks time to finish when chain or deployment-catalog responses are slow.",
+        "Shows gateway HTTP errors and specific enrollment failures instead of a generic error.",
+        "Keeps setup recovery guidance on the same wallet and hotkey."
+      ],
+      "workerUpdate": "not_required",
+      "actions": [
+        {
+          "kind": "retry-init",
+          "requirement": "conditional",
+          "when": "Only if initialization previously failed; retry your original init command with the same wallet and hotkey."
+        }
+      ]
+    },
+    {
+      "version": "v0.9.2",
+      "title": "Direct providers first",
+      "changes": [
+        "Direct providers now appear first in Models, provider switches, API keys and setup. Fal, OpenRouter and other intermediaries remain available after them."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If serving the new native OpenAI, xAI, BFL, MiniMax, Kling, audio or Luma routes."
+        },
+        {
+          "kind": "review-offers",
+          "requirement": "conditional",
+          "when": "If adopting the added models, review and explicitly enable the offers you want to serve."
+        }
+      ]
+    },
+    {
+      "version": "v0.9.3",
+      "title": "More OpenRouter video routes",
+      "changes": [
+        "Add OpenRouter offers for Wan 3.0 and Grok Imagine Video. Compatible Studio requests can use these offers and the existing OpenRouter Seedance 2.5 route, with native providers first and Fal retained as the original route."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If serving the new OpenRouter Wan or Grok routes."
+        },
+        {
+          "kind": "review-offers",
+          "requirement": "conditional",
+          "when": "If adopting the added models, review and explicitly enable the offers you want to serve."
+        }
+      ]
+    },
+    {
+      "version": "v0.9.5",
+      "title": "BFL regional polling and generation recovery",
+      "changes": [
+        "BFL workers follow the regional polling location returned by the provider and support its current image-delivery hosts. FLUX 3's Reasoning and Generating states are treated as work in progress, and terminal failures remain distinct from successful output."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If your worker serves BFL; this installs regional polling and task-recovery fixes."
+        }
+      ]
+    },
+    {
+      "version": "v0.9.6",
+      "title": "More OpenRouter video models",
+      "changes": [
+        "Add 14 OpenRouter video offers: Grok Imagine Video 1.5 and 1.5 Lite, H3 Max, Wan 3.0 Prime, Runway Gen-4.5, HappyHorse 1.0 and 1.1, Kling 3.0 Pro and Standard, Kling O1, Hailuo 2.3, Wan 2.7 and 2.6, and FLUX 3 Video."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If serving the 14 additional OpenRouter video offers."
+        },
+        {
+          "kind": "review-offers",
+          "requirement": "conditional",
+          "when": "If adopting the added models, review and explicitly enable the offers you want to serve."
+        }
+      ]
+    },
+    {
+      "version": "v1.0.0",
+      "title": "Redesigned dashboard and cumulative upgrade guidance",
+      "changes": [
+        "Redesigned miner dashboard, live startup checks, a health ring, clearer progress and a new EveryFrame Miner icon.",
+        "Show every release between the installed and target CLI versions, with conditional worker-update and other follow-up steps.",
+        "Retain successful update history for dashboard notifications and automatic-update status.",
+        "Restore new Phala deployments with the current gateway parameter and show redacted validation reasons and request IDs. Existing signed configuration checks remain enforced.",
+        "Add Gemini Omni 1.2 Flash through Google directly, Fal and OpenRouter, with native Google routing first when the request is compatible.",
+        "Add the separate MiniMax H3 offer through OpenRouter. Existing worker images and model offers remain unchanged until explicitly updated.",
+        "Report provider-defined failure codes and messages, including unfamiliar reasons, for API and website explanations with credential redaction.",
+        "Add GPT Image 2.6 Sunburst and Flare through direct OpenAI, Fal and OpenRouter, with compatible native routes first and separate model offers.",
+        "Add opt-in automatic offers with provider-price previews, miner-selected models, discount ceilings, cost buffers and estimated exposure limits. Off by default; the worker refreshes prices while the dashboard is closed."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If serving Gemini Omni 1.2 Flash, GPT Image 2.6 or OpenRouter H3, or enabling provider error-message reporting or automatic offers, install the compatible signed worker after its release."
+        },
+        {
+          "kind": "review-offers",
+          "requirement": "conditional",
+          "when": "If adopting the new models, review their pricing and explicitly enable the offers you want to serve. Automatic offers require explicitly selecting models and reviewing limits; an upgrade never enables them."
+        }
+      ]
+    }
+  ]
+}

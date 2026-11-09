@@ -2,6 +2,7 @@
 pub const COMMANDS: &[&str] = &[
     "help",
     "setup",
+    "terms",
     "register-hotkey",
     "set-api-keys",
     "remove-api-key",
@@ -15,6 +16,7 @@ pub const COMMANDS: &[&str] = &[
     "offers",
     "offer",
     "offer-batch",
+    "auto-offers",
     "jobs",
     "earnings",
     "deploy",
@@ -50,6 +52,11 @@ pub fn render(command: &str) -> String {
             "  --enable   Enroll the isolated updater (one-time VM restart)\n  --disable  Disable further automatic stages remotely; hosting continues\n  No flags   Show coordinator-reported automation status",
             "worker-auto-update --enable",
         ),
+        "terms" => (
+            "Read the Miner Terms of Service and this profile's acceptance status. Miners obtain provider resale permissions and negotiate discounts directly. Acceptance never deploys or resumes a worker.",
+            "  --accept-terms VERSION  Explicitly accept the displayed current version for this hotkey\n  --wallet NAME --hotkey NAME | --hotkey-file FILE\n  Saved profile or registration can supply the public hotkey. --yes alone never accepts terms.",
+            "terms",
+        ),
         "setup" => (
             "Guided first-time setup: check registration, save keys, initialize, then review deployment. Interactive only. Existing deployment records stop the wizard; it never activates or resumes paid work automatically.",
             "  --wallet NAME --hotkey NAME | --hotkey-file FILE\n  --max-hourly-usd N  Optional compute ceiling; prompted if omitted\n  --provider NAME     Optional generation provider to configure (Phala is also prompted)\n  --continue          Show the numbered checklist for an existing local deployment; no paid operations",
@@ -66,8 +73,8 @@ pub fn render(command: &str) -> String {
             "reconnect --wallet my-wallet --hotkey default",
         ),
         "init" => (
-            "Verify registration and prove hotkey ownership locally to fetch the signed profile. No VM is created.",
-            "  --wallet NAME --hotkey NAME | --hotkey-file FILE\n  Saved registration can supply the signer.\n  --invitation FILE   Optional legacy signed configuration\n  --secrets-file FILE Optional owner-only credential import",
+            "Accept the Miner Terms, verify registration and prove hotkey ownership locally to fetch the signed profile. No VM is created.",
+            "  --wallet NAME --hotkey NAME | --hotkey-file FILE\n  Saved registration can supply the signer.\n  --accept-terms VERSION  Explicit agreement for noninteractive enrollment; read everycli terms first\n  --invitation FILE   Optional legacy signed configuration\n  --secrets-file FILE Optional owner-only credential import",
             "init --wallet my-wallet --hotkey default",
         ),
         "set-api-keys" => (
@@ -122,7 +129,7 @@ pub fn render(command: &str) -> String {
         ),
         "jobs" => (
             "Read your individual attempts, newest first, including verification, review status and safe failure reasons. No prompts, media or other miners' history. Completed means verified output, not payment. No generation is submitted.",
-            "  --limit N      Page size, 1–100 (default 20)\n  --status NAME  all, active, completed, failed or cancelled\n  --model ID     Filter by EveryFrame contract ID\n  --cursor VALUE Next-page cursor; keep the same status/model filters\n  --summary      All-time per-model counts; cannot combine with filters",
+            "  --limit N      Page size, 1–100 (default 20)\n  --status NAME  all, active, completed, failed or cancelled\n  --model ID     Filter by EveryFrame contract ID\n  --job-id ID    Detailed private timeline for one job (48 hex characters)\n  --cursor VALUE Next-page cursor; keep the same filters\n  --summary      All-time per-model counts; cannot combine with filters",
             "jobs --status failed --limit 20",
         ),
         "offer-batch" => (
@@ -190,13 +197,18 @@ pub fn render(command: &str) -> String {
             "  --port N    Local port (default 47117, or the next free one)\n  --no-open   Print the link without opening a browser\n  --network / --state-dir select the profile, as for other commands",
             "ui",
         ),
+        "auto-offers" => (
+            "Preview provider costs or explicitly enable scoped automatic offers. Off by default. The attested worker refreshes prices and the coordinator enforces conservative estimated exposure limits. Only reviewed Fal units and complete OpenRouter video prices are eligible. Work value is not cash or guaranteed profit. Manual offer changes remove a model from automation. A compatible worker update is required; closing the dashboard does not stop automation.",
+            "  --preview | --enable | --disable\n  --provider fal|openrouter\n  --models ID,ID (preview/enable; exact selection, maximum 64)\n  --max-discount-pct PCT (required for preview/enable, 0-99.9)\n  --buffer-pct PCT (default 20; cost buffer, not profit)\n  --max-daily-usd USD (required; estimated exposure per rolling 24 hours)\n  --max-job-usd USD (required; estimated cost per job)\n  No flags: read current policies and status. Disable withdraws managed offers; existing started jobs keep their locked price. Limits exclude manual offers, other provider account use and hosting. No generation is submitted for a preview.",
+            "auto-offers --preview --provider fal --models studio/media/fal/xai/grok-imagine-image --max-discount-pct 20 --buffer-pct 20 --max-daily-usd 1 --max-job-usd 0.10",
+        ),
         "auto-update" => (
             "Show automatic CLI update settings and the last attempt. Native user installs check in the background after successful interactive commands and when the UI starts, at most once every six hours. Downloads are checksum-verified and installed atomically for the next invocation; reopen the UI after an update. Never updates workers or changes offers. JSON/CI/help/version invocations do not launch the updater.",
             "  --enable   Enable automatic CLI updates (default)\n  --disable  Disable automatic CLI updates; manual everycli update still works\n  EVERYCLI_DISABLE_AUTO_UPDATE=1 disables background updates for this environment.\n  No flags: show status. Settings apply across miner profiles.",
             "auto-update --disable",
         ),
         "update" => (
-            "Upgrade this CLI to the latest stable release. Shows download progress and a readable summary; --json emits only the structured result. No miner login needed; profiles and deployed workers are unchanged.",
+            "Upgrade this CLI to the latest stable release. Shows the intervening release history and any worker-update or other follow-up steps; --check previews them without installing. --json includes the same structured upgrade data. No miner login needed; profiles and deployed workers are unchanged.",
             "  --check  Check the available version without installing",
             "update --check",
         ),
@@ -223,6 +235,7 @@ pub fn render(command: &str) -> String {
         "stop",
         "offer",
         "offer-batch",
+        "auto-offers",
         "remove-api-key",
     ]
     .contains(&name)

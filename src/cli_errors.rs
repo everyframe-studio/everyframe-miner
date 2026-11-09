@@ -74,6 +74,11 @@ pub fn diagnostic(error: &Error, args: Option<&Args>) -> Value {
         format!("Run everycli help {command} for options and an example.")
     };
     let (message, next) = match error.0 {
+        "terms_acceptance_required" => ("Accept the current Miner Terms before joining or enabling new work. --yes does not accept legal terms.".into(), format!("Run everycli terms to read them, then everycli terms --accept-terms {} for the same hotkey/profile, or rerun the command interactively. You must obtain required provider resale permissions and negotiate discounts directly.", crate::terms::VERSION)),
+        "terms_review_changed" => ("The selected hotkey or Miner Terms changed after review. No acceptance was recorded.".into(), "Refresh the setup guide and review the current terms for the selected hotkey before accepting.".into()),
+        "terms_version_changed" => ("The supplied terms version is no longer current. No acceptance was recorded.".into(), "Read everycli terms and explicitly accept its current version.".into()),
+        "terms_hotkey_required" => ("Select a miner hotkey before accepting the Miner Terms.".into(), "Use --wallet NAME --hotkey NAME or --hotkey-file FILE, or check registration in the setup guide first.".into()),
+        "invalid_terms_record" => ("The local terms acceptance record is invalid.".into(), "Keep the profile and report this error. No work-enabling action was performed.".into()),
         "replacement_not_supported" => ("This coordinator does not support safe worker replacement yet. No VM was created.".into(), "Update everycli and retry after the coordinator upgrade. Preserve your deletion journal.".into()),
         "active_jobs" => ("This miner still has active or unresolved jobs. No replacement VM was created.".into(), "Wait for those jobs to settle, then retry. Do not delete the local profile.".into()),
         "missing_option" | "missing_option_value" => {
@@ -93,6 +98,14 @@ pub fn diagnostic(error: &Error, args: Option<&Args>) -> Value {
         "conflicting_offer_options" => ("Offers cannot combine --discount-pct with --withdraw.".into(), "Choose a discount to set an offer, or --withdraw to remove it. Run everycli help offer for examples.".into()),
         "conflicting_batch_offer_options" => ("Choose one batch action: set a discount, keep saved discounts, or withdraw offers.".into(), "Do not combine --keep-discounts with --discount-pct or --withdraw. Run everycli help offer-batch for examples.".into()),
         "invalid_offer_batch" => ("Choose 1–256 distinct model IDs for this batch.".into(), "Use everycli offers, then everycli offer-batch --models ID,ID --discount-pct 10.".into()),
+        "automatic_offer_result_unknown" => ("The automatic offer change was not confirmed.".into(), "Read everycli auto-offers in the same profile before another change. The policy may already be saved; the CLI did not retry it.".into()),
+        "automatic_offers_not_supported" => ("This coordinator does not support automatic offers yet.".into(), "Keep manual offers or wait for the coordinator upgrade. No automatic policy was applied.".into()),
+        "conflicting_automatic_offer_options" => ("Choose one automatic offer action.".into(), "Use --preview, --enable or --disable, or no flag to read status.".into()),
+        "automatic_offer_provider_unsupported" => ("Automatic pricing is supported for Fal and OpenRouter only.".into(), "Other providers remain available for manual offers.".into()),
+        "invalid_automatic_offer_limits" => ("Enter valid automatic offer limits.".into(), "Set a maximum discount, positive daily and job USD limits (up to six decimal places), and a cost buffer. The job limit must not exceed the daily limit.".into()),
+        "invalid_automatic_offer_models" | "automatic_offer_pricing_unsupported" => ("Automatic pricing is incomplete for a selected model.".into(), "Select a reviewed model shown in Automatic offers. Unsupported billing units and unknown price components require manual review.".into()),
+        "automatic_offer_preview_blocked" => ("A selected model has no safe automatic offer preview.".into(), "Run auto-offers --preview with the same limits to see each reason. No automatic policy was applied.".into()),
+        "automatic_offer_policy_changed" => ("The automatic offer policy changed during review.".into(), "Read auto-offers status and review your selection again. No stale policy change was applied.".into()),
         "batch_offers_not_supported" => ("This coordinator does not support batch offers yet.".into(), "No offers were changed. Update the coordinator or use individual offers.".into()),
         "batch_offer_endpoint_unavailable" => ("The coordinator's batch-offer endpoint is unavailable, despite advertising batch support.".into(), "Run everycli offers to verify the current offers, then contact the coordinator operator. This request was not automatically retried or split into individual changes; changing API keys or redeploying the worker will not fix this.".into()),
         "offer_pricing_unavailable" => ("Pricing is temporarily unavailable for a selected model. No discounts were changed.".into(), "The coordinator needs to refresh its pricing. Refresh offers and try again once pricing is available; changing your discount or API keys will not fix this.".into()),
@@ -191,6 +204,14 @@ pub fn diagnostic(error: &Error, args: Option<&Args>) -> Value {
         _ => (format!("{}.", error.0.replace('_', " ")), help),
     };
     let mut out = json!({"ok":false,"error":error.0,"message":message,"next":next});
+    if let Some(ErrorContext::Phala(detail)) = &error.1 {
+        out["phala"] = detail.value();
+        out["message"] = json!(format!(
+            "{}\n{}",
+            out["message"].as_str().unwrap_or(""),
+            detail.summary()
+        ));
+    }
     if let Some(ErrorContext::File(path)) = &error.1 {
         out["file"] = json!(clean(&path.to_string_lossy()));
     }
