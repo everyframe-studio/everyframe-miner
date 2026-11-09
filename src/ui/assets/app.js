@@ -1453,7 +1453,7 @@ function offerRow(r) {
 
 // ---------- Automatic provider-price offers (explicit opt-in) ----------
 function automaticReason(code) {
-  return ({ automatic_offer_price_unavailable: "Waiting for a fresh worker price check", automatic_offer_price_stale: "Price check expired; new work paused",
+  return ({ automatic_offer_credential_changed: "Worker key differs from the reviewed account; apply the intended key or review this policy again", automatic_offer_price_unavailable: "Waiting for a fresh worker price check", automatic_offer_price_stale: "Price check expired; new work paused",
     automatic_offer_price_incomplete: "Not all billing components have verified prices", automatic_offer_unit_unsupported: "Provider billing unit needs review",
     automatic_offer_pricing_unsupported: "Automatic pricing is not available for this contract", automatic_offer_cost_above_work_value: "Waiting for a lower provider price",
     automatic_offer_job_limit: "Estimated job cost exceeds your limit", automatic_offer_daily_limit: "Rolling exposure limit reached",
