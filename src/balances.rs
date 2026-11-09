@@ -11,6 +11,7 @@ pub const BILLING_KEYS: [(&str, &str); 2] = [
     ("openrouter-billing", "OPENROUTER_MANAGEMENT_KEY"),
 ];
 pub const MAX_AGE_MS: i64 = 15 * 60 * 1000;
+pub const BALANCE_TIMEOUT_SECONDS: u64 = 30;
 
 fn number(v: &Value) -> Result<f64> {
     let n = v
@@ -72,12 +73,11 @@ pub fn reports(rows: &[Value]) -> Vec<Value> {
 /// Undocumented read-only endpoint: fail closed on any schema change. Never
 /// substitute A credits, a missing W row, or an upstream message for W funds.
 pub fn vivix_w_balance(http: &dyn Http, key: &str) -> Result<Value> {
-    let mut req = Request::get("https://api.vivix.ai/v1/balance", &["api.vivix.ai"]);
-    req.headers
-        .push(("Authorization".into(), format!("Bearer {key}")));
-    req.timeout = 5;
-    req.limit = 64000;
-    let response = http.json(req)?;
+    let response = http.json(balance_request("vivix", key)?)?;
+    parse_vivix_balance(&response)
+}
+
+fn parse_vivix_balance(response: &Value) -> Result<Value> {
     if response["code"].as_i64() != Some(0) {
         return Err(Error("invalid_balance"));
     }
@@ -124,29 +124,20 @@ pub fn worker_reports(http: &dyn Http, credentials: &Value) -> Vec<Value> {
         .collect()
 }
 
-/// fal's account balance as a generation key sees it. The documented billing API
-/// refuses keys without admin scope, which is every key a worker runs with, so the
-/// balance comes from an undocumented account endpoint the fal dashboard reads. It answers a
-/// bare USD number; fail closed on anything else.
-fn fal_user_balance(http: &dyn Http, key: &str) -> Result<f64> {
-    let mut req = Request::get(
-        "https://rest.alpha.fal.ai/billing/user_balance",
-        &["rest.alpha.fal.ai"],
-    );
-    req.headers
-        .push(("Authorization".into(), format!("Key {key}")));
-    req.timeout = 5;
-    req.limit = 64000;
-    let v = http.json(req)?;
-    if !v.is_number() {
-        return Err(Error("invalid_balance"));
-    }
-    number(&v)
-}
-
-fn fetch(http: &dyn Http, provider: &str, key: &str) -> Result<f64> {
+fn balance_request(provider: &str, key: &str) -> Result<Request> {
     let (url, host, header, value) = match provider {
-        "fal-user" => return fal_user_balance(http, key),
+        "fal-user" => (
+            "https://rest.alpha.fal.ai/billing/user_balance",
+            "rest.alpha.fal.ai",
+            "Authorization",
+            format!("Key {key}"),
+        ),
+        "vivix" => (
+            "https://api.vivix.ai/v1/balance",
+            "api.vivix.ai",
+            "Authorization",
+            format!("Bearer {key}"),
+        ),
         "pika" => (
             "https://api.dev.pika.art/billing/balance",
             "api.dev.pika.art",
@@ -186,7 +177,7 @@ fn fetch(http: &dyn Http, provider: &str, key: &str) -> Result<f64> {
         _ => return Err(Error("unsupported_balance")),
     };
     let mut req = Request::get(url, &[host]);
-    req.timeout = 5;
+    req.timeout = BALANCE_TIMEOUT_SECONDS;
     req.limit = 64000;
     req.headers.push((header.into(), value));
     if provider == "phala" {
@@ -197,9 +188,18 @@ fn fetch(http: &dyn Http, provider: &str, key: &str) -> Result<f64> {
         req.headers
             .push(("X-Runway-Version".into(), "2024-11-06".into()));
     }
-    let v = http.json(req)?;
+    Ok(req)
+}
+
+fn parse_usd_balance(provider: &str, v: &Value) -> Result<f64> {
     let n = match provider {
-        "pika" => pika_remaining(&v)? as f64 / 1_000_000.0,
+        "fal-user" => {
+            if !v.is_number() {
+                return Err(Error("invalid_balance"));
+            }
+            number(v)?
+        }
+        "pika" => pika_remaining(v)? as f64 / 1_000_000.0,
         "fal" => {
             if !v["credits"]["currency"].is_string() {
                 return Err(Error("invalid_balance"));
@@ -229,6 +229,8 @@ fn fetch(http: &dyn Http, provider: &str, key: &str) -> Result<f64> {
 /// Only configured accounts are queried. Billing-only keys never enter worker envs.
 pub fn collect(http: &dyn Http, credentials: &Value) -> Vec<Value> {
     let mut rows = Vec::new();
+    let mut planned = Vec::new();
+    let mut requests = Vec::new();
     for (provider, generation_key) in PROVIDERS
         .into_iter()
         .chain([("phala", "PHALA_CLOUD_API_KEY")])
@@ -246,45 +248,77 @@ pub fn collect(http: &dyn Http, credentials: &Value) -> Vec<Value> {
         if !configured(&credentials[key]) {
             continue;
         }
-        if provider == "vivix" {
-            let mut r = row(provider, "unavailable", None, crate::now());
-            match vivix_w_balance(http, credentials[key].as_str().unwrap()) {
-                Ok(native) => {
-                    r["status"] = json!("ok");
-                    r["nativeBalance"] = native;
-                }
-                Err(e) => {
-                    r["diagnostic"] = diagnostic(provider, e.0);
-                }
-            }
-            rows.push(r);
-            continue;
-        }
-        // A generation key cannot read fal's billing API; its own balance endpoint can.
         let source = if provider == "fal" && key == generation_key {
             "fal-user"
         } else {
             provider
         };
-        let result = fetch(http, source, credentials[key].as_str().unwrap());
-        let (status, amount, error) = match result {
-            Ok(n) => ("ok", Some(n), None),
-            Err(e) if e.0 == "unsupported_balance" => {
-                ("unsupported", None, Some("unsupported_balance"))
+        match balance_request(source, credentials[key].as_str().unwrap()) {
+            Ok(request) => {
+                planned.push((provider, source));
+                requests.push(request);
             }
-            Err(e) => ("unavailable", None, Some(e.0)),
-        };
-        let mut r = row(provider, status, amount, crate::now());
-        if let Some(code) = error {
-            r["diagnostic"] = diagnostic(provider, code);
+            Err(error) => {
+                let mut r = row(provider, "unsupported", None, crate::now());
+                r["diagnostic"] = diagnostic(provider, error.0);
+                rows.push(r);
+            }
+        }
+    }
+    // Live transport runs these independent reads concurrently; it never retries
+    // or batches mutations. Unsupported providers make no HTTP request.
+    for ((provider, source), response) in planned.into_iter().zip(http.read_json_batch(requests)) {
+        let result = response.and_then(|v| {
+            if provider == "vivix" {
+                parse_vivix_balance(&v).map(|native| (None, Some(native)))
+            } else {
+                parse_usd_balance(source, &v).map(|usd| (Some(usd), None))
+            }
+        });
+        let mut r = row(provider, "unavailable", None, crate::now());
+        match result {
+            Ok((amount, native)) => {
+                r["status"] = json!("ok");
+                r["remainingUsd"] = json!(amount);
+                if let Some(native) = native {
+                    r["nativeBalance"] = native;
+                }
+            }
+            Err(error) => {
+                r["diagnostic"] = diagnostic(provider, error.0);
+            }
         }
         rows.push(r);
     }
+    // Preserve the established provider order within each group.
+    rows.sort_by_key(|r| {
+        (
+            r["status"] == "unsupported",
+            PROVIDERS
+                .iter()
+                .position(|(p, _)| r["provider"] == *p)
+                .unwrap_or(PROVIDERS.len()),
+        )
+    });
     rows
 }
 
 pub fn diagnostic(provider: &str, code: &str) -> Value {
     let mut d = crate::diagnostics::value(code);
+    if code == "request_timeout" {
+        d["message"] = json!("The balance query did not finish within 30 seconds.");
+        d["next"] = json!(
+            "Refresh balances to try this read-only check again. No generation or cloud change was requested."
+        );
+    }
+    if provider == "google" && code == "unsupported_balance" {
+        d["message"] = json!(
+            "Google does not expose a supported USD balance query through this Gemini API key integration."
+        );
+        d["next"] = json!(
+            "For Prepay, view credits and auto-reload in Google AI Studio Billing. For spending alerts, configure a Google Cloud Billing budget; those alerts are not a live prepaid balance."
+        );
+    }
     if provider == "kling" && code == "unsupported_balance" {
         d["message"] =
             json!("Kling does not expose a verified live USD balance through this integration.");
@@ -398,5 +432,6 @@ pub fn merge(remote: &Value, local: Vec<Value>, now: i64) -> Vec<Value> {
         }
         result.push(clean);
     }
+    result.sort_by_key(|r| r["status"] == "unsupported");
     result
 }

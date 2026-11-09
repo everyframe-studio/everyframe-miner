@@ -15,7 +15,7 @@ struct Api {
 impl Http for Api {
     fn bytes(&self, r: Request) -> Result<Vec<u8>> {
         assert_eq!(r.method, "GET");
-        assert_eq!(r.timeout, 5);
+        assert_eq!(r.timeout, balances::BALANCE_TIMEOUT_SECONDS);
         assert_eq!(r.limit, 64000);
         assert!(r.redirect_hosts.is_empty());
         assert!(r.body.is_none());
@@ -237,4 +237,47 @@ fn revoked_worker_snapshot_is_stale_in_cli_even_with_recent_provider_check() {
     let merged = balances::merge(&rows, vec![], now);
     assert_eq!(merged[0]["source"], "worker");
     assert_eq!(merged[0]["stale"], true);
+}
+
+#[test]
+fn slow_balance_checks_use_fresh_report_timestamps_and_recheck_session_expiry() {
+    struct Slow<'a>(&'a Cell<i64>);
+    impl Http for Slow<'_> {
+        fn bytes(&self, r: Request) -> Result<Vec<u8>> {
+            assert_eq!(r.timeout, balances::BALANCE_TIMEOUT_SECONDS);
+            self.0.set(self.0.get() + 30_001);
+            Ok(b"42.5".to_vec())
+        }
+    }
+    let (_, transport, mut session) = fixture();
+    let mut reporter = Reporter::default();
+    let key = transport.key.signing_key();
+    let creds = json!({"FAL_KEY":"generation-secret-key"});
+    assert!(
+        reporter
+            .tick(
+                &Slow(&transport.clock),
+                &transport,
+                &creds,
+                Some(&session),
+                &key
+            )
+            .unwrap()
+    );
+    assert_eq!(transport.calls.borrow()[0]["time"], transport.now());
+    let mut reporter = Reporter::default();
+    session.expires = transport.now() + 20_000;
+    let before = transport.calls.borrow().len();
+    assert!(
+        !reporter
+            .tick(
+                &Slow(&transport.clock),
+                &transport,
+                &creds,
+                Some(&session),
+                &key
+            )
+            .unwrap()
+    );
+    assert_eq!(transport.calls.borrow().len(), before);
 }

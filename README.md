@@ -173,6 +173,9 @@ It opens a local page with:
 The **API keys** page shows provider balances, status and check times. Its Refresh
 button preserves any key you are typing. Saved-key balances can be checked before
 hotkey initialization; Vivix balances are shown in W credits.
+Balance and key checks allow 30 seconds per request. Supported balance queries run
+concurrently, and providers without a balance lookup appear last in the balance table. See
+[provider balances and Google billing alerts](docs/provider-balances.md).
 
 Every action runs the same everycli command and asks the same questions. Anything
 that costs money shows the live price and needs you to type `yes`, as in the

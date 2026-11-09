@@ -148,7 +148,7 @@ pub fn check(http: &dyn Http, provider: &str, key: &str) -> (Verdict, &'static s
     };
     let mut req = Request::get(p.url, &[p.host]);
     req.headers = p.headers;
-    req.timeout = 8;
+    req.timeout = crate::balances::BALANCE_TIMEOUT_SECONDS;
     req.limit = 256_000;
     match http.json(req) {
         Ok(v) => {
@@ -241,7 +241,8 @@ mod tests {
     use crate::{Error, Result};
     struct Fixed(std::result::Result<&'static str, &'static str>);
     impl Http for Fixed {
-        fn bytes(&self, _: Request) -> Result<Vec<u8>> {
+        fn bytes(&self, r: Request) -> Result<Vec<u8>> {
+            assert_eq!(r.timeout, 30);
             self.0.map(|b| b.as_bytes().to_vec()).map_err(Error)
         }
     }

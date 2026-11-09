@@ -993,7 +993,9 @@ pub fn render(command: &str, value: &Value) -> String {
             )
         }
         "balances" => {
-            let data = rows("balances")
+            let mut balance_rows = rows("balances");
+            balance_rows.sort_by_key(|r| r["status"] == "unsupported");
+            let data = balance_rows
                 .iter()
                 .map(|r| {
                     let age = r["checkedAt"]
@@ -1029,7 +1031,7 @@ pub fn render(command: &str, value: &Value) -> String {
                 data,
             );
             out.push_str("\n\nAccount-level balances may be shared across miners; do not add them together.\nVivix shows W credits, not A credits or USD. Phala shows credited funds, excluding post-paid limits and outstanding invoices.\nUnavailable: check billing permissions or provider connectivity. Unsupported: balance lookup is not available in this snapshot.\n");
-            for r in rows("balances") {
+            for r in &balance_rows {
                 if r["status"] == "unavailable" || r["status"] == "unsupported" {
                     let code = r["diagnostic"]["code"].as_str().unwrap_or(
                         if r["status"] == "unsupported" {

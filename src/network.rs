@@ -48,8 +48,56 @@ pub trait Http {
     fn json(&self, r: Request) -> Result<Value> {
         serde_json::from_slice(&self.bytes(r)?).map_err(|_| Error("invalid_remote_json"))
     }
+    /// Independent, read-only account queries. Test transports may stay serial.
+    fn read_json_batch(&self, requests: Vec<Request>) -> Vec<Result<Value>> {
+        requests
+            .into_iter()
+            .map(|r| {
+                if r.method != "GET" || r.body.is_some() {
+                    Err(Error("invalid_method"))
+                } else {
+                    self.json(r)
+                }
+            })
+            .collect()
+    }
 }
 pub struct PublicHttp;
+
+fn parallel_reads(
+    requests: Vec<Request>,
+    read: impl Fn(Request) -> Result<Value> + Sync,
+) -> Vec<Result<Value>> {
+    // Bound concurrency even if a future caller supplies a larger batch.
+    let mut requests = requests.into_iter();
+    let mut results = Vec::new();
+    loop {
+        let chunk: Vec<_> = requests.by_ref().take(8).collect();
+        if chunk.is_empty() {
+            break;
+        }
+        results.extend(std::thread::scope(|scope| {
+            let read = &read;
+            let workers: Vec<_> = chunk
+                .into_iter()
+                .map(|r| {
+                    scope.spawn(move || {
+                        if r.method != "GET" || r.body.is_some() {
+                            Err(Error("invalid_method"))
+                        } else {
+                            read(r)
+                        }
+                    })
+                })
+                .collect();
+            workers
+                .into_iter()
+                .map(|worker| worker.join().unwrap_or(Err(Error("transport_failed"))))
+                .collect::<Vec<_>>()
+        }));
+    }
+    results
+}
 fn worker_update_endpoint(u: &Url, method: &str) -> bool {
     u.host_str() == Some("subnet.everyframe.studio")
         && method == "POST"
@@ -213,6 +261,9 @@ pub fn public_address(ip: IpAddr) -> bool {
     }
 }
 impl Http for PublicHttp {
+    fn read_json_batch(&self, requests: Vec<Request>) -> Vec<Result<Value>> {
+        parallel_reads(requests, |request| self.json(request))
+    }
     fn dialogue(&self, r: Request, voices: &Value, inputs: &Value) -> Result<Vec<u8>> {
         crate::native_websocket::dialogue(r, voices, inputs)
     }
@@ -430,6 +481,56 @@ impl Http for PublicHttp {
 #[cfg(test)]
 mod tests {
     use super::enrollment_error;
+    #[test]
+    fn account_reads_are_concurrent_bounded_and_keep_result_order() {
+        use std::sync::{
+            Barrier,
+            atomic::{AtomicUsize, Ordering},
+        };
+        let active = AtomicUsize::new(0);
+        let peak = AtomicUsize::new(0);
+        let first_batch = Barrier::new(8);
+        let requests = (0..17)
+            .map(|i| super::Request::get(format!("https://example.com/{i}"), &["example.com"]))
+            .collect();
+        let results = super::parallel_reads(requests, |r| {
+            let i: usize = r.url.rsplit('/').next().unwrap().parse().unwrap();
+            let n = active.fetch_add(1, Ordering::SeqCst) + 1;
+            peak.fetch_max(n, Ordering::SeqCst);
+            if i < 8 {
+                first_batch.wait();
+            }
+            active.fetch_sub(1, Ordering::SeqCst);
+            if i == 3 {
+                Err(crate::Error("request_timeout"))
+            } else {
+                Ok(serde_json::json!(i))
+            }
+        });
+        assert_eq!(peak.load(Ordering::SeqCst), 8);
+        assert_eq!(results.len(), 17);
+        for (i, result) in results.into_iter().enumerate() {
+            if i == 3 {
+                assert_eq!(result.unwrap_err().0, "request_timeout");
+            } else {
+                assert_eq!(result.unwrap(), serde_json::json!(i));
+            }
+        }
+    }
+    #[test]
+    fn account_read_batches_reject_mutations_before_transport() {
+        let post = super::Request::get("https://example.com/", &["example.com"])
+            .json("POST", &serde_json::json!({}));
+        let mut body = super::Request::get("https://example.com/", &["example.com"]);
+        body.body = Some(vec![]);
+        let results =
+            super::parallel_reads(vec![post, body], |_| panic!("must not reach transport"));
+        assert!(
+            results
+                .into_iter()
+                .all(|r| r.unwrap_err().0 == "invalid_method")
+        );
+    }
     #[test]
     fn history_errors_never_echo_remote_bodies() {
         assert_eq!(

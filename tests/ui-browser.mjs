@@ -166,6 +166,19 @@ try {
   assert.equal(await page.getByText('Billing permission required', { exact: true }).count(), 1);
   assert.equal(await page.evaluate(() => balanceAmount({ provider: 'vivix', nativeBalance: { unit: 'W_CREDITS', remainingMicrounits: 0 } })), '0 W credits');
   assert.equal(await page.evaluate(() => balanceAmount({ provider: 'vivix', status: 'unavailable' })), '—');
+  await page.evaluate(() => {
+    S.balances.result.value.balances.unshift({provider:'google', status:'unsupported', remainingUsd:null,
+      diagnostic:{message:'Google balance query is not supported', next:'Use Google AI Studio billing'}});
+    S.balances.result.value.balances.push({provider:'bfl',status:'ok',remainingUsd:0});
+    render();
+  });
+  const balanceRows = page.locator('#provider-balances tbody tr');
+  assert.match(await balanceRows.last().innerText(), /Google/);
+  assert.match(await balanceRows.nth(2).innerText(), /Black Forest Labs/);
+  assert.equal(await balanceRows.last().locator('.badge.warn').count(), 0, 'unsupported is neutral, not a failed account');
+  assert.equal(await balanceRows.last().getByRole('link',{name:'Google AI Studio billing'}).getAttribute('href'), 'https://aistudio.google.com/billing');
+  assert.equal(await balanceRows.last().getByRole('link',{name:'Set up budget alerts'}).count(), 1);
+
 
   await page.evaluate(() => {
     window.balanceTestOriginalRun=run;

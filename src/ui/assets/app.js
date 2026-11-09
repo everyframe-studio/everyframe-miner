@@ -898,14 +898,20 @@ function balanceAmount(r) {
   return r.remainingUsd != null ? fmtUsd(r.remainingUsd) : "—";
 }
 function balancesCard() {
-  const v = value(S.balances), rows = v?.balances || [];
+  const v = value(S.balances), rows = [...(v?.balances || [])]
+    .sort((a, b) => Number(a.status === "unsupported") - Number(b.status === "unsupported"));
   const panel = card("Provider balances", [button("Refresh", async () => { await loadBalances(); if (currentRoute() !== "keys") renderBalancePanel(); })],
     !S.balances ? h("p", { class: "muted" }, "Loading…") : errorOf(S.balances) ? errorView(errorOf(S.balances)) : rows.length
       ? h("div", { class: "table-wrap" }, h("table", null, h("thead", null, h("tr", null, h("th", null, "Provider"), h("th", null, "Remaining"), h("th", null, "Status"), h("th", null, "Checked"))),
         h("tbody", null, rows.map((r) => h("tr", null, h("td", null, providerName(r.provider)),
           h("td", null, balanceAmount(r)),
-          h("td", null, h("span", { class: "badge " + (r.status === "ok" && !r.stale ? "ok" : "warn") }, r.status || "—"), r.stale ? h("span", { class: "small muted" }, " stale") : null,
-            r.diagnostic ? errorView(r.diagnostic) : null),
+          h("td", null, h("span", { class: "badge " + (r.status === "unsupported" ? "" : r.status === "ok" && !r.stale ? "ok" : "warn") }, r.status || "—"), r.stale ? h("span", { class: "small muted" }, " stale") : null,
+            r.diagnostic ? r.status === "unsupported"
+              ? h("div", { class: "small muted" }, h("p", null, r.diagnostic.message), h("p", null, r.diagnostic.next))
+              : errorView(r.diagnostic) : null,
+            r.provider === "google" && r.status === "unsupported" ? h("p", { class: "small" },
+              h("a", { href: "https://aistudio.google.com/billing", target: "_blank", rel: "noopener noreferrer" }, "Google AI Studio billing"), " · ",
+              h("a", { href: "https://docs.cloud.google.com/billing/docs/how-to/budgets", target: "_blank", rel: "noopener noreferrer" }, "Set up budget alerts")) : null),
           h("td", null, r.checkedAt ? ago(r.checkedAt) : "—"))))))
       : h("p", { class: "empty" }, "Save a provider key to check its balance. Some providers need a separate billing key."),
     v?.note ? h("p", { class: "small muted" }, v.note) : null);
