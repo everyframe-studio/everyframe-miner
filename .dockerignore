@@ -5,6 +5,7 @@
 !src/**
 !config/
 config/*
+!config/automatic-offer-profiles.json
 !config/models.json
 !config/provider-expansion.json
 !config/native-media.json
