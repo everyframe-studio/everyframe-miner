@@ -1013,11 +1013,26 @@ pub fn render(command: &str, value: &Value) -> String {
                         } else {
                             r["remainingUsd"]
                                 .as_f64()
-                                .map(|n| format!("${n:.2}"))
+                                .map(|n| {
+                                    if n > 0.0 && n < 0.01 {
+                                        "<$0.01".into()
+                                    } else {
+                                        format!("${n:.2}")
+                                    }
+                                })
                                 .unwrap_or("—".into())
                         },
                         if r["stale"] == true {
-                            format!("Stale / {}", text(&r["status"]))
+                            format!(
+                                "Stale / {}",
+                                if crate::balances::phala_credit_alert(r).is_some() {
+                                    "credit alert".into()
+                                } else {
+                                    text(&r["status"])
+                                }
+                            )
+                        } else if crate::balances::phala_credit_alert(r).is_some() {
+                            "Credit alert".into()
                         } else {
                             text(&r["status"])
                         },
@@ -1032,6 +1047,9 @@ pub fn render(command: &str, value: &Value) -> String {
             );
             out.push_str("\n\nAccount-level balances may be shared across miners; do not add them together.\nVivix shows W credits, not A credits or USD. Phala shows credited funds, excluding post-paid limits and outstanding invoices.\nUnavailable: check billing permissions or provider connectivity. Unsupported: balance lookup is not available in this snapshot.\n");
             for r in &balance_rows {
+                if let Some(alert) = crate::balances::phala_credit_alert(r) {
+                    out.push_str(&format!("\nWARNING — Phala credit alert: {alert}\n  Check Phala billing: https://cloud.phala.network/\n"));
+                }
                 if r["status"] == "unavailable" || r["status"] == "unsupported" {
                     let code = r["diagnostic"]["code"].as_str().unwrap_or(
                         if r["status"] == "unsupported" {

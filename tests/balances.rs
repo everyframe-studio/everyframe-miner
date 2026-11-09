@@ -356,3 +356,41 @@ fn balance_timeouts_allow_a_read_only_retry_without_cloud_mutation_advice() {
     assert!(d["message"].as_str().unwrap().contains("30 seconds"));
     assert!(!d["next"].as_str().unwrap().contains("Reconcile"));
 }
+
+#[test]
+fn phala_credit_alert_is_distinct_from_lookup_success_and_preserves_amounts() {
+    for amount in [0.0, -1.25] {
+        let mut r = balances::row("phala", "ok", Some(amount), everyframe_miner::now());
+        assert!(
+            balances::phala_credit_alert(&r)
+                .unwrap()
+                .contains("postpaid")
+        );
+        let displayed = display::render("balances", &json!({"balances":[r.clone()]}));
+        assert!(displayed.contains("WARNING — Phala credit alert"));
+        assert!(displayed.contains("Credit alert"));
+        assert!(!cli::balance_check_failed(&json!({"balances":[r.clone()]})));
+        assert_eq!(balances::reports(&[r.clone()])[0]["status"], "ok");
+        assert_eq!(r["remainingUsd"], amount);
+        r["stale"] = json!(true);
+        assert!(
+            balances::phala_credit_alert(&r)
+                .unwrap()
+                .contains("last reported")
+        );
+    }
+    for (provider, status, amount) in [
+        ("phala", "ok", Some(0.001)),
+        ("phala", "ok", None),
+        ("phala", "unavailable", Some(0.0)),
+        ("google", "unsupported", None),
+    ] {
+        assert!(
+            balances::phala_credit_alert(&balances::row(provider, status, amount, 1)).is_none()
+        );
+    }
+    let small = balances::row("phala", "ok", Some(0.001), everyframe_miner::now());
+    let displayed = display::render("balances", &json!({"balances":[small]}));
+    assert!(displayed.contains("<$0.01"));
+    assert!(!displayed.contains("WARNING"));
+}

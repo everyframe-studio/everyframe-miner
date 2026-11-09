@@ -179,6 +179,44 @@ try {
   assert.equal(await balanceRows.last().getByRole('link',{name:'Google AI Studio billing'}).getAttribute('href'), 'https://aistudio.google.com/billing');
   assert.equal(await balanceRows.last().getByRole('link',{name:'Set up budget alerts'}).count(), 1);
 
+  // Real overview summary: unsupported balance APIs are normal; zero Phala
+  // funds alert separately from successful reads without hiding actual failures.
+  await page.evaluate(() => {
+    window.balanceProbeSaved = {run, balances:S.balances, health:S.health, healthAt:S.healthAt,
+      offers:S.offers, offersError:S.offersError, earnings:S.earnings, boot:S.boot};
+    run = async action => ({state:'done', result:{value:action === 'balances'
+      ? {balances:window.balanceProbeRows}
+      : {checks:[],offers:[{model:'fixture',offered:true}]}}});
+  });
+  const probeBalances = async rows => page.evaluate(async rows => {
+    window.balanceProbeRows = rows;
+    Boot.begin('Checking balances'); await bootSteps(); Boot.finish(); render();
+    return S.boot.steps.find(s => s.id === 'balances').state;
+  }, rows);
+  const googleBalance = {provider:'google', status:'unsupported', remainingUsd:null};
+  assert.equal(await probeBalances([googleBalance]), 'ok', 'unsupported Google balance must not warn on overview');
+  assert.equal(await page.locator('#hero-side .chk.warn').filter({hasText:'Provider balances'}).count(), 0);
+  assert.equal(await page.locator('#hero-side .hero-checks.warn').count(), 0, 'Google alone cannot turn healthy overview checks yellow');
+  assert.equal(await page.locator('#provider-balances .badge.warn').count(), 0);
+  assert.equal(await probeBalances([googleBalance,{provider:'phala',status:'ok',remainingUsd:0}]), 'warn');
+  const creditAlert = page.locator('#provider-balances').getByRole('alert');
+  assert.match(await creditAlert.innerText(), /Phala credit alert[\s\S]*postpaid/i);
+  assert.equal(await creditAlert.getByRole('link',{name:'Check Phala billing'}).getAttribute('href'), 'https://cloud.phala.network/');
+  assert.equal(await page.locator('#provider-balances .badge.ok').count(), 0);
+  assert.equal(await page.locator('#provider-balances .badge.warn').innerText(), 'Credit alert');
+  assert.equal(await probeBalances([{provider:'phala',status:'ok',remainingUsd:0,stale:true}]), 'warn');
+  assert.match(await creditAlert.innerText(), /last reported/);
+  assert.equal(await probeBalances([googleBalance,{provider:'phala',status:'ok',remainingUsd:0.001}]), 'ok');
+  assert.equal(await creditAlert.count(), 0, 'adding positive credit clears the alert');
+  assert.match(await page.locator('#provider-balances').innerText(), /<\$0\.01/);
+  assert.equal(await probeBalances([googleBalance,{provider:'phala',status:'unavailable',remainingUsd:null}]), 'warn');
+  assert.equal(await creditAlert.count(), 0, 'unknown balance is not treated as zero');
+  await page.evaluate(() => {
+    const saved = window.balanceProbeSaved;
+    run = saved.run;
+    for (const key of ['balances','health','healthAt','offers','offersError','earnings','boot']) S[key] = saved[key];
+    delete window.balanceProbeSaved; delete window.balanceProbeRows; render();
+  });
 
   await page.evaluate(() => {
     window.balanceTestOriginalRun=run;

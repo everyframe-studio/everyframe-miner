@@ -27,6 +27,23 @@ pub fn row(provider: &str, status: &str, remaining: Option<f64>, at: i64) -> Val
         "status":status,"checkedAt":at})
 }
 
+/// A successful balance read is separate from having credited hosting funds.
+/// Do not infer that a postpaid account or its running VM is blocked.
+pub fn phala_credit_alert(row: &Value) -> Option<&'static str> {
+    if row["provider"] != "phala" || row["status"] != "ok" {
+        return None;
+    }
+    let amount = row["remainingUsd"].as_f64()?;
+    if !amount.is_finite() || amount > 0.0 {
+        return None;
+    }
+    Some(if row["stale"] == true {
+        "Phala's last reported credited balance was zero or negative. Refresh balances and check billing. Postpaid credit limits are not included."
+    } else {
+        "Phala has no credited funds. Add funds or check your postpaid billing arrangement. Postpaid credit limits are not included."
+    })
+}
+
 /// Pika reports integer microdollars. An active postpaid account spends against
 /// its current cycle; a scheduled but inactive plan still uses prepaid funds.
 pub fn pika_remaining(v: &Value) -> Result<i64> {

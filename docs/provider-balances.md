@@ -4,6 +4,10 @@ Balance queries and API-key checks allow up to 30 seconds per read. Supported ba
 
 Local balance and key checks use the installed CLI. Deployed workers receive changes to their automatic balance telemetry only through a signed worker update.
 
+A successful lookup does not prove an account has enough funds. A zero or negative Phala credited balance produces a visible credit alert in the dashboard and CLI. Phala postpaid credit limits are not included, so the alert does not claim that the VM must stop. Stale readings are identified as last reported values; positive amounts below one cent display as `<$0.01` rather than rounding to zero.
+
+Unsupported balance lookups, including Google, are informational and do not cause an overview warning. Failed or stale supported lookups and Phala credit alerts still produce warnings.
+
 ## Google / Gemini
 
 The Gemini API key integration has no documented prepaid USD balance endpoint. The CLI keeps the amount unknown; it does not infer prepaid credit from token usage, quota or a successful model-list request.

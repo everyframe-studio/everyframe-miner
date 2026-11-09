@@ -570,9 +570,7 @@ function bootSteps() {
     health,
     Boot.track(bal, loadBalances, () => {
       if (errorOf(S.balances)) return ["bad", errorOf(S.balances).message || "Could not read balances"];
-      const rows = value(S.balances)?.balances || [], ok = rows.filter(r => r.status === "ok");
-      if (!rows.length) return ["ok", "no keys to check"];
-      return [ok.length < rows.length ? "warn" : "ok", ok.length < rows.length ? (rows.length - ok.length) + " of " + rows.length + " unavailable" : rows.length + " providers ok"];
+      return balanceSummary(value(S.balances)?.balances || []);
     }),
     loadEarnings(),
     Boot.track(offers, () => loadOffers(), () => {
@@ -895,7 +893,26 @@ function balanceAmount(r) {
   if (r.provider === "vivix" && native?.unit === "W_CREDITS" && Number.isSafeInteger(native.remainingMicrounits)) {
     return (native.remainingMicrounits / 1e6).toLocaleString(undefined, { maximumFractionDigits: 6 }) + " W credits";
   }
-  return r.remainingUsd != null ? fmtUsd(r.remainingUsd) : "—";
+  return r.remainingUsd > 0 && r.remainingUsd < 0.01 ? "<$0.01" : r.remainingUsd != null ? fmtUsd(r.remainingUsd) : "—";
+}
+function phalaCreditAlert(r) {
+  if (r.provider !== "phala" || r.status !== "ok" || !Number.isFinite(r.remainingUsd) || r.remainingUsd > 0) return null;
+  return r.stale
+    ? "Phala's last reported credited balance was zero or negative. Refresh balances and check billing. Postpaid credit limits are not included."
+    : "Phala has no credited funds. Add funds or check your postpaid billing arrangement. Postpaid credit limits are not included.";
+}
+function balanceSummary(rows) {
+  if (!rows.length) return ["ok", "no keys to check"];
+  const unsupported = rows.filter(r => r.status === "unsupported").length;
+  const unavailable = rows.filter(r => r.status !== "unsupported" && (r.status !== "ok" || r.stale)).length;
+  const alerts = rows.some(phalaCreditAlert);
+  const details = [];
+  if (unavailable) details.push(unavailable + " unavailable or stale");
+  if (alerts) details.push("Phala credit alert");
+  if (details.length) return ["warn", details.join(" · ")];
+  if (rows.length > unsupported) details.push((rows.length - unsupported) + " checked");
+  if (unsupported) details.push(unsupported + " without balance lookup");
+  return ["ok", details.join(" · ")];
 }
 function balancesCard() {
   const v = value(S.balances), rows = [...(v?.balances || [])]
@@ -905,7 +922,9 @@ function balancesCard() {
       ? h("div", { class: "table-wrap" }, h("table", null, h("thead", null, h("tr", null, h("th", null, "Provider"), h("th", null, "Remaining"), h("th", null, "Status"), h("th", null, "Checked"))),
         h("tbody", null, rows.map((r) => h("tr", null, h("td", null, providerName(r.provider)),
           h("td", null, balanceAmount(r)),
-          h("td", null, h("span", { class: "badge " + (r.status === "unsupported" ? "" : r.status === "ok" && !r.stale ? "ok" : "warn") }, r.status || "—"), r.stale ? h("span", { class: "small muted" }, " stale") : null,
+          h("td", null, h("span", { class: "badge " + (r.status === "unsupported" ? "" : r.status === "ok" && !r.stale && !phalaCreditAlert(r) ? "ok" : "warn") }, phalaCreditAlert(r) ? "Credit alert" : r.status || "—"), r.stale ? h("span", { class: "small muted" }, " stale") : null,
+            phalaCreditAlert(r) ? h("div", { class: "notice warn", role: "alert" }, h("b", null, "Phala credit alert"),
+              h("p", null, phalaCreditAlert(r)), h("a", { href: "https://cloud.phala.network/", target: "_blank", rel: "noopener noreferrer" }, "Check Phala billing")) : null,
             r.diagnostic ? r.status === "unsupported"
               ? h("div", { class: "small muted" }, h("p", null, r.diagnostic.message), h("p", null, r.diagnostic.next))
               : errorView(r.diagnostic) : null,
