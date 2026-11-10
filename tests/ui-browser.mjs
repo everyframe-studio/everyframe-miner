@@ -877,7 +877,9 @@ try {
   assert.equal(await page.getByLabel('fal Maximum discount %').inputValue(),'');
   assert.equal(await page.getByLabel('fal Rolling 24-hour estimated USD limit').inputValue(),'');
   await page.getByRole('button',{name:'Preview prices',exact:true}).click();
-  await page.getByText('Select models and enter your maximum discount, rolling daily limit and per-job limit. A 0% maximum discount is allowed.',{exact:true}).waitFor();
+  await page.getByText('To continue, select at least one model, enter a maximum discount (0% is allowed), a rolling 24-hour USD limit and a per-job USD limit.',{exact:true}).waitFor();
+  assert.equal(await page.getByLabel('fal Per-job estimated USD limit').getAttribute('aria-invalid'),'true','missing limits are marked');
+  assert.equal(await page.getByLabel('fal Cost buffer %').getAttribute('aria-invalid'),null,'the cost buffer has a default');
   await page.getByLabel('Automate studio/media/fal/xai/grok-imagine-image').check();
   await page.getByLabel('fal Maximum discount %').fill('0');
   await page.getByLabel('fal Rolling 24-hour estimated USD limit').fill('1');
@@ -898,6 +900,19 @@ try {
   assert.deepEqual(automaticPreview.draft,['studio/media/fal/xai/grok-imagine-image']);
   await page.getByText('Grok test: Ready · 0.00% off',{exact:false}).waitFor();
   assert.equal(await page.getByLabel('fal Rolling 24-hour estimated USD limit').inputValue(),'1','preview redraw preserves limits');
+  const blockedEnable = await page.evaluate(async()=>{
+    const original={run,loadOffers,loadAutomaticOffers};const calls=[];
+    try{
+      run=async(action,params)=>{calls.push(action);return action==='auto-offers-enable'
+        ?{state:'failed',result:{error:{error:'automatic_offer_preview_blocked',message:'A selected model has no safe automatic offer preview.'}}}
+        :{state:'done',result:{value:{preview:{rows:[{model:'studio/media/fal/xai/grok-imagine-image',status:'unsupported',reason:'automatic_offer_unit_unsupported'}]}}}};};
+      loadOffers=async()=>{};loadAutomaticOffers=async()=>{};
+      await changeAutomaticOffers('fal','enable');
+      return calls;
+    }finally{({run,loadOffers,loadAutomaticOffers}=original);}
+  });
+  assert.deepEqual(blockedEnable,['auto-offers-enable','auto-offers-preview'],'a blocked enable explains itself with a preview');
+  await page.getByText('Grok test: Provider billing unit needs review',{exact:true}).waitFor();
   for(const width of [1440,390,320]){
     await page.setViewportSize({width,height:900});
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'automatic offer form fits '+width);

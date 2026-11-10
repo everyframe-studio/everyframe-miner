@@ -1760,6 +1760,10 @@ function autoUsd(micro) {
   const usd = micro / 1e6;
   return "$" + (usd >= 1 || usd === 0 ? usd.toFixed(2) : usd.toFixed(6).replace(/0+$/, "").replace(/\.(\d)$/, ".$10"));
 }
+// What "Preview prices" and "Review and enable" need, worded for the "To continue, …" notice.
+const AUTO_REQUIRED = { models: "select at least one model", maxDiscountPct: "enter a maximum discount (0% is allowed)",
+  maxDailyUsd: "enter a rolling 24-hour USD limit", maxJobUsd: "enter a per-job USD limit" };
+function joinAnd(xs) { return xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1]; }
 function automaticOffersCard() {
   if (!S.autoTried) { S.autoTried = true; loadAutomaticOffers().then(() => { if (currentRoute() === "models") render(); }); }
   const refresh = button(S.autoOffers ? "Refresh automatic offers" : "Configure automatic offers", async () => { await loadAutomaticOffers(); if (currentRoute() === "models") render(); }, "small");
@@ -1784,18 +1788,20 @@ function automaticOffersCard() {
     for (const row of supported) {
       const available = local.get(row.model)?.localKeyConfigured !== false;
       list.append(h("label", { class: "row small" }, h("input", { type: "checkbox", checked: draft.models.has(row.model), disabled: busy || !available,
-        "aria-label": "Automate " + row.model, onchange: e => { if (e.target.checked) draft.models.add(row.model); else draft.models.delete(row.model); draft.preview = null; } }),
+        "aria-label": "Automate " + row.model, onchange: e => { if (e.target.checked) draft.models.add(row.model); else draft.models.delete(row.model); draft.missing?.delete("models"); draft.preview = null; } }),
         local.get(row.model)?.name || row.model, available ? null : h("span", { class: "muted" }, "No local key saved")));
     }
     const select = button("Select eligible models", () => { draft.models = new Set(ready.map(m => m.model)); draft.preview = null; render(); }, "small");
     select.disabled = busy || !ready.length;
-    details.append(h("div", { class: "row" }, select, h("span", { class: "small muted" }, rows.length - supported.length + " contracts need complete pricing before automation.")), list);
+    details.append(h("div", { class: "row" }, select, h("span", { class: "small muted" }, (rows.length - supported.length) + (rows.length - supported.length === 1 ? " contract needs" : " contracts need") + " complete pricing before automation.")), list);
     const fields = h("div", { class: "automatic-limits" });
     for (const [key, label, max, step] of [["maxDiscountPct", "Maximum discount %", "99.9", "0.01"], ["bufferPct", "Cost buffer %", "1000", "0.01"], ["maxDailyUsd", "Rolling 24-hour estimated USD limit", "1000000", "0.000001"], ["maxJobUsd", "Per-job estimated USD limit", "1000000", "0.000001"]]) {
       fields.append(h("label", { class: "stack small" }, label, h("input", { type: "number", min: "0", max, step, value: draft[key], disabled: busy,
-        "aria-label": providerName(provider) + " " + label, oninput: e => { draft[key] = e.target.value; draft.preview = null; } })));
+        placeholder: AUTO_REQUIRED[key] ? "Required" : null, "aria-invalid": draft.missing?.has(key) ? "true" : null,
+        "aria-label": providerName(provider) + " " + label, oninput: e => { draft[key] = e.target.value; draft.missing?.delete(key); e.target.removeAttribute("aria-invalid"); draft.preview = null; } })));
     }
     details.append(fields);
+    if (draft.missing?.size) details.append(h("div", { class: "notice warn", role: "alert" }, "To continue, " + joinAnd([...draft.missing].map((k, i, ks) => i && AUTO_REQUIRED[ks[i - 1]].startsWith("enter ") ? AUTO_REQUIRED[k].replace(/^enter /, "") : AUTO_REQUIRED[k])) + "."));
     const preview = button("Preview prices", () => changeAutomaticOffers(provider, "preview"), "small");
     const enable = button(p.enabled ? "Review policy changes" : "Review and enable", () => changeAutomaticOffers(provider, "enable"), "primary small");
     const disable = button("Disable automatic offers", () => changeAutomaticOffers(provider, "disable"), "small");
@@ -1814,15 +1820,19 @@ async function changeAutomaticOffers(provider, action) {
   if (S.autoBusy || S.batchBusy || S.pendingOperations.size) return;
   const p = S.autoOffers?.automaticOffers?.providers?.find(p => p.provider === provider), draft = automaticDraft(provider, p?.policy);
   const params = action === "disable" ? { provider } : { provider, models: [...draft.models].sort().join(","), maxDiscountPct: draft.maxDiscountPct, bufferPct: draft.bufferPct, maxDailyUsd: draft.maxDailyUsd, maxJobUsd: draft.maxJobUsd };
-  if (action !== "disable" && (!params.models || !params.maxDiscountPct || !params.maxDailyUsd || !params.maxJobUsd)) {
-    draft.preview = { error: { message: "Select models and enter your maximum discount, rolling daily limit and per-job limit. A 0% maximum discount is allowed." } }; render(); return;
-  }
+  draft.missing = new Set(action === "disable" ? [] : Object.keys(AUTO_REQUIRED).filter(k => !String(params[k] ?? "").trim()));
+  if (draft.missing.size) { draft.preview = null; render(); return; }
   const epoch = S.navigationEpoch;
   S.autoBusy = true; render();
   try {
     const job = await run("auto-offers-" + action, params, { quiet: action === "preview" });
     if (action === "preview") draft.preview = errorOf(job) ? { error: errorOf(job) } : value(job)?.preview;
     else if (job.state === "done") { S.autoDrafts.delete(provider); await loadOffers(); }
+    else if (action === "enable" && [errorOf(job)?.error, errorOf(job)?.code].includes("automatic_offer_preview_blocked")) {
+      // Show why instead of pointing at the CLI: the same limits, previewed, carry each model's reason.
+      const check = await run("auto-offers-preview", params, { quiet: true });
+      draft.preview = errorOf(check) ? { error: errorOf(check) } : value(check)?.preview;
+    }
   } finally {
     S.autoBusy = false;
     if (action !== "preview") await loadAutomaticOffers();
