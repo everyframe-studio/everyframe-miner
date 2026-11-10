@@ -363,6 +363,10 @@ impl Miner<'_> {
             let mut url =
                 url::Url::parse(&r.url).map_err(|_| Error("invalid_coordinator_response"))?;
             url.query_pairs_mut().append_pair("nonce", &nonce);
+            // Asks for the per-endpoint video profiles this release can price.
+            if action == "automatic-offers" {
+                url.query_pairs_mut().append_pair("profiles", "2");
+            }
             if action == "worker-update"
                 && ["pika-v1", "native-v1"]
                     .contains(&payload["providerEnvironment"].as_str().unwrap_or(""))

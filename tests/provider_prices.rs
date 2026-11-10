@@ -181,3 +181,109 @@ fn openrouter_public_catalog_preserves_all_skus_and_never_uses_management_key() 
         6_400_000
     );
 }
+
+const H3: &str = "studio/fal/minimax/h3-max/text-to-video";
+/// fal catalog for H3: promotional text/image prices, full reference price,
+/// and an optional zero placeholder for one endpoint.
+struct VideoApi {
+    calls: RefCell<Vec<String>>,
+    zero: &'static str,
+}
+impl Http for VideoApi {
+    fn bytes(&self, r: Request) -> Result<Vec<u8>> {
+        let url = url::Url::parse(&r.url).unwrap();
+        assert_eq!(url.host_str(), Some("api.fal.ai"));
+        let price = |id: &str| {
+            if id.ends_with(self.zero) {
+                "0"
+            } else if id.ends_with("/reference-to-video") {
+                "0.05"
+            } else {
+                "0.035"
+            }
+        };
+        let out = if url.path().ends_with("/estimate") {
+            assert_eq!(r.method, "POST");
+            let b: Value = serde_json::from_slice(r.body.as_ref().unwrap()).unwrap();
+            let ids: Vec<_> = b["endpoints"]
+                .as_object()
+                .unwrap()
+                .keys()
+                .cloned()
+                .collect();
+            assert_eq!(ids.len(), 1);
+            self.calls.borrow_mut().push(ids[0].clone());
+            json!({"estimate_type":"unit_price","total_cost":price(&ids[0]),"currency":"USD"})
+        } else {
+            let ids: Vec<String> = url.query_pairs().map(|(_, v)| v.into_owned()).collect();
+            assert_eq!(
+                ids,
+                [
+                    "minimax/h3-max/text-to-video",
+                    "minimax/h3-max/image-to-video",
+                    "minimax/h3-max/reference-to-video"
+                ]
+            );
+            json!({"has_more":false,"prices":ids.iter().map(|id|json!({"endpoint_id":id,"unit_price":0,"unit":"seconds","currency":"USD"})).collect::<Vec<_>>()})
+        };
+        Ok(out.to_string().into_bytes())
+    }
+}
+fn video_request() -> Vec<Value> {
+    vec![json!({"model":H3,"apiModel":"minimax/h3-max/text-to-video"})]
+}
+#[test]
+fn video_models_price_every_endpoint_a_job_may_use() {
+    let api = VideoApi {
+        calls: RefCell::default(),
+        zero: "none",
+    };
+    let rows = collect(
+        &api,
+        &json!({"FAL_KEY":"generation-key"}),
+        "fal",
+        &video_request(),
+        123,
+    );
+    assert_eq!(rows[0]["status"], "ok");
+    assert_eq!(rows[0]["unit"], "seconds");
+    assert_eq!(rows[0]["unitPricePicousd"], 35_000_000_000_u64);
+    assert_eq!(
+        rows[0]["endpoints"],
+        json!({"image-to-video":{"unit":"seconds","unitPricePicousd":35_000_000_000_u64},
+            "reference-to-video":{"unit":"seconds","unitPricePicousd":50_000_000_000_u64}})
+    );
+    assert_eq!(api.calls.borrow().len(), 3);
+}
+#[test]
+fn a_zero_priced_endpoint_is_left_out_and_a_zero_main_price_blocks() {
+    let api = VideoApi {
+        calls: RefCell::default(),
+        zero: "/reference-to-video",
+    };
+    let rows = collect(
+        &api,
+        &json!({"FAL_KEY":"generation-key"}),
+        "fal",
+        &video_request(),
+        123,
+    );
+    assert_eq!(rows[0]["status"], "ok");
+    assert_eq!(
+        rows[0]["endpoints"],
+        json!({"image-to-video":{"unit":"seconds","unitPricePicousd":35_000_000_000_u64}})
+    );
+    let api = VideoApi {
+        calls: RefCell::default(),
+        zero: "/text-to-video",
+    };
+    let rows = collect(
+        &api,
+        &json!({"FAL_KEY":"generation-key"}),
+        "fal",
+        &video_request(),
+        123,
+    );
+    assert_eq!(rows[0]["status"], "unavailable");
+    assert_eq!(rows[0]["code"], "invalid_provider_price");
+}

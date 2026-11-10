@@ -47,6 +47,13 @@ previews do not require accepting new terms; enabling does.
   eligible. A zero-price compute placeholder is not a free generation quote. Jobs
   with extra reference/input components whose current price is not supplied by the
   API pause under automation; their manual offers remain available.
+- **Fal video:** fal quotes one per-second (or per-token) price for each endpoint,
+  for the model's lowest resolution. Your worker checks the text-to-video,
+  image-to-video and reference-to-video endpoints separately, and each job is
+  estimated with the endpoint it will use, scaled to its resolution and length. A
+  promotion on text-to-video therefore does not lower the estimate for a job with
+  reference images when the reference endpoint is not discounted. An endpoint without
+  a usable price pauses only the jobs that need it.
 - **OpenRouter:** the public video-model catalog. The policy checks all relevant
   reviewed resolution, audio, token and reference components and uses a conservative
   upper ratio for the requested settings. Private discounts absent from that catalog
@@ -85,9 +92,8 @@ commercial arrangements remain the miner's responsibility under the Miner Terms.
 
 ## Upgrade and availability
 
-This source change is prepared for the unreleased v1.0.0 integration. It requires the
-matching coordinator changes, CLI/UI and a compatible signed worker update. Once
-that release is published, update the CLI, reopen the UI and run
-`everycli worker-update`, then configure the policy explicitly. Updating never opts
+Automatic offers need the latest everycli and a matching signed worker. Update the
+CLI, reopen the UI and run `everycli worker-update`, then configure the policy
+explicitly. Fal video models appear only after this update. Updating never opts
 existing miners into automatic offers. Older workers and manual offers keep their
 existing behavior.
