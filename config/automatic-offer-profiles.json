@@ -94,8 +94,7 @@
       "mode": "proportional",
       "tier": "480p",
       "endpoints": [
-        "image-to-video",
-        "reference-to-video"
+        "image-to-video"
       ]
     },
     "studio/fal/blackforestlabs/flux-3-max/text-to-video": {
@@ -105,8 +104,7 @@
       "mode": "proportional",
       "tier": "720p",
       "endpoints": [
-        "image-to-video",
-        "reference-to-video"
+        "image-to-video"
       ]
     },
     "studio/fal/kling/v4/text-to-video": {
@@ -138,8 +136,7 @@
       "mode": "proportional",
       "tier": "480p",
       "endpoints": [
-        "image-to-video",
-        "reference-to-video"
+        "image-to-video"
       ]
     },
     "studio/fal/heygen/heygen-video/text-to-video": {

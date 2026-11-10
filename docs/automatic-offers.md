@@ -49,7 +49,8 @@ previews do not require accepting new terms; enabling does.
   API pause under automation; their manual offers remain available.
 - **Fal video:** fal quotes one per-second (or per-token) price for each endpoint,
   for the model's lowest resolution. Your worker checks the text-to-video,
-  image-to-video and reference-to-video endpoints separately, and each job is
+  image-to-video and, when the contract supports references, reference-to-video
+  endpoints separately. Each job is
   estimated with the endpoint it will use, scaled to its resolution and length. A
   promotion on text-to-video therefore does not lower the estimate for a job with
   reference images when the reference endpoint is not discounted. An endpoint without

@@ -287,3 +287,26 @@ fn a_zero_priced_endpoint_is_left_out_and_a_zero_main_price_blocks() {
     assert_eq!(rows[0]["status"], "unavailable");
     assert_eq!(rows[0]["code"], "invalid_provider_price");
 }
+
+#[test]
+fn frame_only_video_contracts_do_not_probe_unusable_reference_endpoints() {
+    for (model, api) in [
+        (
+            "studio/fal/minimax/h3-max-turbo/text-to-video",
+            "minimax/h3-max-turbo/text-to-video",
+        ),
+        (
+            "studio/fal/blackforestlabs/flux-3-max/text-to-video",
+            "blackforestlabs/flux-3-max/text-to-video",
+        ),
+        (
+            "studio/fal/xai/grok-imagine-video/text-to-video",
+            "xai/grok-imagine-video/text-to-video",
+        ),
+    ] {
+        let variants = everyframe_miner::provider_prices::variant_endpoints(model, api);
+        assert_eq!(variants.len(), 1, "{model}");
+        assert_eq!(variants[0].0, "image-to-video");
+        assert!(!variants[0].1.contains("reference-to-video"));
+    }
+}
