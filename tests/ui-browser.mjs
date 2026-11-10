@@ -927,26 +927,26 @@ try {
   // Automatic offers stay explicit, preserve drafts and expose paused state.
   await page.evaluate(() => {
     S.overview.initialized=true; S.autoDrafts.clear(); S.autoExpanded=new Set(['fal']); S.autoBusy=false;
-    S.offers={offers:[{model:'studio/media/fal/xai/grok-imagine-image',name:'Grok test',provider:'fal',offered:true,offerable:true,localKeyConfigured:true,discountBp:1000,pricingCurrent:true,automaticOffer:{managed:true,state:'paused',reason:'automatic_offer_price_stale'}}]};
-    S.autoOffers={catalog:[{model:'studio/media/fal/xai/grok-imagine-image',provider:'fal',supported:true},{model:'unknown-meter',provider:'fal',supported:false}],automaticOffers:{providers:[{provider:'fal',revision:0,enabled:false,policy:null,estimatedExposureMicrousd:0,models:[],history:[]}]}};
+    S.offers={offers:[{model:'studio/media/fal/xai/grok-imagine-image',name:'Grok test',provider:'fal',offered:true,offerable:true,localKeyConfigured:true,discountBp:1000,pricingCurrent:true,automaticOffer:{managed:true,state:'paused',reason:'automatic_offer_price_stale'}},{model:'studio/media/fal/blackforestlabs/flux-3',name:'Flux test',provider:'fal',offered:true,offerable:true,localKeyConfigured:true}]};
+    S.autoOffers={catalog:[{model:'studio/media/fal/xai/grok-imagine-image',provider:'fal',supported:true},{model:'studio/media/fal/blackforestlabs/flux-3',provider:'fal',supported:true},{model:'unknown-meter',provider:'fal',supported:false}],automaticOffers:{priceTtlMs:300000,providers:[{provider:'fal',revision:0,enabled:false,policy:null,estimatedExposureMicrousd:0,models:[],history:[]}]}};
     S.modelQuery=''; S.modelProvider=''; S.offerFilter='all'; history.replaceState(null,'','#/models'); render();
   });
   assert.equal(await page.getByText('Automatic paused',{exact:true}).count(),1,'paused managed offers never appear active');
-  assert.equal(await page.getByLabel('Automate studio/media/fal/xai/grok-imagine-image').isChecked(),false,'scope is empty by default');
+  assert.equal(await page.getByLabel('Automate studio/media/fal/xai/grok-imagine-image').count(),0,'unchecked prices are not presented as available models');
+  assert.equal(await page.getByRole('button',{name:'Review and enable',exact:true}).isDisabled(),true);
   assert.equal(await page.getByLabel('fal Maximum discount %').inputValue(),'');
   assert.equal(await page.getByLabel('fal Rolling 24-hour estimated USD limit').inputValue(),'');
   await page.getByRole('button',{name:'Preview prices',exact:true}).click();
-  await page.getByText('To continue, select at least one model, enter a maximum discount (0% is allowed), a rolling 24-hour USD limit and a per-job USD limit.',{exact:true}).waitFor();
+  await page.getByText('To continue, enter a maximum discount (0% is allowed), a rolling 24-hour USD limit and a per-job USD limit.',{exact:true}).waitFor();
   assert.equal(await page.getByLabel('fal Per-job estimated USD limit').getAttribute('aria-invalid'),'true','missing limits are marked');
   assert.equal(await page.getByLabel('fal Cost buffer %').getAttribute('aria-invalid'),null,'the cost buffer has a default');
-  await page.getByLabel('Automate studio/media/fal/xai/grok-imagine-image').check();
   await page.getByLabel('fal Maximum discount %').fill('0');
   await page.getByLabel('fal Rolling 24-hour estimated USD limit').fill('1');
   await page.getByLabel('fal Per-job estimated USD limit').fill('0.1');
   const automaticPreview = await page.evaluate(async()=>{
     const original={run,loadOffers};const calls=[];
     try{
-      run=async(action,params)=>{calls.push({action,params});return {state:'done',result:{value:{preview:{rows:[{model:'studio/media/fal/xai/grok-imagine-image',status:'ready',discountBp:0,estimatedCostMicrousd:10000,checkedAt:Date.now()}]}}}};};
+      run=async(action,params)=>{calls.push({action,params});return {state:'done',result:{value:{preview:{rows:[{model:'studio/media/fal/xai/grok-imagine-image',status:'ready',discountBp:0,estimatedCostMicrousd:10000,checkedAt:Date.now()},{model:'studio/media/fal/blackforestlabs/flux-3',status:'blocked',reason:'automatic_offer_price_placeholder',checkedAt:Date.now()}]}}}};};
       loadOffers=async()=>{};
       await changeAutomaticOffers('fal','preview');
       return {calls,draft:[...S.autoDrafts.get('fal').models],limit:S.autoDrafts.get('fal').maxDailyUsd};
@@ -956,7 +956,17 @@ try {
   assert.equal(automaticPreview.calls[0].action,'auto-offers-preview','preview never enables or submits generation');
   assert.equal(automaticPreview.calls[0].params.maxDiscountPct,'0');
   assert.equal(automaticPreview.limit,'1');
-  assert.deepEqual(automaticPreview.draft,['studio/media/fal/xai/grok-imagine-image']);
+  assert.deepEqual(automaticPreview.draft,[],'price checking does not silently select or enable models');
+  assert.equal(await page.getByLabel('Automate studio/media/fal/blackforestlabs/flux-3').count(),0,'placeholder prices are excluded from selection');
+  const checkedAvailability=await page.evaluate(()=>[...S.autoDrafts.get('fal').availability]);
+  await page.getByLabel('fal Cost buffer %').fill('21');
+  assert.equal(await page.getByLabel('fal Cost buffer %').inputValue(),'21','availability changes preserve the input being edited');
+  await page.getByLabel('fal Cost buffer %').press('Tab');
+  assert.equal(await page.getByLabel('Automate studio/media/fal/xai/grok-imagine-image').count(),0,'changing limits invalidates the previous availability check');
+  await page.evaluate(rows=>{const draft=S.autoDrafts.get('fal');draft.bufferPct='20';draft.availability=new Map(rows);draft.preview={rows:rows.map(([,row])=>row)};render();},checkedAvailability);
+  await page.getByRole('button',{name:'Select available models',exact:true}).click();
+  assert.equal(await page.getByLabel('Automate studio/media/fal/xai/grok-imagine-image').isChecked(),true);
+  assert.deepEqual(await page.evaluate(()=>[...S.autoDrafts.get('fal').models]),['studio/media/fal/xai/grok-imagine-image'],'select available does not include blocked models');
   await page.getByText('Grok test: Ready · 0.00% off',{exact:false}).waitFor();
   assert.equal(await page.getByLabel('fal Rolling 24-hour estimated USD limit').inputValue(),'1','preview redraw preserves limits');
   const blockedEnable = await page.evaluate(async()=>{
@@ -975,12 +985,41 @@ try {
   const retainedPreview = await page.evaluate(async()=>{
     const original={run,loadAutomaticOffers};const calls=[];
     try{
+      S.autoDrafts.get('fal').availability=new Map([['studio/media/fal/xai/grok-imagine-image',{status:'ready',checkedAt:Date.now()}]]);
       run=async action=>{calls.push(action);return {state:'failed',result:{error:{error:'automatic_offer_preview_blocked',message:'Blocked',automaticOfferIssues:[{model:'studio/media/fal/xai/grok-imagine-image',status:'blocked',reason:'provider_price_rate_limited'}]}}};};
       loadAutomaticOffers=async()=>{};await changeAutomaticOffers('fal','enable');return calls;
     }finally{({run,loadAutomaticOffers}=original);}
   });
   assert.deepEqual(retainedPreview,['auto-offers-enable'],'retained failure reasons avoid repeating every provider price request');
   await page.getByText('Grok test: Provider rate-limited the price check; wait before retrying',{exact:true}).waitFor();
+  assert.equal(await page.getByLabel('Automate studio/media/fal/xai/grok-imagine-image').count(),0,'a newly failed check immediately removes the model from selectable rows');
+  assert.equal(await page.getByRole('button',{name:'Review and enable',exact:true}).isDisabled(),true);
+  await page.getByRole('button',{name:'Remove unavailable selections',exact:true}).click();
+  assert.equal(await page.evaluate(()=>S.autoDrafts.get('fal').models.size),0);
+  assert.equal(await page.evaluate(()=>S.offers.offers[0].offered),true,'filtering draft selections does not withdraw existing offers');
+  const unavailablePreview=await page.evaluate(async()=>{
+    const original={run,loadAutomaticOffers},calls=[],draft=S.autoDrafts.get('fal');
+    try{
+      draft.models=new Set(['studio/media/fal/xai/grok-imagine-image']);
+      draft.availability=new Map([['studio/media/fal/xai/grok-imagine-image',{status:'ready',checkedAt:Date.now()}]]);
+      run=async action=>{calls.push(action);return {state:'failed',result:{error:{error:action==='auto-offers-enable'?'automatic_offer_preview_blocked':'request_timeout',message:'Unavailable'}}};};
+      loadAutomaticOffers=async()=>{};await changeAutomaticOffers('fal','enable');
+      return {calls,available:automaticAvailable('fal',draft).length,selected:[...draft.models]};
+    }finally{({run,loadAutomaticOffers}=original);}
+  });
+  assert.deepEqual(unavailablePreview.calls,['auto-offers-enable','auto-offers-preview']);
+  assert.equal(unavailablePreview.available,0,'a failed fallback check cannot leave an old successful check available');
+  assert.equal(unavailablePreview.selected.length,1,'an inconclusive check preserves the intended selection for review');
+  const staleCalls=await page.evaluate(async()=>{
+    const original=run,calls=[],draft=S.autoDrafts.get('fal');
+    try{
+      draft.models=new Set(['studio/media/fal/xai/grok-imagine-image']);
+      draft.availability=new Map([['studio/media/fal/xai/grok-imagine-image',{status:'ready',checkedAt:Date.now()-300001}]]);
+      run=async action=>{calls.push(action);return {state:'done'};};
+      await changeAutomaticOffers('fal','enable');return calls;
+    }finally{run=original;}
+  });
+  assert.deepEqual(staleCalls,[],'expired price checks cannot reach the enable operation');
   for(const width of [1440,390,320]){
     await page.setViewportSize({width,height:900});
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'automatic offer form fits '+width);

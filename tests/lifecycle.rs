@@ -4739,6 +4739,15 @@ fn blocked_automatic_preview_retains_reasons_without_rechecking_prices_or_saving
     });
     let mut miner = rig.miner();
     miner.http = &api;
+    let preview = miner
+        .automatic_offers(&automatic_args("--preview"), &|_| {
+            panic!("Read-only preview must not request enable approval")
+        })
+        .unwrap();
+    assert_eq!(
+        preview["preview"]["rows"][0]["reason"],
+        "provider_price_rate_limited"
+    );
     let error = miner
         .automatic_offers(&automatic_args("--enable"), &|_| {
             panic!("blocked models must not request enable approval")

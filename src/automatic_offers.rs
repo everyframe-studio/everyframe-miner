@@ -248,7 +248,7 @@ impl Miner<'_> {
             "automatic_offer_preview_blocked",
         )?;
         policy["credentialRef"] = json!(fingerprint);
-        let preview = self
+        let mut preview = self
             .api(
                 &c,
                 "automatic-offers-preview",
@@ -261,6 +261,20 @@ impl Miner<'_> {
                     e
                 }
             })?;
+        // Older coordinators collapse failed price lookups into one reason.
+        // Preserve the safe local cause for read-only previews as well as enable.
+        if let Some(rows) = preview["preview"]["rows"].as_array_mut() {
+            for row in rows {
+                if row["reason"] == "automatic_offer_price_unavailable"
+                    && let Some(source) = prices
+                        .iter()
+                        .find(|p| p["model"] == row["model"] && p["status"] != "ok")
+                {
+                    row["reason"] =
+                        json!(safe_preview_reason(source["code"].as_str().unwrap_or("")));
+                }
+            }
+        }
         if !args.flag("--enable") {
             return Ok(preview);
         }
@@ -280,14 +294,7 @@ impl Miner<'_> {
                     .filter(|r| r["status"] != "ready" && r["status"] != "paused")
                     .filter_map(|r| {
                         let model = r["model"].as_str()?;
-                        let mut reason = r["reason"].as_str().unwrap_or("");
-                        if reason == "automatic_offer_price_unavailable"
-                            && let Some(source) = prices
-                                .iter()
-                                .find(|p| p["model"] == model && p["status"] != "ok")
-                        {
-                            reason = source["code"].as_str().unwrap_or(reason);
-                        }
+                        let reason = r["reason"].as_str().unwrap_or("");
                         scope
                             .iter()
                             .any(|s| s["model"] == model)

@@ -5,13 +5,20 @@ select. The feature is off by default. Your worker performs the checks, so it
 continues when the dashboard or your computer is closed. Manual offers remain
 available for every supported provider.
 
-In **Models → Automatic offers**, configure Fal or OpenRouter, select models and
-enter your maximum discount, cost buffer, rolling 24-hour estimated USD limit and
-per-job estimated USD limit. **Preview prices** reads prices without changing
-anything or generating media. **Review and enable** shows the exact scope and limits
-before saving the policy. A valid price above your limits starts paused and can
-activate when a qualifying lower price appears. Missing or incomplete prices cannot
-be treated as free generation.
+In **Models → Automatic offers**, configure Fal or OpenRouter and enter your
+maximum discount, cost buffer, rolling 24-hour estimated USD limit and per-job
+estimated USD limit. **Preview prices** checks supported models with a saved key
+without changing offers or generating media. Only models with fresh, complete
+prices that pass your limits appear in the selection list; the preview explains
+why other models are excluded. Select individual models or **Select available
+models**, then use **Review and enable** to review the exact scope and limits
+before saving the policy. Changing limits requires another price check. A failed
+or expired check cannot be used to enable a policy. Existing offers and saved
+policies remain unchanged until you explicitly save a change.
+
+The terminal also allows a policy to start paused when a verified price exceeds
+its limits. It can activate when a qualifying lower price appears. Missing or
+incomplete prices cannot be treated as free generation.
 
 The maximum discount is a ceiling. The cost buffer is a percentage added to an
 estimated provider cost; it is not a guaranteed profit margin. The coordinator
