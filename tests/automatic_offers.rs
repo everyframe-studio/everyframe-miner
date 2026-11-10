@@ -74,3 +74,23 @@ fn terminal_preview_reports_paused_and_costs_without_claiming_income() {
     assert!(text.contains("paused"));
     assert!(text.contains("No offer was changed"));
 }
+
+#[test]
+fn preflight_timeout_diagnostic_does_not_suggest_cloud_reconciliation() {
+    let value = everyframe_miner::cli_errors::diagnostic(
+        &everyframe_miner::Error("automatic_offer_check_timeout"),
+        Some(&args(&fields())),
+    );
+    assert!(
+        value["message"]
+            .as_str()
+            .unwrap()
+            .contains("did not submit")
+    );
+    assert!(
+        value["next"]
+            .as_str()
+            .unwrap()
+            .contains("everycli auto-offers")
+    );
+}

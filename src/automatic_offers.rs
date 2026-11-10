@@ -164,6 +164,8 @@ impl Miner<'_> {
         let status = self.api(&c, "automatic-offers", json!({})).map_err(|e| {
             if e.0 == "http_404" {
                 Error("automatic_offers_not_supported")
+            } else if e.0 == "request_timeout" {
+                Error("automatic_offer_check_timeout")
             } else {
                 e
             }
@@ -229,11 +231,19 @@ impl Miner<'_> {
             "automatic_offer_preview_blocked",
         )?;
         policy["credentialRef"] = json!(fingerprint);
-        let preview = self.api(
-            &c,
-            "automatic-offers-preview",
-            json!({"provider":provider,"policy":policy,"prices":prices}),
-        )?;
+        let preview = self
+            .api(
+                &c,
+                "automatic-offers-preview",
+                json!({"provider":provider,"policy":policy,"prices":prices}),
+            )
+            .map_err(|e| {
+                if e.0 == "request_timeout" {
+                    Error("automatic_offer_check_timeout")
+                } else {
+                    e
+                }
+            })?;
         if !args.flag("--enable") {
             return Ok(preview);
         }
