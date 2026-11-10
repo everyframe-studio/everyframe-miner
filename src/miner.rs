@@ -350,6 +350,17 @@ impl Miner<'_> {
         // Catalog rate schedules plus all-time per-model counts can exceed 100 KB.
         // Keep a hard bound shared with public discovery, never unbounded reads.
         r.limit = 1000000;
+        if [
+            "automatic-offers",
+            "automatic-offers-preview",
+            "automatic-offers-policy",
+        ]
+        .contains(&action)
+        {
+            // These owner operations can wait behind coordinator load. Keep a
+            // finite deadline; a timed-out policy save is never replayed.
+            r.timeout = 30;
+        }
         let mut auth_body = Value::Null;
         if [
             "status",

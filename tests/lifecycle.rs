@@ -4523,6 +4523,7 @@ impl Http for AutomaticApi<'_> {
         if !path.contains("automatic-offers") {
             return self.rig.bytes(r);
         }
+        assert_eq!(r.timeout, 30);
         self.rig
             .calls
             .borrow_mut()
@@ -4653,6 +4654,120 @@ fn lost_automatic_policy_ack_is_reconciled_by_read_without_replaying_mutation() 
     );
     assert!(rig.envs.borrow().is_empty());
 }
+#[test]
+fn automatic_offer_timeouts_distinguish_preflight_from_unknown_mutation() {
+    struct TimeoutApi<'a> {
+        inner: AutomaticApi<'a>,
+        action: &'static str,
+        saves: Cell<u32>,
+    }
+    impl Http for TimeoutApi<'_> {
+        fn bytes(&self, r: Request) -> Result<Vec<u8>> {
+            let url = url::Url::parse(&r.url).unwrap();
+            let action = url.path().rsplit('/').next().unwrap();
+            if action == "automatic-offers-policy" {
+                self.saves.set(self.saves.get() + 1);
+            }
+            if action == self.action {
+                assert_eq!(r.timeout, 30);
+                return Err(Error("request_timeout"));
+            }
+            self.inner.bytes(r)
+        }
+    }
+    for action in [
+        "automatic-offers",
+        "automatic-offers-preview",
+        "automatic-offers-policy",
+    ] {
+        let rig = Rig::new();
+        let api = TimeoutApi {
+            inner: AutomaticApi {
+                rig: &rig,
+                policy: RefCell::new(Value::Null),
+                lost_ack: Cell::new(false),
+            },
+            action,
+            saves: Cell::new(0),
+        };
+        let mut miner = rig.miner();
+        miner.http = &api;
+        let error = miner
+            .automatic_offers(&automatic_args("--enable"), &|_| Ok(()))
+            .unwrap_err();
+        let saving = action == "automatic-offers-policy";
+        assert_eq!(
+            error.0,
+            if saving {
+                "automatic_offer_result_unknown"
+            } else {
+                "automatic_offer_check_timeout"
+            }
+        );
+        assert_eq!(
+            api.saves.get(),
+            u32::from(saving),
+            "a policy must never be replayed"
+        );
+        assert!(rig.envs.borrow().is_empty());
+    }
+}
+
+#[test]
+fn blocked_automatic_preview_retains_reasons_without_rechecking_prices_or_saving() {
+    struct BlockedApi<'a>(AutomaticApi<'a>);
+    impl Http for BlockedApi<'_> {
+        fn bytes(&self, r: Request) -> Result<Vec<u8>> {
+            if r.url.starts_with("https://api.fal.ai/") {
+                return Err(Error("http_429"));
+            }
+            let preview = r.url.contains("automatic-offers-preview");
+            let data = self.0.bytes(r)?;
+            if !preview {
+                return Ok(data);
+            }
+            let mut envelope: Value = serde_json::from_slice(&data).unwrap();
+            envelope["value"]["preview"]["rows"] = json!([{"model":"studio/media/fal/xai/grok-imagine-image","status":"blocked","reason":"automatic_offer_price_unavailable","ignored":"secret body"}]);
+            Ok(self.0.rig.sign(&envelope["value"]).to_string().into_bytes())
+        }
+    }
+    let rig = Rig::new();
+    let api = BlockedApi(AutomaticApi {
+        rig: &rig,
+        policy: RefCell::new(Value::Null),
+        lost_ack: Cell::new(false),
+    });
+    let mut miner = rig.miner();
+    miner.http = &api;
+    let preview = miner
+        .automatic_offers(&automatic_args("--preview"), &|_| {
+            panic!("Read-only preview must not request enable approval")
+        })
+        .unwrap();
+    assert_eq!(
+        preview["preview"]["rows"][0]["reason"],
+        "provider_price_rate_limited"
+    );
+    let error = miner
+        .automatic_offers(&automatic_args("--enable"), &|_| {
+            panic!("blocked models must not request enable approval")
+        })
+        .unwrap_err();
+    let diagnostic = everyframe_miner::cli_errors::diagnostic(&error, None);
+    assert_eq!(
+        diagnostic["automaticOfferIssues"][0]["reason"],
+        "provider_price_rate_limited"
+    );
+    assert!(!diagnostic.to_string().contains("secret body"));
+    assert!(api.0.policy.borrow().is_null());
+    assert!(
+        !rig.calls
+            .borrow()
+            .iter()
+            .any(|(c, _)| c.ends_with("automatic-offers-policy"))
+    );
+}
+
 #[test]
 fn automatic_policy_enable_checks_ack_and_disable_withdraws_managed_scope() {
     let rig = Rig::new();

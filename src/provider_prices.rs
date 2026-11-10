@@ -94,6 +94,12 @@ pub fn variant_endpoints(model: &str, api: &str) -> Vec<(String, String)> {
 }
 pub fn valid_unit(model: &str, unit: &str) -> bool {
     let u = unit.trim().to_ascii_lowercase();
+    if ["veed/dubbing", "veed/dubbing/pro"]
+        .contains(&PROFILES["fal"][model]["apiModel"].as_str().unwrap_or(""))
+        && ["input second", "input seconds"].contains(&u.as_str())
+    {
+        return true;
+    }
     match PROFILES["fal"][model]["meter"].as_str() {
         Some("image") => ["image", "images"].contains(&u.as_str()),
         Some("audio") => ["audio", "audios", "audio clip", "audio clips"].contains(&u.as_str()),
@@ -199,6 +205,10 @@ pub fn collect(
                         need(matches.len() == 1, "invalid_provider_price")?;
                         let unit = s(&matches[0]["unit"])?;
                         need(matches[0]["currency"] == "USD", "invalid_provider_price")?;
+                        need(
+                            unit != "compute seconds" || picousd(&matches[0]["unit_price"])? > 0,
+                            "automatic_offer_price_placeholder",
+                        )?;
                         need(valid_unit(model, unit), "automatic_offer_unit_unsupported")?;
                         let mut endpoints = json!({});
                         endpoints[id] = json!({"unit_quantity":1});
@@ -281,10 +291,17 @@ pub fn collect(
                         "automatic_offer_pricing_unsupported",
                         "invalid_price_plan",
                         "invalid_provider_price",
+                        "automatic_offer_price_placeholder",
                     ]
                     .contains(&e.0)
                     {
                         e.0
+                    } else if e.0 == "http_429" {
+                        "provider_price_rate_limited"
+                    } else if e.0 == "request_timeout" {
+                        "provider_price_timeout"
+                    } else if ["http_401", "http_403"].contains(&e.0) {
+                        "provider_price_access_denied"
                     } else {
                         "provider_price_unavailable"
                     },

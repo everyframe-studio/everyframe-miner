@@ -103,6 +103,7 @@ pub fn diagnostic(error: &Error, args: Option<&Args>) -> Value {
         "conflicting_batch_offer_options" => ("Choose one batch action: set a discount, keep saved discounts, or withdraw offers.".into(), "Do not combine --keep-discounts with --discount-pct or --withdraw. Run everycli help offer-batch for examples.".into()),
         "invalid_offer_batch" => ("Choose 1–256 distinct model IDs for this batch.".into(), "Use everycli offers, then everycli offer-batch --models ID,ID --discount-pct 10.".into()),
         "automatic_offer_result_unknown" => ("The automatic offer change was not confirmed.".into(), "Read everycli auto-offers in the same profile before another change. The policy may already be saved; the CLI did not retry it.".into()),
+        "automatic_offer_check_timeout" => ("The coordinator did not finish checking automatic offers before the timeout. This command did not submit a policy change.".into(), "Wait briefly, then refresh Automatic offers or run everycli auto-offers. Your existing offers and policy are unchanged by this command; no cloud reconciliation is needed.".into()),
         "automatic_offers_not_supported" => ("This coordinator does not support automatic offers yet.".into(), "Keep manual offers or wait for the coordinator upgrade. No automatic policy was applied.".into()),
         "conflicting_automatic_offer_options" => ("Choose one automatic offer action.".into(), "Use --preview, --enable or --disable, or no flag to read status.".into()),
         "automatic_offer_provider_unsupported" => ("Automatic pricing is supported for Fal and OpenRouter only.".into(), "Other providers remain available for manual offers.".into()),
@@ -208,6 +209,17 @@ pub fn diagnostic(error: &Error, args: Option<&Args>) -> Value {
         _ => (format!("{}.", error.0.replace('_', " ")), help),
     };
     let mut out = json!({"ok":false,"error":error.0,"message":message,"next":next});
+    if let Some(ErrorContext::AutomaticOfferIssues(issues)) = &error.1 {
+        let safe: Vec<_> = issues.iter().take(64).filter(|(model, _)|
+            crate::provider_prices::model_request(model).is_some()
+        ).map(|(model, reason)| json!({"model":model,"status":"blocked","reason":crate::automatic_offers::safe_preview_reason(reason)})).collect();
+        if !safe.is_empty() {
+            out["automaticOfferIssues"] = json!(safe);
+            out["next"] = json!(
+                "Review the listed models. Keep models without verified prices on manual offers, or retry after the provider price check recovers. No automatic policy was applied."
+            );
+        }
+    }
     if let Some(ErrorContext::Phala(detail)) = &error.1 {
         out["phala"] = detail.value();
         out["message"] = json!(format!(

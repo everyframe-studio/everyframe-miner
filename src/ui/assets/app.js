@@ -268,6 +268,8 @@ function errorView(err) {
   if (!err) return h("span", null, "Something went wrong.");
   return h("div", null,
     h("div", { class: "err-msg" }, err.message || err.code || "Something went wrong."),
+    Array.isArray(err.automaticOfferIssues) ? h("ul", { class: "small" }, err.automaticOfferIssues.map(r =>
+      h("li", null, r.model + ": " + automaticReason(r.reason) + " (" + r.reason + ")"))) : null,
     err.next ? h("div", { class: "small muted" }, err.next) : null,
     (err.error || err.code) === "coordinator_auth_rejected" ? h("a", { class: "btn", href: "#/worker" }, "Reconnect from Worker page") : null,
     err.registrationCommand ? copyBox(err.registrationCommand) : null,
@@ -1761,7 +1763,8 @@ function offerRow(r) {
 
 // ---------- Automatic provider-price offers (explicit opt-in) ----------
 function automaticReason(code) {
-  return ({ automatic_offer_credential_changed: "Worker key differs from the reviewed account; apply the intended key or review this policy again", automatic_offer_price_unavailable: "Waiting for a fresh worker price check", automatic_offer_price_stale: "Price check expired; new work paused",
+  return ({ automatic_offer_credential_changed: "Worker key differs from the reviewed account; apply the intended key or review this policy again", automatic_offer_price_unavailable: "A current provider price could not be verified", automatic_offer_price_stale: "Price check expired; new work paused",
+    automatic_offer_price_placeholder: "Provider publishes a placeholder price; keep this model on manual offers", provider_price_rate_limited: "Provider rate-limited the price check; wait before retrying", provider_price_timeout: "Provider price check timed out", provider_price_access_denied: "Provider denied the price lookup; check this key's permissions", provider_key_required: "Save the provider key before checking its prices", invalid_provider_price: "Provider returned an unusable price", invalid_price_plan: "The selected price-check plan is unsupported",
     automatic_offer_price_incomplete: "Not all billing components have verified prices", automatic_offer_unit_unsupported: "Provider billing unit needs review",
     automatic_offer_pricing_unsupported: "Automatic pricing is not available for this contract", automatic_offer_cost_above_work_value: "Waiting for a lower provider price",
     automatic_offer_job_limit: "Estimated job cost exceeds your limit", automatic_offer_daily_limit: "Rolling exposure limit reached",
@@ -1781,7 +1784,7 @@ function automaticDraft(provider, policy) {
   if (!S.autoDrafts.has(provider)) S.autoDrafts.set(provider, {
     models: new Set((policy?.models || []).map(m => m.model)), maxDiscountPct: policy ? String(policy.maxDiscountBp / 100) : "",
     bufferPct: policy ? String(policy.bufferBp / 100) : "20", maxDailyUsd: policy ? String(policy.dailyCapMicrousd / 1e6) : "",
-    maxJobUsd: policy ? String(policy.jobCapMicrousd / 1e6) : "", preview: null,
+    maxJobUsd: policy ? String(policy.jobCapMicrousd / 1e6) : "", preview: null, availability: null,
   });
   return S.autoDrafts.get(provider);
 }
@@ -1795,6 +1798,50 @@ function autoUsd(micro) {
 const AUTO_REQUIRED = { models: "select at least one model", maxDiscountPct: "enter a maximum discount (0% is allowed)",
   maxDailyUsd: "enter a rolling 24-hour USD limit", maxJobUsd: "enter a per-job USD limit" };
 function joinAnd(xs) { return xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1]; }
+function automaticCandidates(provider) {
+  const local = new Map((S.offers?.offers || []).map(m => [m.model, m]));
+  return (S.autoOffers?.catalog || []).filter(m => m.provider === provider && m.supported &&
+    local.get(m.model)?.localKeyConfigured === true && local.get(m.model)?.offerable !== false &&
+    !["removed", "deprecated"].includes(local.get(m.model)?.providerAvailability?.status));
+}
+function automaticAvailable(provider, draft) {
+  const ttl = S.autoOffers?.automaticOffers?.priceTtlMs || 300000;
+  return automaticCandidates(provider).filter(m => {
+    const p = draft.availability?.get(m.model), age = Date.now() - p?.checkedAt;
+    return p?.status === "ready" && Number.isFinite(age) && age >= -30000 && age < ttl;
+  });
+}
+function automaticModelSelection(provider, draft, busy) {
+  const local = new Map((S.offers?.offers || []).map(m => [m.model, m]));
+  const ready = automaticAvailable(provider, draft), readyIds = new Set(ready.map(m => m.model));
+  const unavailableSelected = [...draft.models].filter(model => !readyIds.has(model));
+  const selection = h("div", { class: "stack", "data-automatic-selection": provider });
+  const list = h("div", { class: "automatic-models", role: "group", "aria-label": providerName(provider) + " automatic models" });
+  for (const row of ready) {
+    list.append(h("label", { class: "row small" }, h("input", { type: "checkbox", checked: draft.models.has(row.model), disabled: busy,
+      "aria-label": "Automate " + row.model, onchange: e => { if (e.target.checked) draft.models.add(row.model); else draft.models.delete(row.model); draft.missing?.delete("models"); render(); } }),
+      local.get(row.model)?.name || row.model));
+  }
+  const select = button("Select available models", () => { draft.models = new Set(ready.map(m => m.model)); render(); }, "small");
+  select.disabled = busy || !ready.length;
+  selection.append(h("div", { class: "row" }, select, h("span", { class: "small muted" }, ready.length + " models passed the current price check.")), list);
+  if (!ready.length) selection.append(h("p", { class: "small muted" }, draft.availability ? "No models currently pass the price check with these limits. Review the results below or check prices again." : "Set your limits and check prices to see available models. Unverified models are not selectable."));
+  if (unavailableSelected.length) {
+    const remove = button("Remove unavailable selections", () => { unavailableSelected.forEach(model => draft.models.delete(model)); render(); }, "small");
+    remove.disabled = busy;
+    selection.append(h("div", { class: "notice warn" }, unavailableSelected.length + " selected models need a successful current price check. Your saved policy is unchanged.", remove));
+  }
+  return selection;
+}
+function patchAutomaticSelection(provider, draft) {
+  const details = [...document.querySelectorAll("[data-automatic-provider]")].find(el => el.dataset.automaticProvider === provider);
+  if (!details) return;
+  const busy = S.autoBusy || S.batchBusy || S.pendingOperations.size > 0;
+  details.querySelector("[data-automatic-selection]")?.replaceWith(automaticModelSelection(provider, draft, busy));
+  details.querySelector("[data-automatic-preview]")?.remove();
+  const enable = details.querySelector("[data-automatic-enable]");
+  if (enable) enable.disabled = true;
+}
 function automaticOffersCard() {
   if (!S.autoTried) { S.autoTried = true; loadAutomaticOffers().then(() => { if (currentRoute() === "models") render(); }); }
   const refresh = button(S.autoOffers ? "Refresh automatic offers" : "Configure automatic offers", async () => { await loadAutomaticOffers(); if (currentRoute() === "models") render(); }, "small");
@@ -1808,35 +1855,32 @@ function automaticOffersCard() {
     const rows = (S.autoOffers.catalog || []).filter(m => m.provider === provider);
     const local = new Map((S.offers?.offers || []).map(m => [m.model, m]));
     const supported = rows.filter(m => m.supported);
-    const ready = supported.filter(m => local.get(m.model)?.localKeyConfigured !== false);
+    const candidates = automaticCandidates(provider), ready = automaticAvailable(provider, draft);
+    const readyIds = new Set(ready.map(m => m.model)), unavailableSelected = [...draft.models].filter(model => !readyIds.has(model));
     const busy = S.autoBusy || S.batchBusy || S.pendingOperations.size > 0;
     const details = h("details", { class: "automatic-provider", "data-automatic-provider": provider, open: S.autoExpanded.has(provider), ontoggle: e => {
       if (e.currentTarget.open) S.autoExpanded.add(provider); else S.autoExpanded.delete(provider);
     } }, h("summary", null, providerName(provider), " · ", p.enabled ? "Monitoring on" : "Off"));
     details.append(h("p", { class: "small muted" }, autoUsd(p.estimatedExposureMicrousd) + " estimated exposure in the rolling 24-hour window. Limits cover only this policy; manual offers, other account use and hosting are excluded."),
       h("p", { class: "small muted" }, provider === "fal" ? "Uses your deployed generation key's unit-price estimate. Jobs with unquoted billing components pause. No billing or admin key is sent to the worker." : "Uses OpenRouter's public video price catalog. Private account discounts are not assumed."));
-    const list = h("div", { class: "automatic-models", role: "group", "aria-label": providerName(provider) + " automatic models" });
-    for (const row of supported) {
-      const available = local.get(row.model)?.localKeyConfigured !== false;
-      list.append(h("label", { class: "row small" }, h("input", { type: "checkbox", checked: draft.models.has(row.model), disabled: busy || !available,
-        "aria-label": "Automate " + row.model, onchange: e => { if (e.target.checked) draft.models.add(row.model); else draft.models.delete(row.model); draft.missing?.delete("models"); draft.preview = null; } }),
-        local.get(row.model)?.name || row.model, available ? null : h("span", { class: "muted" }, "No local key saved")));
-    }
-    const select = button("Select eligible models", () => { draft.models = new Set(ready.map(m => m.model)); draft.preview = null; render(); }, "small");
-    select.disabled = busy || !ready.length;
-    details.append(h("div", { class: "row" }, select, h("span", { class: "small muted" }, (rows.length - supported.length) + (rows.length - supported.length === 1 ? " contract needs" : " contracts need") + " complete pricing before automation.")), list);
+    details.append(automaticModelSelection(provider, draft, busy));
+    if (rows.length > supported.length) details.append(h("p", { class: "small muted" }, (rows.length - supported.length) + " contracts need complete pricing before automation."));
     const fields = h("div", { class: "automatic-limits" });
     for (const [key, label, max, step] of [["maxDiscountPct", "Maximum discount %", "99.9", "0.01"], ["bufferPct", "Cost buffer %", "1000", "0.01"], ["maxDailyUsd", "Rolling 24-hour estimated USD limit", "1000000", "0.000001"], ["maxJobUsd", "Per-job estimated USD limit", "1000000", "0.000001"]]) {
       fields.append(h("label", { class: "stack small" }, label, h("input", { type: "number", min: "0", max, step, value: draft[key], disabled: busy,
         placeholder: AUTO_REQUIRED[key] ? "Required" : null, "aria-invalid": draft.missing?.has(key) ? "true" : null,
-        "aria-label": providerName(provider) + " " + label, oninput: e => { draft[key] = e.target.value; draft.missing?.delete(key); e.target.removeAttribute("aria-invalid"); draft.preview = null; } })));
+        "aria-label": providerName(provider) + " " + label, oninput: e => { draft[key] = e.target.value; draft.missing?.delete(key); e.target.removeAttribute("aria-invalid"); draft.preview = null; draft.availability = null; patchAutomaticSelection(provider, draft); } })));
     }
     details.append(fields);
     if (draft.missing?.size) details.append(h("div", { class: "notice warn", role: "alert" }, "To continue, " + joinAnd([...draft.missing].map((k, i, ks) => i && AUTO_REQUIRED[ks[i - 1]].startsWith("enter ") ? AUTO_REQUIRED[k].replace(/^enter /, "") : AUTO_REQUIRED[k])) + "."));
     const preview = button("Preview prices", () => changeAutomaticOffers(provider, "preview"), "small");
+    preview.title = "Check prices for supported models with a saved provider key, then choose from the models that pass.";
     const enable = button(p.enabled ? "Review policy changes" : "Review and enable", () => changeAutomaticOffers(provider, "enable"), "primary small");
+    enable.dataset.automaticEnable = provider;
     const disable = button("Disable automatic offers", () => changeAutomaticOffers(provider, "disable"), "small");
-    preview.disabled = enable.disabled = busy || !ready.length; disable.disabled = busy || !p.enabled;
+    preview.disabled = busy || !candidates.length;
+    enable.disabled = busy || !draft.models.size || unavailableSelected.length > 0;
+    disable.disabled = busy || !p.enabled;
     details.append(h("div", { class: "row" }, preview, enable, disable), h("p", { class: "small muted" }, "A compatible worker with fresh price reports is required. Disabling withdraws managed offers. Manual edits remove a model from automation. Started jobs keep their agreed price."));
     if (draft.preview) details.append(h("div", { "data-automatic-preview": provider }, h("h4", null, "Price preview"), draft.preview.error ? errorView(draft.preview.error) : h("ul", { class: "small" }, (draft.preview.rows || []).map(r => h("li", null,
       (local.get(r.model)?.name || r.model) + ": " + (r.status === "ready" ? "Ready · " + (r.discountBp / 100).toFixed(2) + "% off" : automaticReason(r.reason)),
@@ -1850,19 +1894,33 @@ function automaticOffersCard() {
 async function changeAutomaticOffers(provider, action) {
   if (S.autoBusy || S.batchBusy || S.pendingOperations.size) return;
   const p = S.autoOffers?.automaticOffers?.providers?.find(p => p.provider === provider), draft = automaticDraft(provider, p?.policy);
-  const params = action === "disable" ? { provider } : { provider, models: [...draft.models].sort().join(","), maxDiscountPct: draft.maxDiscountPct, bufferPct: draft.bufferPct, maxDailyUsd: draft.maxDailyUsd, maxJobUsd: draft.maxJobUsd };
+  const models = action === "preview" ? automaticCandidates(provider).map(m => m.model) : [...draft.models];
+  const params = action === "disable" ? { provider } : { provider, models: models.sort().join(","), maxDiscountPct: draft.maxDiscountPct, bufferPct: draft.bufferPct, maxDailyUsd: draft.maxDailyUsd, maxJobUsd: draft.maxJobUsd };
   draft.missing = new Set(action === "disable" ? [] : Object.keys(AUTO_REQUIRED).filter(k => !String(params[k] ?? "").trim()));
   if (draft.missing.size) { draft.preview = null; render(); return; }
+  if (action === "enable") {
+    const ready = new Set(automaticAvailable(provider, draft).map(m => m.model));
+    if (models.some(model => !ready.has(model))) { render(); return; }
+  }
   const epoch = S.navigationEpoch;
   S.autoBusy = true; render();
   try {
     const job = await run("auto-offers-" + action, params, { quiet: action === "preview" });
-    if (action === "preview") draft.preview = errorOf(job) ? { error: errorOf(job) } : value(job)?.preview;
+    if (action === "preview") {
+      draft.preview = errorOf(job) ? { error: errorOf(job) } : value(job)?.preview;
+      draft.availability = new Map((draft.preview?.rows || []).map(row => [row.model, row]));
+    }
     else if (job.state === "done") { S.autoDrafts.delete(provider); await loadOffers(); }
     else if (action === "enable" && [errorOf(job)?.error, errorOf(job)?.code].includes("automatic_offer_preview_blocked")) {
-      // Show why instead of pointing at the CLI: the same limits, previewed, carry each model's reason.
-      const check = await run("auto-offers-preview", params, { quiet: true });
-      draft.preview = errorOf(check) ? { error: errorOf(check) } : value(check)?.preview;
+      for (const model of models) draft.availability?.delete(model);
+      const issues = errorOf(job)?.automaticOfferIssues;
+      if (Array.isArray(issues) && issues.length) draft.preview = { rows: issues };
+      else {
+        // Compatibility with older CLIs that did not retain their failed preview.
+        const check = await run("auto-offers-preview", params, { quiet: true });
+        draft.preview = errorOf(check) ? { error: errorOf(check) } : value(check)?.preview;
+      }
+      for (const row of draft.preview?.rows || []) draft.availability?.set(row.model, row);
     }
   } finally {
     S.autoBusy = false;
