@@ -36,6 +36,8 @@ every model in the registry is necessarily available for mining.
 
 ## What's new
 
+v1.1.1 improves [automatic offers](docs/automatic-offers.md): check prices first, choose models that pass your limits, and see per-model reasons when a price check fails. It also adds longer bounded coordinator requests and VEED input-second pricing support. Update the CLI and reopen the UI; automatic-offer users should also install the matching signed worker.
+
 v1.1.0 adds direct [Alibaba Cloud, BytePlus and Volcengine](ASIAN-PROVIDERS.md) providers for Wan, Qwen Image, Seedance and Seedream, including the reviewed download, update-recovery and provider-error fixes.
 
 In v1.1.0, Fal readiness uses a cached authenticated key check.

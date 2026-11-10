@@ -897,6 +897,29 @@
           "when": "To use new providers, save and apply their keys, then explicitly enable the desired offers. Alibaba also requires its matching Singapore workspace ID. Review automatic-offer limits separately."
         }
       ]
+    },
+    {
+      "version": "v1.1.1",
+      "title": "Verified automatic-offer selection and clearer pricing diagnostics",
+      "changes": [
+        "Check prices before selecting automatic-offer models. Only models with fresh, complete prices within your limits are selectable; blocked models show their reasons separately.",
+        "Show per-model price-check failures, including timeouts, rate limits, denied lookups and placeholder prices, without repeating a failed pricing request when its result is available.",
+        "Use a bounded 30-second coordinator timeout for automatic-offer operations. Uncertain policy saves are never automatically repeated.",
+        "Recognize input-second pricing for the reviewed VEED dubbing models. Existing manual offers, discounts and saved policies stay under miner control."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If using automatic offers, update the existing worker for revised provider-price diagnostics and VEED input-second pricing support."
+        },
+        {
+          "kind": "review-offers",
+          "requirement": "conditional",
+          "when": "For automatic offers, enter your limits, preview prices, select available models and explicitly review and enable the policy. Updating does not enable or change an existing policy."
+        }
+      ]
     }
   ]
 }
