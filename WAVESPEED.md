@@ -1,4 +1,4 @@
-# WaveSpeedAI in v1.0.1
+# WaveSpeedAI in v1.1.0
 
 This release adds WaveSpeedAI as a separate provider, with 85 reviewed endpoints:
 38 image, 44 video and 3 audio routes. They include GPT Image 2.5/2.6, Gemini
@@ -15,7 +15,7 @@ and discounts are unchanged.
 
 1. Update everycli and reopen its UI.
 2. Run `everycli worker-update` to install the compatible signed worker on the
-   existing VM. The coordinator must first have the v1.0.1 integration and a
+   existing VM. The coordinator must first have the v1.1.0 integration and a
    reviewed deployment allowing `WAVESPEED_API_KEY`.
 3. Save the key in the UI's WaveSpeedAI provider settings, or run
    `everycli set-api-keys --provider wavespeed`. Apply it to the verified worker.

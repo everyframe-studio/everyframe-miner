@@ -12,7 +12,7 @@
     "apiPath": "/api/v1/services/aigc/video-generation/video-synthesis",
     "referenceTransport": "owned-url",
     "deadlineMs": 1200000,
-    "maxPrompt": 32000,
+    "maxPrompt": 20000,
     "seed": true,
     "feeMultiplier": 1,
     "mime": "video/mp4",
@@ -49,7 +49,6 @@
             "4:3",
             "3:4",
             "21:9",
-            "9:21",
             "adaptive"
           ]
         },
@@ -105,7 +104,7 @@
     "apiPath": "/api/v1/services/aigc/video-generation/video-synthesis",
     "referenceTransport": "owned-url",
     "deadlineMs": 1200000,
-    "maxPrompt": 32000,
+    "maxPrompt": 20000,
     "seed": true,
     "feeMultiplier": 1,
     "mime": "video/mp4",
@@ -142,7 +141,6 @@
             "4:3",
             "3:4",
             "21:9",
-            "9:21",
             "adaptive"
           ]
         },

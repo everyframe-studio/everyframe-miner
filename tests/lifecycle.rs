@@ -4291,7 +4291,7 @@ fn manual_worker_update_requests_reviewed_native_environment_without_cloud_mutat
     assert_eq!(out["state"], "available");
     assert_eq!(
         *r.provider_environments.borrow(),
-        vec![Some("native-v2".into())]
+        vec![Some("native-v3".into())]
     );
     assert!(r.calls.borrow().iter().all(|(p, _)| p.starts_with("GET ")));
 }

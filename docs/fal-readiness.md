@@ -1,4 +1,4 @@
-# Fal readiness in v1.0.1
+# Fal readiness in v1.1.0
 
 Workers no longer query `api.fal.ai/v1/models`. That public catalog describes
 models, not the access granted to the worker's key. Many workers behind one

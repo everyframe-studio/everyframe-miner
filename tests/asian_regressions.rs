@@ -220,3 +220,17 @@ fn ark_retains_its_thirty_second_reference_limit() {
         );
     }
 }
+
+#[test]
+fn wan_does_not_accept_an_unsupported_ratio_or_silently_truncated_prompt() {
+    for model in ["direct/alibaba/wan-3.0", "direct/alibaba/wan-3.0-prime"] {
+        assert!(
+            models::spec(
+                &json!({"model":model,"prompt":"A boat","parameters":{"aspect_ratio":"9:21"}})
+            )
+            .is_err()
+        );
+        assert!(models::spec(&json!({"model":model,"prompt":"a".repeat(20000)})).is_ok());
+        assert!(models::spec(&json!({"model":model,"prompt":"a".repeat(20001)})).is_err());
+    }
+}

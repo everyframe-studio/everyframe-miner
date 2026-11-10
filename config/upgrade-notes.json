@@ -873,9 +873,11 @@
       ]
     },
     {
-      "version": "v1.0.1",
-      "title": "WaveSpeedAI and video automatic offers",
+      "version": "v1.1.0",
+      "title": "New direct providers, WaveSpeedAI and reliable worker updates",
       "changes": [
+        "Add separate Alibaba Cloud, BytePlus and Volcengine providers with 10 image/video contracts, regional credentials and validated references.",
+        "Fix BytePlus result downloads, retain Alibaba workspaces during automatic updates, enforce provider-specific reference durations and forward sanitized asynchronous failure details.",
         "Add WaveSpeedAI key management, USD balance checks and 85 image, video and audio endpoints, including WaveSpeed-hosted Z-Image, Qwen Image 3, Seedream and H3 models.",
         "Remove Fal public-catalog polling from workers and the coordinator. Use cached authenticated worker key checks; transient check failures no longer disable every Fal model. Reviewed retirements and confirmed invalid keys remain blocked.",
         "Extend opt-in Fal automatic offers to 10 video contracts. Compare endpoint-specific prices for text, image and reference inputs and preserve configured cost limits.",
@@ -887,12 +889,12 @@
         {
           "kind": "worker-update",
           "requirement": "conditional",
-          "when": "If serving Fal or WaveSpeedAI, or using the added video automatic-offer profiles, update the CLI then install the compatible signed worker. Existing manual offers keep their settings."
+          "when": "If serving Fal or any new provider, or using video automatic offers, install the compatible signed worker after updating the CLI. The worker update preserves the existing VM and offers."
         },
         {
           "kind": "review-offers",
           "requirement": "conditional",
-          "when": "To use WaveSpeedAI, save its API key, check its balance and explicitly enable the models you want. Review and enable automatic-offer limits separately."
+          "when": "To use new providers, save and apply their keys, then explicitly enable the desired offers. Alibaba also requires its matching Singapore workspace ID. Review automatic-offer limits separately."
         }
       ]
     }

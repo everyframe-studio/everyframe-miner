@@ -30,6 +30,7 @@ fn docker_context_includes_every_embedded_registry_but_excludes_private_state() 
         "models.json",
         "provider-expansion.json",
         "asian-providers.json",
+        "wavespeed-models.json",
         "provider-model-status.json",
         "studio-video.json",
         "studio-media.json",

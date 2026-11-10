@@ -157,7 +157,7 @@ impl Miner<'_> {
         let response = self.api(
             c,
             "worker-update",
-            json!({"providerEnvironment":"native-v2"}),
+            json!({"providerEnvironment":"native-v3"}),
         )?;
         need(
             ["available", "current"].contains(&response["update"]["state"].as_str().unwrap_or("")),
@@ -480,7 +480,7 @@ impl Miner<'_> {
                 if automatic {
                     json!({})
                 } else {
-                    json!({"providerEnvironment":"native-v2"})
+                    json!({"providerEnvironment":"native-v3"})
                 },
             )?;
             let update = &discovery["update"];

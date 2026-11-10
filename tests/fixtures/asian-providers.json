@@ -18,7 +18,7 @@
       }
     },
     "inputHash": "bd75e1f595ffceda18316acd633e61e7a12434c02494b62ba79d9409f3f95a39",
-    "contractHash": "de193ad26020c2704d906faa8769181c9862266e73b2824ccfedc68c6ba994ee",
+    "contractHash": "d5cdade66a3b1b15301cb1f81f21fbdb8658dce483384ff00296e4afb633b5e1",
     "body": {
       "model": "wan3.0-video",
       "input": {
@@ -52,7 +52,7 @@
       }
     },
     "inputHash": "c1babbba1e254bd12cd933ce82b2d0f995e5f69db6938a0cebb1b78c9f5eea7b",
-    "contractHash": "ad65acd7c38eb852ac7261bc6d98fb234f48cbc739129515a4b9dc06a58adcaf",
+    "contractHash": "f47a602005087c6ce640740d10413dce44709bce02ab59f9766ba9c3f947dc7d",
     "body": {
       "model": "wan3.0-video-prime",
       "input": {

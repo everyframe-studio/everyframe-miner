@@ -7,7 +7,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: [ubuntu-22.04, ubuntu-22.04-arm, macos-15, macos-15-intel]
+        include:
+          - runner: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+          - runner: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+          - runner: macos-15
+            target: aarch64-apple-darwin
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     env:
@@ -38,3 +46,21 @@ jobs:
             echo "Public worker must not run without an approved release"
             exit 1
           fi
+
+      - name: Package release candidate without publishing
+        if: startsWith(github.ref, 'refs/heads/release/') || startsWith(github.head_ref, 'release/')
+        env:
+          EXPECTED_TARGET: ${{ matrix.target }}
+        run: |
+          rustc +1.97.1 -vV | grep -Fx "host: $EXPECTED_TARGET"
+          mkdir -p dist
+          cp target/release/everycli "dist/everycli-$EXPECTED_TARGET"
+          cd dist
+          shasum -a 256 "everycli-$EXPECTED_TARGET" > "everycli-$EXPECTED_TARGET.sha256"
+      - name: Upload reviewed candidate artifacts
+        if: startsWith(github.ref, 'refs/heads/release/') || startsWith(github.head_ref, 'release/')
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: everycli-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error

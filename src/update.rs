@@ -512,7 +512,7 @@ mod progress_tests {
         let mut v =
             crate::upgrade_notes::catalog(include_bytes!("../config/upgrade-notes.json")).unwrap();
         let mut next = v["releases"].as_array().unwrap().last().unwrap().clone();
-        next["version"] = json!("v1.1.0");
+        next["version"] = json!("v9.0.0");
         v["releases"].as_array_mut().unwrap().push(next);
         let bytes = serde_json::to_vec(&v).unwrap();
         let checksum = format!(
@@ -520,7 +520,7 @@ mod progress_tests {
             hex::encode(Sha256::digest(&bytes)),
             crate::upgrade_notes::ASSET
         );
-        let notes = resolve_upgrade_notes("v1.0.0", "v1.1.0", |name, _| {
+        let notes = resolve_upgrade_notes("v1.0.0", "v9.0.0", |name, _| {
             Ok(if name.ends_with(".sha256") {
                 checksum.as_bytes().to_vec()
             } else {
@@ -529,7 +529,7 @@ mod progress_tests {
         });
         assert_eq!(notes["status"], "complete");
         assert_eq!(notes["source"], "release_asset");
-        let bad = resolve_upgrade_notes("v1.0.0", "v1.1.0", |name, _| {
+        let bad = resolve_upgrade_notes("v1.0.0", "v9.0.0", |name, _| {
             Ok(if name.ends_with(".sha256") {
                 checksum.as_bytes().to_vec()
             } else {
@@ -538,7 +538,7 @@ mod progress_tests {
         });
         assert_eq!(bad["status"], "unavailable");
         assert_eq!(bad["workerUpdate"], "unknown");
-        let missing = resolve_upgrade_notes("v1.0.0", "v1.1.0", |_, _| {
+        let missing = resolve_upgrade_notes("v1.0.0", "v9.0.0", |_, _| {
             Err(Error("upgrade_notes_unavailable"))
         });
         assert_eq!(missing["workerUpdate"], "unknown");
