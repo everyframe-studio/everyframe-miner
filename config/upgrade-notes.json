@@ -877,6 +877,7 @@
       "title": "WaveSpeedAI and video automatic offers",
       "changes": [
         "Add WaveSpeedAI key management, USD balance checks and 85 image, video and audio endpoints, including WaveSpeed-hosted Z-Image, Qwen Image 3, Seedream and H3 models.",
+        "Remove Fal public-catalog polling from workers and the coordinator. Use cached authenticated worker key checks; transient check failures no longer disable every Fal model. Reviewed retirements and confirmed invalid keys remain blocked.",
         "Extend opt-in Fal automatic offers to 10 video contracts. Compare endpoint-specific prices for text, image and reference inputs and preserve configured cost limits.",
         "Improve automatic-offer forms with explicit missing-limit guidance and preview details.",
         "Allow longer read-only balance checks, query providers concurrently and place unsupported balances last. Expected unsupported Google balance checks stay neutral; zero or negative Phala credited funds show an alert."
@@ -886,7 +887,7 @@
         {
           "kind": "worker-update",
           "requirement": "conditional",
-          "when": "If serving WaveSpeedAI or using the added video automatic-offer profiles, update the CLI then install the compatible signed worker. Existing manual offers keep their settings."
+          "when": "If serving Fal or WaveSpeedAI, or using the added video automatic-offer profiles, update the CLI then install the compatible signed worker. Existing manual offers keep their settings."
         },
         {
           "kind": "review-offers",

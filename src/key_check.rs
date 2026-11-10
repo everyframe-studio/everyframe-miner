@@ -151,12 +151,26 @@ fn classify_error(provider: &str, code: &str) -> Verdict {
 
 /// Checks one key. Returns the verdict and a fixed reason code for display.
 pub fn check(http: &dyn Http, provider: &str, key: &str) -> (Verdict, &'static str) {
+    check_with_timeout(
+        http,
+        provider,
+        key,
+        crate::balances::BALANCE_TIMEOUT_SECONDS,
+    )
+}
+
+pub(crate) fn check_with_timeout(
+    http: &dyn Http,
+    provider: &str,
+    key: &str,
+    timeout_seconds: u64,
+) -> (Verdict, &'static str) {
     let Some(p) = probe(provider, key) else {
         return (Verdict::Unverified, "key_check_unsupported");
     };
     let mut req = Request::get(p.url, &[p.host]);
     req.headers = p.headers;
-    req.timeout = crate::balances::BALANCE_TIMEOUT_SECONDS;
+    req.timeout = timeout_seconds;
     req.limit = 256_000;
     match http.json(req) {
         Ok(v) => {

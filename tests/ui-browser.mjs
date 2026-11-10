@@ -504,6 +504,13 @@ try {
   assert.equal(availabilityUI.canWithdraw,true);
   assert.match(availabilityUI.report[0].message,/Skipped.*deprecated/);
 
+  const falReadiness=await page.evaluate(()=>({
+    unchecked:readiness({provider:'fal',offerable:true,workerAvailability:{status:'unchecked'},blockers:[]}),
+    rejected:readiness({provider:'fal',offerable:false,workerAvailability:{status:'access_denied'},blockers:['provider_model_access_denied']})
+  }));
+  assert.deepEqual(falReadiness.unchecked,['Available · no per-model check','']);
+  assert.equal(falReadiness.rejected[1],'bad');
+
   const approvalGuard = await page.evaluate(async () => {
     const originals = { api, poll, confirmDialog };
     let dialogs = 0, submitted;

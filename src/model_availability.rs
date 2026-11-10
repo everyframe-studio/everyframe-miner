@@ -1,4 +1,4 @@
-//! Read-only catalog checks. No generation, arbitrary URLs or provider messages.
+//! Read-only provider checks. No generation, arbitrary URLs or provider messages.
 //! The signed registry remains authoritative; discovery can only narrow it.
 use crate::{
     Error, Result,
@@ -34,10 +34,17 @@ pub fn label(status: &str) -> &'static str {
 }
 /// Most provider entries a coordinator retirement list may name.
 const MAX_SERVER_RETIREMENTS: usize = 512;
+const FAL_KEY_CHECK_INTERVAL_MS: i64 = 15 * 60 * 1000;
+struct FalKeyCheck {
+    fingerprint: String,
+    checked_at: i64,
+    rejected: bool,
+}
 #[derive(Default)]
 pub struct CatalogCache {
     next_check: i64,
     rows: Vec<Value>,
+    fal_key: Option<FalKeyCheck>,
     // Provider API ids the coordinator reports as retired. Narrowing only: an
     // entry can stop this worker offering a model, never enable or reprice one.
     server_retired: BTreeMap<String, BTreeSet<String>>,
@@ -95,9 +102,53 @@ impl CatalogCache {
                 .find(|r| r["model"] == id)
                 .is_none_or(|r| matches!(r["status"].as_str(), Some("available" | "unchecked")))
     }
+    fn check_fal_key(&mut self, http: &dyn Http, key: &str, now: i64) -> Result<Option<Catalog>> {
+        let fingerprint = crate::protocol::sha(key.as_bytes());
+        let previous = self
+            .fal_key
+            .as_ref()
+            .filter(|check| check.fingerprint == fingerprint);
+        let rejected = if let Some(check) = previous.filter(|check| {
+            now >= check.checked_at
+                && now < check.checked_at.saturating_add(FAL_KEY_CHECK_INTERVAL_MS)
+        }) {
+            check.rejected
+        } else {
+            // The public model list says nothing about this key. Use the existing
+            // authenticated, non-generating key check once per key/interval. An
+            // outage is not evidence of denied model access. A known rejection
+            // is cleared only by a successful check or a changed credential.
+            let rejected = match crate::key_check::check_with_timeout(http, "fal", key, 10).0 {
+                crate::key_check::Verdict::Valid => false,
+                crate::key_check::Verdict::Rejected => true,
+                crate::key_check::Verdict::Unverified => {
+                    previous.is_some_and(|check| check.rejected)
+                }
+            };
+            self.fal_key = Some(FalKeyCheck {
+                fingerprint,
+                checked_at: now,
+                rejected,
+            });
+            rejected
+        };
+        if rejected {
+            Err(Error("http_401"))
+        } else {
+            Ok(None)
+        }
+    }
     pub fn refresh(&mut self, http: &dyn Http, credentials: &Value, now: i64) -> Value {
-        if now < self.next_check {
+        let fal_fingerprint = configured(&credentials["FAL_KEY"]).then(|| {
+            crate::protocol::sha(credentials["FAL_KEY"].as_str().unwrap_or("").as_bytes())
+        });
+        let fal_changed =
+            self.fal_key.as_ref().map(|check| &check.fingerprint) != fal_fingerprint.as_ref();
+        if now < self.next_check && !fal_changed {
             return json!(self.rows);
+        }
+        if fal_fingerprint.is_none() {
+            self.fal_key = None;
         }
         let mut rows = vec![];
         for (provider, key) in PROVIDERS {
@@ -116,7 +167,11 @@ impl CatalogCache {
                 .filter(|(id, _)| self.retired_status(id).is_none())
                 .map(|(id, m)| api_id(id, m).to_string())
                 .collect();
-            let checked = check_provider(http, provider, s(&credentials[key]).unwrap_or(""), &ids);
+            let checked = if provider == "fal" && !ids.is_empty() {
+                self.check_fal_key(http, s(&credentials[key]).unwrap_or(""), now)
+            } else {
+                check_provider(http, provider, s(&credentials[key]).unwrap_or(""), &ids)
+            };
             for (id, m) in contracts {
                 let status = self.retired_status(id).unwrap_or_else(|| match &checked {
                     Ok(Some(found)) => found
@@ -445,76 +500,6 @@ fn check_provider(
                     .collect(),
             ))
         }
-        "fal" => {
-            let mut found = BTreeMap::new();
-            let mut requests = 0;
-            let mut stopped = false;
-            for chunk in ids.iter().cloned().collect::<Vec<_>>().chunks(50) {
-                if !stopped && let Err(e) = fal(http, chunk, &mut found, &mut requests) {
-                    // A rejected key still marks the whole provider.
-                    if matches!(e.0, "http_401" | "http_403") {
-                        return Err(e);
-                    }
-                    // Rate limits, outages and the request cap leave only the
-                    // unresolved models temporarily unavailable; confirmed
-                    // results stand. Stop asking until the next check.
-                    stopped = true;
-                }
-            }
-            for id in ids {
-                found.entry(id.clone()).or_insert("temporarily_unavailable");
-            }
-            Ok(Some(found))
-        }
         _ => Ok(None), // No fabricated account entitlement for other providers.
     }
-}
-fn fal(http: &dyn Http, ids: &[String], found: &mut Catalog, requests: &mut usize) -> Result<()> {
-    *requests += 1;
-    // A 50-model batch needs up to 13 calls to isolate one removed endpoint;
-    // leave room for the next catalog batch as new models are added.
-    need(*requests <= 16, "provider_catalog_request_limit")?;
-    let mut url = url::Url::parse("https://api.fal.ai/v1/models").unwrap();
-    for id in ids {
-        url.query_pairs_mut().append_pair("endpoint_id", id);
-    }
-    // Catalog metadata is public. An inference-only key need not have billing
-    // or admin permissions. Never send a key to a different metadata host.
-    let result = get(http, url.as_str(), "api.fal.ai", None);
-    match result {
-        Err(e) if e.0 == "http_404" => {
-            if ids.len() == 1 {
-                found.insert(ids[0].clone(), "removed");
-            } else {
-                let mid = ids.len() / 2;
-                fal(http, &ids[..mid], found, requests)?;
-                fal(http, &ids[mid..], found, requests)?;
-            }
-        }
-        Err(e) => return Err(e),
-        Ok(body) => {
-            let rows = body["models"]
-                .as_array()
-                .ok_or(Error("invalid_provider_catalog"))?;
-            need(
-                body["has_more"] == false && rows.len() <= 50,
-                "incomplete_provider_catalog",
-            )?;
-            for id in ids {
-                let row = rows
-                    .iter()
-                    .find(|r| r["endpoint_id"] == *id)
-                    .ok_or(Error("incomplete_provider_catalog"))?;
-                found.insert(
-                    id.clone(),
-                    if row["metadata"]["status"] == "deprecated" {
-                        "deprecated"
-                    } else {
-                        "available"
-                    },
-                );
-            }
-        }
-    }
-    Ok(())
 }

@@ -36,6 +36,11 @@ every model in the registry is necessarily available for mining.
 
 ## What's new
 
+In the v1.0.1 candidate, Fal readiness uses a cached authenticated key check.
+Workers do not poll Fal's public model catalog. A failed metadata or key-check
+request does not disable all Fal models; confirmed invalid keys and reviewed
+model retirements still block work. See [Fal readiness](docs/fal-readiness.md).
+
 The unreleased v1.0.1 candidate adds [WaveSpeedAI](WAVESPEED.md), including 85
 reviewed endpoints, plus automatic offers for 10 Fal video contracts. New provider
 capabilities require the coordinated server and signed worker update.

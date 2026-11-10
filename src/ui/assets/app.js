@@ -1501,7 +1501,8 @@ function readiness(r) {
   if (catalog?.status === "temporarily_unavailable") return [
     typeof catalog.checkedAt === "number" && Date.now() - catalog.checkedAt > 3600000
       ? "Provider catalog check is stale" : "Provider catalog check temporarily unavailable", "warn"];
-  if (r.workerAvailability?.status === "unchecked" && r.offerable === true) return ["Available · account access not checked", "warn"];
+  if (r.workerAvailability?.status === "unchecked" && r.offerable === true) return r.provider === "fal"
+    ? ["Available · no per-model check", ""] : ["Available · account access not checked", "warn"];
   if (!S.overview?.initialized && r.catalogGroup === "supported") return ["Listed · setup required", ""];
   if (r.offerable === true) return ["Available", "ok"];
   return ["Not reported", ""];

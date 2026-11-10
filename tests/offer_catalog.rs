@@ -134,3 +134,18 @@ fn doctor_distinguishes_release_permission_from_api_key_validation() {
     assert!(detail.contains("Do not redeploy"));
     assert!(invitation::provider_check_detail(true).contains("does not verify the key"));
 }
+
+#[test]
+fn fal_without_per_model_discovery_is_available_without_claiming_entitlements() {
+    let row = json!({"provider":"fal","offerable":true,"contractAvailable":true,"blockers":[],"workerAvailability":{"status":"unchecked"}});
+    assert_eq!(
+        offer_catalog::readiness(&row),
+        "Available · no per-model check"
+    );
+    let mut rejected = row;
+    rejected["workerAvailability"]["status"] = json!("access_denied");
+    assert_eq!(
+        offer_catalog::readiness(&rejected),
+        "Provider access unavailable for this key"
+    );
+}
