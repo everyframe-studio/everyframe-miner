@@ -280,12 +280,18 @@ impl Miner<'_> {
                     .filter(|r| r["status"] != "ready" && r["status"] != "paused")
                     .filter_map(|r| {
                         let model = r["model"].as_str()?;
-                        scope.iter().any(|s| s["model"] == model).then(|| {
-                            (
-                                model.to_owned(),
-                                safe_preview_reason(r["reason"].as_str().unwrap_or("")).to_owned(),
-                            )
-                        })
+                        let mut reason = r["reason"].as_str().unwrap_or("");
+                        if reason == "automatic_offer_price_unavailable"
+                            && let Some(source) = prices
+                                .iter()
+                                .find(|p| p["model"] == model && p["status"] != "ok")
+                        {
+                            reason = source["code"].as_str().unwrap_or(reason);
+                        }
+                        scope
+                            .iter()
+                            .any(|s| s["model"] == model)
+                            .then(|| (model.to_owned(), safe_preview_reason(reason).to_owned()))
                     })
                     .take(64)
                     .collect(),
