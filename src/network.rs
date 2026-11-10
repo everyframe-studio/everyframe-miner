@@ -364,7 +364,8 @@ impl Http for PublicHttp {
                         | "queue.fal.run"
                         | "api-singapore.klingai.com"
                         | "api.dev.pika.art"
-                ) || crate::submission::PROVIDER_ERROR_HOSTS.contains(&host)
+                ) || crate::asian_provider::api_host(host)
+                    || crate::submission::PROVIDER_ERROR_HOSTS.contains(&host)
                     || host.starts_with("api.") && host.ends_with(".bfl.ai")
                 {
                     let status = response.status().as_u16();
@@ -380,6 +381,9 @@ impl Http for PublicHttp {
                         }
                         "api.dev.pika.art" => crate::submission::pika_http_error(status, &bytes),
                         "api.vivix.ai" => crate::submission::vivix_http_error(status, &bytes),
+                        h if crate::asian_provider::api_host(h) => {
+                            crate::asian_provider::http_error(status, &bytes)
+                        }
                         _ => crate::diagnostics::http_error(status),
                     };
                     let secrets: Vec<String> = r

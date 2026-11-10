@@ -1,0 +1,834 @@
+{
+  "direct/alibaba/wan-3.0": {
+    "provider": "alibaba",
+    "apiModel": "wan3.0-video",
+    "name": "Wan 3.0 (Alibaba)",
+    "vendor": "Alibaba",
+    "family": "Wan",
+    "kind": "video",
+    "nativeMedia": true,
+    "asianMedia": true,
+    "adapter": "alibaba-video",
+    "apiPath": "/api/v1/services/aigc/video-generation/video-synthesis",
+    "referenceTransport": "owned-url",
+    "deadlineMs": 1200000,
+    "maxPrompt": 32000,
+    "seed": true,
+    "feeMultiplier": 1,
+    "mime": "video/mp4",
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "params": {
+      "duration": 5,
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "generate_audio": true
+    },
+    "parameterSchema": {
+      "type": "object",
+      "properties": {
+        "duration": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 30
+        },
+        "resolution": {
+          "enum": [
+            "480p",
+            "720p",
+            "1080p"
+          ]
+        },
+        "aspect_ratio": {
+          "enum": [
+            "16:9",
+            "9:16",
+            "1:1",
+            "4:3",
+            "3:4",
+            "21:9",
+            "9:21",
+            "adaptive"
+          ]
+        },
+        "generate_audio": {
+          "type": "boolean"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "duration",
+        "resolution",
+        "aspect_ratio",
+        "generate_audio"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxImages": 9,
+      "maxVideos": 3,
+      "maxAudios": 3,
+      "maxReferenceDurationMs": 30000,
+      "minDuration": 2
+    },
+    "schemaUrl": "https://help.aliyun.com/en/model-studio/wan3-video-generation-api-reference",
+    "documentationCheckedAt": "2026-11-10",
+    "validationStatus": "offline-tested",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "audio": true,
+    "maxDurationMs": 30000
+  },
+  "direct/alibaba/wan-3.0-prime": {
+    "provider": "alibaba",
+    "apiModel": "wan3.0-video-prime",
+    "name": "Wan 3.0 Prime (Alibaba)",
+    "vendor": "Alibaba",
+    "family": "Wan",
+    "kind": "video",
+    "nativeMedia": true,
+    "asianMedia": true,
+    "adapter": "alibaba-video",
+    "apiPath": "/api/v1/services/aigc/video-generation/video-synthesis",
+    "referenceTransport": "owned-url",
+    "deadlineMs": 1200000,
+    "maxPrompt": 32000,
+    "seed": true,
+    "feeMultiplier": 1,
+    "mime": "video/mp4",
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "params": {
+      "duration": 5,
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "generate_audio": true
+    },
+    "parameterSchema": {
+      "type": "object",
+      "properties": {
+        "duration": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 30
+        },
+        "resolution": {
+          "enum": [
+            "480p",
+            "720p",
+            "1080p"
+          ]
+        },
+        "aspect_ratio": {
+          "enum": [
+            "16:9",
+            "9:16",
+            "1:1",
+            "4:3",
+            "3:4",
+            "21:9",
+            "9:21",
+            "adaptive"
+          ]
+        },
+        "generate_audio": {
+          "type": "boolean"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "duration",
+        "resolution",
+        "aspect_ratio",
+        "generate_audio"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxImages": 9,
+      "maxVideos": 3,
+      "maxAudios": 3,
+      "maxReferenceDurationMs": 30000,
+      "minDuration": 2
+    },
+    "schemaUrl": "https://help.aliyun.com/en/model-studio/wan3-video-generation-api-reference",
+    "documentationCheckedAt": "2026-11-10",
+    "validationStatus": "offline-tested",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "audio": true,
+    "maxDurationMs": 30000
+  },
+  "direct/byteplus/seedance-2.5": {
+    "provider": "byteplus",
+    "apiModel": "dreamina-seedance-2-5-260628",
+    "name": "Seedance 2.5 (Byteplus)",
+    "vendor": "ByteDance",
+    "family": "Seedance",
+    "kind": "video",
+    "nativeMedia": true,
+    "asianMedia": true,
+    "adapter": "ark-video",
+    "apiPath": "/api/v3/contents/generations/tasks",
+    "referenceTransport": "owned-url",
+    "deadlineMs": 1200000,
+    "maxPrompt": 12000,
+    "seed": true,
+    "feeMultiplier": 1,
+    "mime": "video/mp4",
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "params": {
+      "duration": 5,
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "generate_audio": true
+    },
+    "parameterSchema": {
+      "type": "object",
+      "properties": {
+        "duration": {
+          "type": "integer",
+          "minimum": 4,
+          "maximum": 30
+        },
+        "resolution": {
+          "enum": [
+            "480p",
+            "720p",
+            "1080p"
+          ]
+        },
+        "aspect_ratio": {
+          "enum": [
+            "16:9",
+            "9:16",
+            "1:1",
+            "4:3",
+            "3:4",
+            "21:9",
+            "9:21",
+            "adaptive"
+          ]
+        },
+        "generate_audio": {
+          "type": "boolean"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "duration",
+        "resolution",
+        "aspect_ratio",
+        "generate_audio"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxImages": 30,
+      "maxVideos": 10,
+      "maxAudios": 10,
+      "maxReferenceDurationMs": 30000,
+      "minDuration": 4
+    },
+    "schemaUrl": "https://docs.byteplus.com/en/docs/modelark/create-video-generation-task-api",
+    "documentationCheckedAt": "2026-11-10",
+    "validationStatus": "offline-tested",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "audio": true,
+    "maxDurationMs": 30000
+  },
+  "direct/volcengine/seedance-2.5": {
+    "provider": "volcengine",
+    "apiModel": "doubao-seedance-2-5-260628",
+    "name": "Seedance 2.5 (Volcengine)",
+    "vendor": "ByteDance",
+    "family": "Seedance",
+    "kind": "video",
+    "nativeMedia": true,
+    "asianMedia": true,
+    "adapter": "ark-video",
+    "apiPath": "/api/v3/contents/generations/tasks",
+    "referenceTransport": "owned-url",
+    "deadlineMs": 1200000,
+    "maxPrompt": 12000,
+    "seed": true,
+    "feeMultiplier": 1,
+    "mime": "video/mp4",
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "params": {
+      "duration": 5,
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "generate_audio": true
+    },
+    "parameterSchema": {
+      "type": "object",
+      "properties": {
+        "duration": {
+          "type": "integer",
+          "minimum": 4,
+          "maximum": 30
+        },
+        "resolution": {
+          "enum": [
+            "480p",
+            "720p",
+            "1080p"
+          ]
+        },
+        "aspect_ratio": {
+          "enum": [
+            "16:9",
+            "9:16",
+            "1:1",
+            "4:3",
+            "3:4",
+            "21:9",
+            "9:21",
+            "adaptive"
+          ]
+        },
+        "generate_audio": {
+          "type": "boolean"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "duration",
+        "resolution",
+        "aspect_ratio",
+        "generate_audio"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxImages": 30,
+      "maxVideos": 10,
+      "maxAudios": 10,
+      "maxReferenceDurationMs": 30000,
+      "minDuration": 4
+    },
+    "schemaUrl": "https://docs.volcengine.com/docs/ark/create-video-generation-task-api",
+    "documentationCheckedAt": "2026-11-10",
+    "validationStatus": "offline-tested",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "audio": true,
+    "maxDurationMs": 30000
+  },
+  "direct/alibaba/qwen-image-3.0": {
+    "provider": "alibaba",
+    "apiModel": "qwen-image-3.0",
+    "name": "Qwen Image 3.0 (Alibaba)",
+    "vendor": "Alibaba",
+    "family": "Qwen Image",
+    "kind": "image",
+    "nativeMedia": true,
+    "asianMedia": true,
+    "adapter": "alibaba-image",
+    "apiPath": "/compatible-mode/v1/images/generations",
+    "referenceTransport": "owned-url",
+    "deadlineMs": 600000,
+    "maxPrompt": 18000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "params": {
+      "size": "2048x2048",
+      "n": 1,
+      "watermark": false
+    },
+    "parameterSchema": {
+      "type": "object",
+      "properties": {
+        "size": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{2,3}x[1-9][0-9]{2,3}$"
+        },
+        "n": {
+          "const": 1
+        },
+        "watermark": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "size",
+        "n",
+        "watermark"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxImages": 3,
+      "minPixels": 262144,
+      "maxPixels": 4194304,
+      "maxAspect": 3
+    },
+    "schemaUrl": "https://help.aliyun.com/en/model-studio/qwen-image-generation-and-editing-api-reference",
+    "documentationCheckedAt": "2026-11-10",
+    "validationStatus": "offline-tested",
+    "duration": null,
+    "resolution": "2048px",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        2048,
+        2048
+      ]
+    ],
+    "mime": "image/png",
+    "codecs": [
+      "png",
+      "jpeg"
+    ],
+    "audio": false,
+    "maxDurationMs": null
+  },
+  "direct/alibaba/qwen-image-3.0-pro": {
+    "provider": "alibaba",
+    "apiModel": "qwen-image-3.0-pro",
+    "name": "Qwen Image 3.0 Pro (Alibaba)",
+    "vendor": "Alibaba",
+    "family": "Qwen Image",
+    "kind": "image",
+    "nativeMedia": true,
+    "asianMedia": true,
+    "adapter": "alibaba-image",
+    "apiPath": "/compatible-mode/v1/images/generations",
+    "referenceTransport": "owned-url",
+    "deadlineMs": 600000,
+    "maxPrompt": 18000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "params": {
+      "size": "2048x2048",
+      "n": 1,
+      "watermark": false
+    },
+    "parameterSchema": {
+      "type": "object",
+      "properties": {
+        "size": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{2,3}x[1-9][0-9]{2,3}$"
+        },
+        "n": {
+          "const": 1
+        },
+        "watermark": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "size",
+        "n",
+        "watermark"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxImages": 3,
+      "minPixels": 262144,
+      "maxPixels": 4194304,
+      "maxAspect": 3
+    },
+    "schemaUrl": "https://help.aliyun.com/en/model-studio/qwen-image-generation-and-editing-api-reference",
+    "documentationCheckedAt": "2026-11-10",
+    "validationStatus": "offline-tested",
+    "duration": null,
+    "resolution": "2048px",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        2048,
+        2048
+      ]
+    ],
+    "mime": "image/png",
+    "codecs": [
+      "png",
+      "jpeg"
+    ],
+    "audio": false,
+    "maxDurationMs": null
+  },
+  "direct/byteplus/seedream-5.0-pro": {
+    "provider": "byteplus",
+    "apiModel": "dola-seedream-5-0-pro-260628",
+    "name": "Seedream 5.0 Pro (Byteplus)",
+    "vendor": "ByteDance",
+    "family": "Seedream",
+    "kind": "image",
+    "nativeMedia": true,
+    "asianMedia": true,
+    "adapter": "ark-image",
+    "apiPath": "/api/v3/images/generations",
+    "referenceTransport": "owned-url",
+    "deadlineMs": 600000,
+    "maxPrompt": 12000,
+    "seed": true,
+    "feeMultiplier": 1,
+    "params": {
+      "size": "2048x2048",
+      "n": 1,
+      "watermark": false,
+      "output_format": "png"
+    },
+    "parameterSchema": {
+      "type": "object",
+      "properties": {
+        "size": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{2,3}x[1-9][0-9]{2,3}$"
+        },
+        "n": {
+          "const": 1
+        },
+        "watermark": {
+          "type": "boolean"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "output_format": {
+          "enum": [
+            "png",
+            "jpeg"
+          ]
+        }
+      },
+      "required": [
+        "size",
+        "n",
+        "watermark",
+        "output_format"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxImages": 14,
+      "minPixels": 1048576,
+      "maxPixels": 4194304,
+      "maxAspect": 3
+    },
+    "schemaUrl": "https://docs.byteplus.com/en/docs/modelark/image-generation-api",
+    "documentationCheckedAt": "2026-11-10",
+    "validationStatus": "offline-tested",
+    "duration": null,
+    "resolution": "2048px",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        2048,
+        2048
+      ]
+    ],
+    "mime": "image/png",
+    "codecs": [
+      "png",
+      "jpeg"
+    ],
+    "audio": false,
+    "maxDurationMs": null
+  },
+  "direct/byteplus/seedream-5.0-flash": {
+    "provider": "byteplus",
+    "apiModel": "dola-seedream-5-0-flash-260915",
+    "name": "Seedream 5.0 Flash (Byteplus)",
+    "vendor": "ByteDance",
+    "family": "Seedream",
+    "kind": "image",
+    "nativeMedia": true,
+    "asianMedia": true,
+    "adapter": "ark-image",
+    "apiPath": "/api/v3/images/generations",
+    "referenceTransport": "owned-url",
+    "deadlineMs": 600000,
+    "maxPrompt": 12000,
+    "seed": true,
+    "feeMultiplier": 1,
+    "params": {
+      "size": "2048x2048",
+      "n": 1,
+      "watermark": false,
+      "output_format": "png"
+    },
+    "parameterSchema": {
+      "type": "object",
+      "properties": {
+        "size": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{2,3}x[1-9][0-9]{2,3}$"
+        },
+        "n": {
+          "const": 1
+        },
+        "watermark": {
+          "type": "boolean"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "output_format": {
+          "enum": [
+            "png",
+            "jpeg"
+          ]
+        }
+      },
+      "required": [
+        "size",
+        "n",
+        "watermark",
+        "output_format"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxImages": 14,
+      "minPixels": 1048576,
+      "maxPixels": 4194304,
+      "maxAspect": 3
+    },
+    "schemaUrl": "https://docs.byteplus.com/en/docs/modelark/image-generation-api",
+    "documentationCheckedAt": "2026-11-10",
+    "validationStatus": "offline-tested",
+    "duration": null,
+    "resolution": "2048px",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        2048,
+        2048
+      ]
+    ],
+    "mime": "image/png",
+    "codecs": [
+      "png",
+      "jpeg"
+    ],
+    "audio": false,
+    "maxDurationMs": null
+  },
+  "direct/volcengine/seedream-5.0-pro": {
+    "provider": "volcengine",
+    "apiModel": "doubao-seedream-5-0-pro-260628",
+    "name": "Seedream 5.0 Pro (Volcengine)",
+    "vendor": "ByteDance",
+    "family": "Seedream",
+    "kind": "image",
+    "nativeMedia": true,
+    "asianMedia": true,
+    "adapter": "ark-image",
+    "apiPath": "/api/v3/images/generations",
+    "referenceTransport": "owned-url",
+    "deadlineMs": 600000,
+    "maxPrompt": 12000,
+    "seed": true,
+    "feeMultiplier": 1,
+    "params": {
+      "size": "2048x2048",
+      "n": 1,
+      "watermark": false,
+      "output_format": "png"
+    },
+    "parameterSchema": {
+      "type": "object",
+      "properties": {
+        "size": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{2,3}x[1-9][0-9]{2,3}$"
+        },
+        "n": {
+          "const": 1
+        },
+        "watermark": {
+          "type": "boolean"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "output_format": {
+          "enum": [
+            "png",
+            "jpeg"
+          ]
+        }
+      },
+      "required": [
+        "size",
+        "n",
+        "watermark",
+        "output_format"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxImages": 14,
+      "minPixels": 1048576,
+      "maxPixels": 4194304,
+      "maxAspect": 3
+    },
+    "schemaUrl": "https://docs.volcengine.com/docs/ark/image-generation-api",
+    "documentationCheckedAt": "2026-11-10",
+    "validationStatus": "offline-tested",
+    "duration": null,
+    "resolution": "2048px",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        2048,
+        2048
+      ]
+    ],
+    "mime": "image/png",
+    "codecs": [
+      "png",
+      "jpeg"
+    ],
+    "audio": false,
+    "maxDurationMs": null
+  },
+  "direct/volcengine/seedream-5.0-flash": {
+    "provider": "volcengine",
+    "apiModel": "doubao-seedream-5-0-flash-260915",
+    "name": "Seedream 5.0 Flash (Volcengine)",
+    "vendor": "ByteDance",
+    "family": "Seedream",
+    "kind": "image",
+    "nativeMedia": true,
+    "asianMedia": true,
+    "adapter": "ark-image",
+    "apiPath": "/api/v3/images/generations",
+    "referenceTransport": "owned-url",
+    "deadlineMs": 600000,
+    "maxPrompt": 12000,
+    "seed": true,
+    "feeMultiplier": 1,
+    "params": {
+      "size": "2048x2048",
+      "n": 1,
+      "watermark": false,
+      "output_format": "png"
+    },
+    "parameterSchema": {
+      "type": "object",
+      "properties": {
+        "size": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{2,3}x[1-9][0-9]{2,3}$"
+        },
+        "n": {
+          "const": 1
+        },
+        "watermark": {
+          "type": "boolean"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "output_format": {
+          "enum": [
+            "png",
+            "jpeg"
+          ]
+        }
+      },
+      "required": [
+        "size",
+        "n",
+        "watermark",
+        "output_format"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxImages": 14,
+      "minPixels": 1048576,
+      "maxPixels": 4194304,
+      "maxAspect": 3
+    },
+    "schemaUrl": "https://docs.volcengine.com/docs/ark/image-generation-api",
+    "documentationCheckedAt": "2026-11-10",
+    "validationStatus": "offline-tested",
+    "duration": null,
+    "resolution": "2048px",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        2048,
+        2048
+      ]
+    ],
+    "mime": "image/png",
+    "codecs": [
+      "png",
+      "jpeg"
+    ],
+    "audio": false,
+    "maxDurationMs": null
+  }
+}

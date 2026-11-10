@@ -450,6 +450,9 @@ function workerControls() {
 }
 
 const PROVIDERS = {
+  alibaba: ["Alibaba Cloud", "Wan 3.0 and Qwen Image 3.0 through Model Studio in Singapore. Use a matching regional DashScope API key."],
+  byteplus: ["BytePlus", "Seedance 2.5 and Seedream 5.0 through ModelArk in Singapore. Use your BytePlus API key."],
+  volcengine: ["Volcengine", "Seedance 2.5 and Seedream 5.0 through Ark in Beijing. Use your Volcengine Ark API key."],
   "luma-agents": ["Luma Agents", "Native UNI images and Ray video. Uses a Luma Agents API key."],
   openai: ["OpenAI", "Direct GPT Image and audio generation using your OpenAI API key."],
   xai: ["xAI", "Direct Grok image, video and speech generation using your xAI API key."],
@@ -470,7 +473,7 @@ const PROVIDERS = {
   "openrouter-billing": ["OpenRouter billing (optional)", "Used only on this computer to show your OpenRouter balance. Never sent to the worker."],
 };
 const providerName = (p) => (PROVIDERS[p] || [p])[0];
-const DIRECT_PROVIDERS = new Set(["luma-agents", "openai", "google", "xai", "elevenlabs", "minimax", "bfl", "kling", "pika", "runway", "luma", "vivix"]);
+const DIRECT_PROVIDERS = new Set(["alibaba", "byteplus", "volcengine", "luma-agents", "openai", "google", "xai", "elevenlabs", "minimax", "bfl", "kling", "pika", "runway", "luma", "vivix"]);
 const compareProviders = (a, b) => Number(!DIRECT_PROVIDERS.has(a)) - Number(!DIRECT_PROVIDERS.has(b))
   || String(providerName(a) || "").localeCompare(String(providerName(b) || ""));
 
@@ -1379,6 +1382,7 @@ function checkMessage(provider, check, saving) {
 // `extra` (e.g. Remove) sits in the same row as Save/Test so the buttons line up.
 function keyForm(provider, after, stayOn, extra = null) {
   const saved = (S.overview?.keys || []).find((k) => k.provider === provider)?.saved;
+  const workspace = provider === "alibaba" ? h("input", { type: "text", placeholder: "Singapore workspace ID", "aria-label": "Alibaba workspace ID", autocomplete: "off" }) : null;
   const input = h("input", { type: "password", autocomplete: "off", spellcheck: "false", placeholder: saved ? "Paste to replace" : "Paste key", "aria-label": providerName(provider) + " key" });
   const finish = async () => {
     if (stayOn) S.openStep = stayOn;
@@ -1403,7 +1407,7 @@ function keyForm(provider, after, stayOn, extra = null) {
     input.value = "";
     S.keyStatus[provider] = { kind: "muted", text: "Checking the key with " + providerName(provider) + "…" };
     status.replaceChildren(keyStatusView(provider));
-    const r = await api("/api/keys", { provider, key });
+    const r = await api("/api/keys", { provider, key, ...(workspace?.value.trim() ? { workspace: workspace.value.trim() } : {}) });
     const err = r.data.error;
     if (err?.error === "credential_rejected" && provider !== "fal-billing") err.message = providerName(provider) + " rejected this key, so it was not saved.";
     S.keyStatus[provider] = r.ok ? checkMessage(provider, r.data.check, true) : { kind: "error", error: err };
@@ -1419,7 +1423,7 @@ function keyForm(provider, after, stayOn, extra = null) {
   input.addEventListener("keydown", (e) => { if (e.key === "Enter") save.click(); });
   const status = h("div", { class: "key-status-wrap" }, keyStatusView(provider));
   const form = h("div", { class: "keyform" },
-    h("div", { class: "row" }, h("span", { class: "badge " + (saved ? "ok" : "") }, saved ? "SAVED" : "NOT SAVED"), input, save, test, extra),
+    h("div", { class: "row" }, h("span", { class: "badge " + (saved ? "ok" : "") }, saved ? "SAVED" : "NOT SAVED"), workspace, input, save, test, extra),
     status);
   return form;
 }

@@ -761,6 +761,9 @@ pub fn run_live() -> Result<()> {
             credentials[key] = json!(v)
         }
     }
+    if let Ok(workspace) = std::env::var(crate::invitation::ALIBABA_WORKSPACE_KEY) {
+        credentials[crate::invitation::ALIBABA_WORKSPACE_KEY] = json!(workspace);
+    }
     let stop = Arc::new(AtomicBool::new(false));
     for signal in [signal_hook::consts::SIGTERM, signal_hook::consts::SIGINT] {
         signal_hook::flag::register(signal, stop.clone())

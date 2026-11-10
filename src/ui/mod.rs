@@ -523,6 +523,12 @@ fn save_key(sh: &Shared, mut body: Value) -> Response {
         state.prepare()?;
         let mut update = serde_json::Map::new();
         update.insert(name.to_string(), json!(key.as_str()));
+        if provider == "alibaba" {
+            let workspace = body.get("workspace").cloned().unwrap_or(Value::Null);
+            if !workspace.is_null() && workspace != "" {
+                update.insert(invitation::ALIBABA_WORKSPACE_KEY.into(), workspace);
+            }
+        }
         onboarding::save_keys(&state, &Value::Object(update), None)
     })();
     match result {

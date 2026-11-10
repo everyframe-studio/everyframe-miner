@@ -20,6 +20,15 @@ pub static MODELS: LazyLock<Value> = LazyLock::new(|| {
         .as_object_mut()
         .unwrap()
         .extend(gpt.as_object().unwrap().clone());
+    let asian: Value = serde_json::from_str(include_str!("../config/asian-providers.json"))
+        .expect("reviewed Asian provider models");
+    for (id, model) in asian.as_object().unwrap() {
+        assert!(
+            models.get(id).is_none(),
+            "new providers must not replace existing contracts"
+        );
+        models[id] = model.clone();
+    }
     models
 });
 
@@ -256,6 +265,9 @@ pub fn check(value: &Value) -> Result<()> {
             .collect::<Result<Vec<_>>>()?;
         crate::native_schema::body(value, policy, &urls)?;
         return Ok(());
+    }
+    if policy["asianMedia"] == true {
+        return crate::asian_media::check(value, policy);
     }
     if policy["gptImage26"] == true {
         return crate::gpt_image26::check(p, policy, references);
@@ -573,6 +585,12 @@ pub fn check(value: &Value) -> Result<()> {
 pub fn body(spec: &Value, urls: &[String]) -> Result<(String, Value)> {
     check(spec)?;
     let m = &MODELS[s(&spec["model"])?];
+    if m["asianMedia"] == true {
+        return Ok((
+            s(&m["apiPath"])?.into(),
+            crate::asian_media::body(spec, m, urls)?,
+        ));
+    }
     if m["nativeSchema"].is_object() {
         return Ok((
             s(&m["apiPath"])?.to_string(),

@@ -726,6 +726,10 @@ impl Provider for Router<'_> {
             .chain(models::STUDIO_MODELS.as_object().unwrap().iter())
             .filter(|(id, m)| {
                 self.catalog.allows(id)
+                    && (m["provider"] != "alibaba"
+                        || crate::invitation::valid_workspace(
+                            &self.credentials[crate::invitation::ALIBABA_WORKSPACE_KEY],
+                        ))
                     && PROVIDERS
                         .iter()
                         .any(|(p, k)| m["provider"] == *p && configured(&self.credentials[k]))
