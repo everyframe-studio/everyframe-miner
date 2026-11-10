@@ -827,6 +827,9 @@ separate steps. The CLI does not initiate payouts.
 | Luma | `luma` | `LUMA_API_KEY` |
 | Luma Agents | `luma-agents` | `LUMA_AGENTS_API_KEY` |
 | ElevenLabs | `elevenlabs` | `ELEVENLABS_API_KEY` |
+| Alibaba Cloud Model Studio (Singapore) | `alibaba` | `DASHSCOPE_API_KEY` + workspace ID |
+| BytePlus ModelArk (Singapore) | `byteplus` | `BYTEPLUS_API_KEY` |
+| Volcengine Ark (Beijing) | `volcengine` | `VOLCENGINE_API_KEY` |
 | Vivix (direct API) | `vivix` | `VIVIX_API_KEY` |
 | Kling (direct API) | `kling` | `KLING_API_KEY` |
 | Fal | `fal` | `FAL_KEY` |

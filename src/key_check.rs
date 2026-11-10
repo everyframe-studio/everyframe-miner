@@ -25,6 +25,16 @@ struct Probe {
 fn probe(provider: &str, key: &str) -> Option<Probe> {
     let bearer = || vec![("Authorization".into(), format!("Bearer {key}"))];
     let (url, host, headers): (String, &str, Vec<(String, String)>) = match provider {
+        "byteplus" => (
+            "https://ark.ap-southeast.bytepluses.com/api/v3/models".into(),
+            "ark.ap-southeast.bytepluses.com",
+            bearer(),
+        ),
+        "volcengine" => (
+            "https://ark.cn-beijing.volces.com/api/v3/models".into(),
+            "ark.cn-beijing.volces.com",
+            bearer(),
+        ),
         "phala" => (
             "https://cloud-api.phala.com/api/v1/auth/me".into(),
             "cloud-api.phala.com",
@@ -213,7 +223,7 @@ pub(crate) fn check_with_timeout(
                 "fal-billing" => v["credits"]["current_balance"].is_number(),
                 "phala" => v["credits"].is_object() || v["user"].is_object(),
                 "google" => v["models"].is_array(),
-                "openai" | "xai" => v["data"].is_array(),
+                "openai" | "xai" | "byteplus" | "volcengine" => v["data"].is_array(),
                 "luma-agents" => v["balance_credits"].as_u64().is_some(),
                 "replicate" => v["username"].is_string(),
                 "bfl" => v["credits"].is_number(),

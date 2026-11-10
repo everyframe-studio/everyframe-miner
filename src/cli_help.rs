@@ -79,7 +79,7 @@ pub fn render(command: &str) -> String {
         ),
         "set-api-keys" => (
             "Save keys locally with hidden prompts showing Saved or Not saved. Enter keeps saved keys or skips missing ones; running workers are unchanged.",
-            "  --provider NAME  Select one provider (phala, fal, vivix, etc.)\n  --stdin          With --provider, read one key from a pipe; never pass keys as arguments",
+            "  --provider NAME  Select one provider (phala, fal, vivix, etc.)\n  --workspace ID   Alibaba Singapore workspace ID (with --provider alibaba)\n  --stdin          With --provider, read one key from a pipe; never pass keys as arguments",
             "set-api-keys --provider fal",
         ),
         "remove-api-key" => (

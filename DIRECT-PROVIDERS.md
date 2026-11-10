@@ -1,5 +1,8 @@
 # Direct providers
 
+Alibaba Cloud, BytePlus and Volcengine setup and supported models are documented in [ASIAN-PROVIDERS.md](ASIAN-PROVIDERS.md).
+
+
 The dashboard lists direct providers first. Open the API keys page to save a
 provider key, update the worker when required, and review readiness in Models.
 Use each provider switch or individual model offers to choose the work you

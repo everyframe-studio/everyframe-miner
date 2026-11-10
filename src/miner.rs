@@ -147,6 +147,7 @@ pub fn read_secrets(path: &Path) -> Result<Value> {
             "DSTACK_DOCKER_PASSWORD",
         ]
         .contains(&k)
+            && k != invitation::ALIBABA_WORKSPACE_KEY
             && !PROVIDERS.iter().any(|(_, key)| key == &k)
         {
             continue;

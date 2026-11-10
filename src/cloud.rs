@@ -78,6 +78,24 @@ pub fn environment(inv: &Value, credentials: &Value, provider: bool) -> Result<V
     }
     if inv["request"]["compose_file"]["allowed_envs"]
         .as_array()
+        .is_some_and(|a| {
+            a.iter()
+                .any(|k| k == crate::invitation::ALIBABA_WORKSPACE_KEY)
+        })
+    {
+        let key = crate::invitation::ALIBABA_WORKSPACE_KEY;
+        if provider && configured(&credentials["DASHSCOPE_API_KEY"]) {
+            need(
+                crate::invitation::valid_workspace(&credentials[key]),
+                "alibaba_workspace_required",
+            )?;
+            env[key] = credentials[key].clone();
+        } else {
+            env[key] = json!("");
+        }
+    }
+    if inv["request"]["compose_file"]["allowed_envs"]
+        .as_array()
         .is_some_and(|a| a.iter().any(|k| k == "EVERYFRAME_UPDATER_SEED"))
     {
         crate::updater_vm::image(&inv["request"]["compose_file"])?;

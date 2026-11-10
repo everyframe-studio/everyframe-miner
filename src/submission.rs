@@ -1,6 +1,13 @@
 //! Fixed, non-secret diagnostics; never infer rejection from a lost response.
 pub fn rejected(code: &str) -> Option<&'static str> {
     match code {
+        "provider_auth_rejected" => Some("provider_auth_rejected"),
+        "provider_billing_required" => Some("provider_billing_required"),
+        "provider_capacity_limited" => Some("provider_capacity_limited"),
+        "provider_content_rejected" => Some("provider_content_rejected"),
+        "provider_invalid_request" | "alibaba_workspace_required" | "invalid_alibaba_workspace" => {
+            Some("provider_invalid_request")
+        }
         "http_401"
         | "vivix_auth_rejected"
         | "kling_auth_rejected"

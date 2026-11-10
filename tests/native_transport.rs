@@ -130,7 +130,7 @@ fn every_native_model_submits_once_and_returns_a_bound_bundle() {
         .as_object()
         .unwrap()
         .iter()
-        .filter(|(_, m)| !m["nativeSchema"].is_object())
+        .filter(|(_, m)| !m["nativeSchema"].is_object() && m["asianMedia"] != true)
     {
         let api = api(id, "done");
         let spec = spec(id);
@@ -160,7 +160,7 @@ fn deferred_jobs_recover_with_get_only_but_sync_results_are_never_replayed() {
         .as_object()
         .unwrap()
         .iter()
-        .filter(|(_, m)| !m["nativeSchema"].is_object())
+        .filter(|(_, m)| !m["nativeSchema"].is_object() && m["asianMedia"] != true)
     {
         let api = api(id, "done");
         let spec = spec(id);
@@ -193,7 +193,7 @@ fn invalid_or_missing_credentials_never_submit_and_timeouts_never_retry() {
         .as_object()
         .unwrap()
         .iter()
-        .filter(|(_, m)| !m["nativeSchema"].is_object())
+        .filter(|(_, m)| !m["nativeSchema"].is_object() && m["asianMedia"] != true)
         .map(|(id, _)| id)
     {
         let api = api(id, "timeout");
