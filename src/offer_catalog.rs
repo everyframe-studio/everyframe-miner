@@ -18,7 +18,7 @@ pub fn offers(status: &Value, invitation: &Value, credentials: &Value) -> Value 
         .filter(|row| integrated(row))
         .cloned()
         .collect();
-    let Some(catalog) = status["modelCatalog"].as_array().filter(|c| c.len() <= 256) else {
+    let Some(catalog) = status["modelCatalog"].as_array().filter(|c| c.len() <= 512) else {
         return json!({"minerId":status["minerId"],"routingPolicy":status["routingPolicy"],
             "offers":existing,"catalogAvailable":false});
     };
@@ -118,7 +118,9 @@ pub fn readiness(row: &Value) -> &'static str {
     } else if blocked("worker_provider_required") {
         "Enable provider on worker"
     } else if row["offerable"] == true {
-        if row["workerAvailability"]["status"] == "unchecked" {
+        if row["provider"] == "fal" && row["workerAvailability"]["status"] == "unchecked" {
+            "Available · no per-model check"
+        } else if row["workerAvailability"]["status"] == "unchecked" {
             "Available · account access not checked"
         } else {
             "Available"

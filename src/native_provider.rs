@@ -24,6 +24,7 @@ fn origin(model: &Value) -> Result<&'static str> {
         "kling" => Ok("api-singapore.klingai.com"),
         "runway" => Ok("api.dev.runwayml.com"),
         "elevenlabs" => Ok("api.elevenlabs.io"),
+        "wavespeed" => Ok("api.wavespeed.ai"),
         _ => Err(Error("unsupported_provider")),
     }
 }
@@ -137,6 +138,9 @@ impl Router<'_> {
         Ok(urls)
     }
     pub(crate) fn native_submit(&mut self, spec: &Value, model: &Value) -> Result<String> {
+        if model["asianMedia"] == true {
+            return self.asian_submit(spec, model);
+        }
         if model["gptImage26"] == true {
             return self.gpt26_submit(spec, model);
         }
@@ -241,6 +245,9 @@ impl Router<'_> {
         spec: &Value,
         model: &Value,
     ) -> Result<String> {
+        if model["asianMedia"] == true {
+            return self.asian_poll(reference, spec, model);
+        }
         if model["gptImage26"] == true {
             return self.gpt26_poll(reference, spec, model);
         }
@@ -275,6 +282,9 @@ impl Router<'_> {
         spec: &Value,
         model: &Value,
     ) -> Result<Output> {
+        if model["asianMedia"] == true {
+            return self.asian_result(reference, spec, model);
+        }
         if model["gptImage26"] == true {
             return self.gpt26_result(reference, spec, model);
         }

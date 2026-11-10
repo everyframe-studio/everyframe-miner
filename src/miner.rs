@@ -147,6 +147,7 @@ pub fn read_secrets(path: &Path) -> Result<Value> {
             "DSTACK_DOCKER_PASSWORD",
         ]
         .contains(&k)
+            && k != invitation::ALIBABA_WORKSPACE_KEY
             && !PROVIDERS.iter().any(|(_, key)| key == &k)
         {
             continue;
@@ -363,8 +364,12 @@ impl Miner<'_> {
             let mut url =
                 url::Url::parse(&r.url).map_err(|_| Error("invalid_coordinator_response"))?;
             url.query_pairs_mut().append_pair("nonce", &nonce);
+            // Asks for the per-endpoint video profiles this release can price.
+            if action == "automatic-offers" {
+                url.query_pairs_mut().append_pair("profiles", "2");
+            }
             if action == "worker-update"
-                && ["pika-v1", "native-v1"]
+                && ["pika-v1", "native-v1", "native-v2", "native-v3"]
                     .contains(&payload["providerEnvironment"].as_str().unwrap_or(""))
             {
                 url.query_pairs_mut()
@@ -930,7 +935,7 @@ impl Miner<'_> {
         let unique: std::collections::HashSet<_> = models.iter().copied().collect();
         need(
             !models.is_empty()
-                && models.len() <= 256
+                && models.len() <= 512
                 && unique.len() == models.len()
                 && models.iter().all(|m| {
                     !m.is_empty()

@@ -461,4 +461,6 @@ label.check input { margin-top: 3px; flex: none; }
 .automatic-provider summary { cursor: pointer; font-weight: 600; }
 .automatic-models { max-height: 240px; overflow-y: auto; margin: 12px 0; }
 .automatic-limits { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 12px 0; }
+.automatic-limits { align-items: end; }
 .automatic-limits input { width: 100%; }
+.automatic-limits input[aria-invalid="true"] { border-color: var(--bad); box-shadow: 0 0 0 3px var(--bad-bg); }

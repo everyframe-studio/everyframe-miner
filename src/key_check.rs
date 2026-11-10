@@ -25,6 +25,16 @@ struct Probe {
 fn probe(provider: &str, key: &str) -> Option<Probe> {
     let bearer = || vec![("Authorization".into(), format!("Bearer {key}"))];
     let (url, host, headers): (String, &str, Vec<(String, String)>) = match provider {
+        "byteplus" => (
+            "https://ark.ap-southeast.bytepluses.com/api/v3/models".into(),
+            "ark.ap-southeast.bytepluses.com",
+            bearer(),
+        ),
+        "volcengine" => (
+            "https://ark.cn-beijing.volces.com/api/v3/models".into(),
+            "ark.cn-beijing.volces.com",
+            bearer(),
+        ),
         "phala" => (
             "https://cloud-api.phala.com/api/v1/auth/me".into(),
             "cloud-api.phala.com",
@@ -76,6 +86,11 @@ fn probe(provider: &str, key: &str) -> Option<Probe> {
             "https://api.dev.pika.art/billing/balance".into(),
             "api.dev.pika.art",
             vec![("X-API-Key".into(), key.into())],
+        ),
+        "wavespeed" => (
+            "https://api.wavespeed.ai/api/v3/balance".into(),
+            "api.wavespeed.ai",
+            bearer(),
         ),
         "bfl" => (
             "https://api.bfl.ai/v1/credits".into(),
@@ -136,22 +151,42 @@ fn classify_error(provider: &str, code: &str) -> Verdict {
         // Vivix answers a funded-or-not question; a billing code still proves the key.
         ("vivix", "vivix_billing_required") => Verdict::Valid,
         ("fal-billing", "http_403") => Verdict::Rejected,
-        (_, "http_401" | "vivix_auth_rejected" | "kling_auth_rejected") => Verdict::Rejected,
+        (
+            _,
+            "http_401" | "vivix_auth_rejected" | "kling_auth_rejected" | "wavespeed_auth_rejected",
+        ) => Verdict::Rejected,
         _ => Verdict::Unverified,
     }
 }
 
 /// Checks one key. Returns the verdict and a fixed reason code for display.
 pub fn check(http: &dyn Http, provider: &str, key: &str) -> (Verdict, &'static str) {
+    check_with_timeout(
+        http,
+        provider,
+        key,
+        crate::balances::BALANCE_TIMEOUT_SECONDS,
+    )
+}
+
+pub(crate) fn check_with_timeout(
+    http: &dyn Http,
+    provider: &str,
+    key: &str,
+    timeout_seconds: u64,
+) -> (Verdict, &'static str) {
     let Some(p) = probe(provider, key) else {
         return (Verdict::Unverified, "key_check_unsupported");
     };
     let mut req = Request::get(p.url, &[p.host]);
     req.headers = p.headers;
-    req.timeout = 8;
+    req.timeout = timeout_seconds;
     req.limit = 256_000;
     match http.json(req) {
         Ok(v) => {
+            if provider == "wavespeed" && v["code"] == 401 {
+                return (Verdict::Rejected, "key_rejected");
+            }
             if provider == "kling" {
                 return match v["code"].as_i64() {
                     Some(1000..=1004 | 1103) => (Verdict::Rejected, "key_rejected"),
@@ -178,6 +213,7 @@ pub fn check(http: &dyn Http, provider: &str, key: &str) -> (Verdict, &'static s
                 };
             }
             let recognized = match provider {
+                "wavespeed" => v["code"] == 200 && v["data"]["balance"].is_number(),
                 "pika" => crate::balances::pika_remaining(&v).is_ok(),
                 "vivix" => v["code"] == 0 && v["data"]["balances"].is_array(),
                 "openrouter" => v["data"]["label"].is_string(),
@@ -187,7 +223,7 @@ pub fn check(http: &dyn Http, provider: &str, key: &str) -> (Verdict, &'static s
                 "fal-billing" => v["credits"]["current_balance"].is_number(),
                 "phala" => v["credits"].is_object() || v["user"].is_object(),
                 "google" => v["models"].is_array(),
-                "openai" | "xai" => v["data"].is_array(),
+                "openai" | "xai" | "byteplus" | "volcengine" => v["data"].is_array(),
                 "luma-agents" => v["balance_credits"].as_u64().is_some(),
                 "replicate" => v["username"].is_string(),
                 "bfl" => v["credits"].is_number(),
@@ -241,7 +277,8 @@ mod tests {
     use crate::{Error, Result};
     struct Fixed(std::result::Result<&'static str, &'static str>);
     impl Http for Fixed {
-        fn bytes(&self, _: Request) -> Result<Vec<u8>> {
+        fn bytes(&self, r: Request) -> Result<Vec<u8>> {
+            assert_eq!(r.timeout, 30);
             self.0.map(|b| b.as_bytes().to_vec()).map_err(Error)
         }
     }

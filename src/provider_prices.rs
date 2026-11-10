@@ -77,6 +77,21 @@ pub fn model_request(model: &str) -> Option<(&'static str, String)> {
     }
     None
 }
+/// Sibling fal endpoints a video job may use instead of text-to-video, with
+/// their full endpoint ids. Each has its own price; none is assumed.
+pub fn variant_endpoints(model: &str, api: &str) -> Vec<(String, String)> {
+    let Some(app) = api.strip_suffix("/text-to-video") else {
+        return vec![];
+    };
+    PROFILES["fal"][model]["endpoints"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|e| e.as_str())
+        .filter(|e| ["image-to-video", "reference-to-video"].contains(e))
+        .map(|e| (e.to_string(), format!("{app}/{e}")))
+        .collect()
+}
 pub fn valid_unit(model: &str, unit: &str) -> bool {
     let u = unit.trim().to_ascii_lowercase();
     match PROFILES["fal"][model]["meter"].as_str() {
@@ -93,6 +108,7 @@ pub fn valid_unit(model: &str, unit: &str) -> bool {
         ]
         .contains(&u.as_str()),
         Some("megapixel") => ["megapixel", "megapixels"].contains(&u.as_str()),
+        Some("kilotoken") => ["1000 tokens", "1k tokens"].contains(&u.as_str()),
         _ => false,
     }
 }
@@ -143,8 +159,12 @@ pub fn collect(
                 let (p, api) =
                     model_request(model).ok_or(Error("automatic_offer_pricing_unsupported"))?;
                 need(p == provider && m["apiModel"] == api, "invalid_price_plan")?;
-                if !ids.contains(&api) {
-                    ids.push(api);
+                for id in std::iter::once(api.clone())
+                    .chain(variant_endpoints(model, &api).into_iter().map(|(_, id)| id))
+                {
+                    if !ids.contains(&id) {
+                        ids.push(id);
+                    }
                 }
             }
             need(!ids.is_empty() && ids.len() <= 50, "invalid_price_plan")?;
@@ -173,29 +193,50 @@ pub fn collect(
                     let rows = data["prices"]
                         .as_array()
                         .ok_or(Error("invalid_provider_price"))?;
-                    let matches: Vec<_> = rows.iter().filter(|v| v["endpoint_id"] == api).collect();
-                    need(matches.len() == 1, "invalid_provider_price")?;
-                    let unit = s(&matches[0]["unit"])?;
-                    need(matches[0]["currency"] == "USD", "invalid_provider_price")?;
-                    need(valid_unit(model, unit), "automatic_offer_unit_unsupported")?;
-                    let mut endpoints = json!({});
-                    endpoints[&api] = json!({"unit_quantity":1});
-                    let mut r = request(
-                        "https://api.fal.ai/v1/models/pricing/estimate",
-                        &["api.fal.ai"],
-                    )
-                    .json(
-                        "POST",
-                        &json!({"estimate_type":"unit_price","endpoints":endpoints}),
-                    );
-                    r.headers
-                        .push(("authorization".into(), format!("Key {key}")));
-                    let estimate = http.json(r)?;
-                    need(
-                        estimate["estimate_type"] == "unit_price" && estimate["currency"] == "USD",
-                        "invalid_provider_price",
-                    )?;
-                    Ok(json!({"unit":unit,"unitPricePicousd":picousd(&estimate["total_cost"])?}))
+                    let price = |id: &str| -> Result<Value> {
+                        let matches: Vec<_> =
+                            rows.iter().filter(|v| v["endpoint_id"] == id).collect();
+                        need(matches.len() == 1, "invalid_provider_price")?;
+                        let unit = s(&matches[0]["unit"])?;
+                        need(matches[0]["currency"] == "USD", "invalid_provider_price")?;
+                        need(valid_unit(model, unit), "automatic_offer_unit_unsupported")?;
+                        let mut endpoints = json!({});
+                        endpoints[id] = json!({"unit_quantity":1});
+                        let mut r = request(
+                            "https://api.fal.ai/v1/models/pricing/estimate",
+                            &["api.fal.ai"],
+                        )
+                        .json(
+                            "POST",
+                            &json!({"estimate_type":"unit_price","endpoints":endpoints}),
+                        );
+                        r.headers
+                            .push(("authorization".into(), format!("Key {key}")));
+                        let estimate = http.json(r)?;
+                        need(
+                            estimate["estimate_type"] == "unit_price"
+                                && estimate["currency"] == "USD",
+                            "invalid_provider_price",
+                        )?;
+                        // A zero price is a catalog placeholder, never a free model.
+                        let amount = picousd(&estimate["total_cost"])?;
+                        need(amount > 0, "invalid_provider_price")?;
+                        Ok(json!({"unit":unit,"unitPricePicousd":amount}))
+                    };
+                    let mut out = price(&api)?;
+                    let variants = variant_endpoints(model, &api);
+                    if !variants.is_empty() {
+                        // An endpoint without a usable price is left out, so the
+                        // coordinator pauses only the jobs that would use it.
+                        let mut endpoints = json!({});
+                        for (name, id) in variants {
+                            if let Ok(v) = price(&id) {
+                                endpoints[name] = v;
+                            }
+                        }
+                        out["endpoints"] = endpoints;
+                    }
+                    Ok(out)
                 } else {
                     let rows = data["data"]
                         .as_array()

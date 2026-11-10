@@ -20,15 +20,16 @@ impl Http for Api {
         if let Some(code) = *self.fail.borrow() {
             return Err(Error(code));
         }
-        let body = if r.url.contains("api.fal.ai") {
-            assert!(r.headers.is_empty());
-            let url = url::Url::parse(&r.url).unwrap();
-            let ids: Vec<_> = url
-                .query_pairs()
-                .filter(|(k, _)| k == "endpoint_id")
-                .map(|(_, v)| v.to_string())
-                .collect();
-            json!({"models":ids.iter().map(|id|json!({"endpoint_id":id,"metadata":{"status":"active"}})).collect::<Vec<_>>(),"has_more":self.partial})
+        let body = if r.url.contains("rest.alpha.fal.ai") {
+            assert_eq!(r.timeout, 10);
+            assert_eq!(r.url, "https://rest.alpha.fal.ai/billing/user_balance");
+            assert!(
+                r.headers
+                    .iter()
+                    .any(|(name, value)| name.eq_ignore_ascii_case("authorization")
+                        && value.starts_with("Key "))
+            );
+            json!(1.25)
         } else if r.url.contains("api.vivix.ai") {
             assert_eq!(r.headers[0].1, "Bearer synthetic-secret");
             json!({"code":0,"data":[{"name":"vivix-w1"}]})
@@ -124,26 +125,27 @@ fn rate_limits_auth_and_partial_catalogs_are_not_model_removals() {
     }
     let mut api = api();
     api.partial = true;
-    for key in ["OPENROUTER_API_KEY", "FAL_KEY"] {
-        let rows =
-            CatalogCache::default().refresh(&api, &json!({key:"synthetic-secret"}), 1_000_000);
-        assert!(
-            rows.as_array()
-                .unwrap()
-                .iter()
-                .all(|r| retired(r["model"].as_str().unwrap()).is_some()
-                    || r["status"] == "temporarily_unavailable")
-        );
-    }
+    let rows = CatalogCache::default().refresh(
+        &api,
+        &json!({"OPENROUTER_API_KEY":"synthetic-secret"}),
+        1_000_000,
+    );
+    assert!(
+        rows.as_array()
+            .unwrap()
+            .iter()
+            .all(|r| retired(r["model"].as_str().unwrap()).is_some()
+                || r["status"] == "temporarily_unavailable")
+    );
 }
 #[test]
-fn fal_batches_public_checks_and_vivix_checks_actual_workspace() {
+fn fal_checks_one_authenticated_key_and_vivix_checks_actual_workspace() {
     let api = api();
     let mut r = Router::new(
         &api,
         json!({"FAL_KEY":"synthetic-secret","VIVIX_API_KEY":"synthetic-secret"}),
     );
-    r.refresh_availability(1_000_000);
+    let rows = r.refresh_availability(1_000_000).unwrap();
     let calls = api.calls.borrow();
     assert_eq!(
         calls
@@ -152,41 +154,28 @@ fn fal_batches_public_checks_and_vivix_checks_actual_workspace() {
             .count(),
         1
     );
-    let fal_calls: Vec<_> = calls
-        .iter()
-        .filter(|r| r.url.contains("api.fal.ai"))
-        .collect();
-    assert!(!fal_calls.is_empty());
-    let ids: Vec<String> = fal_calls
-        .iter()
-        .flat_map(|r| {
-            url::Url::parse(&r.url)
-                .unwrap()
-                .query_pairs()
-                .filter(|(k, _)| k == "endpoint_id")
-                .map(|(_, v)| v.to_string())
-                .collect::<Vec<_>>()
-        })
-        .collect();
-    assert!(fal_calls.iter().all(|r| {
-        url::Url::parse(&r.url)
-            .unwrap()
-            .query_pairs()
-            .filter(|(k, _)| k == "endpoint_id")
-            .count()
-            <= 50
-    }));
-    for policy in everyframe_miner::studio_tools::POLICIES
-        .as_object()
-        .unwrap()
-        .values()
-    {
-        assert!(ids.contains(&policy["apiModel"].as_str().unwrap().to_string()));
-    }
+    assert_eq!(
+        calls
+            .iter()
+            .filter(|r| r.url.contains("rest.alpha.fal.ai"))
+            .count(),
+        1
+    );
+    assert!(
+        calls
+            .iter()
+            .all(|r| !r.url.contains("api.fal.ai/v1/models"))
+    );
+    assert!(
+        r.models()
+            .contains(&"minimax/h3-max-turbo/text-to-video".into())
+    );
     assert!(!r.models().contains(&"fal-ai/sora-2/text-to-video".into()));
     assert!(!r.models().contains(&"fal-ai/veo2".into()));
     assert!(r.models().contains(&"studio/vivix/vivix-w1".into()));
     assert!(!r.models().contains(&"studio/vivix/vivix-w1-fast".into()));
+    assert!(rows.as_array().unwrap().iter().filter(|row|everyframe_miner::models::info(row["model"].as_str().unwrap()).unwrap()["provider"]=="fal").all(|row|retired(row["model"].as_str().unwrap()).is_some()||row["status"]=="unchecked"));
+    assert!(!rows.to_string().contains("synthetic-secret"));
 }
 #[test]
 fn every_provider_api_id_is_separate_from_immutable_contract_id() {
@@ -198,102 +187,93 @@ fn every_provider_api_id_is_separate_from_immutable_contract_id() {
 }
 
 #[test]
-fn fal_batch_not_found_isolated_without_removing_other_models() {
-    struct Split {
-        calls: RefCell<usize>,
+fn fal_key_check_outages_never_invent_model_unavailability() {
+    for code in [
+        "http_429",
+        "http_500",
+        "http_503",
+        "http_403",
+        "http_404",
+        "request_timeout",
+        "invalid_remote_json",
+    ] {
+        let api = api();
+        *api.fail.borrow_mut() = Some(code);
+        let mut router = Router::new(&api, json!({"FAL_KEY":"synthetic-secret"}));
+        let rows = router.refresh_availability(1_000_000).unwrap();
+        assert!(
+            router
+                .models()
+                .contains(&"minimax/h3-max-turbo/text-to-video".into()),
+            "{code}"
+        );
+        assert!(
+            rows.as_array()
+                .unwrap()
+                .iter()
+                .all(|r| retired(r["model"].as_str().unwrap()).is_some()
+                    || r["status"] == "unchecked"),
+            "{code}"
+        );
+        assert_eq!(api.calls.borrow().len(), 1);
     }
-    impl Http for Split {
-        fn bytes(&self, r: Request) -> Result<Vec<u8>> {
-            *self.calls.borrow_mut() += 1;
-            let u = url::Url::parse(&r.url).unwrap();
-            let ids: Vec<_> = u
-                .query_pairs()
-                .filter(|(k, _)| k == "endpoint_id")
-                .map(|(_, v)| v.to_string())
-                .collect();
-            if ids.contains(&"minimax/h3-max/text-to-video".to_string()) {
-                return Err(Error("http_404"));
-            }
-            Ok(json!({"models":ids.iter().map(|id|json!({"endpoint_id":id})).collect::<Vec<_>>(),"has_more":false}).to_string().into_bytes())
-        }
-    }
-    let api = Split {
-        calls: RefCell::new(0),
-    };
+}
+#[test]
+fn fal_key_rejection_blocks_work_until_authentication_succeeds() {
+    let api = api();
+    *api.fail.borrow_mut() = Some("http_401");
     let mut router = Router::new(&api, json!({"FAL_KEY":"synthetic-secret"}));
     let rows = router.refresh_availability(1_000_000).unwrap();
-    assert!(*api.calls.borrow() <= 16);
+    assert!(
+        rows.as_array()
+            .unwrap()
+            .iter()
+            .any(|r| r["status"] == "access_denied")
+    );
+    assert!(router.models().is_empty());
+    *api.fail.borrow_mut() = Some("http_503");
+    router.refresh_availability(1_900_001);
+    assert!(router.models().is_empty());
+    *api.fail.borrow_mut() = None;
+    router.refresh_availability(2_800_002);
     assert!(
         router
             .models()
             .contains(&"minimax/h3-max-turbo/text-to-video".into())
     );
-    assert!(
-        !router
-            .models()
-            .contains(&"minimax/h3-max/text-to-video".into())
-    );
-    assert_eq!(
-        rows.as_array()
-            .unwrap()
-            .iter()
-            .find(|r| r["model"] == "minimax/h3-max/text-to-video")
-            .unwrap()["status"],
-        "removed"
-    );
+    assert!(!router.models().contains(&"fal-ai/veo2".into()));
 }
-
 #[test]
-fn one_retired_fal_endpoint_and_a_rate_limit_leave_confirmed_models_available() {
-    // Fal answers 404 for any batch naming a retired endpoint, then 429 once a
-    // burst of requests is spent (2026-10-29: fal-ai/ltx-2/text-to-video).
-    struct Fal {
-        calls: RefCell<usize>,
-        missing: &'static str,
-        limit: usize,
+fn fal_key_checks_are_cached_independently_and_changed_keys_are_rechecked() {
+    let api = api();
+    *api.fail.borrow_mut() = Some("http_429");
+    let mut router = Router::new(
+        &api,
+        json!({"FAL_KEY":"synthetic-secret","OPENROUTER_API_KEY":"synthetic-secret"}),
+    );
+    for now in [1_000_000, 1_060_001, 1_120_002] {
+        router.refresh_availability(now);
     }
-    impl Http for Fal {
-        fn bytes(&self, r: Request) -> Result<Vec<u8>> {
-            *self.calls.borrow_mut() += 1;
-            if *self.calls.borrow() > self.limit {
-                return Err(Error("http_429"));
-            }
-            let u = url::Url::parse(&r.url).unwrap();
-            let ids: Vec<_> = u
-                .query_pairs()
-                .filter(|(k, _)| k == "endpoint_id")
-                .map(|(_, v)| v.to_string())
-                .collect();
-            if ids.iter().any(|id| id == self.missing) {
-                return Err(Error("http_404"));
-            }
-            Ok(json!({"models":ids.iter().map(|id|json!({"endpoint_id":id})).collect::<Vec<_>>(),"has_more":false}).to_string().into_bytes())
-        }
-    }
-    let api = Fal {
-        calls: RefCell::new(0),
-        missing: "minimax/h3-max/text-to-video",
-        limit: 6,
+    let count = || {
+        api.calls
+            .borrow()
+            .iter()
+            .filter(|r| r.url.contains("rest.alpha.fal.ai"))
+            .count()
     };
-    let rows =
-        CatalogCache::default().refresh(&api, &json!({"FAL_KEY":"synthetic-secret"}), 1_000_000);
-    let rows = rows.as_array().unwrap();
-    let status = |s: &str| rows.iter().filter(|r| r["status"] == s).count();
+    assert_eq!(count(), 1);
+    router.credentials["FAL_KEY"] = json!("replacement-secret");
+    router.refresh_availability(1_121_000);
+    assert_eq!(count(), 2);
+    router.refresh_availability(2_021_001);
+    assert_eq!(count(), 3);
     assert!(
-        status("available") > 0,
-        "confirmed models survive a later 429"
-    );
-    assert!(
-        status("temporarily_unavailable") > 0,
-        "unresolved models wait for the next check"
-    );
-    assert_eq!(
-        *api.calls.borrow(),
-        7,
-        "no further requests after the rate limit"
+        api.calls
+            .borrow()
+            .iter()
+            .all(|r| !r.url.contains("api.fal.ai/v1/models"))
     );
 }
-
 #[test]
 fn coordinator_retirements_only_narrow_and_skip_the_provider_check() {
     let api = api();

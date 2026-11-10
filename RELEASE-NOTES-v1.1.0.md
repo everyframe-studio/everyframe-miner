@@ -1,0 +1,33 @@
+# everycli v1.1.0
+
+EveryCLI v1.1.0 adds more provider choices and improves worker readiness and
+updates while preserving existing miner identities, offers and discounts.
+
+- New direct providers: Alibaba Cloud Model Studio, BytePlus ModelArk and
+  Volcengine Ark, covering Wan 3.0, Qwen Image 3.0, Seedance 2.5 and Seedream 5.0.
+- WaveSpeedAI support: 85 image, video and audio endpoints, API-key management
+  and USD balance checks.
+- Optional automatic offers for 10 Fal video contracts, with separate input
+  endpoint prices, miner-selected limits and clearer previews.
+- Fal readiness uses cached authenticated key checks. Public-catalog outages
+  no longer disable every Fal model.
+- Reliable provider handling: verified BytePlus output downloads, preserved
+  Alibaba workspace settings during updates, and sanitized asynchronous failure
+  explanations in job diagnostics.
+- Balance improvements: longer bounded checks, concurrent lookups, unsupported
+  balances listed last, neutral Google balance guidance and a visible alert for
+  exhausted Phala credit.
+
+## Upgrade
+
+1. Run `everycli update` and reopen `everycli ui`.
+2. Install the matching signed worker with **Update worker** or
+   `everycli worker-update` for Fal fixes, new providers or video automatic offers.
+3. Save and apply new provider credentials if needed. Alibaba Cloud also needs
+   the Singapore workspace ID matching the key.
+4. Review model offers and prices. New offers and automatic-offer policies stay
+   off until you explicitly enable them.
+
+Updating the CLI alone does not update a deployed worker. Existing VMs and offer
+settings are retained. The coordinator and compatible signed worker must be
+available before the new provider routes can serve jobs.

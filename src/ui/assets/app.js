@@ -450,6 +450,9 @@ function workerControls() {
 }
 
 const PROVIDERS = {
+  alibaba: ["Alibaba Cloud", "Wan 3.0 and Qwen Image 3.0 through Model Studio in Singapore. Use a matching regional DashScope API key."],
+  byteplus: ["BytePlus", "Seedance 2.5 and Seedream 5.0 through ModelArk in Singapore. Use your BytePlus API key."],
+  volcengine: ["Volcengine", "Seedance 2.5 and Seedream 5.0 through Ark in Beijing. Use your Volcengine Ark API key."],
   "luma-agents": ["Luma Agents", "Native UNI images and Ray video. Uses a Luma Agents API key."],
   openai: ["OpenAI", "Direct GPT Image and audio generation using your OpenAI API key."],
   xai: ["xAI", "Direct Grok image, video and speech generation using your xAI API key."],
@@ -459,6 +462,7 @@ const PROVIDERS = {
   pika: ["Pika", "Pika H3 Flex video with native audio, keyframes and visual references. Use a Pika developer API key. Your API balance is checked without generating media."],
   kling: ["Kling (direct)", "Kling developer API key, not a Fal key or legacy access/secret pair. API resource packs are separate from the web subscription. Model availability requires a signed worker release and pricing."],
   openrouter: ["OpenRouter", "Seedance and image models served through OpenRouter."],
+  wavespeed: ["WaveSpeedAI", "Image, video and audio models through WaveSpeedAI. Use a generation-capable API key from wavespeed.ai/accesskey; balance checks do not generate media."],
   minimax: ["MiniMax (direct)", "MiniMax models served by MiniMax's own API."],
   bfl: ["Black Forest Labs", "FLUX image models from BFL's own API."],
   replicate: ["Replicate", "Models hosted on Replicate."],
@@ -470,7 +474,7 @@ const PROVIDERS = {
   "openrouter-billing": ["OpenRouter billing (optional)", "Used only on this computer to show your OpenRouter balance. Never sent to the worker."],
 };
 const providerName = (p) => (PROVIDERS[p] || [p])[0];
-const DIRECT_PROVIDERS = new Set(["luma-agents", "openai", "google", "xai", "elevenlabs", "minimax", "bfl", "kling", "pika", "runway", "luma", "vivix"]);
+const DIRECT_PROVIDERS = new Set(["alibaba", "byteplus", "volcengine", "luma-agents", "openai", "google", "xai", "elevenlabs", "minimax", "bfl", "kling", "pika", "runway", "luma", "vivix"]);
 const compareProviders = (a, b) => Number(!DIRECT_PROVIDERS.has(a)) - Number(!DIRECT_PROVIDERS.has(b))
   || String(providerName(a) || "").localeCompare(String(providerName(b) || ""));
 
@@ -570,9 +574,7 @@ function bootSteps() {
     health,
     Boot.track(bal, loadBalances, () => {
       if (errorOf(S.balances)) return ["bad", errorOf(S.balances).message || "Could not read balances"];
-      const rows = value(S.balances)?.balances || [], ok = rows.filter(r => r.status === "ok");
-      if (!rows.length) return ["ok", "no keys to check"];
-      return [ok.length < rows.length ? "warn" : "ok", ok.length < rows.length ? (rows.length - ok.length) + " of " + rows.length + " unavailable" : rows.length + " providers ok"];
+      return balanceSummary(value(S.balances)?.balances || []);
     }),
     loadEarnings(),
     Boot.track(offers, () => loadOffers(), () => {
@@ -895,17 +897,44 @@ function balanceAmount(r) {
   if (r.provider === "vivix" && native?.unit === "W_CREDITS" && Number.isSafeInteger(native.remainingMicrounits)) {
     return (native.remainingMicrounits / 1e6).toLocaleString(undefined, { maximumFractionDigits: 6 }) + " W credits";
   }
-  return r.remainingUsd != null ? fmtUsd(r.remainingUsd) : "—";
+  return r.remainingUsd > 0 && r.remainingUsd < 0.01 ? "<$0.01" : r.remainingUsd != null ? fmtUsd(r.remainingUsd) : "—";
+}
+function phalaCreditAlert(r) {
+  if (r.provider !== "phala" || r.status !== "ok" || !Number.isFinite(r.remainingUsd) || r.remainingUsd > 0) return null;
+  return r.stale
+    ? "Phala's last reported credited balance was zero or negative. Refresh balances and check billing. Postpaid credit limits are not included."
+    : "Phala has no credited funds. Add funds or check your postpaid billing arrangement. Postpaid credit limits are not included.";
+}
+function balanceSummary(rows) {
+  if (!rows.length) return ["ok", "no keys to check"];
+  const unsupported = rows.filter(r => r.status === "unsupported").length;
+  const unavailable = rows.filter(r => r.status !== "unsupported" && (r.status !== "ok" || r.stale)).length;
+  const alerts = rows.some(phalaCreditAlert);
+  const details = [];
+  if (unavailable) details.push(unavailable + " unavailable or stale");
+  if (alerts) details.push("Phala credit alert");
+  if (details.length) return ["warn", details.join(" · ")];
+  if (rows.length > unsupported) details.push((rows.length - unsupported) + " checked");
+  if (unsupported) details.push(unsupported + " without balance lookup");
+  return ["ok", details.join(" · ")];
 }
 function balancesCard() {
-  const v = value(S.balances), rows = v?.balances || [];
+  const v = value(S.balances), rows = [...(v?.balances || [])]
+    .sort((a, b) => Number(a.status === "unsupported") - Number(b.status === "unsupported"));
   const panel = card("Provider balances", [button("Refresh", async () => { await loadBalances(); if (currentRoute() !== "keys") renderBalancePanel(); })],
     !S.balances ? h("p", { class: "muted" }, "Loading…") : errorOf(S.balances) ? errorView(errorOf(S.balances)) : rows.length
       ? h("div", { class: "table-wrap" }, h("table", null, h("thead", null, h("tr", null, h("th", null, "Provider"), h("th", null, "Remaining"), h("th", null, "Status"), h("th", null, "Checked"))),
         h("tbody", null, rows.map((r) => h("tr", null, h("td", null, providerName(r.provider)),
           h("td", null, balanceAmount(r)),
-          h("td", null, h("span", { class: "badge " + (r.status === "ok" && !r.stale ? "ok" : "warn") }, r.status || "—"), r.stale ? h("span", { class: "small muted" }, " stale") : null,
-            r.diagnostic ? errorView(r.diagnostic) : null),
+          h("td", null, h("span", { class: "badge " + (r.status === "unsupported" ? "" : r.status === "ok" && !r.stale && !phalaCreditAlert(r) ? "ok" : "warn") }, phalaCreditAlert(r) ? "Credit alert" : r.status || "—"), r.stale ? h("span", { class: "small muted" }, " stale") : null,
+            phalaCreditAlert(r) ? h("div", { class: "notice warn", role: "alert" }, h("b", null, "Phala credit alert"),
+              h("p", null, phalaCreditAlert(r)), h("a", { href: "https://cloud.phala.network/", target: "_blank", rel: "noopener noreferrer" }, "Check Phala billing")) : null,
+            r.diagnostic ? r.status === "unsupported"
+              ? h("div", { class: "small muted" }, h("p", null, r.diagnostic.message), h("p", null, r.diagnostic.next))
+              : errorView(r.diagnostic) : null,
+            r.provider === "google" && r.status === "unsupported" ? h("p", { class: "small" },
+              h("a", { href: "https://aistudio.google.com/billing", target: "_blank", rel: "noopener noreferrer" }, "Google AI Studio billing"), " · ",
+              h("a", { href: "https://docs.cloud.google.com/billing/docs/how-to/budgets", target: "_blank", rel: "noopener noreferrer" }, "Set up budget alerts")) : null),
           h("td", null, r.checkedAt ? ago(r.checkedAt) : "—"))))))
       : h("p", { class: "empty" }, "Save a provider key to check its balance. Some providers need a separate billing key."),
     v?.note ? h("p", { class: "small muted" }, v.note) : null);
@@ -1379,6 +1408,7 @@ function checkMessage(provider, check, saving) {
 // `extra` (e.g. Remove) sits in the same row as Save/Test so the buttons line up.
 function keyForm(provider, after, stayOn, extra = null) {
   const saved = (S.overview?.keys || []).find((k) => k.provider === provider)?.saved;
+  const workspace = provider === "alibaba" ? h("input", { type: "text", placeholder: "Singapore workspace ID", "aria-label": "Alibaba workspace ID", autocomplete: "off" }) : null;
   const input = h("input", { type: "password", autocomplete: "off", spellcheck: "false", placeholder: saved ? "Paste to replace" : "Paste key", "aria-label": providerName(provider) + " key" });
   const finish = async () => {
     if (stayOn) S.openStep = stayOn;
@@ -1403,7 +1433,7 @@ function keyForm(provider, after, stayOn, extra = null) {
     input.value = "";
     S.keyStatus[provider] = { kind: "muted", text: "Checking the key with " + providerName(provider) + "…" };
     status.replaceChildren(keyStatusView(provider));
-    const r = await api("/api/keys", { provider, key });
+    const r = await api("/api/keys", { provider, key, ...(workspace?.value.trim() ? { workspace: workspace.value.trim() } : {}) });
     const err = r.data.error;
     if (err?.error === "credential_rejected" && provider !== "fal-billing") err.message = providerName(provider) + " rejected this key, so it was not saved.";
     S.keyStatus[provider] = r.ok ? checkMessage(provider, r.data.check, true) : { kind: "error", error: err };
@@ -1419,7 +1449,7 @@ function keyForm(provider, after, stayOn, extra = null) {
   input.addEventListener("keydown", (e) => { if (e.key === "Enter") save.click(); });
   const status = h("div", { class: "key-status-wrap" }, keyStatusView(provider));
   const form = h("div", { class: "keyform" },
-    h("div", { class: "row" }, h("span", { class: "badge " + (saved ? "ok" : "") }, saved ? "SAVED" : "NOT SAVED"), input, save, test, extra),
+    h("div", { class: "row" }, h("span", { class: "badge " + (saved ? "ok" : "") }, saved ? "SAVED" : "NOT SAVED"), workspace, input, save, test, extra),
     status);
   return form;
 }
@@ -1475,7 +1505,8 @@ function readiness(r) {
   if (catalog?.status === "temporarily_unavailable") return [
     typeof catalog.checkedAt === "number" && Date.now() - catalog.checkedAt > 3600000
       ? "Provider catalog check is stale" : "Provider catalog check temporarily unavailable", "warn"];
-  if (r.workerAvailability?.status === "unchecked" && r.offerable === true) return ["Available · account access not checked", "warn"];
+  if (r.workerAvailability?.status === "unchecked" && r.offerable === true) return r.provider === "fal"
+    ? ["Available · no per-model check", ""] : ["Available · account access not checked", "warn"];
   if (!S.overview?.initialized && r.catalogGroup === "supported") return ["Listed · setup required", ""];
   if (r.offerable === true) return ["Available", "ok"];
   return ["Not reported", ""];
@@ -1760,6 +1791,10 @@ function autoUsd(micro) {
   const usd = micro / 1e6;
   return "$" + (usd >= 1 || usd === 0 ? usd.toFixed(2) : usd.toFixed(6).replace(/0+$/, "").replace(/\.(\d)$/, ".$10"));
 }
+// What "Preview prices" and "Review and enable" need, worded for the "To continue, …" notice.
+const AUTO_REQUIRED = { models: "select at least one model", maxDiscountPct: "enter a maximum discount (0% is allowed)",
+  maxDailyUsd: "enter a rolling 24-hour USD limit", maxJobUsd: "enter a per-job USD limit" };
+function joinAnd(xs) { return xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1]; }
 function automaticOffersCard() {
   if (!S.autoTried) { S.autoTried = true; loadAutomaticOffers().then(() => { if (currentRoute() === "models") render(); }); }
   const refresh = button(S.autoOffers ? "Refresh automatic offers" : "Configure automatic offers", async () => { await loadAutomaticOffers(); if (currentRoute() === "models") render(); }, "small");
@@ -1784,18 +1819,20 @@ function automaticOffersCard() {
     for (const row of supported) {
       const available = local.get(row.model)?.localKeyConfigured !== false;
       list.append(h("label", { class: "row small" }, h("input", { type: "checkbox", checked: draft.models.has(row.model), disabled: busy || !available,
-        "aria-label": "Automate " + row.model, onchange: e => { if (e.target.checked) draft.models.add(row.model); else draft.models.delete(row.model); draft.preview = null; } }),
+        "aria-label": "Automate " + row.model, onchange: e => { if (e.target.checked) draft.models.add(row.model); else draft.models.delete(row.model); draft.missing?.delete("models"); draft.preview = null; } }),
         local.get(row.model)?.name || row.model, available ? null : h("span", { class: "muted" }, "No local key saved")));
     }
     const select = button("Select eligible models", () => { draft.models = new Set(ready.map(m => m.model)); draft.preview = null; render(); }, "small");
     select.disabled = busy || !ready.length;
-    details.append(h("div", { class: "row" }, select, h("span", { class: "small muted" }, rows.length - supported.length + " contracts need complete pricing before automation.")), list);
+    details.append(h("div", { class: "row" }, select, h("span", { class: "small muted" }, (rows.length - supported.length) + (rows.length - supported.length === 1 ? " contract needs" : " contracts need") + " complete pricing before automation.")), list);
     const fields = h("div", { class: "automatic-limits" });
     for (const [key, label, max, step] of [["maxDiscountPct", "Maximum discount %", "99.9", "0.01"], ["bufferPct", "Cost buffer %", "1000", "0.01"], ["maxDailyUsd", "Rolling 24-hour estimated USD limit", "1000000", "0.000001"], ["maxJobUsd", "Per-job estimated USD limit", "1000000", "0.000001"]]) {
       fields.append(h("label", { class: "stack small" }, label, h("input", { type: "number", min: "0", max, step, value: draft[key], disabled: busy,
-        "aria-label": providerName(provider) + " " + label, oninput: e => { draft[key] = e.target.value; draft.preview = null; } })));
+        placeholder: AUTO_REQUIRED[key] ? "Required" : null, "aria-invalid": draft.missing?.has(key) ? "true" : null,
+        "aria-label": providerName(provider) + " " + label, oninput: e => { draft[key] = e.target.value; draft.missing?.delete(key); e.target.removeAttribute("aria-invalid"); draft.preview = null; } })));
     }
     details.append(fields);
+    if (draft.missing?.size) details.append(h("div", { class: "notice warn", role: "alert" }, "To continue, " + joinAnd([...draft.missing].map((k, i, ks) => i && AUTO_REQUIRED[ks[i - 1]].startsWith("enter ") ? AUTO_REQUIRED[k].replace(/^enter /, "") : AUTO_REQUIRED[k])) + "."));
     const preview = button("Preview prices", () => changeAutomaticOffers(provider, "preview"), "small");
     const enable = button(p.enabled ? "Review policy changes" : "Review and enable", () => changeAutomaticOffers(provider, "enable"), "primary small");
     const disable = button("Disable automatic offers", () => changeAutomaticOffers(provider, "disable"), "small");
@@ -1814,15 +1851,19 @@ async function changeAutomaticOffers(provider, action) {
   if (S.autoBusy || S.batchBusy || S.pendingOperations.size) return;
   const p = S.autoOffers?.automaticOffers?.providers?.find(p => p.provider === provider), draft = automaticDraft(provider, p?.policy);
   const params = action === "disable" ? { provider } : { provider, models: [...draft.models].sort().join(","), maxDiscountPct: draft.maxDiscountPct, bufferPct: draft.bufferPct, maxDailyUsd: draft.maxDailyUsd, maxJobUsd: draft.maxJobUsd };
-  if (action !== "disable" && (!params.models || !params.maxDiscountPct || !params.maxDailyUsd || !params.maxJobUsd)) {
-    draft.preview = { error: { message: "Select models and enter your maximum discount, rolling daily limit and per-job limit. A 0% maximum discount is allowed." } }; render(); return;
-  }
+  draft.missing = new Set(action === "disable" ? [] : Object.keys(AUTO_REQUIRED).filter(k => !String(params[k] ?? "").trim()));
+  if (draft.missing.size) { draft.preview = null; render(); return; }
   const epoch = S.navigationEpoch;
   S.autoBusy = true; render();
   try {
     const job = await run("auto-offers-" + action, params, { quiet: action === "preview" });
     if (action === "preview") draft.preview = errorOf(job) ? { error: errorOf(job) } : value(job)?.preview;
     else if (job.state === "done") { S.autoDrafts.delete(provider); await loadOffers(); }
+    else if (action === "enable" && [errorOf(job)?.error, errorOf(job)?.code].includes("automatic_offer_preview_blocked")) {
+      // Show why instead of pointing at the CLI: the same limits, previewed, carry each model's reason.
+      const check = await run("auto-offers-preview", params, { quiet: true });
+      draft.preview = errorOf(check) ? { error: errorOf(check) } : value(check)?.preview;
+    }
   } finally {
     S.autoBusy = false;
     if (action !== "preview") await loadAutomaticOffers();

@@ -18,7 +18,7 @@ impl Http for Api {
         safe_url(&r.url, &r.hosts).unwrap();
         assert_eq!(r.method, "GET");
         assert!(r.redirect_hosts.is_empty());
-        assert_eq!(r.timeout, 5);
+        assert_eq!(r.timeout, balances::BALANCE_TIMEOUT_SECONDS);
         assert!(r.body.is_none());
         self.calls.borrow_mut().push(r);
         if self.fail {
@@ -295,4 +295,102 @@ fn every_readable_provider_is_asked_at_its_own_read_only_endpoint() {
             );
         }
     }
+}
+
+#[test]
+fn unsupported_balances_sort_last_without_hiding_failures_or_zero_balances() {
+    let now = everyframe_miner::now();
+    let rows = balances::merge(
+        &json!([]),
+        vec![
+            balances::row("google", "unsupported", None, now),
+            balances::row("bfl", "ok", Some(0.0), now),
+            balances::row("fal", "unavailable", None, now),
+            balances::row("openai", "unsupported", None, now),
+        ],
+        now,
+    );
+    let first_unsupported = rows
+        .iter()
+        .position(|r| r["status"] == "unsupported")
+        .unwrap();
+    assert!(
+        rows[..first_unsupported]
+            .iter()
+            .all(|r| r["status"] != "unsupported")
+    );
+    assert!(
+        rows[first_unsupported..]
+            .iter()
+            .all(|r| r["status"] == "unsupported")
+    );
+    assert_eq!(
+        rows.iter().find(|r| r["provider"] == "bfl").unwrap()["remainingUsd"],
+        0.0
+    );
+    let reversed: Vec<_> = rows.into_iter().rev().collect();
+    let text = display::render("balances", &json!({"balances":reversed}));
+    assert!(text.find("bfl").unwrap() < text.find("google").unwrap());
+    assert!(text.find("fal").unwrap() < text.find("google").unwrap());
+}
+
+#[test]
+fn google_balance_is_explicitly_unsupported_and_never_queries_a_paid_endpoint() {
+    let http = api(json!({}));
+    let rows = balances::collect(&http, &json!({"GEMINI_API_KEY":"test-secret-key"}));
+    assert!(http.calls.borrow().is_empty());
+    assert_eq!(rows[0]["status"], "unsupported");
+    assert!(rows[0]["remainingUsd"].is_null());
+    assert!(
+        rows[0]["diagnostic"]["next"]
+            .as_str()
+            .unwrap()
+            .contains("Google AI Studio")
+    );
+}
+
+#[test]
+fn balance_timeouts_allow_a_read_only_retry_without_cloud_mutation_advice() {
+    let d = balances::diagnostic("fal", "request_timeout");
+    assert_eq!(d["code"], "request_timeout");
+    assert!(d["message"].as_str().unwrap().contains("30 seconds"));
+    assert!(!d["next"].as_str().unwrap().contains("Reconcile"));
+}
+
+#[test]
+fn phala_credit_alert_is_distinct_from_lookup_success_and_preserves_amounts() {
+    for amount in [0.0, -1.25] {
+        let mut r = balances::row("phala", "ok", Some(amount), everyframe_miner::now());
+        assert!(
+            balances::phala_credit_alert(&r)
+                .unwrap()
+                .contains("postpaid")
+        );
+        let displayed = display::render("balances", &json!({"balances":[r.clone()]}));
+        assert!(displayed.contains("WARNING — Phala credit alert"));
+        assert!(displayed.contains("Credit alert"));
+        assert!(!cli::balance_check_failed(&json!({"balances":[r.clone()]})));
+        assert_eq!(balances::reports(&[r.clone()])[0]["status"], "ok");
+        assert_eq!(r["remainingUsd"], amount);
+        r["stale"] = json!(true);
+        assert!(
+            balances::phala_credit_alert(&r)
+                .unwrap()
+                .contains("last reported")
+        );
+    }
+    for (provider, status, amount) in [
+        ("phala", "ok", Some(0.001)),
+        ("phala", "ok", None),
+        ("phala", "unavailable", Some(0.0)),
+        ("google", "unsupported", None),
+    ] {
+        assert!(
+            balances::phala_credit_alert(&balances::row(provider, status, amount, 1)).is_none()
+        );
+    }
+    let small = balances::row("phala", "ok", Some(0.001), everyframe_miner::now());
+    let displayed = display::render("balances", &json!({"balances":[small]}));
+    assert!(displayed.contains("<$0.01"));
+    assert!(!displayed.contains("WARNING"));
 }

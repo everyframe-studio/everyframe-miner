@@ -9,6 +9,8 @@ config/*
 !config/models.json
 !config/provider-expansion.json
 !config/native-media.json
+!config/asian-providers.json
+!config/wavespeed-models.json
 !config/native-schema-models.json
 !config/gpt-image-26.json
 !config/google-models.json

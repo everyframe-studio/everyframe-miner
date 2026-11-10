@@ -115,7 +115,8 @@ fn native_expansion_submits_once_and_binds_recovery_to_the_input() {
     let mut n = 0;
     for (id, m) in native_media::MODELS.as_object().unwrap() {
         if !m["nativeSchema"].is_object()
-            || ["schema-bfl", "schema-minimax-video"].contains(&m["adapter"].as_str().unwrap())
+            || ["schema-bfl", "schema-minimax-video", "schema-wavespeed"]
+                .contains(&m["adapter"].as_str().unwrap())
         {
             continue;
         }

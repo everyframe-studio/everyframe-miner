@@ -33,6 +33,7 @@ pub struct Router<'a> {
     pub(crate) speech: Option<(String, String, Vec<u8>, String)>,
     submission_deadline: Option<i64>,
     catalog: crate::model_availability::CatalogCache,
+    pub(crate) wavespeed_cache: std::cell::RefCell<Option<crate::wavespeed::Cached>>,
 }
 fn reference(v: &Value) -> Result<String> {
     need(matches("[a-zA-Z0-9_-]{1,150}", v), "invalid_provider_ref")?;
@@ -94,6 +95,7 @@ impl<'a> Router<'a> {
             speech: None,
             submission_deadline: None,
             catalog: crate::model_availability::CatalogCache::default(),
+            wavespeed_cache: std::cell::RefCell::default(),
         }
     }
     fn context(&self, spec: &Value) -> Result<(&'static Value, String)> {
@@ -726,6 +728,10 @@ impl Provider for Router<'_> {
             .chain(models::STUDIO_MODELS.as_object().unwrap().iter())
             .filter(|(id, m)| {
                 self.catalog.allows(id)
+                    && (m["provider"] != "alibaba"
+                        || crate::invitation::valid_workspace(
+                            &self.credentials[crate::invitation::ALIBABA_WORKSPACE_KEY],
+                        ))
                     && PROVIDERS
                         .iter()
                         .any(|(p, k)| m["provider"] == *p && configured(&self.credentials[k]))
@@ -1202,6 +1208,16 @@ impl Provider for Router<'_> {
 /// Classifies a provider's failure payload into one of the categories the
 /// coordinator accepts. Diagnostic wording is reported separately and never changes it.
 pub fn failure_category(provider: &str, data: &Value) -> &'static str {
+    if provider == "wavespeed" {
+        return match crate::wavespeed::error(data["code"].as_i64().unwrap_or(1403)).0 {
+            "wavespeed_auth_rejected" => "provider_auth_rejected",
+            "wavespeed_billing_required" => "provider_billing_required",
+            "wavespeed_capacity_limited" => "provider_capacity_limited",
+            "wavespeed_content_rejected" => "provider_content_rejected",
+            "wavespeed_invalid_parameters" => "provider_invalid_request",
+            _ => "provider_generation_failed",
+        };
+    }
     if provider == "pika" {
         // Only documented machine codes classify Pika errors. Prompt-influenced
         // message prose must not change moderation or failover decisions.
@@ -1289,6 +1305,9 @@ pub fn failure_category(provider: &str, data: &Value) -> &'static str {
 /// error fields only (never request echoes such as input or loc); an error that
 /// quotes the prompt can at worst pick a different fixed customer message.
 pub fn refusal(provider: &str, data: &Value) -> Option<&'static str> {
+    if provider == "wavespeed" && data["code"] == 1200 {
+        return Some("content_policy");
+    }
     if provider == "pika" {
         // Pika: documented machine codes only, as in failure_category.
         return match data["error"]["code"].as_str() {

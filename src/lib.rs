@@ -1,3 +1,5 @@
+pub mod asian_media;
+mod asian_provider;
 pub mod auto_update;
 pub mod automatic_offers;
 pub mod balances;
@@ -41,6 +43,7 @@ pub mod ui;
 pub mod update;
 pub mod updater_vm;
 pub mod upgrade_notes;
+pub mod wavespeed;
 pub mod worker;
 pub mod worker_auto_update;
 pub mod worker_balances;

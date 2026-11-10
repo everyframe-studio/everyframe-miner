@@ -278,6 +278,13 @@ pub fn credential_key(provider: &str) -> Result<&'static str> {
 pub fn save_keys(state: &State, updates: &Value, remove: Option<&str>) -> Result<Value> {
     let entries = updates.as_object().ok_or(Error("invalid_credential"))?;
     for (key, value) in entries {
+        if key == invitation::ALIBABA_WORKSPACE_KEY {
+            need(
+                invitation::valid_workspace(value),
+                "invalid_alibaba_workspace",
+            )?;
+            continue;
+        }
         if let Some(value) = value.as_str() {
             need(!value.trim().is_empty(), "empty_credential")?;
             need(value.len() >= 10, "credential_too_short")?;

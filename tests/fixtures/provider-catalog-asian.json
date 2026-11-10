@@ -1,0 +1,220 @@
+[
+  {
+    "model": "direct/alibaba/wan-3.0",
+    "provider": "alibaba",
+    "request": {
+      "model": "direct/alibaba/wan-3.0",
+      "prompt": "A quiet lake"
+    },
+    "spec": {
+      "model": "direct/alibaba/wan-3.0",
+      "input": {
+        "prompt": "A quiet lake",
+        "parameters": {
+          "duration": 5,
+          "resolution": "720p",
+          "aspect_ratio": "16:9",
+          "generate_audio": true
+        },
+        "references": []
+      }
+    },
+    "hash": "bd75e1f595ffceda18316acd633e61e7a12434c02494b62ba79d9409f3f95a39"
+  },
+  {
+    "model": "direct/alibaba/wan-3.0-prime",
+    "provider": "alibaba",
+    "request": {
+      "model": "direct/alibaba/wan-3.0-prime",
+      "prompt": "A quiet lake"
+    },
+    "spec": {
+      "model": "direct/alibaba/wan-3.0-prime",
+      "input": {
+        "prompt": "A quiet lake",
+        "parameters": {
+          "duration": 5,
+          "resolution": "720p",
+          "aspect_ratio": "16:9",
+          "generate_audio": true
+        },
+        "references": []
+      }
+    },
+    "hash": "c1babbba1e254bd12cd933ce82b2d0f995e5f69db6938a0cebb1b78c9f5eea7b"
+  },
+  {
+    "model": "direct/byteplus/seedance-2.5",
+    "provider": "byteplus",
+    "request": {
+      "model": "direct/byteplus/seedance-2.5",
+      "prompt": "A quiet lake"
+    },
+    "spec": {
+      "model": "direct/byteplus/seedance-2.5",
+      "input": {
+        "prompt": "A quiet lake",
+        "parameters": {
+          "duration": 5,
+          "resolution": "720p",
+          "aspect_ratio": "16:9",
+          "generate_audio": true
+        },
+        "references": []
+      }
+    },
+    "hash": "b0fb1d0539011a144ac5f670dfd446d4b2ab877806ec394feae77941575d3367"
+  },
+  {
+    "model": "direct/volcengine/seedance-2.5",
+    "provider": "volcengine",
+    "request": {
+      "model": "direct/volcengine/seedance-2.5",
+      "prompt": "A quiet lake"
+    },
+    "spec": {
+      "model": "direct/volcengine/seedance-2.5",
+      "input": {
+        "prompt": "A quiet lake",
+        "parameters": {
+          "duration": 5,
+          "resolution": "720p",
+          "aspect_ratio": "16:9",
+          "generate_audio": true
+        },
+        "references": []
+      }
+    },
+    "hash": "75388efa4089f06b3e4960da229d5e2c7283e653acad145a56a34387af16e8b3"
+  },
+  {
+    "model": "direct/alibaba/qwen-image-3.0",
+    "provider": "alibaba",
+    "request": {
+      "model": "direct/alibaba/qwen-image-3.0",
+      "prompt": "A quiet lake"
+    },
+    "spec": {
+      "model": "direct/alibaba/qwen-image-3.0",
+      "input": {
+        "prompt": "A quiet lake",
+        "parameters": {
+          "size": "2048x2048",
+          "n": 1,
+          "watermark": false
+        },
+        "references": []
+      }
+    },
+    "hash": "d047824e72da295a1e6e9d95b0220cff0b0fd8a2fc1f77da42a968d683cf0870"
+  },
+  {
+    "model": "direct/alibaba/qwen-image-3.0-pro",
+    "provider": "alibaba",
+    "request": {
+      "model": "direct/alibaba/qwen-image-3.0-pro",
+      "prompt": "A quiet lake"
+    },
+    "spec": {
+      "model": "direct/alibaba/qwen-image-3.0-pro",
+      "input": {
+        "prompt": "A quiet lake",
+        "parameters": {
+          "size": "2048x2048",
+          "n": 1,
+          "watermark": false
+        },
+        "references": []
+      }
+    },
+    "hash": "2cf6153e62f448dd60ead745544341c0918b541de37c37c614c416101df4e659"
+  },
+  {
+    "model": "direct/byteplus/seedream-5.0-pro",
+    "provider": "byteplus",
+    "request": {
+      "model": "direct/byteplus/seedream-5.0-pro",
+      "prompt": "A quiet lake"
+    },
+    "spec": {
+      "model": "direct/byteplus/seedream-5.0-pro",
+      "input": {
+        "prompt": "A quiet lake",
+        "parameters": {
+          "size": "2048x2048",
+          "n": 1,
+          "watermark": false,
+          "output_format": "png"
+        },
+        "references": []
+      }
+    },
+    "hash": "1e7d233ce53474cfaa5be3a638a469cf3c847e2a7b9629c379a11af746d6a249"
+  },
+  {
+    "model": "direct/byteplus/seedream-5.0-flash",
+    "provider": "byteplus",
+    "request": {
+      "model": "direct/byteplus/seedream-5.0-flash",
+      "prompt": "A quiet lake"
+    },
+    "spec": {
+      "model": "direct/byteplus/seedream-5.0-flash",
+      "input": {
+        "prompt": "A quiet lake",
+        "parameters": {
+          "size": "2048x2048",
+          "n": 1,
+          "watermark": false,
+          "output_format": "png"
+        },
+        "references": []
+      }
+    },
+    "hash": "3974da396e4eea3ef0142669eb09059f0a45fa4ba16973933d1d00c8e43bb28f"
+  },
+  {
+    "model": "direct/volcengine/seedream-5.0-pro",
+    "provider": "volcengine",
+    "request": {
+      "model": "direct/volcengine/seedream-5.0-pro",
+      "prompt": "A quiet lake"
+    },
+    "spec": {
+      "model": "direct/volcengine/seedream-5.0-pro",
+      "input": {
+        "prompt": "A quiet lake",
+        "parameters": {
+          "size": "2048x2048",
+          "n": 1,
+          "watermark": false,
+          "output_format": "png"
+        },
+        "references": []
+      }
+    },
+    "hash": "b0766f51915674b3a5224832a57c3fd332ea5c03bddb1f1b400168a607e8a256"
+  },
+  {
+    "model": "direct/volcengine/seedream-5.0-flash",
+    "provider": "volcengine",
+    "request": {
+      "model": "direct/volcengine/seedream-5.0-flash",
+      "prompt": "A quiet lake"
+    },
+    "spec": {
+      "model": "direct/volcengine/seedream-5.0-flash",
+      "input": {
+        "prompt": "A quiet lake",
+        "parameters": {
+          "size": "2048x2048",
+          "n": 1,
+          "watermark": false,
+          "output_format": "png"
+        },
+        "references": []
+      }
+    },
+    "hash": "211ff8c29c22ec53ed880f87fc5422f0ec0bf25574ea070534f452d1d57f2fbc"
+  }
+]

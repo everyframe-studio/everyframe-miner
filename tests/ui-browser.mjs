@@ -166,6 +166,57 @@ try {
   assert.equal(await page.getByText('Billing permission required', { exact: true }).count(), 1);
   assert.equal(await page.evaluate(() => balanceAmount({ provider: 'vivix', nativeBalance: { unit: 'W_CREDITS', remainingMicrounits: 0 } })), '0 W credits');
   assert.equal(await page.evaluate(() => balanceAmount({ provider: 'vivix', status: 'unavailable' })), '—');
+  await page.evaluate(() => {
+    S.balances.result.value.balances.unshift({provider:'google', status:'unsupported', remainingUsd:null,
+      diagnostic:{message:'Google balance query is not supported', next:'Use Google AI Studio billing'}});
+    S.balances.result.value.balances.push({provider:'bfl',status:'ok',remainingUsd:0});
+    render();
+  });
+  const balanceRows = page.locator('#provider-balances tbody tr');
+  assert.match(await balanceRows.last().innerText(), /Google/);
+  assert.match(await balanceRows.nth(2).innerText(), /Black Forest Labs/);
+  assert.equal(await balanceRows.last().locator('.badge.warn').count(), 0, 'unsupported is neutral, not a failed account');
+  assert.equal(await balanceRows.last().getByRole('link',{name:'Google AI Studio billing'}).getAttribute('href'), 'https://aistudio.google.com/billing');
+  assert.equal(await balanceRows.last().getByRole('link',{name:'Set up budget alerts'}).count(), 1);
+
+  // Real overview summary: unsupported balance APIs are normal; zero Phala
+  // funds alert separately from successful reads without hiding actual failures.
+  await page.evaluate(() => {
+    window.balanceProbeSaved = {run, balances:S.balances, health:S.health, healthAt:S.healthAt,
+      offers:S.offers, offersError:S.offersError, earnings:S.earnings, boot:S.boot};
+    run = async action => ({state:'done', result:{value:action === 'balances'
+      ? {balances:window.balanceProbeRows}
+      : {checks:[],offers:[{model:'fixture',offered:true}]}}});
+  });
+  const probeBalances = async rows => page.evaluate(async rows => {
+    window.balanceProbeRows = rows;
+    Boot.begin('Checking balances'); await bootSteps(); Boot.finish(); render();
+    return S.boot.steps.find(s => s.id === 'balances').state;
+  }, rows);
+  const googleBalance = {provider:'google', status:'unsupported', remainingUsd:null};
+  assert.equal(await probeBalances([googleBalance]), 'ok', 'unsupported Google balance must not warn on overview');
+  assert.equal(await page.locator('#hero-side .chk.warn').filter({hasText:'Provider balances'}).count(), 0);
+  assert.equal(await page.locator('#hero-side .hero-checks.warn').count(), 0, 'Google alone cannot turn healthy overview checks yellow');
+  assert.equal(await page.locator('#provider-balances .badge.warn').count(), 0);
+  assert.equal(await probeBalances([googleBalance,{provider:'phala',status:'ok',remainingUsd:0}]), 'warn');
+  const creditAlert = page.locator('#provider-balances').getByRole('alert');
+  assert.match(await creditAlert.innerText(), /Phala credit alert[\s\S]*postpaid/i);
+  assert.equal(await creditAlert.getByRole('link',{name:'Check Phala billing'}).getAttribute('href'), 'https://cloud.phala.network/');
+  assert.equal(await page.locator('#provider-balances .badge.ok').count(), 0);
+  assert.equal(await page.locator('#provider-balances .badge.warn').innerText(), 'Credit alert');
+  assert.equal(await probeBalances([{provider:'phala',status:'ok',remainingUsd:0,stale:true}]), 'warn');
+  assert.match(await creditAlert.innerText(), /last reported/);
+  assert.equal(await probeBalances([googleBalance,{provider:'phala',status:'ok',remainingUsd:0.001}]), 'ok');
+  assert.equal(await creditAlert.count(), 0, 'adding positive credit clears the alert');
+  assert.match(await page.locator('#provider-balances').innerText(), /<\$0\.01/);
+  assert.equal(await probeBalances([googleBalance,{provider:'phala',status:'unavailable',remainingUsd:null}]), 'warn');
+  assert.equal(await creditAlert.count(), 0, 'unknown balance is not treated as zero');
+  await page.evaluate(() => {
+    const saved = window.balanceProbeSaved;
+    run = saved.run;
+    for (const key of ['balances','health','healthAt','offers','offersError','earnings','boot']) S[key] = saved[key];
+    delete window.balanceProbeSaved; delete window.balanceProbeRows; render();
+  });
 
   await page.evaluate(() => {
     window.balanceTestOriginalRun=run;
@@ -403,6 +454,7 @@ try {
     try {
       const rows = [
         {model:'priority/fal',name:'Grok via fal',provider:'fal'},
+        {model:'priority/wavespeed',name:'WaveSpeed fixture',provider:'wavespeed'},
         {model:'priority/openrouter',name:'OpenRouter fixture',provider:'openrouter'},
         {model:'priority/xai',name:'Grok direct',provider:'xai'},
         {model:'priority/google',name:'Google direct',provider:'google'},
@@ -420,7 +472,7 @@ try {
       S.offers=original.offers;S.offerFilter=original.filter;S.modelProvider=original.provider;S.modelQuery=original.query;S.modelKind=original.kind;render();
     }
   });
-  for(const location of ['models','filters','switches'])assert.deepEqual(providerPriority[location],['google','xai','fal','openrouter']);
+  for(const location of ['models','filters','switches'])assert.deepEqual(providerPriority[location],['google','xai','fal','openrouter','wavespeed']);
   assert(providerPriority.keys);
   assert(providerPriority.unchanged,'provider priority does not enable offers or change discounts');
 
@@ -451,6 +503,13 @@ try {
   assert.equal(availabilityUI.canUpdate,false);
   assert.equal(availabilityUI.canWithdraw,true);
   assert.match(availabilityUI.report[0].message,/Skipped.*deprecated/);
+
+  const falReadiness=await page.evaluate(()=>({
+    unchecked:readiness({provider:'fal',offerable:true,workerAvailability:{status:'unchecked'},blockers:[]}),
+    rejected:readiness({provider:'fal',offerable:false,workerAvailability:{status:'access_denied'},blockers:['provider_model_access_denied']})
+  }));
+  assert.deepEqual(falReadiness.unchecked,['Available · no per-model check','']);
+  assert.equal(falReadiness.rejected[1],'bad');
 
   const approvalGuard = await page.evaluate(async () => {
     const originals = { api, poll, confirmDialog };
@@ -877,7 +936,9 @@ try {
   assert.equal(await page.getByLabel('fal Maximum discount %').inputValue(),'');
   assert.equal(await page.getByLabel('fal Rolling 24-hour estimated USD limit').inputValue(),'');
   await page.getByRole('button',{name:'Preview prices',exact:true}).click();
-  await page.getByText('Select models and enter your maximum discount, rolling daily limit and per-job limit. A 0% maximum discount is allowed.',{exact:true}).waitFor();
+  await page.getByText('To continue, select at least one model, enter a maximum discount (0% is allowed), a rolling 24-hour USD limit and a per-job USD limit.',{exact:true}).waitFor();
+  assert.equal(await page.getByLabel('fal Per-job estimated USD limit').getAttribute('aria-invalid'),'true','missing limits are marked');
+  assert.equal(await page.getByLabel('fal Cost buffer %').getAttribute('aria-invalid'),null,'the cost buffer has a default');
   await page.getByLabel('Automate studio/media/fal/xai/grok-imagine-image').check();
   await page.getByLabel('fal Maximum discount %').fill('0');
   await page.getByLabel('fal Rolling 24-hour estimated USD limit').fill('1');
@@ -898,6 +959,19 @@ try {
   assert.deepEqual(automaticPreview.draft,['studio/media/fal/xai/grok-imagine-image']);
   await page.getByText('Grok test: Ready · 0.00% off',{exact:false}).waitFor();
   assert.equal(await page.getByLabel('fal Rolling 24-hour estimated USD limit').inputValue(),'1','preview redraw preserves limits');
+  const blockedEnable = await page.evaluate(async()=>{
+    const original={run,loadOffers,loadAutomaticOffers};const calls=[];
+    try{
+      run=async(action,params)=>{calls.push(action);return action==='auto-offers-enable'
+        ?{state:'failed',result:{error:{error:'automatic_offer_preview_blocked',message:'A selected model has no safe automatic offer preview.'}}}
+        :{state:'done',result:{value:{preview:{rows:[{model:'studio/media/fal/xai/grok-imagine-image',status:'unsupported',reason:'automatic_offer_unit_unsupported'}]}}}};};
+      loadOffers=async()=>{};loadAutomaticOffers=async()=>{};
+      await changeAutomaticOffers('fal','enable');
+      return calls;
+    }finally{({run,loadOffers,loadAutomaticOffers}=original);}
+  });
+  assert.deepEqual(blockedEnable,['auto-offers-enable','auto-offers-preview'],'a blocked enable explains itself with a preview');
+  await page.getByText('Grok test: Provider billing unit needs review',{exact:true}).waitFor();
   for(const width of [1440,390,320]){
     await page.setViewportSize({width,height:900});
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'automatic offer form fits '+width);

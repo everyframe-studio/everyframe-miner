@@ -500,6 +500,9 @@ fn minimax_policy(raw: &Value, spec: &Value, model: &Value) -> Result<()> {
 }
 
 fn extra_policy(raw: &Value, spec: &Value, model: &Value) -> Result<()> {
+    if model["provider"] == "wavespeed" {
+        return crate::wavespeed::reference_policy(raw, spec, model);
+    }
     let refs = spec["input"]["references"].as_array().unwrap();
     if model["adapter"] == "schema-minimax-image" {
         need(

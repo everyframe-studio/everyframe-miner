@@ -15,6 +15,9 @@ impl Router<'_> {
         model: &Value,
         body: &Value,
     ) -> Result<String> {
+        if model["provider"] == "wavespeed" {
+            return self.wavespeed_submit(spec, model, body);
+        }
         if model["provider"] == "runway" {
             let data =
                 self.http
@@ -284,6 +287,9 @@ impl Router<'_> {
         spec: &Value,
         model: &Value,
     ) -> Result<String> {
+        if model["provider"] == "wavespeed" {
+            return self.wavespeed_poll(reference, spec, model);
+        }
         if model["adapter"] == "schema-minimax-tts"
             || model["adapter"] == "schema-minimax-image"
             || model["provider"] == "elevenlabs"
@@ -362,6 +368,9 @@ impl Router<'_> {
         spec: &Value,
         model: &Value,
     ) -> Result<Output> {
+        if model["provider"] == "wavespeed" {
+            return self.wavespeed_result(reference, spec, model);
+        }
         if model["adapter"] == "schema-minimax-tts"
             || model["adapter"] == "schema-minimax-image"
             || model["provider"] == "elevenlabs"

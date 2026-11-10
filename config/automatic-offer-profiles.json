@@ -75,6 +75,113 @@
       "meter": "megapixel",
       "baselineUnitMicrousd": 12000,
       "mode": "proportional"
+    },
+    "studio/fal/minimax/h3-max/text-to-video": {
+      "apiModel": "minimax/h3-max/text-to-video",
+      "meter": "second",
+      "baselineUnitMicrousd": 50000,
+      "mode": "proportional",
+      "tier": "480p",
+      "endpoints": [
+        "image-to-video",
+        "reference-to-video"
+      ]
+    },
+    "studio/fal/minimax/h3-max-turbo/text-to-video": {
+      "apiModel": "minimax/h3-max-turbo/text-to-video",
+      "meter": "second",
+      "baselineUnitMicrousd": 25000,
+      "mode": "proportional",
+      "tier": "480p",
+      "endpoints": [
+        "image-to-video"
+      ]
+    },
+    "studio/fal/blackforestlabs/flux-3-max/text-to-video": {
+      "apiModel": "blackforestlabs/flux-3-max/text-to-video",
+      "meter": "second",
+      "baselineUnitMicrousd": 170000,
+      "mode": "proportional",
+      "tier": "720p",
+      "endpoints": [
+        "image-to-video"
+      ]
+    },
+    "studio/fal/kling/v4/text-to-video": {
+      "apiModel": "kling/v4/text-to-video",
+      "meter": "second",
+      "baselineUnitMicrousd": 157000,
+      "mode": "proportional",
+      "tier": "720p",
+      "endpoints": [
+        "image-to-video",
+        "reference-to-video"
+      ]
+    },
+    "studio/fal/alibaba/wan-3.0/text-to-video": {
+      "apiModel": "alibaba/wan-3.0/text-to-video",
+      "meter": "second",
+      "baselineUnitMicrousd": 50000,
+      "mode": "proportional",
+      "tier": "480p",
+      "endpoints": [
+        "image-to-video",
+        "reference-to-video"
+      ]
+    },
+    "studio/fal/xai/grok-imagine-video/text-to-video": {
+      "apiModel": "xai/grok-imagine-video/text-to-video",
+      "meter": "second",
+      "baselineUnitMicrousd": 50000,
+      "mode": "proportional",
+      "tier": "480p",
+      "endpoints": [
+        "image-to-video"
+      ]
+    },
+    "studio/fal/heygen/heygen-video/text-to-video": {
+      "apiModel": "heygen/heygen-video/text-to-video",
+      "meter": "second",
+      "baselineUnitMicrousd": 20000,
+      "mode": "proportional",
+      "tier": "480p",
+      "endpoints": [
+        "image-to-video",
+        "reference-to-video"
+      ]
+    },
+    "studio/fal/google/gemini-omni-flash/v1.1/text-to-video": {
+      "apiModel": "google/gemini-omni-flash/v1.1/text-to-video",
+      "meter": "second",
+      "baselineUnitMicrousd": 30000,
+      "mode": "proportional",
+      "tier": "360p",
+      "endpoints": [
+        "image-to-video",
+        "reference-to-video"
+      ]
+    },
+    "studio/fal/google/gemini-omni-flash/v1.2/text-to-video": {
+      "apiModel": "google/gemini-omni-flash/v1.2/text-to-video",
+      "meter": "second",
+      "baselineUnitMicrousd": 27300,
+      "mode": "proportional",
+      "tier": "360p",
+      "endpoints": [
+        "image-to-video",
+        "reference-to-video"
+      ]
+    },
+    "studio/fal/bytedance/seedance-2.5/text-to-video": {
+      "apiModel": "bytedance/seedance-2.5/text-to-video",
+      "meter": "kilotoken",
+      "baselineUnitMicrousd": 21400,
+      "mode": "proportional",
+      "tier": "480p",
+      "endpoints": [
+        "image-to-video",
+        "reference-to-video"
+      ]
     }
   }
 }

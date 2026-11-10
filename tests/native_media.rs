@@ -17,7 +17,7 @@ fn every_native_model_has_a_valid_default_and_locked_provider_endpoint() {
             .as_object()
             .unwrap()
             .values()
-            .filter(|m| !m["nativeSchema"].is_object())
+            .filter(|m| !m["nativeSchema"].is_object() && m["asianMedia"] != true)
             .count(),
         16
     );
@@ -25,7 +25,7 @@ fn every_native_model_has_a_valid_default_and_locked_provider_endpoint() {
         .as_object()
         .unwrap()
         .iter()
-        .filter(|(_, m)| !m["nativeSchema"].is_object())
+        .filter(|(_, m)| !m["nativeSchema"].is_object() && m["asianMedia"] != true)
     {
         let value = spec(model, json!({}), json!([]));
         let (path, body) = native_media::body(&value, &[]).unwrap();

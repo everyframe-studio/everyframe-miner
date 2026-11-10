@@ -74,6 +74,10 @@ pub fn diagnostic(error: &Error, args: Option<&Args>) -> Value {
         format!("Run everycli help {command} for options and an example.")
     };
     let (message, next) = match error.0 {
+        "alibaba_workspace_required" | "invalid_alibaba_workspace" | "workspace_requires_alibaba" => (
+            "Alibaba Model Studio requires a valid Singapore workspace ID with its API key.".into(),
+            "Run everycli set-api-keys --provider alibaba --workspace YOUR_WORKSPACE_ID, or enter the workspace ID in the local setup page. Use an API key from that same workspace and region.".into(),
+        ),
         "terms_acceptance_required" => ("Accept the current Miner Terms before joining or enabling new work. --yes does not accept legal terms.".into(), format!("Run everycli terms to read them, then everycli terms --accept-terms {} for the same hotkey/profile, or rerun the command interactively. You must obtain required provider resale permissions and negotiate discounts directly.", crate::terms::VERSION)),
         "terms_review_changed" => ("The selected hotkey or Miner Terms changed after review. No acceptance was recorded.".into(), "Refresh the setup guide and review the current terms for the selected hotkey before accepting.".into()),
         "terms_version_changed" => ("The supplied terms version is no longer current. No acceptance was recorded.".into(), "Read everycli terms and explicitly accept its current version.".into()),

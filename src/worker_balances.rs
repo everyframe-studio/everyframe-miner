@@ -46,7 +46,12 @@ impl Reporter {
             .is_none_or(|at| now - at >= CHECK_INTERVAL_MS)
         {
             self.reports = balances::worker_reports(http, credentials);
-            self.checked_at = Some(now);
+            self.checked_at = Some(runtime.now());
+        }
+        // A slow account query must not make the signed report timestamp stale.
+        let now = runtime.now();
+        if session.expires <= now + 10_000 {
+            return Ok(false);
         }
         let checked = self.checked_at.unwrap_or(now);
         if self.reports.is_empty()

@@ -15,7 +15,7 @@ New to mining? Run `everycli ui` for a guided setup page and status dashboard
 in your browser (see [Set up in your browser](#set-up-in-your-browser-everycli-ui)).
 
 This source tree includes the worker, the CLI with built-in updates, native
-provider contracts, flexible Studio video and media contracts, and fifteen
+provider contracts, flexible Studio video and media contracts, and sixteen
 provider integrations. See the [direct provider guide](DIRECT-PROVIDERS.md) and
 [additional provider models](PROVIDER-EXPANSION.md).
 
@@ -36,6 +36,17 @@ every model in the registry is necessarily available for mining.
 
 ## What's new
 
+v1.1.0 adds direct [Alibaba Cloud, BytePlus and Volcengine](ASIAN-PROVIDERS.md) providers for Wan, Qwen Image, Seedance and Seedream, including the reviewed download, update-recovery and provider-error fixes.
+
+In v1.1.0, Fal readiness uses a cached authenticated key check.
+Workers do not poll Fal's public model catalog. A failed metadata or key-check
+request does not disable all Fal models; confirmed invalid keys and reviewed
+model retirements still block work. See [Fal readiness](docs/fal-readiness.md).
+
+v1.1.0 adds [WaveSpeedAI](WAVESPEED.md), including 85
+reviewed endpoints, plus automatic offers for 10 Fal video contracts. New provider
+capabilities require the coordinated server and signed worker update.
+
 See the [latest release](https://github.com/everyframe-studio/everyframe-miner/releases/latest)
 for what changed, how to upgrade and whether a worker update is needed. Notes for
 earlier releases are on the [releases page](https://github.com/everyframe-studio/everyframe-miner/releases).
@@ -46,7 +57,7 @@ Updating the CLI alone never changes a running worker. Saved keys, offers and
 discounts are kept; newly added models need their own offers.
 
 Provider guides: [direct providers](DIRECT-PROVIDERS.md), [OpenRouter](OPENROUTER.md),
-[Google](GOOGLE.md), [Pika](PIKA.md), [Kling 4.0 through Fal](KLING4.md) and
+[Google](GOOGLE.md), [Pika](PIKA.md), [WaveSpeedAI](WAVESPEED.md), [Kling 4.0 through Fal](KLING4.md) and
 [additional provider models](PROVIDER-EXPANSION.md).
 
 ### Model IDs
@@ -173,6 +184,9 @@ It opens a local page with:
 The **API keys** page shows provider balances, status and check times. Its Refresh
 button preserves any key you are typing. Saved-key balances can be checked before
 hotkey initialization; Vivix balances are shown in W credits.
+Balance and key checks allow 30 seconds per request. Supported balance queries run
+concurrently, and providers without a balance lookup appear last in the balance table. See
+[provider balances and Google billing alerts](docs/provider-balances.md).
 
 Every action runs the same everycli command and asks the same questions. Anything
 that costs money shows the live price and needs you to type `yes`, as in the
@@ -427,7 +441,7 @@ everycli offers            # Model / provider / offer / discount / readiness
 everycli balances --json   # Includes timestamps and stale flags
 ```
 
-Balance reads support Fal, OpenRouter, Vivix (W credits), BFL, Runway and Phala
+Balance reads support Fal, OpenRouter, WaveSpeedAI, Vivix (W credits), BFL, Runway and Phala
 prepaid credits. BFL and Runway credits are converted at their published one US
 cent per credit. MiniMax, Replicate, Google, Luma and ElevenLabs publish no
 balance endpoint this tool reads yet, so they display `unsupported`; failed checks display
@@ -531,7 +545,7 @@ profile. `--yes` alone does not accept terms. See [the acceptance guide](docs/mi
 everycli set-api-keys
 ```
 
-The CLI prompts for Phala Cloud and all ten generation providers with hidden
+The CLI prompts for Phala Cloud and supported generation providers with hidden
 input. Enter skips a provider or keeps its existing key. You need a funded Phala
 account and at least one release-approved generation provider, not all ten.
 Keys are saved in an owner-only local profile (`credentials.json`, mode `0600`);
@@ -806,18 +820,25 @@ separate steps. The CLI does not initiate payouts.
 
 | Provider | `--provider` | Credential variable (optional file import) |
 | --- | --- | --- |
-| Fal | `fal` | `FAL_KEY` |
-| MiniMax (direct API) | `minimax` | `MINIMAX_API_KEY` |
-| OpenRouter | `openrouter` | `OPENROUTER_API_KEY` |
-| Black Forest Labs | `bfl` | `BFL_API_KEY` |
-| Replicate | `replicate` | `REPLICATE_API_TOKEN` |
+| OpenAI | `openai` | `OPENAI_API_KEY` |
 | Google | `google` | `GEMINI_API_KEY` |
+| xAI | `xai` | `XAI_API_KEY` |
+| MiniMax (direct API) | `minimax` | `MINIMAX_API_KEY` |
+| Black Forest Labs | `bfl` | `BFL_API_KEY` |
 | Runway | `runway` | `RUNWAYML_API_SECRET` |
 | Luma | `luma` | `LUMA_API_KEY` |
+| Luma Agents | `luma-agents` | `LUMA_AGENTS_API_KEY` |
 | ElevenLabs | `elevenlabs` | `ELEVENLABS_API_KEY` |
+| Alibaba Cloud Model Studio (Singapore) | `alibaba` | `DASHSCOPE_API_KEY` + workspace ID |
+| BytePlus ModelArk (Singapore) | `byteplus` | `BYTEPLUS_API_KEY` |
+| Volcengine Ark (Beijing) | `volcengine` | `VOLCENGINE_API_KEY` |
 | Vivix (direct API) | `vivix` | `VIVIX_API_KEY` |
 | Kling (direct API) | `kling` | `KLING_API_KEY` |
+| Fal | `fal` | `FAL_KEY` |
+| OpenRouter | `openrouter` | `OPENROUTER_API_KEY` |
+| Replicate | `replicate` | `REPLICATE_API_TOKEN` |
 | Pika H3 Flex | `pika` | `PIKA_API_KEY` |
+| WaveSpeedAI | `wavespeed` | `WAVESPEED_API_KEY` |
 
 Use the key for the provider serving the contract, not just the model's brand.
 For example, a MiniMax model served through Fal uses `FAL_KEY`; the direct

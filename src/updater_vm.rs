@@ -51,6 +51,17 @@ pub fn permitted_credentials(c: &Value, inv: &Value) -> Value {
             out[&k] = c[&k].clone();
         }
     }
+    let workspace = invitation::ALIBABA_WORKSPACE_KEY;
+    if !out["DASHSCOPE_API_KEY"].is_null()
+        && inv["request"]["compose_file"]["allowed_envs"]
+            .as_array()
+            .is_some_and(|allowed| allowed.iter().any(|key| key == workspace))
+        && !c[workspace].is_null()
+    {
+        // The workspace is required to restore Alibaba's permitted key. Keep
+        // it only when both fields are explicitly covered by the signed policy.
+        out[workspace] = c[workspace].clone();
+    }
     out
 }
 

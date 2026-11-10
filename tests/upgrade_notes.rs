@@ -114,7 +114,7 @@ fn required_steps_sort_numerically_and_are_reported_by_check_and_install() {
 
 #[test]
 fn missing_history_never_claims_no_worker_update_is_needed() {
-    let unknown = upgrade_notes::bundled("1.0.0", "v1.1.0");
+    let unknown = upgrade_notes::bundled("1.0.0", "v9.0.0");
     assert_eq!(unknown["status"], "unavailable");
     assert_eq!(unknown["workerUpdate"], "unknown");
     let text = upgrade_notes::render(&unknown);
@@ -153,4 +153,25 @@ fn release_catalog_documents_the_compiled_version_and_published_history() {
             .iter()
             .any(|r| r["version"] == format!("v{}", env!("CARGO_PKG_VERSION")))
     );
+}
+
+#[test]
+fn v110_combines_unreleased_work_without_a_phantom_v101_release() {
+    let upgrade = upgrade_notes::bundled("1.0.0", "v1.1.0");
+    assert_eq!(upgrade["status"], "complete");
+    assert_eq!(upgrade["workerUpdate"], "conditional");
+    let history = upgrade["history"].as_array().unwrap();
+    assert_eq!(history.len(), 1);
+    assert_eq!(history[0]["version"], "v1.1.0");
+    let rendered = upgrade_notes::render(&upgrade);
+    for feature in [
+        "WaveSpeedAI",
+        "Alibaba",
+        "BytePlus",
+        "Volcengine",
+        "Fal",
+        "everycli worker-update",
+    ] {
+        assert!(rendered.contains(feature), "{feature}");
+    }
 }

@@ -1,0 +1,2858 @@
+[
+  {
+    "model": "studio/wavespeed/google/gemini-omni-1.2-flash/text-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/google/gemini-omni-1.2-flash/text-to-video",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/google/gemini-omni-1.2-flash/text-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 8,
+          "resolution": "720p"
+        },
+        "references": []
+      }
+    },
+    "hash": "4b786e350521bc5c65f04cf526dae7be52a6b70dacd549d76d4e745608aa3759"
+  },
+  {
+    "model": "studio/wavespeed/google/gemini-omni-1.2-flash/image-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/google/gemini-omni-1.2-flash/image-to-video",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/google/gemini-omni-1.2-flash/image-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 8,
+          "resolution": "720p",
+          "image": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "522ebb112959a6905254def5b95ae481a02661f8129091e2223a34c81cb685d7"
+  },
+  {
+    "model": "studio/wavespeed/google/gemini-omni-1.2-flash/reference-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/google/gemini-omni-1.2-flash/reference-to-video",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/google/gemini-omni-1.2-flash/reference-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 8,
+          "resolution": "720p"
+        },
+        "references": []
+      }
+    },
+    "hash": "fbd40826eed3c7e58d1b3bd8f074c5e943ea2b368905c217916c6ed42050d285"
+  },
+  {
+    "model": "studio/wavespeed/openai/gpt-image-2.6-flare/text-to-image",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/openai/gpt-image-2.6-flare/text-to-image",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/openai/gpt-image-2.6-flare/text-to-image",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "1:1",
+          "complexity": "high",
+          "frame_count": 9,
+          "frame_duration_ms": 200,
+          "output_format": "png",
+          "quality": "medium",
+          "resolution": "1k"
+        },
+        "references": []
+      }
+    },
+    "hash": "8663b75ddc9ce69f6c7e7dcd3aab56194551bfe6035d4b2dc1ecb0ed72be6d4e"
+  },
+  {
+    "model": "studio/wavespeed/openai/gpt-image-2.6-flare/edit",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/openai/gpt-image-2.6-flare/edit",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "image",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/openai/gpt-image-2.6-flare/edit",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "complexity": "high",
+          "frame_count": 9,
+          "frame_duration_ms": 200,
+          "output_format": "png",
+          "quality": "medium",
+          "resolution": "1k",
+          "images": [
+            "@reference:0"
+          ]
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "0ba8e5456ea2132beba059211c240b198bc263fc5420aa004875183ff2f0da55"
+  },
+  {
+    "model": "studio/wavespeed/openai/gpt-image-2.6-sunburst/text-to-image",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/openai/gpt-image-2.6-sunburst/text-to-image",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/openai/gpt-image-2.6-sunburst/text-to-image",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "1:1",
+          "complexity": "high",
+          "frame_count": 9,
+          "frame_duration_ms": 200,
+          "output_format": "png",
+          "quality": "medium",
+          "resolution": "1k"
+        },
+        "references": []
+      }
+    },
+    "hash": "070410e219e57bd0c3454579cb5a15d08a12f4439649c703150938c745095568"
+  },
+  {
+    "model": "studio/wavespeed/openai/gpt-image-2.6-sunburst/edit",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/openai/gpt-image-2.6-sunburst/edit",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "image",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/openai/gpt-image-2.6-sunburst/edit",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "complexity": "high",
+          "frame_count": 9,
+          "frame_duration_ms": 200,
+          "output_format": "png",
+          "quality": "medium",
+          "resolution": "1k",
+          "images": [
+            "@reference:0"
+          ]
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "6413bad33d279b4a6df8e4c3246b979a7fa5b3f8977cb42d4cfe6b0f87791b83"
+  },
+  {
+    "model": "studio/wavespeed/google/nano-banana-2.1/edit",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/google/nano-banana-2.1/edit",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "image",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/google/nano-banana-2.1/edit",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "enable_image_search": false,
+          "enable_web_search": false,
+          "output_format": "png",
+          "resolution": "1k",
+          "images": [
+            "@reference:0"
+          ]
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "802a1a9415dbc5db56151f74e6b25258aa5e997a6515f99f11d3c10ae0621cad"
+  },
+  {
+    "model": "studio/wavespeed/google/nano-banana-2.1/text-to-image",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/google/nano-banana-2.1/text-to-image",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/google/nano-banana-2.1/text-to-image",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "1:1",
+          "enable_image_search": false,
+          "enable_web_search": false,
+          "output_format": "png",
+          "resolution": "1k"
+        },
+        "references": []
+      }
+    },
+    "hash": "df419cbaedee8bafac9d184c61339f35bd6873098ca6fecce616b77c31aa3f3c"
+  },
+  {
+    "model": "studio/wavespeed/openai/gpt-image-2.5-sunburst/edit",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/openai/gpt-image-2.5-sunburst/edit",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "image",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/openai/gpt-image-2.5-sunburst/edit",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "output_format": "png",
+          "quality": "medium",
+          "resolution": "1k",
+          "images": [
+            "@reference:0"
+          ]
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "dcce7f07b45e9ccdf020c93e669b1946352d190d8d93ac19526e2fd9ce454469"
+  },
+  {
+    "model": "studio/wavespeed/openai/gpt-image-2.5-sunburst/text-to-image",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/openai/gpt-image-2.5-sunburst/text-to-image",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/openai/gpt-image-2.5-sunburst/text-to-image",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "1:1",
+          "output_format": "png",
+          "quality": "medium",
+          "resolution": "1k"
+        },
+        "references": []
+      }
+    },
+    "hash": "ea0319cd859dc5c70b41d634fc9050c51345e15cb37269a65c58f2aa97c683d3"
+  },
+  {
+    "model": "studio/wavespeed/openai/gpt-image-2.5-flare/edit",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/openai/gpt-image-2.5-flare/edit",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "image",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/openai/gpt-image-2.5-flare/edit",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "output_format": "png",
+          "quality": "medium",
+          "resolution": "1k",
+          "images": [
+            "@reference:0"
+          ]
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "27eaa0e4d228073574a37ec7cdcb2e077873f11356159fa080d6829982fa33b6"
+  },
+  {
+    "model": "studio/wavespeed/openai/gpt-image-2.5-flare/text-to-image",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/openai/gpt-image-2.5-flare/text-to-image",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/openai/gpt-image-2.5-flare/text-to-image",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "1:1",
+          "output_format": "png",
+          "quality": "medium",
+          "resolution": "1k"
+        },
+        "references": []
+      }
+    },
+    "hash": "f83878fd9728344689905b16cdd7db45cd23201cf6dfefcb51d2751f0568977b"
+  },
+  {
+    "model": "studio/wavespeed/bytedance/seedance-2.5/image-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/bytedance/seedance-2.5/image-to-video",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/bytedance/seedance-2.5/image-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "duration": 5,
+          "generate_audio": true,
+          "resolution": "720p",
+          "image": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "c351019aad9fa420638143169f5ce234dd98622ac1a67c9fc9d0effd7c55f6ed"
+  },
+  {
+    "model": "studio/wavespeed/bytedance/seedance-2.5/text-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/bytedance/seedance-2.5/text-to-video",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/bytedance/seedance-2.5/text-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 5,
+          "generate_audio": true,
+          "resolution": "720p"
+        },
+        "references": []
+      }
+    },
+    "hash": "cf2334f40a7c743cc9e168425a8261af29a16dfb7033f595ba051348729892b2"
+  },
+  {
+    "model": "studio/wavespeed/bytedance/seedance-2.5/reference-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/bytedance/seedance-2.5/reference-to-video",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/bytedance/seedance-2.5/reference-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 5,
+          "generate_audio": true,
+          "resolution": "720p"
+        },
+        "references": []
+      }
+    },
+    "hash": "65a846ab1696dd326b2f2870cae7518356c90a4a18cf25913b7bea23c48328fd"
+  },
+  {
+    "model": "studio/wavespeed/alibaba/wan-3.0/reference-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/alibaba/wan-3.0/reference-to-video",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/alibaba/wan-3.0/reference-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 5,
+          "enable_prompt_expansion": false,
+          "generate_audio": true,
+          "resolution": "720p"
+        },
+        "references": []
+      }
+    },
+    "hash": "042cf61927891ccc8454acb4e7783a7a697b380ce82e35fe77a49d9977ae6833"
+  },
+  {
+    "model": "studio/wavespeed/alibaba/wan-3.0/image-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/alibaba/wan-3.0/image-to-video",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/alibaba/wan-3.0/image-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "duration": 5,
+          "enable_prompt_expansion": false,
+          "generate_audio": true,
+          "resolution": "720p",
+          "image": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "8a3cd4544bdc9afcf16339d7429ef2d7863a919c4f8c23c69e97fbb15fc85592"
+  },
+  {
+    "model": "studio/wavespeed/alibaba/wan-3.0/text-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/alibaba/wan-3.0/text-to-video",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/alibaba/wan-3.0/text-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 5,
+          "enable_prompt_expansion": false,
+          "generate_audio": true,
+          "resolution": "720p"
+        },
+        "references": []
+      }
+    },
+    "hash": "09cf1d4661c5016aa983acba1a9d7fd1364ac4b8371ef54645860cbd49636f1e"
+  },
+  {
+    "model": "studio/wavespeed/kwaivgi/kling-v4.0/reference-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/kwaivgi/kling-v4.0/reference-to-video",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/kwaivgi/kling-v4.0/reference-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "auto",
+          "duration": 5,
+          "keep_original_sound": false,
+          "resolution": "720p"
+        },
+        "references": []
+      }
+    },
+    "hash": "c6cb3f11f41f1538f5d45d217e05e43478f9cc50732865af458f632f5ea85bad"
+  },
+  {
+    "model": "studio/wavespeed/kwaivgi/kling-v4.0/image-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/kwaivgi/kling-v4.0/image-to-video",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/kwaivgi/kling-v4.0/image-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "duration": 5,
+          "resolution": "720p",
+          "image": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "5275e98457403209b7454e54b2d5897e2ce944361788abbb8d1cd46c74ac8adb"
+  },
+  {
+    "model": "studio/wavespeed/kwaivgi/kling-v4.0/text-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/kwaivgi/kling-v4.0/text-to-video",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/kwaivgi/kling-v4.0/text-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 5,
+          "resolution": "720p"
+        },
+        "references": []
+      }
+    },
+    "hash": "96ed335a622036838921f99099dd63d8fa975c8bebcfa2ae5ae639f437d2df35"
+  },
+  {
+    "model": "studio/wavespeed/wavespeed-ai/minimax-h3/image-edit",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/wavespeed-ai/minimax-h3/image-edit",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "image",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/wavespeed-ai/minimax-h3/image-edit",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "output_format": "jpeg",
+          "resolution": "1k",
+          "images": [
+            "@reference:0"
+          ]
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "6c0daff1aabb619e7e178666783713c49b69eafa038d845fdf4e71f91496a9ea"
+  },
+  {
+    "model": "studio/wavespeed/wavespeed-ai/minimax-h3/text-to-image",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/wavespeed-ai/minimax-h3/text-to-image",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/wavespeed-ai/minimax-h3/text-to-image",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "1:1",
+          "output_format": "jpeg",
+          "resolution": "1k"
+        },
+        "references": []
+      }
+    },
+    "hash": "57f846938f4ff378dcab18ea5f75c0df6f196d5ccded47fc17f7e6b27b23d25c"
+  },
+  {
+    "model": "studio/wavespeed/wavespeed-ai/minimax-h3/reference-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/wavespeed-ai/minimax-h3/reference-to-video",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/wavespeed-ai/minimax-h3/reference-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 5,
+          "resolution": "768p"
+        },
+        "references": []
+      }
+    },
+    "hash": "ab0afd186a14dc6cfe3d2727c7c705556dd915a173a79fed39192bb1f75a0596"
+  },
+  {
+    "model": "studio/wavespeed/wavespeed-ai/minimax-h3/image-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/wavespeed-ai/minimax-h3/image-to-video",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/wavespeed-ai/minimax-h3/image-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "duration": 5,
+          "resolution": "768p",
+          "image": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "fc753f81cbeb68aa628e8db61faeab1c9746a3236b5994eee95c00da57ff80a1"
+  },
+  {
+    "model": "studio/wavespeed/wavespeed-ai/minimax-h3/text-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/wavespeed-ai/minimax-h3/text-to-video",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/wavespeed-ai/minimax-h3/text-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 5,
+          "resolution": "768p"
+        },
+        "references": []
+      }
+    },
+    "hash": "bc93c2a8ba3674a9f8b3c945d9acc3ddb0ae1460e627b04c52438f41ecdfa08b"
+  },
+  {
+    "model": "studio/wavespeed/bytedance/seedream-v5.5/edit",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/bytedance/seedream-v5.5/edit",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "image",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/bytedance/seedream-v5.5/edit",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "background": "auto",
+          "output_format": "png",
+          "resolution": "1k",
+          "images": [
+            "@reference:0"
+          ]
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "9a28ba311e4a9c40fd5e04744d439945002912664f92c6745d5f7862ab848b73"
+  },
+  {
+    "model": "studio/wavespeed/bytedance/seedream-v5.0-pro/edit",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/bytedance/seedream-v5.0-pro/edit",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "image",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/bytedance/seedream-v5.0-pro/edit",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "output_format": "jpeg",
+          "prompt_optimization_mode": "standard",
+          "resolution": "1k",
+          "images": [
+            "@reference:0"
+          ]
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "a6d0225f660cb6ad52b2eb5fd5f85d8d70e63082863c98bae7f26b044c7e839a"
+  },
+  {
+    "model": "studio/wavespeed/bytedance/seedream-v5.5",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/bytedance/seedream-v5.5",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/bytedance/seedream-v5.5",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "1:1",
+          "background": "auto",
+          "output_format": "png",
+          "resolution": "1k"
+        },
+        "references": []
+      }
+    },
+    "hash": "87c9da10b45b286e0ea975e9572fc71b4ea5973b70b51fc79255a1a3aea86bf0"
+  },
+  {
+    "model": "studio/wavespeed/bytedance/seedream-v5.0-pro",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/bytedance/seedream-v5.0-pro",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/bytedance/seedream-v5.0-pro",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "1:1",
+          "output_format": "jpeg",
+          "prompt_optimization_mode": "standard",
+          "resolution": "1k"
+        },
+        "references": []
+      }
+    },
+    "hash": "44ea6fe41eef30a0784f1e8773fb68c35dec26c5232ba252ce1abfb18227e602"
+  },
+  {
+    "model": "studio/wavespeed/bytedance/seedream-v5.0-flash/edit",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/bytedance/seedream-v5.0-flash/edit",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "image",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/bytedance/seedream-v5.0-flash/edit",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "output_format": "jpeg",
+          "resolution": "1k",
+          "images": [
+            "@reference:0"
+          ]
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "fc2ca43164152de27542bb33ba6c58716c770e0361b771185b87bfa5c174b422"
+  },
+  {
+    "model": "studio/wavespeed/bytedance/seedream-v5.0-flash",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/bytedance/seedream-v5.0-flash",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/bytedance/seedream-v5.0-flash",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "1:1",
+          "output_format": "jpeg",
+          "resolution": "1k"
+        },
+        "references": []
+      }
+    },
+    "hash": "77c5392e133480c9f2d104a0750939377deec8e58971c6d4aaa04ed6303c8145"
+  },
+  {
+    "model": "studio/wavespeed/alibaba/qwen-image-3.0/text-to-image",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/alibaba/qwen-image-3.0/text-to-image",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/alibaba/qwen-image-3.0/text-to-image",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "1:1",
+          "enable_prompt_expansion": false,
+          "resolution": "1k"
+        },
+        "references": []
+      }
+    },
+    "hash": "e6e2cbe210186ece39773453440ae66d5532c3540bea3cae2c62d050441288fe"
+  },
+  {
+    "model": "studio/wavespeed/alibaba/qwen-image-3.0/edit",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/alibaba/qwen-image-3.0/edit",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "image",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/alibaba/qwen-image-3.0/edit",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "enable_prompt_expansion": false,
+          "resolution": "1k",
+          "images": [
+            "@reference:0"
+          ]
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "bb0b5010d311055afd5585e6171fede1ffd7c19dab5a367c9d115c4c8259ae51"
+  },
+  {
+    "model": "studio/wavespeed/x-ai/grok-imagine-video-v1.5/reference-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/x-ai/grok-imagine-video-v1.5/reference-to-video",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "image",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/x-ai/grok-imagine-video-v1.5/reference-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 6,
+          "resolution": "720p",
+          "reference_images": [
+            "@reference:0"
+          ]
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "1463a6f6415e4e87002a943bfa2b5e73801ff070fe19129bb0c8e2426e616aaf"
+  },
+  {
+    "model": "studio/wavespeed/x-ai/grok-imagine-video-v1.5/text-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/x-ai/grok-imagine-video-v1.5/text-to-video",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/x-ai/grok-imagine-video-v1.5/text-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 6,
+          "resolution": "720p"
+        },
+        "references": []
+      }
+    },
+    "hash": "7cdf00ffb16375bf6d5c0c77a77625ce01237c536884914fc4d973368aa59400"
+  },
+  {
+    "model": "studio/wavespeed/alibaba/qwen-image-3.0-pro/text-to-image",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/alibaba/qwen-image-3.0-pro/text-to-image",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/alibaba/qwen-image-3.0-pro/text-to-image",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "1:1",
+          "enable_prompt_expansion": false,
+          "resolution": "1k"
+        },
+        "references": []
+      }
+    },
+    "hash": "d03b767455ea0e6a4d56413fbd26778229e99ae71dd8efb7f34db56e1096ec05"
+  },
+  {
+    "model": "studio/wavespeed/alibaba/qwen-image-3.0-pro/edit",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/alibaba/qwen-image-3.0-pro/edit",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "image",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/alibaba/qwen-image-3.0-pro/edit",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "enable_prompt_expansion": false,
+          "resolution": "1k",
+          "images": [
+            "@reference:0"
+          ]
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "9e6dc9eaf732d2a3334c71ecf226ee3bf395fe640c2c241c4d74e2a0fc4077e6"
+  },
+  {
+    "model": "studio/wavespeed/x-ai/grok-imagine-video-v1.5/image-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/x-ai/grok-imagine-video-v1.5/image-to-video",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/x-ai/grok-imagine-video-v1.5/image-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "duration": 6,
+          "resolution": "720p",
+          "image": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "5b3b6bc27214c988b17e49211ab80a676b1c3258d6863e30c5de3d1d0769bab9"
+  },
+  {
+    "model": "studio/wavespeed/x-ai/grok-imagine-image-v2.0/edit",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/x-ai/grok-imagine-image-v2.0/edit",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "image",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/x-ai/grok-imagine-image-v2.0/edit",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "quality": "medium",
+          "resolution": "2k",
+          "images": [
+            "@reference:0"
+          ]
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "b9e3237030b69848c861bdb1afbda35a37b7983ea571191e067a527b813ee5ad"
+  },
+  {
+    "model": "studio/wavespeed/x-ai/grok-imagine-image-v2.0/text-to-image",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/x-ai/grok-imagine-image-v2.0/text-to-image",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/x-ai/grok-imagine-image-v2.0/text-to-image",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "1:1",
+          "quality": "medium",
+          "resolution": "2k"
+        },
+        "references": []
+      }
+    },
+    "hash": "f67607bb62b0343d10213d7b9934b4726abde5ced82ba0e0a311f7c586efdf24"
+  },
+  {
+    "model": "studio/wavespeed/black-forest-labs/flux-3/start-end-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/black-forest-labs/flux-3/start-end-to-video",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "last",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/black-forest-labs/flux-3/start-end-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "duration": 5,
+          "generate_audio": true,
+          "resolution": "720p",
+          "image": "@reference:0",
+          "last_image": "@reference:1"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "last",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "357a6920c7c66fac827abb701d588adc910aeb1468f837fa2bdbe5b3e1bc3177"
+  },
+  {
+    "model": "studio/wavespeed/black-forest-labs/flux-3/image-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/black-forest-labs/flux-3/image-to-video",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/black-forest-labs/flux-3/image-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "duration": 5,
+          "generate_audio": true,
+          "resolution": "720p",
+          "image": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "9ee33e5ccd186f2e73472f45c34384eb633339b29f0e17e0d73e5fa83bf8fc2b"
+  },
+  {
+    "model": "studio/wavespeed/black-forest-labs/flux-3/text-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/black-forest-labs/flux-3/text-to-video",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/black-forest-labs/flux-3/text-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "9:16",
+          "duration": 5,
+          "generate_audio": true,
+          "resolution": "720p"
+        },
+        "references": []
+      }
+    },
+    "hash": "c4265ad300ecf4444091be1f6278e12be5e45d393d6077bc57fb7cc6904d3376"
+  },
+  {
+    "model": "studio/wavespeed/minimax/h3-lite/text-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/minimax/h3-lite/text-to-video",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/minimax/h3-lite/text-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 5,
+          "resolution": "768p"
+        },
+        "references": []
+      }
+    },
+    "hash": "a5a0e9d55004de7a8e28a91d83810f372bbed06cd466dd42a5a0cb6e3859e054"
+  },
+  {
+    "model": "studio/wavespeed/minimax/h3-lite/reference-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/minimax/h3-lite/reference-to-video",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/minimax/h3-lite/reference-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 5,
+          "resolution": "768p"
+        },
+        "references": []
+      }
+    },
+    "hash": "a69507a74e818fbe9d3b057be1afe5e1569df160f6fe2ee268e123c17e86a161"
+  },
+  {
+    "model": "studio/wavespeed/minimax/h3-lite/image-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/minimax/h3-lite/image-to-video",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/minimax/h3-lite/image-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "duration": 5,
+          "resolution": "768p",
+          "image": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "883e538bdd451ec5ea15b6cfe3dd8dd95401223c590498f83cb5ab1d15ac956b"
+  },
+  {
+    "model": "studio/wavespeed/minimax/h3-highspeed/text-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/minimax/h3-highspeed/text-to-video",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/minimax/h3-highspeed/text-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 5,
+          "resolution": "768p"
+        },
+        "references": []
+      }
+    },
+    "hash": "4624492e9d0e7811fc7aee21d2ea89228e8b8ce7bea720fa47199d272ae4f788"
+  },
+  {
+    "model": "studio/wavespeed/minimax/h3-highspeed/reference-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/minimax/h3-highspeed/reference-to-video",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/minimax/h3-highspeed/reference-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 5,
+          "resolution": "768p"
+        },
+        "references": []
+      }
+    },
+    "hash": "9f11abbcbf1227b2b1bb077caca8c45c16a43fb01417355675a096e1422703b6"
+  },
+  {
+    "model": "studio/wavespeed/minimax/h3-highspeed/image-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/minimax/h3-highspeed/image-to-video",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/minimax/h3-highspeed/image-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "duration": 5,
+          "resolution": "768p",
+          "image": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "08e19547395d61343ae1fbe1de6f86b925fea20f670d2d373398b3a089037688"
+  },
+  {
+    "model": "studio/wavespeed/minimax/h3/reference-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/minimax/h3/reference-to-video",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/minimax/h3/reference-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 5,
+          "resolution": "768p"
+        },
+        "references": []
+      }
+    },
+    "hash": "2dbb65bbc86d5b008ff5b6fcdeb2df3181999c6107d6bf3993c57b4626bab702"
+  },
+  {
+    "model": "studio/wavespeed/minimax/h3/image-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/minimax/h3/image-to-video",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/minimax/h3/image-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "duration": 5,
+          "resolution": "768p",
+          "image": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "3e4cff38387fadae88dd9e84303b1e5dea3b467c53e1e446dd6ae08958a6e396"
+  },
+  {
+    "model": "studio/wavespeed/minimax/h3/text-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/minimax/h3/text-to-video",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/minimax/h3/text-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 5,
+          "resolution": "768p"
+        },
+        "references": []
+      }
+    },
+    "hash": "97ad569ecfe7fa4563d3376c8bbf8ab7ca4da855b9f4a9775633f01035726bb1"
+  },
+  {
+    "model": "studio/wavespeed/bytedance/seedance-2.0-mini/image-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/bytedance/seedance-2.0-mini/image-to-video",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/bytedance/seedance-2.0-mini/image-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "duration": 5,
+          "enable_web_search": false,
+          "generate_audio": true,
+          "resolution": "720p",
+          "image": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "eb460bb770ce5ecb6e13fc7cfeada9d0b76a3f44b3c46f5e6437f9b30d9851d0"
+  },
+  {
+    "model": "studio/wavespeed/black-forest-labs/flux-3/image-edit",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/black-forest-labs/flux-3/image-edit",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "image",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/black-forest-labs/flux-3/image-edit",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "output_format": "jpeg",
+          "resolution": "1k",
+          "images": [
+            "@reference:0"
+          ]
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "7199e458299065cfe044450081c356105d9a7b0368d85f32201bff693a90c487"
+  },
+  {
+    "model": "studio/wavespeed/black-forest-labs/flux-3/text-to-image",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/black-forest-labs/flux-3/text-to-image",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/black-forest-labs/flux-3/text-to-image",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "1:1",
+          "output_format": "jpeg",
+          "resolution": "1k"
+        },
+        "references": []
+      }
+    },
+    "hash": "857c72f9dabecd674f08b51d40481a27722b2edb68d3864d95186516d3f2c16d"
+  },
+  {
+    "model": "studio/wavespeed/ideogram-ai/ideogram-v4.5",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/ideogram-ai/ideogram-v4.5",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/ideogram-ai/ideogram-v4.5",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "1:1",
+          "enable_prompt_expansion": false,
+          "quality": "medium",
+          "resolution": "1k"
+        },
+        "references": []
+      }
+    },
+    "hash": "204dda576f9bac3b566e8a76b7cf8a74b218969a9fc386116d10415a556e27b8"
+  },
+  {
+    "model": "studio/wavespeed/ideogram-ai/ideogram-v4.5/edit",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/ideogram-ai/ideogram-v4.5/edit",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "image",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/ideogram-ai/ideogram-v4.5/edit",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "edit_precision": "regular",
+          "quality": "medium",
+          "image": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "770b5aff4c1610599a8c575e8b68e6c0fcdb55a27afd3ba6593034b2115ace9f"
+  },
+  {
+    "model": "studio/wavespeed/google/gemini-omni-1.1-flash/reference-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/google/gemini-omni-1.1-flash/reference-to-video",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/google/gemini-omni-1.1-flash/reference-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 8,
+          "resolution": "720p"
+        },
+        "references": []
+      }
+    },
+    "hash": "2402642746a8d01c00e6fd7a00438d3fb23f419044badcc7ab0e4d1886b84729"
+  },
+  {
+    "model": "studio/wavespeed/google/gemini-omni-1.1-flash/image-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/google/gemini-omni-1.1-flash/image-to-video",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/google/gemini-omni-1.1-flash/image-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 8,
+          "resolution": "720p",
+          "image": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "790355d5f3ef672d29cee610f40fbce4177207a69b819e9b2e8777eeda0839b6"
+  },
+  {
+    "model": "studio/wavespeed/google/gemini-omni-1.1-flash/text-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/google/gemini-omni-1.1-flash/text-to-video",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/google/gemini-omni-1.1-flash/text-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 8,
+          "resolution": "720p"
+        },
+        "references": []
+      }
+    },
+    "hash": "ccbad92903adf9e4f358d866358419e6a546b827893a00cab8615505ff0bea9b"
+  },
+  {
+    "model": "studio/wavespeed/minimax/music-3.0",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/minimax/music-3.0",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/minimax/music-3.0",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "bitrate": 256000,
+          "is_instrumental": false,
+          "lyrics_optimizer": false,
+          "sample_rate": 44100
+        },
+        "references": []
+      }
+    },
+    "hash": "87dc05d68f69d092e0d2fe87c671e38c988f9905fcfd4d0e5aa345f616269574"
+  },
+  {
+    "model": "studio/wavespeed/bytedance/seedance-2.0-mini/text-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/bytedance/seedance-2.0-mini/text-to-video",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/bytedance/seedance-2.0-mini/text-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 5,
+          "enable_web_search": false,
+          "generate_audio": true,
+          "resolution": "720p"
+        },
+        "references": []
+      }
+    },
+    "hash": "784fc354536b39920120a2b1ae69be0f3b63119134940bab25f9b557542107e2"
+  },
+  {
+    "model": "studio/wavespeed/bytedance/seedance-2.0-mini/reference-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/bytedance/seedance-2.0-mini/reference-to-video",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/bytedance/seedance-2.0-mini/reference-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 5,
+          "enable_web_search": false,
+          "generate_audio": true,
+          "resolution": "720p"
+        },
+        "references": []
+      }
+    },
+    "hash": "9fa34b7b24826fcc5cd296a1e997f4de382c6009987e8729e53876ea59d4bdde"
+  },
+  {
+    "model": "studio/wavespeed/bytedance/seedance-2.0-fast/image-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/bytedance/seedance-2.0-fast/image-to-video",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/bytedance/seedance-2.0-fast/image-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "duration": 5,
+          "enable_web_search": false,
+          "generate_audio": true,
+          "resolution": "720p",
+          "image": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "28a12005762b7041d244caaf71fedab76e4ef31f51b97da2463a05c7c0c5cc67"
+  },
+  {
+    "model": "studio/wavespeed/bytedance/seedance-2.0-fast/text-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/bytedance/seedance-2.0-fast/text-to-video",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/bytedance/seedance-2.0-fast/text-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 5,
+          "enable_web_search": false,
+          "generate_audio": true,
+          "resolution": "720p"
+        },
+        "references": []
+      }
+    },
+    "hash": "e90993f0a8abe33a5d72070bbec7195345cc0d9ed77e58ecf1a39c7b4704a7fa"
+  },
+  {
+    "model": "studio/wavespeed/bytedance/seedance-2.0-fast/reference-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/bytedance/seedance-2.0-fast/reference-to-video",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/bytedance/seedance-2.0-fast/reference-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 5,
+          "enable_web_search": false,
+          "generate_audio": true,
+          "resolution": "720p"
+        },
+        "references": []
+      }
+    },
+    "hash": "712d330d6a6517f7eb8f14bc411540413b05a370adc344ac10ba1bbc43b08796"
+  },
+  {
+    "model": "studio/wavespeed/wavespeed-ai/flux-3-klein-image-base/edit",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/wavespeed-ai/flux-3-klein-image-base/edit",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "image",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/wavespeed-ai/flux-3-klein-image-base/edit",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "output_format": "jpeg",
+          "resolution": "1k",
+          "images": [
+            "@reference:0"
+          ]
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "ea0e51ba6723f25dacc7596b34a0beb109db15e6605d9dcaf93e2223b72fb591"
+  },
+  {
+    "model": "studio/wavespeed/wavespeed-ai/flux-3-klein-image-base/text-to-image",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/wavespeed-ai/flux-3-klein-image-base/text-to-image",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/wavespeed-ai/flux-3-klein-image-base/text-to-image",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "1:1",
+          "output_format": "jpeg",
+          "resolution": "1k"
+        },
+        "references": []
+      }
+    },
+    "hash": "f4f9283257ed65d996e58b37cb114deaa42b12d4e7ad3f40b4f7628c5f2a08cf"
+  },
+  {
+    "model": "studio/wavespeed/wavespeed-ai/flux-3-klein-image-distilled/edit",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/wavespeed-ai/flux-3-klein-image-distilled/edit",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "image",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/wavespeed-ai/flux-3-klein-image-distilled/edit",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "output_format": "jpeg",
+          "resolution": "1k",
+          "images": [
+            "@reference:0"
+          ]
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "6806091b14fc3378caf101122157420fc3fa57ef84dca18ff0990766d0432b3d"
+  },
+  {
+    "model": "studio/wavespeed/wavespeed-ai/flux-3-klein-image-distilled/text-to-image",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/wavespeed-ai/flux-3-klein-image-distilled/text-to-image",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/wavespeed-ai/flux-3-klein-image-distilled/text-to-image",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "1:1",
+          "output_format": "jpeg",
+          "resolution": "1k"
+        },
+        "references": []
+      }
+    },
+    "hash": "672a04003b25766a104f8df0da08e843cfe3e39de41e07b77041c5bd613b4643"
+  },
+  {
+    "model": "studio/wavespeed/x-ai/grok-imagine-video/reference-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/x-ai/grok-imagine-video/reference-to-video",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "image",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/x-ai/grok-imagine-video/reference-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "duration": 6,
+          "resolution": "720p",
+          "images": [
+            "@reference:0"
+          ]
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "9b77c5c2cbc63b67f1094a79d640f067f1ead584d55f52ecb5065b91a254b844"
+  },
+  {
+    "model": "studio/wavespeed/x-ai/grok-imagine-video/image-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/x-ai/grok-imagine-video/image-to-video",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/x-ai/grok-imagine-video/image-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "duration": 6,
+          "resolution": "720p",
+          "image": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "a7a70fd8d6fd74387c9ce8db7876faa3f2ea01169b3cab733ebfdecd310f938e"
+  },
+  {
+    "model": "studio/wavespeed/x-ai/grok-imagine-video/text-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/x-ai/grok-imagine-video/text-to-video",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/x-ai/grok-imagine-video/text-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 6,
+          "resolution": "720p"
+        },
+        "references": []
+      }
+    },
+    "hash": "dd2b9af7b8d4095736324fb15411a298512916de2a7e920ff92a44ac2c7b82de"
+  },
+  {
+    "model": "studio/wavespeed/wavespeed-ai/z-image/base",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/wavespeed-ai/z-image/base",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/wavespeed-ai/z-image/base",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "output_format": "jpeg",
+          "size": "1024*1024",
+          "strength": "0.6"
+        },
+        "references": []
+      }
+    },
+    "hash": "2ccbfeb47b7af47898574df67a87e007348c746e6031513cebf6d308838c0b22"
+  },
+  {
+    "model": "studio/wavespeed/wavespeed-ai/flux-2-max/edit",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/wavespeed-ai/flux-2-max/edit",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "image",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/wavespeed-ai/flux-2-max/edit",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "images": [
+            "@reference:0"
+          ]
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "80ee5d089001000df8b6e23d320b034535958f9b861396a22c5e1a567a54d8d4"
+  },
+  {
+    "model": "studio/wavespeed/wavespeed-ai/flux-2-max/text-to-image",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/wavespeed-ai/flux-2-max/text-to-image",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/wavespeed-ai/flux-2-max/text-to-image",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "size": "1024*1024"
+        },
+        "references": []
+      }
+    },
+    "hash": "a86dedc0e0be94b8fa6b7b30b1b74a23023f62948b5b961b5ab5650d70379d31"
+  },
+  {
+    "model": "studio/wavespeed/wavespeed-ai/z-image/turbo",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/wavespeed-ai/z-image/turbo",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/wavespeed-ai/z-image/turbo",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "output_format": "jpeg",
+          "size": "1024*1024",
+          "strength": "0.6"
+        },
+        "references": []
+      }
+    },
+    "hash": "e025e6a3f1116b000cf2bb80ea335456331aa43b203be015db45d0810229aedb"
+  },
+  {
+    "model": "studio/wavespeed/wavespeed-ai/flux-2-pro/edit",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/wavespeed-ai/flux-2-pro/edit",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "image",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/wavespeed-ai/flux-2-pro/edit",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "images": [
+            "@reference:0"
+          ]
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "66361b6d4c4b795e494e2861e9644a7c4ef302283c6b002a0b5b49ff2fe4be11"
+  },
+  {
+    "model": "studio/wavespeed/wavespeed-ai/flux-2-pro/text-to-image",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/wavespeed-ai/flux-2-pro/text-to-image",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/wavespeed-ai/flux-2-pro/text-to-image",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "size": "1024*1024"
+        },
+        "references": []
+      }
+    },
+    "hash": "3d3d8274cdbc42d94f7acf2faa467fcbfa86130888fc468b3e5b84d13335e501"
+  },
+  {
+    "model": "studio/wavespeed/wavespeed-ai/hunyuan-video-1.5/image-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/wavespeed-ai/hunyuan-video-1.5/image-to-video",
+      "prompt": "A quiet river",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/wavespeed-ai/hunyuan-video-1.5/image-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "duration": 5,
+          "resolution": "720p",
+          "image": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "af0b2a00dcd1e2a1643ed22646917ba0fefb137abedf887583b0717c48fd200c"
+  },
+  {
+    "model": "studio/wavespeed/wavespeed-ai/hunyuan-video-1.5/text-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/wavespeed-ai/hunyuan-video-1.5/text-to-video",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/wavespeed-ai/hunyuan-video-1.5/text-to-video",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "duration": 5,
+          "size": "1280*720"
+        },
+        "references": []
+      }
+    },
+    "hash": "7c7a0524aa314118dab9f08c06896ce22c362891097a1828cee851302a6617f8"
+  },
+  {
+    "model": "studio/wavespeed/minimax/speech-2.6-turbo",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/minimax/speech-2.6-turbo",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/minimax/speech-2.6-turbo",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "emotion": "happy",
+          "english_normalization": false,
+          "pitch": 0,
+          "speed": 1,
+          "volume": 1,
+          "voice_id": "Wise_Woman",
+          "format": "mp3",
+          "sample_rate": 44100,
+          "bitrate": 128000
+        },
+        "references": []
+      }
+    },
+    "hash": "f0dea9f22544dff47360815190cdb4e4ba6f41058f6de827be35d3dcc815e32b"
+  },
+  {
+    "model": "studio/wavespeed/minimax/speech-2.6-hd",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/minimax/speech-2.6-hd",
+      "prompt": "A quiet river",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/minimax/speech-2.6-hd",
+      "input": {
+        "prompt": "A quiet river",
+        "parameters": {
+          "emotion": "happy",
+          "english_normalization": false,
+          "pitch": 0,
+          "speed": 1,
+          "volume": 1,
+          "voice_id": "Wise_Woman",
+          "format": "mp3",
+          "sample_rate": 44100,
+          "bitrate": 128000
+        },
+        "references": []
+      }
+    },
+    "hash": "fa3fcf7311a59e4b864820b44fc0df05bbac93316a2284c5f0fc0a71d1bc450b"
+  }
+]

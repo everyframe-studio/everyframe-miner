@@ -329,7 +329,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
         ],
         "deploy" | "start" => vec!["--max-hourly-usd"],
         "register-hotkey" => vec!["--wallet", "--hotkey", "--hotkey-file", "--hotkey-ss58"],
-        "set-api-keys" => vec!["--provider", "--stdin"],
+        "set-api-keys" => vec!["--provider", "--stdin", "--workspace"],
         "remove-api-key" => vec!["--provider"],
         "balances" => vec!["--publish"],
         "jobs" => vec![
@@ -497,6 +497,13 @@ fn set_keys(args: &Args, state: &State) -> Result<Value> {
             need(!value.trim().is_empty(), "empty_credential")?;
             updates[key] = json!(*value);
         }
+    }
+    if let Some(workspace) = args.get("--workspace") {
+        need(
+            args.get("--provider") == Some("alibaba"),
+            "workspace_requires_alibaba",
+        )?;
+        updates[invitation::ALIBABA_WORKSPACE_KEY] = json!(workspace);
     }
     onboarding::save_keys(state, &updates, None)
 }
