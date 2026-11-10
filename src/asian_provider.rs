@@ -117,7 +117,14 @@ impl Router<'_> {
     fn asian_download(&self, url: &str, provider: &str, limit: usize) -> Result<Vec<u8>> {
         let hosts: &[&str] = match provider {
             "alibaba" => &["*.aliyuncs.com"],
-            "byteplus" => &["*.bytepluses.com", "*.bytepluscdn.com", "*.ibytedtos.com"],
+            "byteplus" => &[
+                "*.bytepluses.com",
+                "*.bytepluscdn.com",
+                "*.ibytedtos.com",
+                // ModelArk's documented Singapore video result bucket. Do not
+                // authorize every volces.com host or forward API credentials.
+                "ark-content-generation-ap-southeast-1.tos-ap-southeast-1.volces.com",
+            ],
             "volcengine" => &["*.volces.com", "*.volccdn.com"],
             _ => return Err(Error("unsupported_provider")),
         };
@@ -181,7 +188,16 @@ impl Router<'_> {
             format!("/api/v3/contents/generations/tasks/{id}")
         };
         let data = self.http.json(self.asian_request(model, &path, None)?)?;
-        state(&data, model, id)?;
+        state(&data, model, id).map_err(|error| {
+            // Alibaba places task errors inside output; Ark uses a top-level
+            // error. Only the existing bounded diagnostic extractor reads
+            // these envelopes, and neither can change submission certainty.
+            self.provider_failure(
+                error,
+                model["provider"].as_str().unwrap(),
+                &json!({"error":data,"details":data["output"]}),
+            )
+        })?;
         Ok(data)
     }
     pub(crate) fn asian_poll(

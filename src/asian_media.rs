@@ -59,16 +59,25 @@ pub fn check(spec: &Value, model: &Value) -> Result<()> {
                 "invalid_native_media_references",
             )?;
         }
+        let maximum = cap["maxReferenceDurationMs"].as_u64().unwrap();
+        let minimum = if model["provider"] == "alibaba" {
+            1000
+        } else {
+            2000
+        };
         for role in ["video", "audio"] {
             let mut total = 0u64;
             for r in refs.iter().filter(|r| r["role"] == role) {
                 let d = r["durationMs"]
                     .as_u64()
                     .ok_or(Error("invalid_reference_duration"))?;
-                need((2000..=30000).contains(&d), "invalid_reference_duration")?;
+                need(
+                    (minimum..=maximum).contains(&d),
+                    "invalid_reference_duration",
+                )?;
                 total += d;
             }
-            need(total <= 30000, "invalid_reference_duration")?;
+            need(total <= maximum, "invalid_reference_duration")?;
             if role == "video" && model["provider"] == "alibaba" && total > 0 {
                 need(
                     total + p["duration"].as_u64().unwrap() * 1000 <= 30000,

@@ -74,7 +74,7 @@
       "maxImages": 9,
       "maxVideos": 3,
       "maxAudios": 3,
-      "maxReferenceDurationMs": 30000,
+      "maxReferenceDurationMs": 15000,
       "minDuration": 2
     },
     "schemaUrl": "https://help.aliyun.com/en/model-studio/wan3-video-generation-api-reference",
@@ -167,7 +167,7 @@
       "maxImages": 9,
       "maxVideos": 3,
       "maxAudios": 3,
-      "maxReferenceDurationMs": 30000,
+      "maxReferenceDurationMs": 15000,
       "minDuration": 2
     },
     "schemaUrl": "https://help.aliyun.com/en/model-studio/wan3-video-generation-api-reference",

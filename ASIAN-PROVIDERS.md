@@ -43,8 +43,9 @@ required by these adapters.
 - Video: text, first frame, first and last frames, or reference images/video/audio.
   First/last-frame mode cannot be mixed with omni references. Seedance supports
   4–30 seconds; Wan supports 2–30 seconds. Wan's input plus output video duration
-  must fit its 30-second limit. Output options are 480p, 720p and 1080p, with or
-  without generated audio.
+  must fit its 30-second limit. Wan reference video and audio clips are 1–15
+  seconds each, with at most 15 seconds in total for each media type. Output
+  options are 480p, 720p and 1080p, with or without generated audio.
 - Images: text or reference-image edits, one output per job. Qwen supports up to
   three reference images; Seedream supports up to fourteen. This release uses
   explicit image sizes up to 2048×2048 and supports PNG/JPEG where the provider
@@ -55,6 +56,12 @@ required by these adapters.
 - Video jobs resume through their original task ID. A timed-out submission is
   not automatically replayed. Image responses are synchronous; a lost response
   cannot safely be regenerated automatically.
+- BytePlus downloads accept the documented Singapore task-result host without
+  sending provider credentials. Unrelated hosts and redirects remain blocked.
+- Automatic-update capsules preserve Alibaba's workspace only when the signed
+  policy permits both the workspace and its generation key. Asynchronous task
+  failures retain sanitized provider codes and explanations, including unknown
+  codes, without changing submission certainty or replay behavior.
 
 The coordinator validates actual output dimensions, duration, codecs and audio.
 Pricing estimates include input video duration where applicable. They are

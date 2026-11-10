@@ -81,7 +81,7 @@ impl Http for Api {
             if self.provider == "alibaba" {
                 json!({"output":{"task_id":task,"task_status":if self.mode=="pending" {"RUNNING"}else{"SUCCEEDED"},"video_url":"https://test.oss-ap-southeast-1.aliyuncs.com/output.mp4"}})
             } else {
-                json!({"id":task,"status":if self.mode=="pending" {"running"}else{"succeeded"},"content":{"video_url":if self.mode=="evil" {"https://example.com/output.mp4"}else if self.provider=="byteplus" {"https://test.tos-ap-southeast-1.bytepluses.com/output.mp4"}else{"https://test.tos-cn-beijing.volces.com/output.mp4"}}})
+                json!({"id":task,"status":if self.mode=="pending" {"running"}else{"succeeded"},"content":{"video_url":if self.mode=="evil" {"https://example.com/output.mp4"}else if self.provider=="byteplus" {"https://ark-content-generation-ap-southeast-1.tos-ap-southeast-1.volces.com/output.mp4"}else{"https://test.tos-cn-beijing.volces.com/output.mp4"}}})
             }
         };
         self.calls.borrow_mut().push(r);

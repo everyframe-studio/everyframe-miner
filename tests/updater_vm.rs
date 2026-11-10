@@ -29,6 +29,7 @@ fn docker_context_includes_every_embedded_registry_but_excludes_private_state() 
         "automatic-offer-profiles.json",
         "models.json",
         "provider-expansion.json",
+        "asian-providers.json",
         "provider-model-status.json",
         "studio-video.json",
         "studio-media.json",
