@@ -1,20 +1,24 @@
 //! Fixed, non-secret diagnostics; never infer rejection from a lost response.
 pub fn rejected(code: &str) -> Option<&'static str> {
     match code {
-        "http_401" | "vivix_auth_rejected" | "kling_auth_rejected" | "minimax_auth_rejected" => {
-            Some("provider_auth_rejected")
-        }
+        "http_401"
+        | "vivix_auth_rejected"
+        | "kling_auth_rejected"
+        | "minimax_auth_rejected"
+        | "wavespeed_auth_rejected" => Some("provider_auth_rejected"),
         "http_402"
         | "vivix_billing_required"
         | "fal_billing_required"
         | "kling_billing_required"
         | "pika_billing_required"
+        | "wavespeed_billing_required"
         | "minimax_billing_required" => Some("provider_billing_required"),
         "submission_deadline_elapsed" => Some("provider_invalid_request"),
         "http_429"
         | "vivix_capacity_limited"
         | "kling_capacity_limited"
         | "pika_capacity_limited"
+        | "wavespeed_capacity_limited"
         | "minimax_capacity_limited" => Some("provider_capacity_limited"),
         "provider_key_required" => Some("provider_key_required"),
         // Catalog refusal happens before any paid provider request.
@@ -22,6 +26,7 @@ pub fn rejected(code: &str) -> Option<&'static str> {
         "vivix_content_rejected"
         | "kling_content_rejected"
         | "pika_content_rejected"
+        | "wavespeed_content_rejected"
         | "minimax_content_rejected" => Some("provider_content_rejected"),
         // Generic 403 may be moderation. It must never cause cross-miner retry.
         "http_400"
@@ -32,6 +37,7 @@ pub fn rejected(code: &str) -> Option<&'static str> {
         | "vivix_invalid_parameters"
         | "kling_invalid_parameters"
         | "pika_invalid_parameters"
+        | "wavespeed_invalid_parameters"
         | "minimax_invalid_parameters" => Some("provider_invalid_request"),
         // These local validation failures happen before a generation POST.
         "invalid_native_schema"
@@ -103,6 +109,7 @@ pub fn pika_http_error(status: u16, bytes: &[u8]) -> crate::Error {
 /// Hosts whose 4xx error bodies are read for a refusal code. The failure code
 /// itself still comes from the status (or the provider-specific parsers above).
 pub const PROVIDER_ERROR_HOSTS: &[&str] = &[
+    "api.wavespeed.ai",
     "openrouter.ai",
     "api.openai.com",
     "api.x.ai",
@@ -143,7 +150,9 @@ pub fn with_body_provider_error(
     let refusal = if (400..500).contains(&status) && !matches!(status, 408 | 429) {
         parsed.as_ref().and_then(|value| {
             crate::providers::refusal(
-                if host == "api.dev.pika.art" {
+                if host == "api.wavespeed.ai" {
+                    "wavespeed"
+                } else if host == "api.dev.pika.art" {
                     "pika"
                 } else {
                     ""
@@ -190,6 +199,8 @@ pub fn transient_poll(code: &str) -> bool {
             | "vivix_unavailable"
             | "kling_unavailable"
             | "kling_capacity_limited"
+            | "wavespeed_unavailable"
+            | "wavespeed_capacity_limited"
             | "provider_not_complete"
     )
 }

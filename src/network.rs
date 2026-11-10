@@ -425,6 +425,7 @@ impl Http for PublicHttp {
                         .read_to_end(&mut bytes)
                         .map_err(|_| Error("response_read_failed"))?;
                     let error = match host {
+                        "api.wavespeed.ai" => crate::wavespeed::http_error(status, &bytes),
                         "queue.fal.run" => crate::submission::fal_http_error(status, &bytes),
                         "api-singapore.klingai.com" => {
                             crate::submission::kling_http_error(status, &bytes)

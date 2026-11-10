@@ -18,7 +18,7 @@ pub fn offers(status: &Value, invitation: &Value, credentials: &Value) -> Value 
         .filter(|row| integrated(row))
         .cloned()
         .collect();
-    let Some(catalog) = status["modelCatalog"].as_array().filter(|c| c.len() <= 256) else {
+    let Some(catalog) = status["modelCatalog"].as_array().filter(|c| c.len() <= 512) else {
         return json!({"minerId":status["minerId"],"routingPolicy":status["routingPolicy"],
             "offers":existing,"catalogAvailable":false});
     };

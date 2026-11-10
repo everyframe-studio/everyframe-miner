@@ -20,6 +20,15 @@ pub static MODELS: LazyLock<Value> = LazyLock::new(|| {
         .as_object_mut()
         .unwrap()
         .extend(gpt.as_object().unwrap().clone());
+    let wavespeed: Value = serde_json::from_str(include_str!("../config/wavespeed-models.json"))
+        .expect("reviewed WaveSpeed media models");
+    for (id, model) in wavespeed.as_object().unwrap() {
+        assert!(
+            models.get(id).is_none(),
+            "WaveSpeed must not replace a signed contract"
+        );
+        models[id] = model.clone();
+    }
     models
 });
 

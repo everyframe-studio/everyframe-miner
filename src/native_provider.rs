@@ -24,6 +24,7 @@ fn origin(model: &Value) -> Result<&'static str> {
         "kling" => Ok("api-singapore.klingai.com"),
         "runway" => Ok("api.dev.runwayml.com"),
         "elevenlabs" => Ok("api.elevenlabs.io"),
+        "wavespeed" => Ok("api.wavespeed.ai"),
         _ => Err(Error("unsupported_provider")),
     }
 }

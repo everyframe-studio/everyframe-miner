@@ -146,8 +146,8 @@ impl CatalogCache {
 type Catalog = BTreeMap<String, &'static str>;
 fn get(http: &dyn Http, url: &str, host: &str, auth: Option<(&str, String)>) -> Result<Value> {
     let mut r = Request::get(url, &[host]);
-    r.limit = 8 * 1024 * 1024;
-    r.timeout = 10;
+    r.limit = if host == "api.wavespeed.ai" { 32 } else { 8 } * 1024 * 1024;
+    r.timeout = if host == "api.wavespeed.ai" { 30 } else { 10 };
     if let Some((name, value)) = auth {
         r.headers.push((name.into(), value));
     }
@@ -179,6 +179,43 @@ fn check_provider(
         return Ok(Some(BTreeMap::new()));
     }
     match p {
+        "wavespeed" => {
+            let body = get(
+                http,
+                "https://api.wavespeed.ai/api/v3/models",
+                "api.wavespeed.ai",
+                Some(("authorization", format!("Bearer {key}"))),
+            )?;
+            need(body["code"] == 200, "invalid_provider_catalog")?;
+            let rows = body["data"]
+                .as_array()
+                .ok_or(Error("invalid_provider_catalog"))?;
+            need(
+                !rows.is_empty()
+                    && rows.len() <= 10000
+                    && body["has_more"] != true
+                    && body["next"].is_null(),
+                "incomplete_provider_catalog",
+            )?;
+            let found = rows
+                .iter()
+                .map(|r| s(&r["model_id"]).map(str::to_owned))
+                .collect::<Result<BTreeSet<_>>>()?;
+            Ok(Some(
+                ids.iter()
+                    .map(|id| {
+                        (
+                            id.clone(),
+                            if found.contains(id) {
+                                "available"
+                            } else {
+                                "access_denied"
+                            },
+                        )
+                    })
+                    .collect(),
+            ))
+        }
         "elevenlabs" => {
             let data = get(
                 http,

@@ -41,6 +41,7 @@ pub mod ui;
 pub mod update;
 pub mod updater_vm;
 pub mod upgrade_notes;
+pub mod wavespeed;
 pub mod worker;
 pub mod worker_auto_update;
 pub mod worker_balances;

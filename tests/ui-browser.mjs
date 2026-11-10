@@ -454,6 +454,7 @@ try {
     try {
       const rows = [
         {model:'priority/fal',name:'Grok via fal',provider:'fal'},
+        {model:'priority/wavespeed',name:'WaveSpeed fixture',provider:'wavespeed'},
         {model:'priority/openrouter',name:'OpenRouter fixture',provider:'openrouter'},
         {model:'priority/xai',name:'Grok direct',provider:'xai'},
         {model:'priority/google',name:'Google direct',provider:'google'},
@@ -471,7 +472,7 @@ try {
       S.offers=original.offers;S.offerFilter=original.filter;S.modelProvider=original.provider;S.modelQuery=original.query;S.modelKind=original.kind;render();
     }
   });
-  for(const location of ['models','filters','switches'])assert.deepEqual(providerPriority[location],['google','xai','fal','openrouter']);
+  for(const location of ['models','filters','switches'])assert.deepEqual(providerPriority[location],['google','xai','fal','openrouter','wavespeed']);
   assert(providerPriority.keys);
   assert(providerPriority.unchanged,'provider priority does not enable offers or change discounts');
 

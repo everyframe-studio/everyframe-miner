@@ -368,7 +368,7 @@ impl Miner<'_> {
                 url.query_pairs_mut().append_pair("profiles", "2");
             }
             if action == "worker-update"
-                && ["pika-v1", "native-v1"]
+                && ["pika-v1", "native-v1", "native-v2"]
                     .contains(&payload["providerEnvironment"].as_str().unwrap_or(""))
             {
                 url.query_pairs_mut()
@@ -934,7 +934,7 @@ impl Miner<'_> {
         let unique: std::collections::HashSet<_> = models.iter().copied().collect();
         need(
             !models.is_empty()
-                && models.len() <= 256
+                && models.len() <= 512
                 && unique.len() == models.len()
                 && models.iter().all(|m| {
                     !m.is_empty()

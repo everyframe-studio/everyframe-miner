@@ -871,6 +871,29 @@
           "when": "If adopting the new models, review their pricing and explicitly enable the offers you want to serve. Automatic offers require explicitly selecting models and reviewing limits; an upgrade never enables them."
         }
       ]
+    },
+    {
+      "version": "v1.0.1",
+      "title": "WaveSpeedAI and video automatic offers",
+      "changes": [
+        "Add WaveSpeedAI key management, USD balance checks and 85 image, video and audio endpoints, including WaveSpeed-hosted Z-Image, Qwen Image 3, Seedream and H3 models.",
+        "Extend opt-in Fal automatic offers to 10 video contracts. Compare endpoint-specific prices for text, image and reference inputs and preserve configured cost limits.",
+        "Improve automatic-offer forms with explicit missing-limit guidance and preview details.",
+        "Allow longer read-only balance checks, query providers concurrently and place unsupported balances last. Expected unsupported Google balance checks stay neutral; zero or negative Phala credited funds show an alert."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If serving WaveSpeedAI or using the added video automatic-offer profiles, update the CLI then install the compatible signed worker. Existing manual offers keep their settings."
+        },
+        {
+          "kind": "review-offers",
+          "requirement": "conditional",
+          "when": "To use WaveSpeedAI, save its API key, check its balance and explicitly enable the models you want. Review and enable automatic-offer limits separately."
+        }
+      ]
     }
   ]
 }

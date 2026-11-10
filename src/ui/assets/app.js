@@ -459,6 +459,7 @@ const PROVIDERS = {
   pika: ["Pika", "Pika H3 Flex video with native audio, keyframes and visual references. Use a Pika developer API key. Your API balance is checked without generating media."],
   kling: ["Kling (direct)", "Kling developer API key, not a Fal key or legacy access/secret pair. API resource packs are separate from the web subscription. Model availability requires a signed worker release and pricing."],
   openrouter: ["OpenRouter", "Seedance and image models served through OpenRouter."],
+  wavespeed: ["WaveSpeedAI", "Image, video and audio models through WaveSpeedAI. Use a generation-capable API key from wavespeed.ai/accesskey; balance checks do not generate media."],
   minimax: ["MiniMax (direct)", "MiniMax models served by MiniMax's own API."],
   bfl: ["Black Forest Labs", "FLUX image models from BFL's own API."],
   replicate: ["Replicate", "Models hosted on Replicate."],

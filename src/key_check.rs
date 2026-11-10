@@ -77,6 +77,11 @@ fn probe(provider: &str, key: &str) -> Option<Probe> {
             "api.dev.pika.art",
             vec![("X-API-Key".into(), key.into())],
         ),
+        "wavespeed" => (
+            "https://api.wavespeed.ai/api/v3/balance".into(),
+            "api.wavespeed.ai",
+            bearer(),
+        ),
         "bfl" => (
             "https://api.bfl.ai/v1/credits".into(),
             "api.bfl.ai",
@@ -136,7 +141,10 @@ fn classify_error(provider: &str, code: &str) -> Verdict {
         // Vivix answers a funded-or-not question; a billing code still proves the key.
         ("vivix", "vivix_billing_required") => Verdict::Valid,
         ("fal-billing", "http_403") => Verdict::Rejected,
-        (_, "http_401" | "vivix_auth_rejected" | "kling_auth_rejected") => Verdict::Rejected,
+        (
+            _,
+            "http_401" | "vivix_auth_rejected" | "kling_auth_rejected" | "wavespeed_auth_rejected",
+        ) => Verdict::Rejected,
         _ => Verdict::Unverified,
     }
 }
@@ -152,6 +160,9 @@ pub fn check(http: &dyn Http, provider: &str, key: &str) -> (Verdict, &'static s
     req.limit = 256_000;
     match http.json(req) {
         Ok(v) => {
+            if provider == "wavespeed" && v["code"] == 401 {
+                return (Verdict::Rejected, "key_rejected");
+            }
             if provider == "kling" {
                 return match v["code"].as_i64() {
                     Some(1000..=1004 | 1103) => (Verdict::Rejected, "key_rejected"),
@@ -178,6 +189,7 @@ pub fn check(http: &dyn Http, provider: &str, key: &str) -> (Verdict, &'static s
                 };
             }
             let recognized = match provider {
+                "wavespeed" => v["code"] == 200 && v["data"]["balance"].is_number(),
                 "pika" => crate::balances::pika_remaining(&v).is_ok(),
                 "vivix" => v["code"] == 0 && v["data"]["balances"].is_array(),
                 "openrouter" => v["data"]["label"].is_string(),
