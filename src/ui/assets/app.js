@@ -268,6 +268,8 @@ function errorView(err) {
   if (!err) return h("span", null, "Something went wrong.");
   return h("div", null,
     h("div", { class: "err-msg" }, err.message || err.code || "Something went wrong."),
+    Array.isArray(err.automaticOfferIssues) ? h("ul", { class: "small" }, err.automaticOfferIssues.map(r =>
+      h("li", null, r.model + ": " + automaticReason(r.reason) + " (" + r.reason + ")"))) : null,
     err.next ? h("div", { class: "small muted" }, err.next) : null,
     (err.error || err.code) === "coordinator_auth_rejected" ? h("a", { class: "btn", href: "#/worker" }, "Reconnect from Worker page") : null,
     err.registrationCommand ? copyBox(err.registrationCommand) : null,
@@ -1761,7 +1763,8 @@ function offerRow(r) {
 
 // ---------- Automatic provider-price offers (explicit opt-in) ----------
 function automaticReason(code) {
-  return ({ automatic_offer_credential_changed: "Worker key differs from the reviewed account; apply the intended key or review this policy again", automatic_offer_price_unavailable: "Waiting for a fresh worker price check", automatic_offer_price_stale: "Price check expired; new work paused",
+  return ({ automatic_offer_credential_changed: "Worker key differs from the reviewed account; apply the intended key or review this policy again", automatic_offer_price_unavailable: "A current provider price could not be verified", automatic_offer_price_stale: "Price check expired; new work paused",
+    automatic_offer_price_placeholder: "Provider publishes a placeholder price; keep this model on manual offers", provider_price_rate_limited: "Provider rate-limited the price check; wait before retrying", provider_price_timeout: "Provider price check timed out", provider_price_access_denied: "Provider denied the price lookup; check this key's permissions", provider_key_required: "Save the provider key before checking its prices", invalid_provider_price: "Provider returned an unusable price", invalid_price_plan: "The selected price-check plan is unsupported",
     automatic_offer_price_incomplete: "Not all billing components have verified prices", automatic_offer_unit_unsupported: "Provider billing unit needs review",
     automatic_offer_pricing_unsupported: "Automatic pricing is not available for this contract", automatic_offer_cost_above_work_value: "Waiting for a lower provider price",
     automatic_offer_job_limit: "Estimated job cost exceeds your limit", automatic_offer_daily_limit: "Rolling exposure limit reached",
@@ -1860,9 +1863,13 @@ async function changeAutomaticOffers(provider, action) {
     if (action === "preview") draft.preview = errorOf(job) ? { error: errorOf(job) } : value(job)?.preview;
     else if (job.state === "done") { S.autoDrafts.delete(provider); await loadOffers(); }
     else if (action === "enable" && [errorOf(job)?.error, errorOf(job)?.code].includes("automatic_offer_preview_blocked")) {
-      // Show why instead of pointing at the CLI: the same limits, previewed, carry each model's reason.
-      const check = await run("auto-offers-preview", params, { quiet: true });
-      draft.preview = errorOf(check) ? { error: errorOf(check) } : value(check)?.preview;
+      const issues = errorOf(job)?.automaticOfferIssues;
+      if (Array.isArray(issues) && issues.length) draft.preview = { rows: issues };
+      else {
+        // Compatibility with older CLIs that did not retain their failed preview.
+        const check = await run("auto-offers-preview", params, { quiet: true });
+        draft.preview = errorOf(check) ? { error: errorOf(check) } : value(check)?.preview;
+      }
     }
   } finally {
     S.autoBusy = false;

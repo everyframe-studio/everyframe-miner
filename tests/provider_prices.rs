@@ -113,8 +113,8 @@ fn zero_compute_placeholder_is_blocked_without_estimate_or_generation() {
         &request(),
         123,
     );
-    assert_eq!(rows[0]["status"], "unsupported");
-    assert_eq!(rows[0]["code"], "automatic_offer_unit_unsupported");
+    assert_eq!(rows[0]["status"], "unavailable");
+    assert_eq!(rows[0]["code"], "automatic_offer_price_placeholder");
     assert_eq!(api.calls.borrow().len(), 1);
 }
 #[test]
@@ -308,5 +308,72 @@ fn frame_only_video_contracts_do_not_probe_unusable_reference_endpoints() {
         assert_eq!(variants.len(), 1, "{model}");
         assert_eq!(variants[0].0, "image-to-video");
         assert!(!variants[0].1.contains("reference-to-video"));
+    }
+}
+
+#[test]
+fn input_seconds_are_accepted_only_for_reviewed_veed_dubbing_profiles() {
+    for model in [
+        "studio/tool/fal/veed/dubbing",
+        "studio/tool/fal/veed/dubbing/pro",
+    ] {
+        assert!(everyframe_miner::provider_prices::valid_unit(
+            model,
+            "input seconds"
+        ));
+        assert!(everyframe_miner::provider_prices::valid_unit(
+            model,
+            "input second"
+        ));
+    }
+    assert!(!everyframe_miner::provider_prices::valid_unit(
+        "studio/media/fal/minimax/music-3",
+        "input seconds"
+    ));
+    struct Veed;
+    impl Http for Veed {
+        fn bytes(&self, r: Request) -> Result<Vec<u8>> {
+            let data = if r.method == "GET" {
+                json!({"has_more":false,"prices":[{"endpoint_id":"veed/dubbing","unit":"input seconds","currency":"USD","unit_price":0.11}]})
+            } else {
+                let body: Value = serde_json::from_slice(r.body.as_ref().unwrap()).unwrap();
+                assert_eq!(body["endpoints"]["veed/dubbing"]["unit_quantity"], 1);
+                json!({"estimate_type":"unit_price","currency":"USD","total_cost":0.11})
+            };
+            Ok(data.to_string().into_bytes())
+        }
+    }
+    let rows = collect(
+        &Veed,
+        &json!({"FAL_KEY":"generation-key"}),
+        "fal",
+        &[json!({"model":"studio/tool/fal/veed/dubbing","apiModel":"veed/dubbing"})],
+        123,
+    );
+    assert_eq!(rows[0]["status"], "ok");
+    assert_eq!(rows[0]["unitPricePicousd"], 110_000_000_000_u64);
+}
+
+#[test]
+fn provider_price_failures_distinguish_rate_limits_permissions_and_timeout() {
+    struct Failed(&'static str);
+    impl Http for Failed {
+        fn bytes(&self, _r: Request) -> Result<Vec<u8>> {
+            Err(Error(self.0))
+        }
+    }
+    for (code, expected) in [
+        ("http_429", "provider_price_rate_limited"),
+        ("http_403", "provider_price_access_denied"),
+        ("request_timeout", "provider_price_timeout"),
+    ] {
+        let rows = collect(
+            &Failed(code),
+            &json!({"FAL_KEY":"generation-key"}),
+            "fal",
+            &request(),
+            123,
+        );
+        assert_eq!(rows[0]["code"], expected);
     }
 }

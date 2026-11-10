@@ -552,13 +552,22 @@ fn status_table(value: &Value) -> String {
 pub fn render(command: &str, value: &Value) -> String {
     if value["ok"] == false && value["message"].is_string() {
         // These messages are fixed local diagnostics, never raw provider responses.
+        let issues = value["automaticOfferIssues"]
+            .as_array()
+            .map(|rows| {
+                rows.iter()
+                    .map(|row| format!("\n{}: {}", text(&row["model"]), text(&row["reason"])))
+                    .collect::<String>()
+            })
+            .unwrap_or_default();
         return format!(
-            "{}{}\n\n{}\n\nCode: {}\n",
+            "{}{}{}\n\n{}\n\nCode: {}\n",
             value["message"].as_str().unwrap_or("Profile unavailable."),
             value["file"]
                 .as_str()
                 .map(|p| format!("\nFile: {}", crate::cli_errors::clean(p)))
                 .unwrap_or_default(),
+            issues,
             value["next"].as_str().unwrap_or(""),
             text(&value["error"])
         );

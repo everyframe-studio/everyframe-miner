@@ -94,3 +94,31 @@ fn preflight_timeout_diagnostic_does_not_suggest_cloud_reconciliation() {
             .contains("everycli auto-offers")
     );
 }
+
+#[test]
+fn blocked_preview_diagnostic_contains_only_known_models_and_safe_reasons() {
+    let mut error = everyframe_miner::Error("automatic_offer_preview_blocked");
+    error.1 = Some(everyframe_miner::ErrorContext::AutomaticOfferIssues(vec![
+        (
+            "studio/media/fal/blackforestlabs/flux-3".into(),
+            "automatic_offer_price_placeholder".into(),
+        ),
+        (
+            "studio/media/fal/xai/grok-imagine-image".into(),
+            "RAW_SECRET".into(),
+        ),
+        ("https://secret.example/key".into(), "RAW_SECRET".into()),
+    ]));
+    let value = everyframe_miner::cli_errors::diagnostic(&error, Some(&args(&fields())));
+    assert_eq!(value["automaticOfferIssues"].as_array().unwrap().len(), 2);
+    assert_eq!(
+        value["automaticOfferIssues"][1]["reason"],
+        "automatic_offer_price_unavailable"
+    );
+    assert!(!value.to_string().contains("SECRET"));
+    assert!(!value.to_string().contains("secret.example"));
+    let text = display::render("error", &value);
+    assert!(
+        text.contains("studio/media/fal/blackforestlabs/flux-3: automatic_offer_price_placeholder")
+    );
+}

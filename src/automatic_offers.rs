@@ -9,6 +9,23 @@ use crate::{
 };
 use serde_json::{Value, json};
 
+pub fn safe_preview_reason(reason: &str) -> &'static str {
+    match reason {
+        "provider_key_required" => "provider_key_required",
+        "provider_price_timeout" => "provider_price_timeout",
+        "provider_price_rate_limited" => "provider_price_rate_limited",
+        "provider_price_access_denied" => "provider_price_access_denied",
+        "automatic_offer_price_placeholder" => "automatic_offer_price_placeholder",
+        "automatic_offer_unit_unsupported" => "automatic_offer_unit_unsupported",
+        "automatic_offer_price_incomplete" => "automatic_offer_price_incomplete",
+        "automatic_offer_pricing_unsupported" => "automatic_offer_pricing_unsupported",
+        "automatic_offer_credential_changed" => "automatic_offer_credential_changed",
+        "invalid_price_plan" => "invalid_price_plan",
+        "invalid_provider_price" => "invalid_provider_price",
+        _ => "automatic_offer_price_unavailable",
+    }
+}
+
 fn decimal(text: &str, places: u32, max: u64) -> Result<u64> {
     let parts: Vec<_> = text.split('.').collect();
     need(
@@ -256,7 +273,25 @@ impl Miner<'_> {
                     .iter()
                     .all(|r| r["status"] == "ready" || r["status"] == "paused"),
             "automatic_offer_preview_blocked",
-        )?;
+        )
+        .map_err(|mut error| {
+            error.1 = Some(crate::ErrorContext::AutomaticOfferIssues(
+                rows.iter()
+                    .filter(|r| r["status"] != "ready" && r["status"] != "paused")
+                    .filter_map(|r| {
+                        let model = r["model"].as_str()?;
+                        scope.iter().any(|s| s["model"] == model).then(|| {
+                            (
+                                model.to_owned(),
+                                safe_preview_reason(r["reason"].as_str().unwrap_or("")).to_owned(),
+                            )
+                        })
+                    })
+                    .take(64)
+                    .collect(),
+            ));
+            error
+        })?;
         let review = crate::protocol::digest(
             &json!({"minerId":status["minerId"],"provider":provider,"expectedPolicyRevision":revision,"policy":policy}),
         )?;

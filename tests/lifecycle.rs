@@ -4714,6 +4714,49 @@ fn automatic_offer_timeouts_distinguish_preflight_from_unknown_mutation() {
 }
 
 #[test]
+fn blocked_automatic_preview_retains_reasons_without_rechecking_prices_or_saving() {
+    struct BlockedApi<'a>(AutomaticApi<'a>);
+    impl Http for BlockedApi<'_> {
+        fn bytes(&self, r: Request) -> Result<Vec<u8>> {
+            let preview = r.url.contains("automatic-offers-preview");
+            let data = self.0.bytes(r)?;
+            if !preview {
+                return Ok(data);
+            }
+            let mut envelope: Value = serde_json::from_slice(&data).unwrap();
+            envelope["value"]["preview"]["rows"] = json!([{"model":"studio/media/fal/xai/grok-imagine-image","status":"blocked","reason":"provider_price_rate_limited","ignored":"secret body"}]);
+            Ok(self.0.rig.sign(&envelope["value"]).to_string().into_bytes())
+        }
+    }
+    let rig = Rig::new();
+    let api = BlockedApi(AutomaticApi {
+        rig: &rig,
+        policy: RefCell::new(Value::Null),
+        lost_ack: Cell::new(false),
+    });
+    let mut miner = rig.miner();
+    miner.http = &api;
+    let error = miner
+        .automatic_offers(&automatic_args("--enable"), &|_| {
+            panic!("blocked models must not request enable approval")
+        })
+        .unwrap_err();
+    let diagnostic = everyframe_miner::cli_errors::diagnostic(&error, None);
+    assert_eq!(
+        diagnostic["automaticOfferIssues"][0]["reason"],
+        "provider_price_rate_limited"
+    );
+    assert!(!diagnostic.to_string().contains("secret body"));
+    assert!(api.0.policy.borrow().is_null());
+    assert!(
+        !rig.calls
+            .borrow()
+            .iter()
+            .any(|(c, _)| c.ends_with("automatic-offers-policy"))
+    );
+}
+
+#[test]
 fn automatic_policy_enable_checks_ack_and_disable_withdraws_managed_scope() {
     let rig = Rig::new();
     let api = AutomaticApi {

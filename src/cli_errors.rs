@@ -209,6 +209,17 @@ pub fn diagnostic(error: &Error, args: Option<&Args>) -> Value {
         _ => (format!("{}.", error.0.replace('_', " ")), help),
     };
     let mut out = json!({"ok":false,"error":error.0,"message":message,"next":next});
+    if let Some(ErrorContext::AutomaticOfferIssues(issues)) = &error.1 {
+        let safe: Vec<_> = issues.iter().take(64).filter(|(model, _)|
+            crate::provider_prices::model_request(model).is_some()
+        ).map(|(model, reason)| json!({"model":model,"status":"blocked","reason":crate::automatic_offers::safe_preview_reason(reason)})).collect();
+        if !safe.is_empty() {
+            out["automaticOfferIssues"] = json!(safe);
+            out["next"] = json!(
+                "Review the listed models. Keep models without verified prices on manual offers, or retry after the provider price check recovers. No automatic policy was applied."
+            );
+        }
+    }
     if let Some(ErrorContext::Phala(detail)) = &error.1 {
         out["phala"] = detail.value();
         out["message"] = json!(format!(

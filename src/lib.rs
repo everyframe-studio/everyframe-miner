@@ -58,6 +58,8 @@ pub enum ErrorContext {
     Option(String),
     Command(String),
     Phala(Box<phala_error::PhalaError>),
+    /// Known model identifiers and fixed reason codes, never upstream bodies.
+    AutomaticOfferIssues(Vec<(String, String)>),
     /// Why a provider refused a job, as a fixed code from
     /// `providers::refusal`. Never provider text.
     Refusal(&'static str),

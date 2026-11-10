@@ -972,6 +972,15 @@ try {
   });
   assert.deepEqual(blockedEnable,['auto-offers-enable','auto-offers-preview'],'a blocked enable explains itself with a preview');
   await page.getByText('Grok test: Provider billing unit needs review',{exact:true}).waitFor();
+  const retainedPreview = await page.evaluate(async()=>{
+    const original={run,loadAutomaticOffers};const calls=[];
+    try{
+      run=async action=>{calls.push(action);return {state:'failed',result:{error:{error:'automatic_offer_preview_blocked',message:'Blocked',automaticOfferIssues:[{model:'studio/media/fal/xai/grok-imagine-image',status:'blocked',reason:'provider_price_rate_limited'}]}}};};
+      loadAutomaticOffers=async()=>{};await changeAutomaticOffers('fal','enable');return calls;
+    }finally{({run,loadAutomaticOffers}=original);}
+  });
+  assert.deepEqual(retainedPreview,['auto-offers-enable'],'retained failure reasons avoid repeating every provider price request');
+  await page.getByText('Grok test: Provider rate-limited the price check; wait before retrying',{exact:true}).waitFor();
   for(const width of [1440,390,320]){
     await page.setViewportSize({width,height:900});
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'automatic offer form fits '+width);
