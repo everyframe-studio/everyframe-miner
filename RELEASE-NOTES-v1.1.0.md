@@ -1,4 +1,4 @@
-# EveryCLI v1.1.0 — release announcement draft
+# everycli v1.1.0
 
 EveryCLI v1.1.0 adds more provider choices and improves worker readiness and
 updates while preserving existing miner identities, offers and discounts.
@@ -18,7 +18,7 @@ updates while preserving existing miner identities, offers and discounts.
   balances listed last, neutral Google balance guidance and a visible alert for
   exhausted Phala credit.
 
-## Upgrade steps after publication
+## Upgrade
 
 1. Run `everycli update` and reopen `everycli ui`.
 2. Install the matching signed worker with **Update worker** or
