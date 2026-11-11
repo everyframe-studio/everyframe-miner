@@ -128,8 +128,16 @@ impl Http for Api {
             if r.method == "POST" {
                 json!({"request_id":"fixture"})
             } else if r.url.ends_with("/status") {
+                assert_eq!(
+                    url::Url::parse(&r.url).unwrap().path(),
+                    "/openai/gpt-image-2.6/requests/fixture/status"
+                );
                 json!({"request_id":"fixture","status":"COMPLETED"})
             } else {
+                assert_eq!(
+                    url::Url::parse(&r.url).unwrap().path(),
+                    "/openai/gpt-image-2.6/requests/fixture"
+                );
                 json!({"images":[{"url":"https://v3.fal.media/image.png","content_type":"image/png"}]})
             }
         } else {
@@ -210,9 +218,7 @@ fn fal_resumes_by_get_after_restart_and_never_leaks_credentials_to_media() {
             .borrow()
             .iter()
             .filter(|r| r.url.contains("/requests/"))
-            .all(|r| r
-                .url
-                .contains("/openai/gpt-image-2.6/flare/text-to-image/requests/fixture"))
+            .all(|r| r.url.contains("/openai/gpt-image-2.6/requests/fixture"))
     );
 }
 #[test]

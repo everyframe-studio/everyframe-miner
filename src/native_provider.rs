@@ -201,11 +201,13 @@ impl Router<'_> {
                     "provider_no_media",
                 )?;
                 let audio = &choices[0]["message"]["audio"];
-                parts.push(part(
-                    "audio",
-                    audio_mime(spec, model)?,
-                    &inline(&audio["data"])?,
-                )?);
+                let bytes = inline(&audio["data"])?;
+                let bytes = if audio_mime(spec, model)? == "audio/wav" {
+                    crate::wav::normalize_openai_wav(bytes)?
+                } else {
+                    bytes
+                };
+                parts.push(part("audio", audio_mime(spec, model)?, &bytes)?);
                 if let Some(transcript) = audio["transcript"].as_str() {
                     text.push(transcript.to_string());
                 }

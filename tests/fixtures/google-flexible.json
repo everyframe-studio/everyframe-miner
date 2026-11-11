@@ -1217,7 +1217,6 @@
         "type": "audio",
         "mime_type": "audio/mp3",
         "sample_rate": 48000,
-        "delivery": "inline",
         "bit_rate": 128000
       },
       "generation_config": {
@@ -1314,8 +1313,7 @@
       "response_format": {
         "type": "audio",
         "mime_type": "audio/l16",
-        "sample_rate": 24000,
-        "delivery": "inline"
+        "sample_rate": 24000
       },
       "generation_config": {
         "speech_config": [
@@ -1592,8 +1590,7 @@
     "body": {
       "response_format": {
         "type": "audio",
-        "mime_type": "audio/wav",
-        "delivery": "inline"
+        "mime_type": "audio/wav"
       },
       "store": true,
       "background": true,

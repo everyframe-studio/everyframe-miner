@@ -182,13 +182,18 @@ impl Router<'_> {
             let data =
                 self.http
                     .json(self.native_request(model, s(&model["apiPath"])?, Some(body))?)?;
-            let code = data["base_resp"]["status_code"]
-                .as_i64()
-                .ok_or(Error("invalid_provider_response"))?;
-            if code != 0 {
-                need(data["task_id"].is_null(), "invalid_provider_response")?;
-                return Err(crate::submission::minimax_error(code));
+            // Video V2 returns {task_id}, without the legacy base_resp wrapper.
+            // Preserve explicit legacy errors, then bind the durable task ID.
+            if !data["base_resp"].is_null() {
+                let code = data["base_resp"]["status_code"]
+                    .as_i64()
+                    .ok_or(Error("invalid_provider_response"))?;
+                if code != 0 {
+                    need(data["task_id"].is_null(), "invalid_provider_response")?;
+                    return Err(crate::submission::minimax_error(code));
+                }
             }
+            need(data["error"].is_null(), "invalid_provider_response")?;
             return native_media::reference(spec, s(&data["task_id"])?);
         }
         need(model["adapter"] == "schema-bfl", "unsupported_provider")?;
@@ -514,6 +519,7 @@ impl Router<'_> {
             let bytes = self.download_bounded(
                 s(&d["content"]["url"])?,
                 &[
+                    "cdn.hailuoai.com",
                     "video-product.cdn.minimax.io",
                     "video.cdn.minimax.io",
                     "file.cdn.minimax.io",
