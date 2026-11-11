@@ -160,3 +160,19 @@ fn cross_field_duration_and_reference_constraints_are_enforced() {
     spec["input"]["references"][0]["role"] = json!("audio");
     assert!(native_media::check(&spec).is_err());
 }
+
+#[test]
+fn audio_duration_limits_follow_the_audio_endpoint_and_native_size_caps_stay_native() {
+    let mut spec = input("studio/native/ltx/ltx-2.5-fast/audio-to-video");
+    spec["input"]["parameters"]["fps"] = json!(50);
+    spec["input"]["references"][0]["durationMs"] = json!(20000);
+    native_media::check(&spec).unwrap();
+    spec["input"]["parameters"]["resolution"] = json!("3840x2160");
+    assert!(native_media::check(&spec).is_err());
+    let mut spec = input("studio/native/fal/lightricks/ltx-2.5/image-to-video/fast");
+    spec["input"]["references"][0]["bytes"] = json!(16 * 1024 * 1024);
+    native_media::check(&spec).unwrap();
+    let mut spec = input("studio/native/ltx/ltx-2.5-fast/image-to-video");
+    spec["input"]["references"][0]["bytes"] = json!(16 * 1024 * 1024);
+    assert!(native_media::check(&spec).is_err());
+}

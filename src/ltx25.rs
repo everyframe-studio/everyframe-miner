@@ -30,7 +30,7 @@ pub fn maximum(p: &Value, m: &Value) -> u64 {
     } else {
         p["resolution"].is_null() || p["resolution"] == "720p" || p["resolution"] == "1080p"
     };
-    if low && p["fps"].as_u64().unwrap_or(25) <= 25 {
+    if low && (m["ltxTask"] == "audio-to-video" || p["fps"].as_u64().unwrap_or(25) <= 25) {
         20
     } else {
         10
@@ -60,13 +60,21 @@ pub fn check(p: &Value, spec: &Value, m: &Value) -> Result<()> {
     )?;
     for r in refs {
         let audio = r["role"] == "audio";
-        let limit = if audio { 32 } else { 15 };
-        need(
-            r["bytes"]
-                .as_u64()
-                .is_some_and(|n| n <= limit * 1024 * 1024),
-            "invalid_reference_size",
-        )?;
+        if m["provider"] == "ltx" {
+            let limit = if audio { 32 } else { 15 };
+            need(
+                r["bytes"]
+                    .as_u64()
+                    .is_some_and(|n| n <= limit * 1024 * 1024),
+                "invalid_reference_size",
+            )?;
+            if audio {
+                need(
+                    ["audio/wav", "audio/mpeg", "audio/mp4", "audio/ogg"].contains(&s(&r["mime"])?),
+                    "invalid_reference_type",
+                )?;
+            }
+        }
         if audio {
             need(
                 r["durationMs"]
