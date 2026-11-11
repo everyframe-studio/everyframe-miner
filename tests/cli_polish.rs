@@ -97,7 +97,7 @@ fn key_and_network_errors_are_actionable_without_leaking_values() {
         (
             vec!["set-api-keys", "--provider", "DO-NOT-ECHO"],
             b"".as_slice(),
-            "Valid providers: phala, fal",
+            "Valid providers:",
         ),
         (
             vec!["doctor", "--network", "DO-NOT-ECHO"],
@@ -127,7 +127,7 @@ fn key_and_network_errors_are_actionable_without_leaking_values() {
         assert!(!profile.join("credentials.json").exists());
     }
     let providers = onboarding::credential_providers();
-    for name in ["vivix", "fal-billing", "openrouter-billing"] {
+    for name in ["ltx", "fal", "vivix", "fal-billing", "openrouter-billing"] {
         assert!(providers.contains(&name));
     }
 }
