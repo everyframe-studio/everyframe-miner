@@ -138,7 +138,7 @@ fn all_reviewed_wavespeed_endpoints_submit_once_and_recover_by_id() {
         }
         count += 1;
     }
-    assert_eq!(count, 85);
+    assert_eq!(count, 87);
 }
 #[test]
 fn uncertainty_and_refusals_never_trigger_resubmission() {
@@ -237,7 +237,7 @@ fn http_5xx_and_ambiguous_payloads_do_not_prove_rejection() {
 fn worker_matches_all_coordinator_contract_hashes_and_provider_payloads() {
     let vectors: Vec<Value> =
         serde_json::from_str(include_str!("fixtures/wavespeed.json")).unwrap();
-    assert_eq!(vectors.len(), 85);
+    assert_eq!(vectors.len(), 87);
     for v in vectors {
         let spec = models::spec(&v["request"]).unwrap();
         assert_eq!(spec, v["spec"]);

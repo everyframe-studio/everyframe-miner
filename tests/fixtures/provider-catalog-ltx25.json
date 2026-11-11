@@ -1,0 +1,498 @@
+[
+  {
+    "model": "studio/native/ltx/ltx-2.5-fast/text-to-video",
+    "provider": "ltx",
+    "request": {
+      "model": "studio/native/ltx/ltx-2.5-fast/text-to-video",
+      "prompt": "A blue bird",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/ltx/ltx-2.5-fast/text-to-video",
+      "input": {
+        "prompt": "A blue bird",
+        "parameters": {
+          "resolution": "1280x720",
+          "fps": 24,
+          "duration": 6,
+          "generate_audio": true
+        },
+        "references": []
+      }
+    },
+    "hash": "28483352f78588f32a269ea0f00388ed21e88cb431c7e2b003c248a4a9b5be30"
+  },
+  {
+    "model": "studio/native/ltx/ltx-2.5-fast/image-to-video",
+    "provider": "ltx",
+    "request": {
+      "model": "studio/native/ltx/ltx-2.5-fast/image-to-video",
+      "prompt": "A blue bird",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1280,
+          "height": 720
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/native/ltx/ltx-2.5-fast/image-to-video",
+      "input": {
+        "prompt": "A blue bird",
+        "parameters": {
+          "resolution": "1280x720",
+          "fps": 24,
+          "duration": 6,
+          "generate_audio": true,
+          "image_uri": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1280,
+            "height": 720
+          }
+        ]
+      }
+    },
+    "hash": "c6550a69ff99dd0e9527a5772f3cca5ffc97ef491ffb0d41cd1b5c923ed18393"
+  },
+  {
+    "model": "studio/native/ltx/ltx-2.5-fast/audio-to-video",
+    "provider": "ltx",
+    "request": {
+      "model": "studio/native/ltx/ltx-2.5-fast/audio-to-video",
+      "prompt": "A blue bird",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "audio/wav",
+          "role": "audio",
+          "durationMs": 6000
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/native/ltx/ltx-2.5-fast/audio-to-video",
+      "input": {
+        "prompt": "A blue bird",
+        "parameters": {
+          "resolution": "1280x720",
+          "fps": 24,
+          "audio_uri": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "audio/wav",
+            "role": "audio",
+            "durationMs": 6000
+          }
+        ]
+      }
+    },
+    "hash": "fb076a9f59b3fff42672f492b4a098899d40852d3f39db1fd144b2e59d615db5"
+  },
+  {
+    "model": "studio/native/ltx/ltx-2.5-pro/text-to-video",
+    "provider": "ltx",
+    "request": {
+      "model": "studio/native/ltx/ltx-2.5-pro/text-to-video",
+      "prompt": "A blue bird",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/ltx/ltx-2.5-pro/text-to-video",
+      "input": {
+        "prompt": "A blue bird",
+        "parameters": {
+          "resolution": "1280x720",
+          "fps": 24,
+          "duration": 6,
+          "generate_audio": true
+        },
+        "references": []
+      }
+    },
+    "hash": "b9f222838c52e143390781890d167e94e514dd6398509e0bcd04c672cc9d494e"
+  },
+  {
+    "model": "studio/native/ltx/ltx-2.5-pro/image-to-video",
+    "provider": "ltx",
+    "request": {
+      "model": "studio/native/ltx/ltx-2.5-pro/image-to-video",
+      "prompt": "A blue bird",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1280,
+          "height": 720
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/native/ltx/ltx-2.5-pro/image-to-video",
+      "input": {
+        "prompt": "A blue bird",
+        "parameters": {
+          "resolution": "1280x720",
+          "fps": 24,
+          "duration": 6,
+          "generate_audio": true,
+          "image_uri": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1280,
+            "height": 720
+          }
+        ]
+      }
+    },
+    "hash": "fce745b789ba39539a296b5e17e7b740bc0f267518751ae2bd797e1a36b16839"
+  },
+  {
+    "model": "studio/native/ltx/ltx-2.5-pro/audio-to-video",
+    "provider": "ltx",
+    "request": {
+      "model": "studio/native/ltx/ltx-2.5-pro/audio-to-video",
+      "prompt": "A blue bird",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "audio/wav",
+          "role": "audio",
+          "durationMs": 6000
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/native/ltx/ltx-2.5-pro/audio-to-video",
+      "input": {
+        "prompt": "A blue bird",
+        "parameters": {
+          "resolution": "1280x720",
+          "fps": 24,
+          "audio_uri": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "audio/wav",
+            "role": "audio",
+            "durationMs": 6000
+          }
+        ]
+      }
+    },
+    "hash": "32c48f1e84285cabbde190e9f53ed1c6b4a93c126d450b281a2c242164b123cb"
+  },
+  {
+    "model": "studio/native/fal/lightricks/ltx-2.5/text-to-video/fast",
+    "provider": "fal",
+    "request": {
+      "model": "studio/native/fal/lightricks/ltx-2.5/text-to-video/fast",
+      "prompt": "A blue bird",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/fal/lightricks/ltx-2.5/text-to-video/fast",
+      "input": {
+        "prompt": "A blue bird",
+        "parameters": {
+          "fps": 25,
+          "resolution": "720p",
+          "generate_audio": true,
+          "aspect_ratio": "16:9",
+          "duration": 6
+        },
+        "references": []
+      }
+    },
+    "hash": "76fe241b250861636fc764e3d35f1f257f3901008787747a12ae1425c144dd30"
+  },
+  {
+    "model": "studio/native/fal/lightricks/ltx-2.5/image-to-video/fast",
+    "provider": "fal",
+    "request": {
+      "model": "studio/native/fal/lightricks/ltx-2.5/image-to-video/fast",
+      "prompt": "A blue bird",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1280,
+          "height": 720
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/native/fal/lightricks/ltx-2.5/image-to-video/fast",
+      "input": {
+        "prompt": "A blue bird",
+        "parameters": {
+          "aspect_ratio": "auto",
+          "resolution": "720p",
+          "fps": 25,
+          "generate_audio": true,
+          "duration": 6,
+          "image_url": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1280,
+            "height": 720
+          }
+        ]
+      }
+    },
+    "hash": "b074e43befb3a3ebeec90062cbfce20ea06bc8ab4e4e5542de1f7fd338f67a0f"
+  },
+  {
+    "model": "studio/native/fal/lightricks/ltx-2.5/audio-to-video/fast",
+    "provider": "fal",
+    "request": {
+      "model": "studio/native/fal/lightricks/ltx-2.5/audio-to-video/fast",
+      "prompt": "A blue bird",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "audio/wav",
+          "role": "audio",
+          "durationMs": 6000
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/native/fal/lightricks/ltx-2.5/audio-to-video/fast",
+      "input": {
+        "prompt": "A blue bird",
+        "parameters": {
+          "aspect_ratio": "auto",
+          "enable_safety_checker": true,
+          "audio_url": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "audio/wav",
+            "role": "audio",
+            "durationMs": 6000
+          }
+        ]
+      }
+    },
+    "hash": "443b93a573965c24e81cb9521f482e86f45d0a5b2fc43adc0ab06c309dd15e22"
+  },
+  {
+    "model": "studio/native/fal/lightricks/ltx-2.5/text-to-video/pro",
+    "provider": "fal",
+    "request": {
+      "model": "studio/native/fal/lightricks/ltx-2.5/text-to-video/pro",
+      "prompt": "A blue bird",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/native/fal/lightricks/ltx-2.5/text-to-video/pro",
+      "input": {
+        "prompt": "A blue bird",
+        "parameters": {
+          "fps": 25,
+          "resolution": "720p",
+          "generate_audio": true,
+          "aspect_ratio": "16:9",
+          "duration": 6
+        },
+        "references": []
+      }
+    },
+    "hash": "44d9d4b63a3fa8972e45ae2d02a0382a0acd459a3b34a32ab23040c5b8b74a9f"
+  },
+  {
+    "model": "studio/native/fal/lightricks/ltx-2.5/image-to-video/pro",
+    "provider": "fal",
+    "request": {
+      "model": "studio/native/fal/lightricks/ltx-2.5/image-to-video/pro",
+      "prompt": "A blue bird",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1280,
+          "height": 720
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/native/fal/lightricks/ltx-2.5/image-to-video/pro",
+      "input": {
+        "prompt": "A blue bird",
+        "parameters": {
+          "aspect_ratio": "auto",
+          "resolution": "720p",
+          "fps": 25,
+          "generate_audio": true,
+          "duration": 6,
+          "image_url": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1280,
+            "height": 720
+          }
+        ]
+      }
+    },
+    "hash": "853c0fae538e63cc2ea5c499533af2cc6225b94e3e03b97d427e0c6f42f5c896"
+  },
+  {
+    "model": "studio/native/fal/lightricks/ltx-2.5/audio-to-video/pro",
+    "provider": "fal",
+    "request": {
+      "model": "studio/native/fal/lightricks/ltx-2.5/audio-to-video/pro",
+      "prompt": "A blue bird",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "audio/wav",
+          "role": "audio",
+          "durationMs": 6000
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/native/fal/lightricks/ltx-2.5/audio-to-video/pro",
+      "input": {
+        "prompt": "A blue bird",
+        "parameters": {
+          "aspect_ratio": "auto",
+          "enable_safety_checker": true,
+          "audio_url": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "audio/wav",
+            "role": "audio",
+            "durationMs": 6000
+          }
+        ]
+      }
+    },
+    "hash": "390f6a6cad7b3ea38fdc27d2934b6149d2ae3e668bf0b9bd8975cf967ff0a02a"
+  },
+  {
+    "model": "studio/wavespeed/wavespeed-ai/ltx-2.5/text-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/wavespeed-ai/ltx-2.5/text-to-video",
+      "prompt": "A blue bird",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/wavespeed-ai/ltx-2.5/text-to-video",
+      "input": {
+        "prompt": "A blue bird",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 5,
+          "resolution": "720p"
+        },
+        "references": []
+      }
+    },
+    "hash": "24b9ec6c9671e4de4f1b4f8b91f2c3ce50f75b72215584f8a4c40352722a225d"
+  },
+  {
+    "model": "studio/wavespeed/wavespeed-ai/ltx-2.5/image-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/wavespeed-ai/ltx-2.5/image-to-video",
+      "prompt": "A blue bird",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1280,
+          "height": 720
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/wavespeed-ai/ltx-2.5/image-to-video",
+      "input": {
+        "prompt": "A blue bird",
+        "parameters": {
+          "duration": 5,
+          "resolution": "720p",
+          "image": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1280,
+            "height": 720
+          }
+        ]
+      }
+    },
+    "hash": "2343189058720d69ed60d77cc171045110cd25ee6bb014d3f6771946881d605a"
+  }
+]
