@@ -340,14 +340,14 @@ fn only_definitive_client_rejection_is_safe_to_fail_over() {
 }
 
 #[test]
-fn large_pika_videos_have_a_bounded_download_without_raising_other_provider_limits() {
-    struct Large;
+fn pika_and_fal_video_downloads_share_the_bounded_media_limit() {
+    struct Large(usize);
     impl Http for Large {
         fn bytes(&self, r: Request) -> Result<Vec<u8>> {
             safe_url(&r.url, &r.hosts)?;
             if r.url.contains("cdn.pika.art") || r.url.contains("v3.fal.media") {
                 assert!(r.headers.is_empty());
-                let size = 65 * 1024 * 1024;
+                let size = self.0;
                 if r.limit < size {
                     return Err(everyframe_miner::Error("response_too_large"));
                 }
@@ -362,17 +362,29 @@ fn large_pika_videos_have_a_bounded_download_without_raising_other_provider_limi
             Ok(reply.to_string().into_bytes())
         }
     }
-    let out = Router::new(&Large, keys())
+    let out = Router::new(&Large(65 * 1024 * 1024), keys())
         .result("pika_media_job123", &spec())
         .unwrap();
     assert_eq!(out.media.len(), 65 * 1024 * 1024);
     let fal = models::spec(&json!({"prompt":"A boat","seed":1})).unwrap();
-    assert_eq!(
-        Router::new(&Large, json!({"FAL_KEY":"fal-fixture-secret"}))
-            .result("job123", &fal)
-            .err()
-            .unwrap()
-            .0,
-        "response_too_large"
-    );
+    let other = Router::new(
+        &Large(65 * 1024 * 1024),
+        json!({"FAL_KEY":"fal-fixture-secret"}),
+    )
+    .result("job123", &fal)
+    .unwrap();
+    assert_eq!(other.media.len(), 65 * 1024 * 1024);
+    for (credentials, reference, spec) in [
+        (keys(), "pika_media_job123", spec()),
+        (json!({"FAL_KEY":"fal-fixture-secret"}), "job123", fal),
+    ] {
+        assert_eq!(
+            Router::new(&Large(129 * 1024 * 1024), credentials)
+                .result(reference, &spec)
+                .err()
+                .unwrap()
+                .0,
+            "response_too_large"
+        );
+    }
 }
