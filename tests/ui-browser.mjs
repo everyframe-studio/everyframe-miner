@@ -532,24 +532,151 @@ try {
   assert.equal(approvalGuard.dialogs, 0);
   assert.deepEqual(approvalGuard.submitted.approvals, ['reviewed-quote']);
 
-  const badges = await page.evaluate(() => {
-    S.overview.profile.minerId='badge-fixture';const key=modelSeenKey();localStorage.removeItem(key);S.modelSeen.delete(key);
-    trackModels([{model:'fixture/a',contractAvailable:true}]);const baseline=S.newModels.size;
-    const rows=[{model:'fixture/a',contractAvailable:true},{model:'fixture/new',contractAvailable:true},{model:'pending',contractAvailable:false,blockers:['integration_required']}];
-    trackModels(rows);const added=[...S.newModels];S.offers={offers:rows};render();
-    const badge=document.querySelector('#main .seg').textContent;
+  // Discovery tracks models this miner can offer, not every catalog ID. A model
+  // seen before its worker/key update still becomes newly available afterward.
+  const discovery = await page.evaluate(() => {
+    window.discoveryBefore={overview:S.overview,session:S.session,offers:S.offers,filter:S.offerFilter,
+      provider:S.modelProvider,query:S.modelQuery,kind:S.modelKind,newOnly:S.modelNewOnly,
+      newModels:new Set(S.newModels),autoTried:S.autoTried,hash:location.hash};
+    S.overview={...S.overview,initialized:true,profile:{minerId:'discovery-fixture'}};
+    S.session={...S.session,network:'mainnet'};S.autoTried=true;
+    S.offerFilter='all';S.modelProvider='';S.modelQuery='';S.modelKind='';S.modelNewOnly=false;
+    const ready=(model,name,extra={})=>({model,name,provider:'fal',kind:'video',offered:false,authorized:true,
+      pricingAvailable:true,offerable:true,localKeyConfigured:true,releaseAllowsKey:true,catalogGroup:'supported',...extra});
+    const rows=[
+      ready('known/active','Active model',{offered:true,discountBp:1000,pricingCurrent:true}),
+      ready('known/ready','Known ready model'),
+      ready('studio/native/fal/lightricks/ltx-2.5/text-to-video/fast','LTX 2.5 Fast',
+        {authorized:false,offerable:false,blockers:['worker_release_required']}),
+      ready('keys/pending','Needs a key',{localKeyConfigured:false}),
+      ready('release/pending','Key not in worker release',{releaseAllowsKey:false}),
+      ready('price/pending','Needs pricing',{catalogGroup:'candidate',pricingAvailable:false,offerable:false,blockers:['pricing_required']}),
+      ready('budget/pending','Budget blocked',{offerable:false,blockers:['provider_budget_exhausted']}),
+      ready('retired/model','Retired',{providerAvailability:{status:'deprecated'}}),
+      ready('integration/pending','Needs integration',{contractAvailable:false,blockers:['integration_required']}),
+    ];
+    window.discoveryRows=rows;
+    const key=modelSeenKey();localStorage.removeItem(key);S.modelSeen.delete(key);
+    S.offers={offers:rows};trackModels(rows);
+    const baseline=[...S.newModels],eligible=notOfferedModels().map(r=>r.model),baselineNotice=modelDiscoveryNotice(true).textContent;
+    rows[2]={...rows[2],authorized:true,offerable:true,blockers:[]};
+    rows.push(ready('new/model','New model',{provider:'google'}));
+    trackModels(rows);const added=[...S.newModels];render();
     S.modelSeen.clear();trackModels(rows);const persisted=[...S.newModels];
-    acknowledgeModels();trackModels(rows);const acknowledged=S.newModels.size;
-    return {baseline,added,badge,persisted,acknowledged};
+    return {baseline,eligible,baselineNotice,added,persisted,offers:JSON.stringify(rows)};
   });
-  assert.equal(badges.baseline,0);assert.deepEqual(badges.added,['fixture/new']);
-  assert.match(badges.badge,/1 new/);assert.deepEqual(badges.persisted,['fixture/new']);assert.equal(badges.acknowledged,0);
+  assert.deepEqual(discovery.baseline,[],'first successful catalog establishes an honest baseline');
+  assert.match(discovery.baselineNotice,/1 model ready to offer/);
+  assert.deepEqual(discovery.eligible,['known/ready'],'not offered excludes missing keys, old releases, blocked pricing and budgets');
+  assert.deepEqual(discovery.added,['studio/native/fal/lightricks/ltx-2.5/text-to-video/fast','new/model']);
+  assert.deepEqual(discovery.persisted,discovery.added,'unread model availability survives a reload of in-memory state');
+  const notOfferedTab=page.locator('[data-offer-filter="not-offered"]');
+  assert.match(await notOfferedTab.innerText(),/3/);
+  assert.match(await notOfferedTab.innerText(),/2 new/);
+  assert.doesNotMatch(await page.locator('[data-offer-filter="all"]').innerText(),/new/);
+  assert.equal(await page.locator('#nav [aria-label="2 newly available models"]').count(),1);
+  for(const name of ['Needs a key','Key not in worker release','Budget blocked']) {
+    assert.equal(await page.locator('tr').filter({has:page.getByText(name,{exact:true})}).getByRole('button',{name:'Offer',exact:true}).isDisabled(),true);
+  }
+  await page.evaluate(()=>{history.replaceState(null,'','#/overview');render();});
+  assert.match(await page.locator('[data-model-discovery]').innerText(),/2 newly available models/);
+  await page.evaluate(()=>{S.modelQuery='stale search';S.modelProvider='openrouter';S.modelKind='image';});
+  await page.getByRole('link',{name:'Review new models',exact:true}).click();
+  assert.equal(await page.evaluate(()=>location.hash),'#/models?filter=not-offered&new=1');
+  assert.equal(await page.evaluate(()=>{S.modelNewOnly=false;readModelsRoute();return S.modelNewOnly;}),true,'new-model deep links survive route parsing');
+  assert.deepEqual(await page.evaluate(()=>[S.modelQuery,S.modelProvider,S.modelKind]),['','','']);
+  assert.equal(await page.getByRole('checkbox',{name:'Only newly available models',exact:true}).isChecked(),true);
+  assert.deepEqual(await page.evaluate(()=>visibleOffers().map(r=>r.model)),['new/model','studio/native/fal/lightricks/ltx-2.5/text-to-video/fast']);
+  assert.equal(await page.locator('#model-list [aria-label="Newly available model"]').count(),2);
+  if(process.env.EVERYCLI_QA_DIR)await page.screenshot({path:join(process.env.EVERYCLI_QA_DIR,'model-discovery-ltx-1440.png'),fullPage:true});
+  assert.equal(await page.evaluate(()=>JSON.stringify(S.offers.offers)),discovery.offers,'reviewing is navigation only');
+  await page.evaluate(()=>{S.offerFilter='all';S.modelNewOnly=false;render();});
+  assert.deepEqual(await page.evaluate(()=>[...S.newModels]),discovery.added,'visiting All models does not silently acknowledge new availability');
+  await page.getByRole('link',{name:'Review new models',exact:true}).click();
+  await page.evaluate(()=>S.offerDrafts.set('known/ready','12.5'));
+  await page.getByRole('button',{name:'Mark all as seen',exact:true}).click();
+  assert.equal(await page.evaluate(()=>S.newModels.size),0);
+  assert.equal(await page.evaluate(()=>S.modelNewOnly),false);
+  assert.equal(await page.locator('#model-list [aria-label="Newly available model"]').count(),0);
+  assert.equal(await page.evaluate(()=>S.offerDrafts.get('known/ready')),'12.5');
+  assert.equal(await page.evaluate(()=>JSON.stringify(S.offers.offers)),discovery.offers,'acknowledging does not change discounts or offers');
+  const discoveryTransitions=await page.evaluate(async()=>{
+    const rows=window.discoveryRows;
+    S.modelSeen.clear();trackModels(rows);const acknowledged=S.newModels.size;
+    S.offers={offers:rows.slice(0,1)};trackModels(S.offers.offers);acknowledgeModels();S.offers={offers:rows};trackModels(rows);
+    const afterPartialCatalog=S.newModels.size;
+    rows.push({...rows[1],model:'known/remote-offer',offered:true});trackModels(rows);
+    rows[rows.length-1].offered=false;trackModels(rows);
+    const withdrawnIsNotNew=!S.newModels.has('known/remote-offer');rows.pop();
+    S.overview={...S.overview,profile:{minerId:'legacy-discovery-profile'}};
+    const legacyKey=modelSeenKey(),legacyRows=[rows[1],{...rows[2],authorized:false,offerable:false,blockers:['worker_release_required']}];
+    localStorage.removeItem(legacyKey);S.modelSeen.delete(legacyKey);
+    localStorage.setItem(legacyKey.replace('seen:v2:','seen:v1:'),JSON.stringify(legacyRows.map(r=>r.model)));
+    trackModels(legacyRows);legacyRows[1]={...rows[2]};trackModels(legacyRows);
+    S.modelSeen.delete(legacyKey);trackModels(legacyRows);
+    const legacyMigration=[...S.newModels];
+    S.overview={...S.overview,profile:{minerId:'discovery-fixture'}};
+    rows[3]={...rows[3],localKeyConfigured:true};trackModels(rows);
+    const keyActivated=[...S.newModels];
+    const key=modelSeenKey();S.overview={...S.overview,profile:{minerId:'other-discovery-profile'}};
+    localStorage.removeItem(modelSeenKey());S.modelSeen.delete(modelSeenKey());trackModels(rows);
+    const otherProfile=S.newModels.size;
+    S.overview={...S.overview,profile:{minerId:'discovery-fixture'}};trackModels(rows);
+    const restored=[...S.newModels];
+    S.session={...S.session,network:'testnet'};localStorage.removeItem(modelSeenKey());S.modelSeen.delete(modelSeenKey());trackModels(rows);
+    const otherNetwork=S.newModels.size;S.session={...S.session,network:'mainnet'};trackModels(rows);
+    // A background catalog refresh updates discovery without replacing draft inputs.
+    const input=document.querySelector('[aria-label="Discount percent for Known ready model"]');input.value='23';
+    const original=run;let refreshActions=[];
+    rows.push({...rows[1],model:'new/background',name:'Background model'});
+    let unchangedNoticeKept;
+    try {
+      run=async action=>{refreshActions.push(action);return {state:'done',result:{value:{offers:rows}}};};await loadOffers();
+      const notice=document.querySelector('[data-model-discovery]');await loadOffers();
+      unchangedNoticeKept=notice===document.querySelector('[data-model-discovery]');
+    }
+    finally {run=original;}
+    return {acknowledged,afterPartialCatalog,withdrawnIsNotNew,legacyMigration,keyActivated,otherProfile,restored,otherNetwork,
+      draftKept:input===document.querySelector('[aria-label="Discount percent for Known ready model"]')&&input.value==='23',
+      notice:document.querySelector('[data-model-discovery]')?.textContent,refreshActions,unchangedNoticeKept,
+      filterCount:document.querySelector('[data-new-model-count]')?.textContent,
+      filterEnabled:!document.querySelector('[data-new-model-filter]')?.disabled,key};
+  });
+  assert.equal(discoveryTransitions.acknowledged,0);
+  assert.equal(discoveryTransitions.afterPartialCatalog,0,'temporary catalog omissions cannot reset acknowledgments');
+  assert(discoveryTransitions.withdrawnIsNotNew,'a model already offered on another device is not new when withdrawn');
+  assert.deepEqual(discoveryTransitions.legacyMigration,['studio/native/fal/lightricks/ltx-2.5/text-to-video/fast'],'legacy catalog tracking must not hide a newly usable LTX model');
+  assert.deepEqual(discoveryTransitions.keyActivated,['keys/pending']);
+  assert.equal(discoveryTransitions.otherProfile,0);
+  assert.equal(discoveryTransitions.otherNetwork,0);
+  assert.deepEqual(discoveryTransitions.restored,['keys/pending']);
+  assert(discoveryTransitions.draftKept,'background model notifications preserve the current input DOM and draft');
+  assert(discoveryTransitions.unchangedNoticeKept,'an unchanged background check must not replace or announce the same notice again');
+  assert.match(discoveryTransitions.notice,/2 newly available models/);
+  assert.equal(discoveryTransitions.filterCount,'Only newly available (2)');assert(discoveryTransitions.filterEnabled);
+  assert.deepEqual(discoveryTransitions.refreshActions,['offers','offers'],'discovery never submits or enables an offer');
+  await page.getByRole('link',{name:'Review new models',exact:true}).click();
+  for(const width of [390,320]){
+    await page.setViewportSize({width,height:900});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'model notifications fit '+width);
+    if(process.env.EVERYCLI_QA_DIR)await page.screenshot({path:join(process.env.EVERYCLI_QA_DIR,'model-discovery-'+width+'.png'),fullPage:true});
+  }
+  await page.setViewportSize({width:1440,height:1000});
+  await page.evaluate(()=>{
+    const before=window.discoveryBefore;
+    Object.assign(S,{overview:before.overview,session:before.session,offers:before.offers,offerFilter:before.filter,
+      modelProvider:before.provider,modelQuery:before.query,modelKind:before.kind,modelNewOnly:before.newOnly,
+      newModels:before.newModels,autoTried:before.autoTried});
+    S.offerDrafts.delete('known/ready');history.replaceState(null,'',before.hash);render();
+    delete window.discoveryBefore;delete window.discoveryRows;
+  });
 
   const expiry = await page.evaluate(() => {
     const original=window.setTimeout;let callback,delay;
     try {
       window.setTimeout=(fn,ms)=>{callback=fn;delay=ms;return 12345;};
-      S.offerFilter='all';
+      S.offerFilter='all';S.modelProvider='';S.modelQuery='';S.modelKind='';S.modelNewOnly=false;
+      S.offers={offers:[{model:'fixture/a',offerable:true}]};
       showBatchReport([{model:'fixture/a',ok:true,message:'Saved'}]);render();
       const draft=document.querySelector('input[aria-label="Discount percent for fixture/a"]');draft.value='23';
       const visible=!!S.batchReport,successDelay=delay;callback();

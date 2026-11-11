@@ -354,6 +354,9 @@ input.tiny { width: 72px; }
 
 .model-filters { margin: 4px 0 16px; }
 .model-tabs { flex-wrap: wrap; }
+.model-tabs .badge { margin-left: 6px; }
+.new-model-filter { margin: 0 0 12px; font-size: 13px; }
+[data-model-discovery] p { margin: 4px 0 10px; }
 .provider-offers { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
 .provider-offer { min-width: 0; border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
 .provider-offer > .row { justify-content: space-between; margin-bottom: 6px; }

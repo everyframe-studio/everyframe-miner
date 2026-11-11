@@ -12,7 +12,7 @@ const S = {
   jobDetail: null, jobDetailError: false, jobDetailBusy: false, jobDetailRequest: 0, history: null, historyBusy: false, historyRequest: 0, historyStatus: "all", historyModel: "", historyModelDraft: "", historyCursors: [null], historyPage: 0, openAttempt: null, earningsBusy: false,
   cliUpdate: null, workerUpdate: null, workerUpdateBusy: false, workerUpdateRunning: false, workerUpdateAt: 0, resumeResult: null, hotkeySel: null, registration: null,
   workerAuto: null, workerAutoBusy: false, pendingOperations: new Map(),
-  offerDrafts: new Map(), modelQuery: "", modelProvider: "", modelKind: "", computeLimit: "10",
+  offerDrafts: new Map(), modelQuery: "", modelProvider: "", modelKind: "", modelNewOnly: false, computeLimit: "10",
   selectedOffers: new Set(), batchDiscount: "0", batchBusy: false, batchReport: null,
   batchReportTimer: null, navigationEpoch: 0, newModels: new Set(), modelSeen: new Map(),
   openStep: null, renaming: false, keyStatus: {}, workloads: null, removal: null, offerFilter: "ready", timers: [], refreshing: false,
@@ -627,28 +627,89 @@ async function loadOffers(quiet = true) {
   const job = await run("offers", {}, { quiet });
   S.offers = value(job); S.offersError = errorOf(job);
   if (Array.isArray(S.offers?.offers)) trackModels(S.offers.offers);
+  patchModelDiscovery();
 }
 const integratedModel = r => r.contractAvailable !== false && !(r.blockers || []).includes("integration_required");
-function modelSeenKey() { return "everycli-models-seen:v1:" + (S.session?.network || "mainnet") + ":" + (S.overview?.profile?.minerId || "public"); }
+const availableToOffer = r => integratedModel(r) && r.offerable !== false && r.localKeyConfigured !== false && r.releaseAllowsKey !== false && canApplyOffer(r);
+const notOfferedModel = r => !r.offered && availableToOffer(r);
+function notOfferedModels() { return (S.offers?.offers || []).filter(notOfferedModel); }
+function newAvailableModels() { return notOfferedModels().filter(r => S.newModels.has(r.model)); }
+function modelSeenKey() { return "everycli-models-seen:v2:" + (S.session?.network || "mainnet") + ":" + (S.overview?.profile?.minerId || S.offers?.minerId || "public"); }
+function loadSeenModels(key) {
+  try {
+    const stored = JSON.parse(localStorage.getItem(key));
+    if (Array.isArray(stored) && stored.length <= 2048 && stored.every(id => typeof id === "string" && id.length <= 150)) return new Set(stored);
+  } catch { /* private mode or invalid cache */ }
+  return null;
+}
 function saveSeenModels(key, ids) {
-  S.modelSeen.set(key, new Set(ids));
-  try { localStorage.setItem(key, JSON.stringify([...ids])); } catch { /* memory fallback */ }
+  const seen = new Set([...new Set([...ids].filter(id => typeof id === "string" && id.length <= 150))].slice(-2048));
+  S.modelSeen.set(key, seen);
+  try { localStorage.setItem(key, JSON.stringify([...seen])); } catch { /* memory fallback */ }
 }
 function trackModels(rows) {
-  const key = modelSeenKey(), ids = rows.filter(integratedModel).map(r => r.model).filter(id => typeof id === "string");
-  let seen = S.modelSeen.get(key);
+  const key = modelSeenKey(), ids = rows.filter(r => availableToOffer(r) || r.offered).map(r => r.model).filter(id => typeof id === "string");
+  let seen = S.modelSeen.get(key) || loadSeenModels(key);
   if (!seen) {
-    try { const stored = JSON.parse(localStorage.getItem(key)); if (Array.isArray(stored) && stored.length <= 1024 && stored.every(id => typeof id === "string")) seen = new Set(stored); } catch { /* private mode or invalid cache */ }
+    const legacy = loadSeenModels(key.replace("seen:v2:", "seen:v1:"));
+    if (legacy) {
+      const blocked = new Set(rows.filter(r => !availableToOffer(r) && !r.offered).map(r => r.model));
+      seen = new Set([...legacy].filter(id => !blocked.has(id)));
+      saveSeenModels(key, seen);
+    }
   }
-  // Establish a baseline, not a misleading "all models are new" notification.
+  // Baseline only models this profile can offer. Merely seeing a blocked
+  // catalog entry must not hide it when a key or worker update makes it usable.
   if (!seen) { saveSeenModels(key, ids); S.newModels.clear(); return; }
-  S.modelSeen.set(key, seen);
-  S.newModels = new Set(ids.filter(id => !seen.has(id)));
+  const known = new Set([...seen, ...rows.filter(r => r.offered).map(r => r.model)]);
+  if (known.size !== seen.size) saveSeenModels(key, known); else S.modelSeen.set(key, known);
+  S.newModels = new Set(rows.filter(r => notOfferedModel(r) && !known.has(r.model)).map(r => r.model));
 }
 function acknowledgeModels() {
   if (!Array.isArray(S.offers?.offers)) return;
-  saveSeenModels(modelSeenKey(), S.offers.offers.filter(integratedModel).map(r => r.model));
+  const key = modelSeenKey();
+  saveSeenModels(key, [...(S.modelSeen.get(key) || []), ...S.offers.offers.filter(r => availableToOffer(r) || r.offered).map(r => r.model)]);
   S.newModels.clear();
+  S.modelNewOnly = false;
+  if (route() === "models") history.replaceState(null, "", modelsHref(S.offerFilter, S.modelProvider));
+}
+function modelDiscoveryNotice(includeExisting = false) {
+  const available = notOfferedModels(), added = newAvailableModels();
+  if (!S.overview?.initialized || S.offersError || !available.length || (!added.length && !includeExisting)) return null;
+  const count = added.length || available.length;
+  const unit = count === 1 ? "model" : "models";
+  const title = added.length ? count + " newly available " + unit : count + " " + unit + " ready to offer";
+  const link = modelViewLink(added.length ? "Review new models" : "View models to offer", "not-offered", "", { class: "btn small" }, !!added.length);
+  const view = notice("", title, h("div", null,
+    h("p", null, "These models have no active offer. Review their settings and pricing before turning offers on. Nothing is enabled automatically."),
+    h("div", { class: "row" }, link, added.length ? button("Mark all as seen", () => { acknowledgeModels(); render(); }, "small") : null)));
+  view.dataset.modelDiscovery = "";
+  if (added.length) view.setAttribute("role", "status");
+  return view;
+}
+function modelTabs() {
+  const availableCount = notOfferedModels().length, newCount = newAvailableModels().length;
+  return h("div", { class: "seg model-tabs", "data-discovery-counts": availableCount + ":" + newCount }, OFFER_FILTERS.map(([f, label]) => h("button", { "data-offer-filter": f, disabled: S.batchBusy, class: S.offerFilter === f ? "on" : "", onclick: () => openModels(f, S.modelProvider, false) }, label,
+    f === "not-offered" ? h("span", { class: "badge neutral", "aria-label": availableCount + " models available to offer" }, availableCount) : null,
+    f === "not-offered" && newCount ? h("span", { class: "badge info", "aria-label": newCount + " newly available models" }, newCount + " new") : null)));
+}
+function patchModelDiscovery() {
+  if (currentRoute() !== "models") return;
+  const table = $("#offers-table");
+  if (!table) return;
+  const tabs = $(".model-tabs");
+  if (tabs?.dataset.discoveryCounts === notOfferedModels().length + ":" + newAvailableModels().length) return;
+  const previous = $("[data-model-discovery]"), next = modelDiscoveryNotice();
+  if (previous) { if (next) previous.replaceWith(next); else previous.remove(); }
+  else if (next) $("#main .lede").after(next);
+  const intro = $("[data-not-offered-intro]");
+  if (intro) intro.hidden = !!next;
+  const newCount = newAvailableModels().length, newFilter = $("[data-new-model-filter]"), newLabel = $("[data-new-model-count]");
+  if (newFilter) newFilter.disabled = S.batchBusy || (!newCount && !S.modelNewOnly);
+  if (newLabel) newLabel.textContent = "Only newly available (" + newCount + ")";
+  const focus = tabs?.contains(document.activeElement) ? document.activeElement.dataset.offerFilter : null;
+  tabs?.replaceWith(modelTabs());
+  if (focus) $("[data-offer-filter='" + focus + "']")?.focus();
 }
 
 // ---------- shell ----------
@@ -658,33 +719,34 @@ const OFFER_FILTERS = [["ready", "Ready for my keys"], ["active", "My active off
 function route() { const m = location.hash.match(/^#\/(\w+)/); return m && ROUTES.some(([r]) => r === m[1]) ? m[1] : null; }
 function currentRoute() { return route() || (S.overview?.initialized ? "overview" : "setup"); }
 function go(r) { location.hash = "#/" + r; }
-function modelsHref(filter, provider = "") {
+function modelsHref(filter, provider = "", newOnly = false) {
   const query = new URLSearchParams({ filter });
   if (provider) query.set("provider", provider);
+  if (filter === "not-offered" && newOnly) query.set("new", "1");
   return "#/models?" + query;
 }
 function readModelsRoute() {
   if (route() !== "models") return;
   const query = new URLSearchParams(location.hash.split("?")[1] || "");
   if (OFFER_FILTERS.some(([f]) => f === query.get("filter"))) S.offerFilter = query.get("filter");
+  S.modelNewOnly = S.offerFilter === "not-offered" && query.get("new") === "1";
   if (query.has("filter")) {
     S.modelProvider = Object.hasOwn(PROVIDERS, query.get("provider")) ? query.get("provider") : "";
     S.modelQuery = ""; S.modelKind = ""; S.selectedOffers.clear();
   }
 }
-function openModels(filter, provider = "", resetSearch = true) {
-  S.offerFilter = filter; S.modelProvider = provider; S.selectedOffers.clear(); clearBatchReport();
+function openModels(filter, provider = "", resetSearch = true, newOnly = false) {
+  S.offerFilter = filter; S.modelProvider = provider; S.modelNewOnly = filter === "not-offered" && newOnly; S.selectedOffers.clear(); clearBatchReport();
   if (resetSearch) { S.modelQuery = ""; S.modelKind = ""; }
-  if (filter === "all") acknowledgeModels();
-  const href = modelsHref(filter, provider);
+  const href = modelsHref(filter, provider, S.modelNewOnly);
   if (location.hash !== href) {
     history.pushState(null, "", href); S.navigationEpoch++;
     S.openStep = null; S.renaming = false;
   }
   render();
 }
-function modelViewLink(label, filter, provider = "", attrs = {}) {
-  return h("a", { ...attrs, href: modelsHref(filter, provider), onclick: e => { e.preventDefault(); openModels(filter, provider); } }, label);
+function modelViewLink(label, filter, provider = "", attrs = {}, newOnly = false) {
+  return h("a", { ...attrs, href: modelsHref(filter, provider, newOnly), onclick: e => { e.preventDefault(); openModels(filter, provider, true, newOnly); } }, label);
 }
 
 function renderMeta() {
@@ -699,13 +761,14 @@ function renderMeta() {
 }
 function renderNav() {
   const current = currentRoute();
+  const newCount = newAvailableModels().length;
   const steps = S.overview?.steps || [];
   const done = steps.filter((x) => stepDone(x)).length;
   const labels = Object.fromEntries(ROUTES);
   $("#nav").replaceChildren(...NAV_GROUPS.map(([group, routes]) => h("div", { class: "nav-group" }, h("div", { class: "nav-title", "aria-hidden": "true" }, group),
-    routes.map(r => h("a", { href: "#/" + r, class: r === current ? "active" : "", "aria-current": r === current ? "page" : null },
+    routes.map(r => h("a", { href: r === "models" && newCount ? modelsHref("not-offered", "", true) : "#/" + r, class: r === current ? "active" : "", "aria-current": r === current ? "page" : null },
       icon(r), h("span", { class: "nav-label" }, labels[r]),
-      r === "models" && S.newModels.size ? h("span", { class: "count new", "aria-label": S.newModels.size + " new models" }, S.newModels.size) : null,
+      r === "models" && newCount ? h("span", { class: "count new", "aria-label": newCount + " newly available models" }, newCount) : null,
       r === "setup" && steps.length ? h("span", { class: "count" + (done === steps.length ? " complete" : "") }, done + "/" + steps.length) : null)))));
 }
 function render() {
@@ -866,12 +929,14 @@ function pageOverview() {
   const activity = health?.activity || {};
   const activeOffers = checks.filter((c) => (c.name || "").startsWith("Model: ")).length;
   const offersStat = stat("Active offers", String(activeOffers), activeOffers ? "" : "Choose models to serve", activeOffers ? "ok" : "warn", "offers");
-  if (Array.isArray(S.offers?.offers)) offersStat.append(h("div", { class: "sub" }, modelViewLink(S.offers.offers.filter(r => integratedModel(r) && !r.offered && r.catalogGroup !== "candidate" && !["removed", "deprecated"].includes(r.providerAvailability?.status)).length + " not offered", "not-offered")));
+  if (Array.isArray(S.offers?.offers)) offersStat.append(h("div", { class: "sub" }, modelViewLink(notOfferedModels().length + " not offered", "not-offered")));
   root.append(h("div", { class: "grid overview-stats", "aria-label": "Miner overview summary" },
     workerStat(phase, tone),
     workStatusStat(),
     offersStat,
     stat("Jobs", activity.activeJobs == null ? "Unknown" : activity.activeJobs + " active", activity.acceptedJobs == null ? "Accepted count not reported" : activity.acceptedJobs.toLocaleString() + " accepted so far", "", "bolt")));
+  const discovery = modelDiscoveryNotice(true);
+  if (discovery) root.append(discovery);
   if (S.workloads?.length) root.append(notice("warn", "A worker for this miner runs in your Phala account, but this computer doesn't manage it",
     h("div", null, "It was probably deployed from another computer. Keep managing it there, or delete or replace it from the ", h("a", { href: "#/worker" }, "Worker page"), ".")));
   if (o.deployment.needsReconcile) root.append(notice("warn", "An operation was interrupted", "Your last change didn't finish cleanly. Re-sync it from the Worker page before anything else; never deploy a second worker."));
@@ -1522,19 +1587,25 @@ function pageModels() {
   const refresh = button("Refresh", async () => { await loadOffers(false); render(); });
   if (!S.offers && !S.offersError) { root.append(card("Offers", [refresh], h("p", { class: "muted" }, "Loading…"))); loadOffers().then(render); return root; }
   if (S.offersError) { root.append(card("Offers", [refresh], errorView(S.offersError))); return root; }
-  const seg = h("div", { class: "seg model-tabs" }, OFFER_FILTERS.map(([f, label]) => h("button", { disabled: S.batchBusy, class: S.offerFilter === f ? "on" : "", onclick: () => openModels(f, S.modelProvider, false) }, label,
-    f === "all" && S.newModels.size ? h("span", { class: "badge info", "aria-label": S.newModels.size + " new models" }, S.newModels.size + " new") : null)));
+  const newCount = newAvailableModels().length, seg = modelTabs();
   const search = h("input", { type: "search", disabled: S.batchBusy, value: S.modelQuery, placeholder: "Search models", "aria-label": "Search models", oninput: e => { S.modelQuery = e.target.value; patchModels(); } });
   const providers = [...new Set((S.offers.offers || []).map(r => r.provider).filter(Boolean))].sort(compareProviders);
   const provider = h("select", { "aria-label": "Filter model provider", disabled: S.batchBusy, onchange: e => { S.modelProvider = e.target.value; patchModels(); } },
     h("option", { value: "" }, "All providers"), providers.map(p => h("option", { value: p }, providerName(p)))); provider.value = S.modelProvider;
   const kind = h("select", { "aria-label": "Filter model type", disabled: S.batchBusy, onchange: e => { S.modelKind = e.target.value; patchModels(); } },
     h("option", { value: "" }, "All types"), ["video", "image", "audio"].map(v => h("option", { value: v }, v[0].toUpperCase() + v.slice(1)))); kind.value = S.modelKind;
+  const discovery = modelDiscoveryNotice();
+  if (discovery) root.append(discovery);
   if (S.overview?.initialized) root.append(providerOffersCard(), automaticOffersCard());
-  if (S.offerFilter === "not-offered") root.append(notice("", "Models without an active offer", "New models start at 0% discount. Review a model and turn its offer on when you want to serve it."));
+  if (S.offerFilter === "not-offered") {
+    const intro = notice("", "Available models without an active offer", "Models you can offer with your saved keys and current worker authorization. New offers start at 0% discount; nothing is enabled automatically.");
+    intro.dataset.notOfferedIntro = ""; intro.hidden = !!discovery; root.append(intro);
+  }
   if (S.offerFilter === "candidate") root.append(notice("", "Not available for new offers", "These models need attention before they can be offered. Existing offers can still be withdrawn."));
   const body = h("div", { id: "model-list" });
-  const offersCard = card("Offers", [seg, refresh], h("div", { class: "row model-filters" }, search, provider, kind), body);
+  const newOnly = S.offerFilter === "not-offered" ? h("label", { class: "row new-model-filter" },
+    h("input", { type: "checkbox", checked: S.modelNewOnly, disabled: S.batchBusy || (!newCount && !S.modelNewOnly), "data-new-model-filter": "", "aria-label": "Only newly available models", onchange: e => openModels("not-offered", S.modelProvider, false, e.target.checked) }), h("span", { "data-new-model-count": "" }, "Only newly available (" + newCount + ")")) : null;
+  const offersCard = card("Offers", [seg, refresh], h("div", { class: "row model-filters" }, search, provider, kind), newOnly, body);
   offersCard.id = "offers-table"; root.append(offersCard);
   fillModels(body);
   return root;
@@ -1542,7 +1613,7 @@ function pageModels() {
 function visibleOffers() {
   let rows = (S.offers?.offers || []).filter(integratedModel);
   if (S.overview?.initialized && S.offerFilter === "active") rows = rows.filter(r => r.offered);
-  if (S.offerFilter === "not-offered") rows = rows.filter(r => !r.offered && r.catalogGroup !== "candidate" && !["removed", "deprecated"].includes(r.providerAvailability?.status));
+  if (S.offerFilter === "not-offered") rows = rows.filter(r => notOfferedModel(r) && (!S.modelNewOnly || S.newModels.has(r.model)));
   if (S.overview?.initialized && S.offerFilter === "ready") rows = rows.filter(r => canApplyOffer(r) && readiness(r)[0].startsWith("Available") && r.localKeyConfigured !== false);
   if (S.offerFilter === "all" || (!S.overview?.initialized && S.offerFilter === "ready")) rows = rows.filter(r => r.catalogGroup !== "candidate" && r.providerAvailability?.status !== "removed");
   if (S.offerFilter === "candidate") rows = rows.filter(r => r.catalogGroup === "candidate" || ["removed", "deprecated"].includes(r.providerAvailability?.status));
@@ -1568,8 +1639,8 @@ function providerOffersCard() {
   const providers = [...new Set(rows.map(r => r.provider).filter(Boolean))].sort(compareProviders);
   const controls = providers.map(provider => {
     const models = rows.filter(r => r.provider === provider), active = models.filter(r => r.offered);
-    const inactive = models.filter(r => !r.offered && r.catalogGroup !== "candidate" && !["removed", "deprecated"].includes(r.providerAvailability?.status));
-    const eligible = inactive.filter(r => canApplyOffer(r) && r.localKeyConfigured !== false);
+    const inactive = models.filter(notOfferedModel);
+    const eligible = inactive;
     const on = active.length > 0 || models.some(r => r.automaticOffer?.managed);
     const toggle = h("button", { type: "button", role: "switch", "aria-checked": String(on), "aria-label": providerName(provider) + " offers",
       class: "offer-switch" + (on ? " on" : ""), disabled: S.batchBusy || S.pendingOperations.size > 0 || (!on && !eligible.length),
@@ -1588,6 +1659,11 @@ function offerBlocker(r) {
   if (provider === "removed" || provider === "deprecated") return "This model was " + provider + " by the provider.";
   if (r.authorized === false || (r.blockers || []).includes("worker_release_required")) return "Update the worker to enable this model.";
   if (r.pricingAvailable === false || (r.blockers || []).includes("pricing_required") || r.catalogGroup === "candidate") return "There is no current price for this model.";
+  if (!r.offered) {
+    if (r.localKeyConfigured === false) return "Save a provider key before offering this model.";
+    if (r.releaseAllowsKey === false) return "Update the worker to enable this provider key.";
+    if (r.offerable === false) return "This model is not currently available for new offers.";
+  }
   // Declaring a bid is different from being ready to execute a job. A worker
   // can be offline, or its account check can be transiently unavailable, while
   // the coordinator still authorizes a priced offer. The CLI rechecks the
@@ -1653,7 +1729,7 @@ async function changeProviderOffers(provider, enabled) {
     await loadOffers(false);
     if (S.offersError || !Array.isArray(S.offers?.offers)) throw Error("Could not refresh offers. No provider offers were changed.");
     const rows = (S.offers?.offers || []).filter(r => integratedModel(r) && r.provider === provider);
-    const changes = rows.filter(r => enabled ? !r.offered && canApplyOffer(r) && r.localKeyConfigured !== false : r.offered || r.automaticOffer?.managed);
+    const changes = rows.filter(r => enabled ? notOfferedModel(r) : r.offered || r.automaticOffer?.managed);
     if (enabled) for (const row of rows.filter(r => !r.offered && !changes.includes(r))) report.push({ model: row.name || row.model, ok: false, skipped: true,
       message: "Skipped: " + (row.localKeyConfigured === false ? "No provider key saved." : offerBlocker(row) || "Not ready to offer.") });
     if (changes.length) {
@@ -1754,7 +1830,7 @@ function offerRow(r) {
   const apply = button(r.offered ? "Update" : "Offer", async () => { const job = await run("offer", { model: r.model, discountPct: disc.value }); if (job.state === "done") S.offerDrafts.delete(r.model); await loadOffers(); await loadHealth(); render(); }, "small primary");
   apply.disabled = !canApplyOffer(r); disc.disabled = !canApplyOffer(r);
   return h("tr", { "data-model": r.model },
-    h("td", { "data-label": "Model" }, h("label", { class: "row" }, S.overview?.initialized ? h("input", { type: "checkbox", checked: S.selectedOffers.has(r.model), disabled: S.batchBusy || !selectableOffer(r), "aria-label": "Select " + (r.name || r.model), onchange: e => { if (e.target.checked) S.selectedOffers.add(r.model); else S.selectedOffers.delete(r.model); patchModels(); } }) : null, h("b", null, r.name || r.model)), h("details", { class: "model-details" }, h("summary", null, "Model details"), h("span", { class: "id" }, "EveryFrame contract: " + r.model), h("span", { class: "id" }, "Provider API ID: " + (r.providerApiId || "Not reported")), googleCapabilityDetails(r), nativeCapabilityDetails(r))),
+    h("td", { "data-label": "Model" }, h("label", { class: "row" }, S.overview?.initialized ? h("input", { type: "checkbox", checked: S.selectedOffers.has(r.model), disabled: S.batchBusy || !selectableOffer(r), "aria-label": "Select " + (r.name || r.model), onchange: e => { if (e.target.checked) S.selectedOffers.add(r.model); else S.selectedOffers.delete(r.model); patchModels(); } }) : null, h("b", null, r.name || r.model), notOfferedModel(r) && S.newModels.has(r.model) ? h("span", { class: "badge info", "aria-label": "Newly available model" }, "New") : null), h("details", { class: "model-details" }, h("summary", null, "Model details"), h("span", { class: "id" }, "EveryFrame contract: " + r.model), h("span", { class: "id" }, "Provider API ID: " + (r.providerApiId || "Not reported")), googleCapabilityDetails(r), nativeCapabilityDetails(r))),
     h("td", { "data-label": "Provider" }, providerName(r.provider || ""), r.localKeyConfigured === false ? h("div", { class: "small muted" }, "No key saved") : null),
     h("td", { "data-label": "Readiness" }, h("span", { class: "badge " + tone }, ready)),
     h("td", { "data-label": "Your offer" }, yours),
