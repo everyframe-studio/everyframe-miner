@@ -386,8 +386,7 @@
         "type": "image",
         "image_size": "4K",
         "aspect_ratio": "8:1",
-        "mime_type": "image/jpeg",
-        "delivery": "inline"
+        "mime_type": "image/jpeg"
       },
       "store": true,
       "background": true,
@@ -506,8 +505,7 @@
         "type": "image",
         "image_size": "512",
         "aspect_ratio": "2:3",
-        "mime_type": "image/jpeg",
-        "delivery": "inline"
+        "mime_type": "image/jpeg"
       },
       "store": true,
       "background": true,
@@ -601,8 +599,7 @@
         "type": "image",
         "image_size": "1K",
         "aspect_ratio": "21:9",
-        "mime_type": "image/jpeg",
-        "delivery": "inline"
+        "mime_type": "image/jpeg"
       },
       "store": true,
       "background": true,
@@ -972,8 +969,7 @@
         "type": "image",
         "image_size": "4K",
         "aspect_ratio": "4:5",
-        "mime_type": "image/jpeg",
-        "delivery": "inline"
+        "mime_type": "image/jpeg"
       },
       "store": true,
       "background": true,
