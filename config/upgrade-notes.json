@@ -938,6 +938,23 @@
           "when": "If serving OpenRouter models, run everycli worker-update after updating the CLI to install budget checks and automatic recovery. The same VM and existing offers are retained."
         }
       ]
+    },
+    {
+      "version": "v1.1.3",
+      "title": "Google image delivery compatibility",
+      "changes": [
+        "Fix Google Nano Banana image requests rejected with Image delivery mode is not supported, including combined text and image responses.",
+        "Preserve signed job inputs, hashes and saved Google interaction IDs for safe recovery without duplicate submissions.",
+        "Retain the detailed worker diagnostics already available in the signed production worker."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If serving Google models, run everycli worker-update after updating the CLI. Updating only the CLI does not change requests sent by the deployed worker."
+        }
+      ]
     }
   ]
 }
