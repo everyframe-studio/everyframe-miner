@@ -62,8 +62,7 @@
         "type": "image",
         "image_size": "1K",
         "aspect_ratio": "1:1",
-        "mime_type": "image/jpeg",
-        "delivery": "inline"
+        "mime_type": "image/jpeg"
       },
       "store": true,
       "background": true,
@@ -103,8 +102,7 @@
         "type": "image",
         "image_size": "1K",
         "aspect_ratio": "1:1",
-        "mime_type": "image/jpeg",
-        "delivery": "inline"
+        "mime_type": "image/jpeg"
       },
       "store": true,
       "background": true,
@@ -144,8 +142,7 @@
         "type": "image",
         "image_size": "1K",
         "aspect_ratio": "1:1",
-        "mime_type": "image/jpeg",
-        "delivery": "inline"
+        "mime_type": "image/jpeg"
       },
       "store": true,
       "background": true,
@@ -185,8 +182,7 @@
         "type": "image",
         "image_size": "1K",
         "aspect_ratio": "1:1",
-        "mime_type": "image/jpeg",
-        "delivery": "inline"
+        "mime_type": "image/jpeg"
       },
       "store": true,
       "background": true,

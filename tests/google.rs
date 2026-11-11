@@ -55,6 +55,11 @@ impl Http for Api {
         let m = models::info(self.spec["model"].as_str().unwrap())?;
         let d = if r.method == "POST" {
             assert_eq!(r.url, format!("{}/v1beta/interactions", google::ORIGIN));
+            let body: Value = serde_json::from_slice(r.body.as_ref().unwrap()).unwrap();
+            if m["kind"] == "image" {
+                // The live Gemini endpoint rejects explicit image delivery.
+                assert!(body["response_format"].get("delivery").is_none());
+            }
             self.calls.borrow_mut().push(r);
             if self.fail {
                 return Err(Error("request_timeout"));
@@ -70,6 +75,74 @@ impl Http for Api {
         assert!(r.url.ends_with("/v1beta/interactions/v1_test"));
         self.calls.borrow_mut().push(r);
         Ok(d.to_string().into_bytes())
+    }
+}
+
+#[test]
+fn google_image_delivery_is_normalized_only_on_the_wire() {
+    for id in [
+        "direct/google/nano-banana-2.1",
+        "direct/google/nano-banana-2-lite",
+        "direct/google/nano-banana-2",
+        "direct/google/nano-banana-pro",
+    ] {
+        let spec = models::spec(&json!({
+            "model":id,"prompt":"A blue paper butterfly", "aspect":"16:9",
+            "resolution":"1k","seed":42
+        }))
+        .unwrap();
+        let original = spec.clone();
+        let hash = protocol::digest(&spec).unwrap();
+        let reference = google::reference(&spec, "existing_interaction").unwrap();
+        let model = models::info(id).unwrap();
+        let body = google::body(&spec, model).unwrap();
+        assert_eq!(
+            body["response_format"],
+            json!({
+                "type":"image","image_size":"1K","aspect_ratio":"16:9",
+                "mime_type":"image/jpeg"
+            })
+        );
+        assert_eq!(body["background"], true);
+        assert_eq!(body["store"], true);
+        assert_eq!(body["generation_config"]["seed"], 42);
+        assert_eq!(spec, original);
+        assert_eq!(protocol::digest(&spec).unwrap(), hash);
+        assert_eq!(
+            google::reference_id(&spec, &reference).unwrap(),
+            "existing_interaction"
+        );
+
+        let mut absent = spec.clone();
+        absent["input"]["response_format"]
+            .as_object_mut()
+            .unwrap()
+            .remove("delivery");
+        assert_eq!(google::body(&absent, model).unwrap(), body);
+
+        // URI has different semantics; never silently convert it to inline.
+        let mut uri = spec.clone();
+        uri["input"]["response_format"]["delivery"] = json!("uri");
+        assert_eq!(
+            google::body(&uri, model).unwrap()["response_format"]["delivery"],
+            "uri"
+        );
+
+        let mut combined = spec.clone();
+        let image = combined["input"]["response_format"].clone();
+        combined["input"]["response_format"] = json!([
+            {"type":"text","mime_type":"text/plain"}, image
+        ]);
+        let body = google::body(&combined, model).unwrap();
+        assert_eq!(
+            body["response_format"][0],
+            combined["input"]["response_format"][0]
+        );
+        assert!(body["response_format"][1].get("delivery").is_none());
+        assert_eq!(
+            combined["input"]["response_format"][1]["delivery"],
+            "inline"
+        );
     }
 }
 #[test]

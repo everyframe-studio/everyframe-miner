@@ -44,6 +44,22 @@ pub fn body_with_references(spec: &Value, model: &Value, refs: &[Value]) -> Resu
         "unsupported_model",
     )?;
     let mut body = spec["input"].clone();
+    // Gemini returns image bytes inline by default, but rejects an explicit
+    // image delivery="inline". Normalize only the outgoing request: changing
+    // the signed input would invalidate existing job hashes and recovery IDs.
+    // Keep explicit URI requests intact rather than silently changing delivery.
+    fn image_delivery(format: &mut Value) {
+        if format["type"] == "image" && format["delivery"] == "inline" {
+            format.as_object_mut().unwrap().remove("delivery");
+        }
+    }
+    if let Some(formats) = body["response_format"].as_array_mut() {
+        for format in formats {
+            image_delivery(format);
+        }
+    } else {
+        image_delivery(&mut body["response_format"]);
+    }
     let prompt = body
         .as_object_mut()
         .ok_or(Error("unsupported_spec"))?

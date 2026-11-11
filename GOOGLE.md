@@ -29,6 +29,13 @@ speech with Kore. Reference jobs do not force a square or landscape aspect.
 and `bit_rate`, as applicable. An array containing a text and media format keeps
 both the accompanying text and generated media.
 
+For image output, omit `delivery`. The Gemini endpoint returns image bytes
+inline by default and rejects an explicit `delivery: "inline"`. The worker
+omits that field from the outgoing image request, including text/image format
+arrays. Existing signed job inputs, hashes and recovery references are kept
+intact. Explicit `delivery: "uri"` requests are not converted to inline and
+may be rejected by the provider. Video and audio delivery settings are unchanged.
+
 `options.generation_config` accepts `seed`, `stop_sequences`, `thinking_level`,
 `thinking_summaries`, `max_output_tokens`, `video_config`, `speech_config` (or
 `structured_speech_config`), and `tool_choice`. Google's deprecated
