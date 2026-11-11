@@ -941,18 +941,19 @@
     },
     {
       "version": "v1.1.3",
-      "title": "Google image delivery compatibility",
+      "title": "Google image delivery and LTX 2.5",
       "changes": [
+        "Adds LTX 2.5 Fast and Pro for text, image and audio inputs through native LTX and Fal, plus WaveSpeed text/image routes, with provider-specific settings, pricing and safe native-first routing.",
         "Fix Google Nano Banana image requests rejected with Image delivery mode is not supported, including combined text and image responses.",
         "Preserve signed job inputs, hashes and saved Google interaction IDs for safe recovery without duplicate submissions.",
         "Retain the detailed worker diagnostics already available in the signed production worker."
       ],
-      "workerUpdate": "conditional",
+      "workerUpdate": "required",
       "actions": [
         {
           "kind": "worker-update",
-          "requirement": "conditional",
-          "when": "If serving Google models, run everycli worker-update after updating the CLI. Updating only the CLI does not change requests sent by the deployed worker."
+          "requirement": "required",
+          "when": "Run everycli worker-update after updating the CLI for LTX 2.5 support and the Google image delivery fix. Updating only the CLI leaves the deployed worker unchanged."
         }
       ]
     }

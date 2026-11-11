@@ -175,3 +175,18 @@ fn v110_combines_unreleased_work_without_a_phantom_v101_release() {
         assert!(rendered.contains(feature), "{feature}");
     }
 }
+
+#[test]
+fn v113_displays_ltx_and_required_worker_upgrade() {
+    let upgrade = upgrade_notes::bundled("1.1.2", "v1.1.3");
+    assert_eq!(upgrade["status"], "complete");
+    assert_eq!(upgrade["workerUpdate"], "required");
+    assert!(upgrade["history"].to_string().contains("LTX 2.5"));
+    assert!(
+        upgrade["actions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|a| a["command"] == "everycli worker-update" && a["requirement"] == "required")
+    );
+}

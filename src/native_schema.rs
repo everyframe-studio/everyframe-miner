@@ -310,6 +310,9 @@ pub fn body(spec: &Value, model: &Value, urls: &[String]) -> Result<Value> {
     if let Some(field) = model["apiModelField"].as_str() {
         insert(&mut raw, field, model["apiModel"].clone())?;
     }
+    if model["ltx25"] == true {
+        crate::ltx25::check(&raw, spec, model)?;
+    }
     minimax_policy(&raw, spec, model)?;
     extra_policy(&raw, spec, model)?;
     luma_policy(&raw, spec, model)?;

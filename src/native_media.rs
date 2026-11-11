@@ -38,6 +38,15 @@ pub static MODELS: LazyLock<Value> = LazyLock::new(|| {
         );
         models[id] = model.clone();
     }
+    let ltx: Value = serde_json::from_str(include_str!("../config/ltx25-models.json"))
+        .expect("reviewed LTX 2.5 models");
+    for (id, model) in ltx.as_object().unwrap() {
+        assert!(
+            models.get(id).is_none(),
+            "LTX must not replace existing contracts"
+        );
+        models[id] = model.clone();
+    }
     models
 });
 
@@ -234,7 +243,10 @@ pub fn check(value: &Value) -> Result<()> {
         let mime = s(&reference["mime"])?;
         need(
             match role {
-                "audio" => ["audio/wav", "audio/x-wav", "audio/mpeg"].contains(&mime),
+                "audio" => {
+                    ["audio/wav", "audio/x-wav", "audio/mpeg"].contains(&mime)
+                        || policy["ltx25"] == true && ["audio/mp4", "audio/ogg"].contains(&mime)
+                }
                 "video" => {
                     mime == "video/mp4"
                         || (policy["adapter"] == "schema-minimax-video"

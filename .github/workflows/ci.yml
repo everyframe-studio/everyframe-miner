@@ -71,8 +71,9 @@ jobs:
         run: |
           mkdir -p worker-dist
           cp target/release/everyframe-worker worker-dist/everyframe-worker
+          cp target/release/everyframe-updater worker-dist/everyframe-updater
           cd worker-dist
-          sha256sum everyframe-worker > everyframe-worker.sha256
+          sha256sum everyframe-worker everyframe-updater > everyframe-worker.sha256
           jq -n --arg revision "$GITHUB_SHA" --arg platform "${{ matrix.target }}" '{sourceRevision:$revision,platform:$platform}' > build-manifest.json
       - name: Upload reviewed worker
         if: matrix.target == 'x86_64-unknown-linux-gnu' && (startsWith(github.ref, 'refs/heads/release/') || startsWith(github.head_ref, 'release/'))

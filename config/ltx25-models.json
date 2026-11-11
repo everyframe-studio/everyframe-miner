@@ -1,0 +1,2566 @@
+{
+  "studio/native/ltx/ltx-2.5-fast/text-to-video": {
+    "provider": "ltx",
+    "apiModel": "ltx-2-5-fast",
+    "name": "LTX 2.5 Fast · text-to-video",
+    "vendor": "Lightricks",
+    "family": "LTX 2.5 Fast",
+    "kind": "video",
+    "nativeMedia": true,
+    "ltx25": true,
+    "ltxVariant": "fast",
+    "ltxTask": "text-to-video",
+    "adapter": "schema-ltx",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "maxLength": 5000,
+          "description": "Text prompt describing the desired video content"
+        },
+        "model": {
+          "const": "ltx-2-5-fast",
+          "type": "string"
+        },
+        "duration": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Video duration in seconds. See [Supported Models](/models) for available durations per model. Pass `null` to let `ltx-2-5-fast` or `ltx-2-5-pro` choose the length from your prompt — see [Automatic duration](/models/ltx-2-5#automatic-duration)."
+        },
+        "fps": {
+          "type": "integer",
+          "default": 24,
+          "description": "Frame rate in frames per second. See [Supported Models](/models) for available FPS per model and resolution.",
+          "enum": [
+            24,
+            25,
+            48,
+            50
+          ]
+        },
+        "resolution": {
+          "type": "string",
+          "enum": [
+            "1280x720",
+            "720x1280",
+            "720x720",
+            "1080x720",
+            "720x1080",
+            "1920x1080",
+            "1080x1920",
+            "1080x1080",
+            "1620x1080",
+            "1080x1620",
+            "2560x1440",
+            "1440x2560",
+            "1440x1440",
+            "2160x1440",
+            "1440x2160",
+            "3840x2160",
+            "2160x3840",
+            "2160x2160",
+            "3240x2160",
+            "2160x3240"
+          ]
+        },
+        "generate_audio": {
+          "type": "boolean",
+          "default": true,
+          "description": "Generate audio for the video. When true, the generated video will include AI-generated audio matching the scene. When false, only silent video is generated."
+        },
+        "camera_motion": {
+          "type": "string",
+          "enum": [
+            "dolly_in",
+            "dolly_out",
+            "dolly_left",
+            "dolly_right",
+            "jib_up",
+            "jib_down",
+            "static",
+            "focus_shift"
+          ],
+          "description": "Apply camera motion effects to the generated video.",
+          "title": "TextToVideoRequestCameraMotion"
+        }
+      },
+      "required": [
+        "prompt",
+        "model",
+        "duration",
+        "resolution"
+      ],
+      "title": "TextToVideoRequest",
+      "additionalProperties": false
+    },
+    "apiPath": "/v2/text-to-video",
+    "apiPrompt": "/prompt",
+    "apiModelField": "/model",
+    "params": {
+      "resolution": "1280x720",
+      "fps": 24,
+      "duration": 6,
+      "generate_audio": true
+    },
+    "referencePaths": [],
+    "referenceRoles": {},
+    "referenceTransport": "owned-url",
+    "exampleReferences": [],
+    "pricingRule": {
+      "type": "ltx25",
+      "rates": {
+        "720p": 90000,
+        "1080p": 130000,
+        "1440p": 190000,
+        "2160p": 300000
+      }
+    },
+    "deadlineMs": 1200000,
+    "maxPrompt": 5000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "nativeCapabilities": {
+      "maxReferences": 0,
+      "resolutions": [
+        "1280x720",
+        "720x1280",
+        "720x720",
+        "1080x720",
+        "720x1080",
+        "1920x1080",
+        "1080x1920",
+        "1080x1080",
+        "1620x1080",
+        "1080x1620",
+        "2560x1440",
+        "1440x2560",
+        "1440x1440",
+        "2160x1440",
+        "1440x2160",
+        "3840x2160",
+        "2160x3840",
+        "2160x2160",
+        "3240x2160",
+        "2160x3240"
+      ],
+      "durations": [
+        6,
+        8,
+        10,
+        12,
+        14,
+        16,
+        18,
+        20
+      ],
+      "fps": [
+        24,
+        25,
+        48,
+        50
+      ]
+    },
+    "schemaCheckedAt": "2026-11-11",
+    "documentationCheckedAt": "2026-11-11",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://docs.ltx.io/api-documentation/api-reference/async-video-generation/submit-text-to-video",
+    "mime": "video/mp4",
+    "duration": 6,
+    "resolution": "1280x720",
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc",
+      "av1"
+    ],
+    "audio": true,
+    "description": "Official LTX 2.5 text-to-video API. Provider-specific settings and verified reference inputs; asynchronous jobs are polled without resubmitting. Pricing is a public list-price estimate, not an invoice."
+  },
+  "studio/native/ltx/ltx-2.5-fast/image-to-video": {
+    "provider": "ltx",
+    "apiModel": "ltx-2-5-fast",
+    "name": "LTX 2.5 Fast · image-to-video",
+    "vendor": "Lightricks",
+    "family": "LTX 2.5 Fast",
+    "kind": "video",
+    "nativeMedia": true,
+    "ltx25": true,
+    "ltxVariant": "fast",
+    "ltxTask": "image-to-video",
+    "adapter": "schema-ltx",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "image_uri": {
+          "type": "string",
+          "description": "Image to be used as the first frame of the video. See [Input Formats](/input-formats#images) for supported formats and size limits."
+        },
+        "prompt": {
+          "type": "string",
+          "maxLength": 5000,
+          "description": "Text description of how the image should be animated, can relate to the details in the image"
+        },
+        "model": {
+          "const": "ltx-2-5-fast",
+          "type": "string"
+        },
+        "duration": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Video duration in seconds. See [Supported Models](/models) for available durations per model. Pass `null` to let `ltx-2-5-fast` or `ltx-2-5-pro` choose the length from your prompt — see [Automatic duration](/models/ltx-2-5#automatic-duration). Cannot be combined with `last_frame_uri`."
+        },
+        "fps": {
+          "type": "integer",
+          "default": 24,
+          "description": "Frame rate in frames per second. See [Supported Models](/models) for available FPS per model and resolution.",
+          "enum": [
+            24,
+            25,
+            48,
+            50
+          ]
+        },
+        "resolution": {
+          "type": "string",
+          "enum": [
+            "1280x720",
+            "720x1280",
+            "720x720",
+            "1080x720",
+            "720x1080",
+            "1920x1080",
+            "1080x1920",
+            "1080x1080",
+            "1620x1080",
+            "1080x1620",
+            "2560x1440",
+            "1440x2560",
+            "1440x1440",
+            "2160x1440",
+            "1440x2160",
+            "3840x2160",
+            "2160x3840",
+            "2160x2160",
+            "3240x2160",
+            "2160x3240"
+          ]
+        },
+        "generate_audio": {
+          "type": "boolean",
+          "default": true,
+          "description": "Generate audio for the video. When true, the generated video will include AI-generated audio matching the scene. When false, only silent video is generated."
+        },
+        "last_frame_uri": {
+          "type": "string",
+          "description": "Image to be used as the last frame of the video. When provided, the video will interpolate between the first frame (image_uri) and this last frame. See [Input Formats](/input-formats#images) for supported formats and size limits."
+        },
+        "camera_motion": {
+          "type": "string",
+          "enum": [
+            "dolly_in",
+            "dolly_out",
+            "dolly_left",
+            "dolly_right",
+            "jib_up",
+            "jib_down",
+            "static",
+            "focus_shift"
+          ],
+          "description": "Apply camera motion effects to the generated video.",
+          "title": "ImageToVideoRequestCameraMotion"
+        }
+      },
+      "required": [
+        "image_uri",
+        "prompt",
+        "model",
+        "duration",
+        "resolution"
+      ],
+      "title": "ImageToVideoRequest",
+      "additionalProperties": false
+    },
+    "apiPath": "/v2/image-to-video",
+    "apiPrompt": "/prompt",
+    "apiModelField": "/model",
+    "params": {
+      "resolution": "1280x720",
+      "fps": 24,
+      "duration": 6,
+      "generate_audio": true,
+      "image_uri": "@reference:0"
+    },
+    "referencePaths": [
+      "/image_uri",
+      "/last_frame_uri"
+    ],
+    "referenceRoles": {
+      "/image_uri": [
+        "first"
+      ],
+      "/last_frame_uri": [
+        "last"
+      ]
+    },
+    "referenceTransport": "owned-url",
+    "exampleReferences": [
+      {
+        "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bytes": 100,
+        "mime": "image/png",
+        "role": "first",
+        "width": 1280,
+        "height": 720
+      }
+    ],
+    "pricingRule": {
+      "type": "ltx25",
+      "rates": {
+        "720p": 90000,
+        "1080p": 130000,
+        "1440p": 190000,
+        "2160p": 300000
+      }
+    },
+    "deadlineMs": 1200000,
+    "maxPrompt": 5000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "nativeCapabilities": {
+      "maxReferences": 2,
+      "resolutions": [
+        "1280x720",
+        "720x1280",
+        "720x720",
+        "1080x720",
+        "720x1080",
+        "1920x1080",
+        "1080x1920",
+        "1080x1080",
+        "1620x1080",
+        "1080x1620",
+        "2560x1440",
+        "1440x2560",
+        "1440x1440",
+        "2160x1440",
+        "1440x2160",
+        "3840x2160",
+        "2160x3840",
+        "2160x2160",
+        "3240x2160",
+        "2160x3240"
+      ],
+      "durations": [
+        6,
+        8,
+        10,
+        12,
+        14,
+        16,
+        18,
+        20
+      ],
+      "fps": [
+        24,
+        25,
+        48,
+        50
+      ]
+    },
+    "schemaCheckedAt": "2026-11-11",
+    "documentationCheckedAt": "2026-11-11",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://docs.ltx.io/api-documentation/api-reference/async-video-generation/submit-image-to-video",
+    "mime": "video/mp4",
+    "duration": 6,
+    "resolution": "1280x720",
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc",
+      "av1"
+    ],
+    "audio": true,
+    "description": "Official LTX 2.5 image-to-video API. Provider-specific settings and verified reference inputs; asynchronous jobs are polled without resubmitting. Pricing is a public list-price estimate, not an invoice."
+  },
+  "studio/native/ltx/ltx-2.5-fast/audio-to-video": {
+    "provider": "ltx",
+    "apiModel": "ltx-2-5-fast",
+    "name": "LTX 2.5 Fast · audio-to-video",
+    "vendor": "Lightricks",
+    "family": "LTX 2.5 Fast",
+    "kind": "video",
+    "nativeMedia": true,
+    "ltx25": true,
+    "ltxVariant": "fast",
+    "ltxTask": "audio-to-video",
+    "adapter": "schema-ltx",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "audio_uri": {
+          "type": "string",
+          "description": "Audio file to be used as the soundtrack for the video. The audio sets the length of the\ngenerated video, so its duration must be at least 2 seconds and must not exceed the\nmaximum the selected model supports at the chosen resolution.\n\n| Model | Resolution | Maximum audio duration |\n| --- | --- | --- |\n| `ltx-2-5-fast` | 720p, 1080p | 20 seconds |\n| `ltx-2-5-fast` | 1440p, 4K | 10 seconds |\n| `ltx-2-5-pro` | 720p, 1080p | 10 seconds |\n| `ltx-2-5-pro` | 1440p, 4K | 10 seconds |\n| `ltx-2-3-pro` | 720p, 1080p | 20 seconds |\n| `ltx-2-3-pro` | 1440p, 4K | 10 seconds |\n\nSee [Input Formats](/input-formats#audio) for supported formats and size limits.\n"
+        },
+        "image_uri": {
+          "type": "string",
+          "description": "Input image to be used as the first frame of the video. Required if prompt is not provided. See [Input Formats](/input-formats#images) for supported formats and size limits."
+        },
+        "prompt": {
+          "type": "string",
+          "maxLength": 5000,
+          "description": "Text description of how the video should be generated. Required if image_uri is not provided. Can be empty string when image_uri is provided. If image_uri is provided, this describes how the image should be animated. If no image_uri is provided, this describes the video content."
+        },
+        "resolution": {
+          "type": "string",
+          "enum": [
+            "1280x720",
+            "720x1280",
+            "720x720",
+            "1080x720",
+            "720x1080",
+            "1920x1080",
+            "1080x1920",
+            "1080x1080",
+            "1620x1080",
+            "1080x1620",
+            "2560x1440",
+            "1440x2560",
+            "1440x1440",
+            "2160x1440",
+            "1440x2160",
+            "3840x2160",
+            "2160x3840",
+            "2160x2160",
+            "3240x2160",
+            "2160x3240"
+          ]
+        },
+        "model": {
+          "const": "ltx-2-5-fast",
+          "type": "string"
+        },
+        "fps": {
+          "type": "integer",
+          "default": 24,
+          "description": "Frame rate in frames per second. See [Supported Models](/models) for available FPS per model and resolution.",
+          "enum": [
+            24,
+            25,
+            48,
+            50
+          ]
+        },
+        "last_frame_uri": {
+          "type": "string",
+          "description": "Image to be used as the last frame of the video. Requires `image_uri`. When provided, the video interpolates between the first and last frame. See [Input Formats](/input-formats#images) for supported formats and size limits."
+        },
+        "camera_motion": {
+          "type": "string",
+          "enum": [
+            "dolly_in",
+            "dolly_out",
+            "dolly_left",
+            "dolly_right",
+            "jib_up",
+            "jib_down",
+            "static",
+            "focus_shift"
+          ],
+          "description": "Apply camera motion effects to the generated video.",
+          "title": "AudioToVideoRequestCameraMotion"
+        }
+      },
+      "required": [
+        "audio_uri"
+      ],
+      "title": "AudioToVideoRequest",
+      "additionalProperties": false
+    },
+    "apiPath": "/v2/audio-to-video",
+    "apiPrompt": "/prompt",
+    "apiModelField": "/model",
+    "params": {
+      "resolution": "1280x720",
+      "fps": 24,
+      "audio_uri": "@reference:0"
+    },
+    "referencePaths": [
+      "/image_uri",
+      "/last_frame_uri",
+      "/audio_uri"
+    ],
+    "referenceRoles": {
+      "/image_uri": [
+        "first"
+      ],
+      "/last_frame_uri": [
+        "last"
+      ],
+      "/audio_uri": [
+        "audio"
+      ]
+    },
+    "referenceTransport": "owned-url",
+    "exampleReferences": [
+      {
+        "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bytes": 100,
+        "mime": "audio/wav",
+        "role": "audio",
+        "durationMs": 6000
+      }
+    ],
+    "pricingRule": {
+      "type": "ltx25",
+      "rates": {
+        "720p": 90000,
+        "1080p": 130000,
+        "1440p": 190000,
+        "2160p": 300000
+      }
+    },
+    "deadlineMs": 1200000,
+    "maxPrompt": 5000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "nativeCapabilities": {
+      "maxReferences": 3,
+      "resolutions": [
+        "1280x720",
+        "720x1280",
+        "720x720",
+        "1080x720",
+        "720x1080",
+        "1920x1080",
+        "1080x1920",
+        "1080x1080",
+        "1620x1080",
+        "1080x1620",
+        "2560x1440",
+        "1440x2560",
+        "1440x1440",
+        "2160x1440",
+        "1440x2160",
+        "3840x2160",
+        "2160x3840",
+        "2160x2160",
+        "3240x2160",
+        "2160x3240"
+      ],
+      "durations": [
+        6,
+        8,
+        10,
+        12,
+        14,
+        16,
+        18,
+        20
+      ],
+      "fps": [
+        24,
+        25,
+        48,
+        50
+      ]
+    },
+    "schemaCheckedAt": "2026-11-11",
+    "documentationCheckedAt": "2026-11-11",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://docs.ltx.io/api-documentation/api-reference/async-video-generation/submit-audio-to-video",
+    "mime": "video/mp4",
+    "duration": 6,
+    "resolution": "1280x720",
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc",
+      "av1"
+    ],
+    "audio": true,
+    "description": "Official LTX 2.5 audio-to-video API. Provider-specific settings and verified reference inputs; asynchronous jobs are polled without resubmitting. Pricing is a public list-price estimate, not an invoice."
+  },
+  "studio/native/ltx/ltx-2.5-pro/text-to-video": {
+    "provider": "ltx",
+    "apiModel": "ltx-2-5-pro",
+    "name": "LTX 2.5 Pro · text-to-video",
+    "vendor": "Lightricks",
+    "family": "LTX 2.5 Pro",
+    "kind": "video",
+    "nativeMedia": true,
+    "ltx25": true,
+    "ltxVariant": "pro",
+    "ltxTask": "text-to-video",
+    "adapter": "schema-ltx",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "maxLength": 5000,
+          "description": "Text prompt describing the desired video content"
+        },
+        "model": {
+          "const": "ltx-2-5-pro",
+          "type": "string"
+        },
+        "duration": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Video duration in seconds. See [Supported Models](/models) for available durations per model. Pass `null` to let `ltx-2-5-fast` or `ltx-2-5-pro` choose the length from your prompt — see [Automatic duration](/models/ltx-2-5#automatic-duration)."
+        },
+        "fps": {
+          "type": "integer",
+          "default": 24,
+          "description": "Frame rate in frames per second. See [Supported Models](/models) for available FPS per model and resolution.",
+          "enum": [
+            24,
+            25,
+            48,
+            50
+          ]
+        },
+        "resolution": {
+          "type": "string",
+          "enum": [
+            "1280x720",
+            "720x1280",
+            "720x720",
+            "1080x720",
+            "720x1080",
+            "1920x1080",
+            "1080x1920",
+            "1080x1080",
+            "1620x1080",
+            "1080x1620",
+            "2560x1440",
+            "1440x2560",
+            "1440x1440",
+            "2160x1440",
+            "1440x2160",
+            "3840x2160",
+            "2160x3840",
+            "2160x2160",
+            "3240x2160",
+            "2160x3240"
+          ]
+        },
+        "generate_audio": {
+          "type": "boolean",
+          "default": true,
+          "description": "Generate audio for the video. When true, the generated video will include AI-generated audio matching the scene. When false, only silent video is generated."
+        },
+        "camera_motion": {
+          "type": "string",
+          "enum": [
+            "dolly_in",
+            "dolly_out",
+            "dolly_left",
+            "dolly_right",
+            "jib_up",
+            "jib_down",
+            "static",
+            "focus_shift"
+          ],
+          "description": "Apply camera motion effects to the generated video.",
+          "title": "TextToVideoRequestCameraMotion"
+        }
+      },
+      "required": [
+        "prompt",
+        "model",
+        "duration",
+        "resolution"
+      ],
+      "title": "TextToVideoRequest",
+      "additionalProperties": false
+    },
+    "apiPath": "/v2/text-to-video",
+    "apiPrompt": "/prompt",
+    "apiModelField": "/model",
+    "params": {
+      "resolution": "1280x720",
+      "fps": 24,
+      "duration": 6,
+      "generate_audio": true
+    },
+    "referencePaths": [],
+    "referenceRoles": {},
+    "referenceTransport": "owned-url",
+    "exampleReferences": [],
+    "pricingRule": {
+      "type": "ltx25",
+      "rates": {
+        "720p": 120000,
+        "1080p": 170000,
+        "1440p": 250000,
+        "2160p": 390000
+      }
+    },
+    "deadlineMs": 1200000,
+    "maxPrompt": 5000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "nativeCapabilities": {
+      "maxReferences": 0,
+      "resolutions": [
+        "1280x720",
+        "720x1280",
+        "720x720",
+        "1080x720",
+        "720x1080",
+        "1920x1080",
+        "1080x1920",
+        "1080x1080",
+        "1620x1080",
+        "1080x1620",
+        "2560x1440",
+        "1440x2560",
+        "1440x1440",
+        "2160x1440",
+        "1440x2160",
+        "3840x2160",
+        "2160x3840",
+        "2160x2160",
+        "3240x2160",
+        "2160x3240"
+      ],
+      "durations": [
+        6,
+        8,
+        10
+      ],
+      "fps": [
+        24,
+        25,
+        48,
+        50
+      ]
+    },
+    "schemaCheckedAt": "2026-11-11",
+    "documentationCheckedAt": "2026-11-11",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://docs.ltx.io/api-documentation/api-reference/async-video-generation/submit-text-to-video",
+    "mime": "video/mp4",
+    "duration": 6,
+    "resolution": "1280x720",
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc",
+      "av1"
+    ],
+    "audio": true,
+    "description": "Official LTX 2.5 text-to-video API. Provider-specific settings and verified reference inputs; asynchronous jobs are polled without resubmitting. Pricing is a public list-price estimate, not an invoice."
+  },
+  "studio/native/ltx/ltx-2.5-pro/image-to-video": {
+    "provider": "ltx",
+    "apiModel": "ltx-2-5-pro",
+    "name": "LTX 2.5 Pro · image-to-video",
+    "vendor": "Lightricks",
+    "family": "LTX 2.5 Pro",
+    "kind": "video",
+    "nativeMedia": true,
+    "ltx25": true,
+    "ltxVariant": "pro",
+    "ltxTask": "image-to-video",
+    "adapter": "schema-ltx",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "image_uri": {
+          "type": "string",
+          "description": "Image to be used as the first frame of the video. See [Input Formats](/input-formats#images) for supported formats and size limits."
+        },
+        "prompt": {
+          "type": "string",
+          "maxLength": 5000,
+          "description": "Text description of how the image should be animated, can relate to the details in the image"
+        },
+        "model": {
+          "const": "ltx-2-5-pro",
+          "type": "string"
+        },
+        "duration": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Video duration in seconds. See [Supported Models](/models) for available durations per model. Pass `null` to let `ltx-2-5-fast` or `ltx-2-5-pro` choose the length from your prompt — see [Automatic duration](/models/ltx-2-5#automatic-duration). Cannot be combined with `last_frame_uri`."
+        },
+        "fps": {
+          "type": "integer",
+          "default": 24,
+          "description": "Frame rate in frames per second. See [Supported Models](/models) for available FPS per model and resolution.",
+          "enum": [
+            24,
+            25,
+            48,
+            50
+          ]
+        },
+        "resolution": {
+          "type": "string",
+          "enum": [
+            "1280x720",
+            "720x1280",
+            "720x720",
+            "1080x720",
+            "720x1080",
+            "1920x1080",
+            "1080x1920",
+            "1080x1080",
+            "1620x1080",
+            "1080x1620",
+            "2560x1440",
+            "1440x2560",
+            "1440x1440",
+            "2160x1440",
+            "1440x2160",
+            "3840x2160",
+            "2160x3840",
+            "2160x2160",
+            "3240x2160",
+            "2160x3240"
+          ]
+        },
+        "generate_audio": {
+          "type": "boolean",
+          "default": true,
+          "description": "Generate audio for the video. When true, the generated video will include AI-generated audio matching the scene. When false, only silent video is generated."
+        },
+        "last_frame_uri": {
+          "type": "string",
+          "description": "Image to be used as the last frame of the video. When provided, the video will interpolate between the first frame (image_uri) and this last frame. See [Input Formats](/input-formats#images) for supported formats and size limits."
+        },
+        "camera_motion": {
+          "type": "string",
+          "enum": [
+            "dolly_in",
+            "dolly_out",
+            "dolly_left",
+            "dolly_right",
+            "jib_up",
+            "jib_down",
+            "static",
+            "focus_shift"
+          ],
+          "description": "Apply camera motion effects to the generated video.",
+          "title": "ImageToVideoRequestCameraMotion"
+        }
+      },
+      "required": [
+        "image_uri",
+        "prompt",
+        "model",
+        "duration",
+        "resolution"
+      ],
+      "title": "ImageToVideoRequest",
+      "additionalProperties": false
+    },
+    "apiPath": "/v2/image-to-video",
+    "apiPrompt": "/prompt",
+    "apiModelField": "/model",
+    "params": {
+      "resolution": "1280x720",
+      "fps": 24,
+      "duration": 6,
+      "generate_audio": true,
+      "image_uri": "@reference:0"
+    },
+    "referencePaths": [
+      "/image_uri",
+      "/last_frame_uri"
+    ],
+    "referenceRoles": {
+      "/image_uri": [
+        "first"
+      ],
+      "/last_frame_uri": [
+        "last"
+      ]
+    },
+    "referenceTransport": "owned-url",
+    "exampleReferences": [
+      {
+        "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bytes": 100,
+        "mime": "image/png",
+        "role": "first",
+        "width": 1280,
+        "height": 720
+      }
+    ],
+    "pricingRule": {
+      "type": "ltx25",
+      "rates": {
+        "720p": 120000,
+        "1080p": 170000,
+        "1440p": 250000,
+        "2160p": 390000
+      }
+    },
+    "deadlineMs": 1200000,
+    "maxPrompt": 5000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "nativeCapabilities": {
+      "maxReferences": 2,
+      "resolutions": [
+        "1280x720",
+        "720x1280",
+        "720x720",
+        "1080x720",
+        "720x1080",
+        "1920x1080",
+        "1080x1920",
+        "1080x1080",
+        "1620x1080",
+        "1080x1620",
+        "2560x1440",
+        "1440x2560",
+        "1440x1440",
+        "2160x1440",
+        "1440x2160",
+        "3840x2160",
+        "2160x3840",
+        "2160x2160",
+        "3240x2160",
+        "2160x3240"
+      ],
+      "durations": [
+        6,
+        8,
+        10
+      ],
+      "fps": [
+        24,
+        25,
+        48,
+        50
+      ]
+    },
+    "schemaCheckedAt": "2026-11-11",
+    "documentationCheckedAt": "2026-11-11",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://docs.ltx.io/api-documentation/api-reference/async-video-generation/submit-image-to-video",
+    "mime": "video/mp4",
+    "duration": 6,
+    "resolution": "1280x720",
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc",
+      "av1"
+    ],
+    "audio": true,
+    "description": "Official LTX 2.5 image-to-video API. Provider-specific settings and verified reference inputs; asynchronous jobs are polled without resubmitting. Pricing is a public list-price estimate, not an invoice."
+  },
+  "studio/native/ltx/ltx-2.5-pro/audio-to-video": {
+    "provider": "ltx",
+    "apiModel": "ltx-2-5-pro",
+    "name": "LTX 2.5 Pro · audio-to-video",
+    "vendor": "Lightricks",
+    "family": "LTX 2.5 Pro",
+    "kind": "video",
+    "nativeMedia": true,
+    "ltx25": true,
+    "ltxVariant": "pro",
+    "ltxTask": "audio-to-video",
+    "adapter": "schema-ltx",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "audio_uri": {
+          "type": "string",
+          "description": "Audio file to be used as the soundtrack for the video. The audio sets the length of the\ngenerated video, so its duration must be at least 2 seconds and must not exceed the\nmaximum the selected model supports at the chosen resolution.\n\n| Model | Resolution | Maximum audio duration |\n| --- | --- | --- |\n| `ltx-2-5-fast` | 720p, 1080p | 20 seconds |\n| `ltx-2-5-fast` | 1440p, 4K | 10 seconds |\n| `ltx-2-5-pro` | 720p, 1080p | 10 seconds |\n| `ltx-2-5-pro` | 1440p, 4K | 10 seconds |\n| `ltx-2-3-pro` | 720p, 1080p | 20 seconds |\n| `ltx-2-3-pro` | 1440p, 4K | 10 seconds |\n\nSee [Input Formats](/input-formats#audio) for supported formats and size limits.\n"
+        },
+        "image_uri": {
+          "type": "string",
+          "description": "Input image to be used as the first frame of the video. Required if prompt is not provided. See [Input Formats](/input-formats#images) for supported formats and size limits."
+        },
+        "prompt": {
+          "type": "string",
+          "maxLength": 5000,
+          "description": "Text description of how the video should be generated. Required if image_uri is not provided. Can be empty string when image_uri is provided. If image_uri is provided, this describes how the image should be animated. If no image_uri is provided, this describes the video content."
+        },
+        "resolution": {
+          "type": "string",
+          "enum": [
+            "1280x720",
+            "720x1280",
+            "720x720",
+            "1080x720",
+            "720x1080",
+            "1920x1080",
+            "1080x1920",
+            "1080x1080",
+            "1620x1080",
+            "1080x1620",
+            "2560x1440",
+            "1440x2560",
+            "1440x1440",
+            "2160x1440",
+            "1440x2160",
+            "3840x2160",
+            "2160x3840",
+            "2160x2160",
+            "3240x2160",
+            "2160x3240"
+          ]
+        },
+        "model": {
+          "const": "ltx-2-5-pro",
+          "type": "string"
+        },
+        "fps": {
+          "type": "integer",
+          "default": 24,
+          "description": "Frame rate in frames per second. See [Supported Models](/models) for available FPS per model and resolution.",
+          "enum": [
+            24,
+            25,
+            48,
+            50
+          ]
+        },
+        "last_frame_uri": {
+          "type": "string",
+          "description": "Image to be used as the last frame of the video. Requires `image_uri`. When provided, the video interpolates between the first and last frame. See [Input Formats](/input-formats#images) for supported formats and size limits."
+        },
+        "camera_motion": {
+          "type": "string",
+          "enum": [
+            "dolly_in",
+            "dolly_out",
+            "dolly_left",
+            "dolly_right",
+            "jib_up",
+            "jib_down",
+            "static",
+            "focus_shift"
+          ],
+          "description": "Apply camera motion effects to the generated video.",
+          "title": "AudioToVideoRequestCameraMotion"
+        }
+      },
+      "required": [
+        "audio_uri"
+      ],
+      "title": "AudioToVideoRequest",
+      "additionalProperties": false
+    },
+    "apiPath": "/v2/audio-to-video",
+    "apiPrompt": "/prompt",
+    "apiModelField": "/model",
+    "params": {
+      "resolution": "1280x720",
+      "fps": 24,
+      "audio_uri": "@reference:0"
+    },
+    "referencePaths": [
+      "/image_uri",
+      "/last_frame_uri",
+      "/audio_uri"
+    ],
+    "referenceRoles": {
+      "/image_uri": [
+        "first"
+      ],
+      "/last_frame_uri": [
+        "last"
+      ],
+      "/audio_uri": [
+        "audio"
+      ]
+    },
+    "referenceTransport": "owned-url",
+    "exampleReferences": [
+      {
+        "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bytes": 100,
+        "mime": "audio/wav",
+        "role": "audio",
+        "durationMs": 6000
+      }
+    ],
+    "pricingRule": {
+      "type": "ltx25",
+      "rates": {
+        "720p": 120000,
+        "1080p": 170000,
+        "1440p": 250000,
+        "2160p": 390000
+      }
+    },
+    "deadlineMs": 1200000,
+    "maxPrompt": 5000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "nativeCapabilities": {
+      "maxReferences": 3,
+      "resolutions": [
+        "1280x720",
+        "720x1280",
+        "720x720",
+        "1080x720",
+        "720x1080",
+        "1920x1080",
+        "1080x1920",
+        "1080x1080",
+        "1620x1080",
+        "1080x1620",
+        "2560x1440",
+        "1440x2560",
+        "1440x1440",
+        "2160x1440",
+        "1440x2160",
+        "3840x2160",
+        "2160x3840",
+        "2160x2160",
+        "3240x2160",
+        "2160x3240"
+      ],
+      "durations": [
+        6,
+        8,
+        10
+      ],
+      "fps": [
+        24,
+        25,
+        48,
+        50
+      ]
+    },
+    "schemaCheckedAt": "2026-11-11",
+    "documentationCheckedAt": "2026-11-11",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://docs.ltx.io/api-documentation/api-reference/async-video-generation/submit-audio-to-video",
+    "mime": "video/mp4",
+    "duration": 6,
+    "resolution": "1280x720",
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc",
+      "av1"
+    ],
+    "audio": true,
+    "description": "Official LTX 2.5 audio-to-video API. Provider-specific settings and verified reference inputs; asynchronous jobs are polled without resubmitting. Pricing is a public list-price estimate, not an invoice."
+  },
+  "studio/native/fal/lightricks/ltx-2.5/text-to-video/fast": {
+    "provider": "fal",
+    "apiModel": "lightricks/ltx-2.5/text-to-video/fast",
+    "name": "LTX 2.5 Fast · text-to-video (Fal)",
+    "vendor": "Lightricks",
+    "family": "LTX 2.5 Fast",
+    "kind": "video",
+    "nativeMedia": true,
+    "ltx25": true,
+    "ltxVariant": "fast",
+    "ltxTask": "text-to-video",
+    "adapter": "schema-fal",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "fps": {
+          "type": "integer",
+          "default": 25,
+          "title": "Frames per Second",
+          "enum": [
+            24,
+            25,
+            48,
+            50
+          ],
+          "description": "The frames per second of the generated video."
+        },
+        "resolution": {
+          "type": "string",
+          "default": "1080p",
+          "title": "Resolution",
+          "enum": [
+            "720p",
+            "1080p",
+            "1440p",
+            "2160p"
+          ],
+          "description": "The resolution of the generated video."
+        },
+        "generate_audio": {
+          "type": "boolean",
+          "default": true,
+          "title": "Generate Audio",
+          "description": "Whether to generate audio for the generated video"
+        },
+        "camera_motion": {
+          "title": "Camera Motion",
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "dolly_in",
+                "dolly_out",
+                "dolly_left",
+                "dolly_right",
+                "jib_up",
+                "jib_down",
+                "static",
+                "focus_shift"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Optional camera motion applied to the generated video."
+        },
+        "aspect_ratio": {
+          "type": "string",
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "enum": [
+            "16:9",
+            "9:16"
+          ],
+          "description": "The aspect ratio of the generated video"
+        },
+        "prompt": {
+          "type": "string",
+          "title": "Prompt",
+          "minLength": 1,
+          "maxLength": 5000,
+          "examples": [
+            "Through-the-veil shot of a bride's face during an Indian wedding ceremony, camera positioned behind the sheer red dupatta fabric, the embroidered pattern creating a textured overlay on her face, her eyes lined with kohl looking down at henna-covered hands, marigold garlands in soft background bokeh, 85mm f/1.2 focused through the fabric layer, warm tungsten and candlelight, Mira Nair Monsoon Wedding intimacy"
+          ],
+          "description": "The prompt to use for the generated video"
+        },
+        "duration": {
+          "title": "Duration",
+          "default": "auto",
+          "enum": [
+            6,
+            8,
+            10,
+            12,
+            14,
+            16,
+            18,
+            20,
+            "auto"
+          ],
+          "description": "The duration of the generated video in seconds. At 720p and 1080p, 24 or 25 FPS supports up to 20 seconds, while 48 or 50 FPS supports up to 10 seconds. At 1440p and 2160p, all frame rates support up to 10 seconds. Set to 'auto' to let the model choose the duration automatically."
+        }
+      },
+      "title": "LTXV25TextToVideoFastRequest",
+      "x-fal-order-properties": [
+        "prompt",
+        "duration",
+        "resolution",
+        "aspect_ratio",
+        "fps",
+        "generate_audio",
+        "camera_motion"
+      ],
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "apiPath": "/lightricks/ltx-2.5/text-to-video/fast",
+    "apiPrompt": "/prompt",
+    "apiModelField": null,
+    "params": {
+      "fps": 25,
+      "resolution": "720p",
+      "generate_audio": true,
+      "aspect_ratio": "16:9",
+      "duration": 6
+    },
+    "referencePaths": [],
+    "referenceRoles": {},
+    "referenceTransport": "owned-url",
+    "exampleReferences": [],
+    "pricingRule": {
+      "type": "ltx25",
+      "rates": {
+        "720p": 90000,
+        "1080p": 130000,
+        "1440p": 190000,
+        "2160p": 300000
+      }
+    },
+    "deadlineMs": 1200000,
+    "maxPrompt": 5000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "nativeCapabilities": {
+      "maxReferences": 0,
+      "resolutions": [
+        "720p",
+        "1080p",
+        "1440p",
+        "2160p"
+      ],
+      "durations": [
+        6,
+        8,
+        10,
+        12,
+        14,
+        16,
+        18,
+        20
+      ],
+      "fps": [
+        24,
+        25,
+        48,
+        50
+      ]
+    },
+    "schemaCheckedAt": "2026-11-11",
+    "documentationCheckedAt": "2026-11-11",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://fal.ai/models/lightricks/ltx-2.5/text-to-video/fast/api",
+    "mime": "video/mp4",
+    "duration": 6,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc",
+      "av1"
+    ],
+    "audio": true,
+    "description": "Official LTX 2.5 text-to-video API. Provider-specific settings and verified reference inputs; asynchronous jobs are polled without resubmitting. Pricing is a public list-price estimate, not an invoice."
+  },
+  "studio/native/fal/lightricks/ltx-2.5/image-to-video/fast": {
+    "provider": "fal",
+    "apiModel": "lightricks/ltx-2.5/image-to-video/fast",
+    "name": "LTX 2.5 Fast · image-to-video (Fal)",
+    "vendor": "Lightricks",
+    "family": "LTX 2.5 Fast",
+    "kind": "video",
+    "nativeMedia": true,
+    "ltx25": true,
+    "ltxVariant": "fast",
+    "ltxTask": "image-to-video",
+    "adapter": "schema-fal",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "aspect_ratio": {
+          "type": "string",
+          "default": "auto",
+          "title": "Aspect Ratio",
+          "enum": [
+            "auto",
+            "16:9",
+            "9:16"
+          ],
+          "description": "The aspect ratio of the generated video. If 'auto', the aspect ratio will be determined automatically based on the input image."
+        },
+        "end_image_url": {
+          "title": "End Image URL",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The URL of the end image to use for the generated video. When provided, generates a transition video between start and end frames."
+        },
+        "camera_motion": {
+          "title": "Camera Motion",
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "dolly_in",
+                "dolly_out",
+                "dolly_left",
+                "dolly_right",
+                "jib_up",
+                "jib_down",
+                "static",
+                "focus_shift"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Optional camera motion applied to the generated video."
+        },
+        "resolution": {
+          "type": "string",
+          "default": "1080p",
+          "title": "Resolution",
+          "enum": [
+            "720p",
+            "1080p",
+            "1440p",
+            "2160p"
+          ],
+          "description": "The resolution of the generated video."
+        },
+        "prompt": {
+          "type": "string",
+          "title": "Prompt",
+          "minLength": 1,
+          "maxLength": 5000,
+          "examples": [
+            "Periscope-level shot from behind tall grass of two Maasai warriors mid-leap during an adumu jumping dance, bodies fully airborne against a golden savanna sunset, red shuka robes frozen in motion, dust kicked up from the earth catching backlight, 85mm f/1.4 isolating the pair from a blurred circle of onlookers, Steve McCurry meets Emmanuel Lubezki"
+          ],
+          "description": "The prompt to use for the generated video"
+        },
+        "fps": {
+          "type": "integer",
+          "default": 25,
+          "title": "Frames per Second",
+          "enum": [
+            24,
+            25,
+            48,
+            50
+          ],
+          "description": "The frames per second of the generated video."
+        },
+        "image_url": {
+          "type": "string",
+          "title": "Start Image URL",
+          "examples": [
+            "https://v3b.fal.media/files/b/0a90dd31/uJG2pMMJMcnVeC4PmwnAF_image_004.png"
+          ],
+          "description": "The URL of the start image to use for the generated video."
+        },
+        "generate_audio": {
+          "type": "boolean",
+          "default": true,
+          "title": "Generate Audio",
+          "description": "Whether to generate audio for the generated video"
+        },
+        "duration": {
+          "title": "Duration",
+          "default": "auto",
+          "enum": [
+            6,
+            8,
+            10,
+            12,
+            14,
+            16,
+            18,
+            20,
+            "auto"
+          ],
+          "description": "The duration of the generated video in seconds. At 720p and 1080p, 24 or 25 FPS supports up to 20 seconds, while 48 or 50 FPS supports up to 10 seconds. At 1440p and 2160p, all frame rates support up to 10 seconds. Set to 'auto' to let the model choose the duration automatically."
+        }
+      },
+      "title": "LTXV25ImageToVideoFastRequest",
+      "x-fal-order-properties": [
+        "image_url",
+        "end_image_url",
+        "prompt",
+        "duration",
+        "resolution",
+        "aspect_ratio",
+        "fps",
+        "generate_audio",
+        "camera_motion"
+      ],
+      "required": [
+        "prompt",
+        "image_url"
+      ],
+      "additionalProperties": false
+    },
+    "apiPath": "/lightricks/ltx-2.5/image-to-video/fast",
+    "apiPrompt": "/prompt",
+    "apiModelField": null,
+    "params": {
+      "aspect_ratio": "auto",
+      "resolution": "720p",
+      "fps": 25,
+      "generate_audio": true,
+      "duration": 6,
+      "image_url": "@reference:0"
+    },
+    "referencePaths": [
+      "/image_url",
+      "/end_image_url"
+    ],
+    "referenceRoles": {
+      "/image_url": [
+        "first"
+      ],
+      "/end_image_url": [
+        "last"
+      ]
+    },
+    "referenceTransport": "owned-url",
+    "exampleReferences": [
+      {
+        "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bytes": 100,
+        "mime": "image/png",
+        "role": "first",
+        "width": 1280,
+        "height": 720
+      }
+    ],
+    "pricingRule": {
+      "type": "ltx25",
+      "rates": {
+        "720p": 90000,
+        "1080p": 130000,
+        "1440p": 190000,
+        "2160p": 300000
+      }
+    },
+    "deadlineMs": 1200000,
+    "maxPrompt": 5000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "nativeCapabilities": {
+      "maxReferences": 2,
+      "resolutions": [
+        "720p",
+        "1080p",
+        "1440p",
+        "2160p"
+      ],
+      "durations": [
+        6,
+        8,
+        10,
+        12,
+        14,
+        16,
+        18,
+        20
+      ],
+      "fps": [
+        24,
+        25,
+        48,
+        50
+      ]
+    },
+    "schemaCheckedAt": "2026-11-11",
+    "documentationCheckedAt": "2026-11-11",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://fal.ai/models/lightricks/ltx-2.5/image-to-video/fast/api",
+    "mime": "video/mp4",
+    "duration": 6,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc",
+      "av1"
+    ],
+    "audio": true,
+    "description": "Official LTX 2.5 image-to-video API. Provider-specific settings and verified reference inputs; asynchronous jobs are polled without resubmitting. Pricing is a public list-price estimate, not an invoice."
+  },
+  "studio/native/fal/lightricks/ltx-2.5/audio-to-video/fast": {
+    "provider": "fal",
+    "apiModel": "lightricks/ltx-2.5/audio-to-video/fast",
+    "name": "LTX 2.5 Fast · audio-to-video (Fal)",
+    "vendor": "Lightricks",
+    "family": "LTX 2.5 Fast",
+    "kind": "video",
+    "nativeMedia": true,
+    "ltx25": true,
+    "ltxVariant": "fast",
+    "ltxTask": "audio-to-video",
+    "adapter": "schema-fal",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "aspect_ratio": {
+          "type": "string",
+          "default": "auto",
+          "title": "Aspect Ratio",
+          "enum": [
+            "auto",
+            "16:9",
+            "9:16"
+          ],
+          "description": "The aspect ratio of the generated video. If 'auto', the aspect ratio will be determined automatically based on the input image, or defaults to 16:9 if no image is provided."
+        },
+        "image_url": {
+          "title": "Image URL",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "examples": [
+            "https://v3b.fal.media/files/b/0a90dfd2/G1zBOgd-17yqZ-2S5TN4j_M3nzt3Sp.png"
+          ],
+          "description": "URL of an image to use as the first frame of the video. If not provided, prompt is required."
+        },
+        "enable_safety_checker": {
+          "type": "boolean",
+          "default": true,
+          "title": "Enable Safety Checker",
+          "description": "Authorized callers may set false to request relaxed screening."
+        },
+        "audio_url": {
+          "type": "string",
+          "title": "Audio URL",
+          "examples": [
+            "https://v3b.fal.media/files/b/0a90dfe7/3a-DUXzO79XWIYwUDfHZX_output.mp3"
+          ],
+          "description": "URL of the audio file to generate a video from. Duration must be between 2 and 20 seconds; pro models support a maximum of 10 seconds. Must be publicly accessible or base64 data URI."
+        },
+        "prompt": {
+          "title": "Prompt",
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 5000
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "examples": [
+            "A woman whispering to the microphone"
+          ],
+          "description": "Text description of how the video should be generated. Required if image_url is not provided. When image_url is provided, this describes how the image should be animated."
+        }
+      },
+      "title": "LTXV25AudioToVideoRequest",
+      "x-fal-order-properties": [
+        "audio_url",
+        "image_url",
+        "prompt",
+        "aspect_ratio",
+        "enable_safety_checker"
+      ],
+      "required": [
+        "audio_url"
+      ],
+      "additionalProperties": false
+    },
+    "apiPath": "/lightricks/ltx-2.5/audio-to-video/fast",
+    "apiPrompt": "/prompt",
+    "apiModelField": null,
+    "params": {
+      "aspect_ratio": "auto",
+      "enable_safety_checker": true,
+      "audio_url": "@reference:0"
+    },
+    "referencePaths": [
+      "/image_url",
+      "/audio_url"
+    ],
+    "referenceRoles": {
+      "/image_url": [
+        "first"
+      ],
+      "/audio_url": [
+        "audio"
+      ]
+    },
+    "referenceTransport": "owned-url",
+    "exampleReferences": [
+      {
+        "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bytes": 100,
+        "mime": "audio/wav",
+        "role": "audio",
+        "durationMs": 6000
+      }
+    ],
+    "pricingRule": {
+      "type": "ltx25",
+      "rates": {
+        "720p": 90000,
+        "1080p": 130000,
+        "1440p": 190000,
+        "2160p": 300000
+      }
+    },
+    "deadlineMs": 1200000,
+    "maxPrompt": 5000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "nativeCapabilities": {
+      "maxReferences": 3,
+      "resolutions": [
+        "1080p"
+      ],
+      "durations": [
+        6,
+        8,
+        10,
+        12,
+        14,
+        16,
+        18,
+        20
+      ],
+      "fps": [
+        24,
+        25,
+        48,
+        50
+      ]
+    },
+    "schemaCheckedAt": "2026-11-11",
+    "documentationCheckedAt": "2026-11-11",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://fal.ai/models/lightricks/ltx-2.5/audio-to-video/fast/api",
+    "mime": "video/mp4",
+    "duration": 6,
+    "resolution": "1080p",
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc",
+      "av1"
+    ],
+    "audio": true,
+    "description": "Official LTX 2.5 audio-to-video API. Provider-specific settings and verified reference inputs; asynchronous jobs are polled without resubmitting. Pricing is a public list-price estimate, not an invoice."
+  },
+  "studio/native/fal/lightricks/ltx-2.5/text-to-video/pro": {
+    "provider": "fal",
+    "apiModel": "lightricks/ltx-2.5/text-to-video/pro",
+    "name": "LTX 2.5 Pro · text-to-video (Fal)",
+    "vendor": "Lightricks",
+    "family": "LTX 2.5 Pro",
+    "kind": "video",
+    "nativeMedia": true,
+    "ltx25": true,
+    "ltxVariant": "pro",
+    "ltxTask": "text-to-video",
+    "adapter": "schema-fal",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "fps": {
+          "type": "integer",
+          "default": 25,
+          "title": "Frames per Second",
+          "enum": [
+            24,
+            25,
+            50
+          ],
+          "description": "The frames per second of the generated video."
+        },
+        "resolution": {
+          "type": "string",
+          "default": "1080p",
+          "title": "Resolution",
+          "enum": [
+            "720p",
+            "1080p"
+          ],
+          "description": "The resolution of the generated video."
+        },
+        "generate_audio": {
+          "type": "boolean",
+          "default": true,
+          "title": "Generate Audio",
+          "description": "Whether to generate audio for the generated video"
+        },
+        "camera_motion": {
+          "title": "Camera Motion",
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "dolly_in",
+                "dolly_out",
+                "dolly_left",
+                "dolly_right",
+                "jib_up",
+                "jib_down",
+                "static",
+                "focus_shift"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Optional camera motion applied to the generated video."
+        },
+        "aspect_ratio": {
+          "type": "string",
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "enum": [
+            "16:9",
+            "9:16"
+          ],
+          "description": "The aspect ratio of the generated video"
+        },
+        "prompt": {
+          "type": "string",
+          "title": "Prompt",
+          "minLength": 1,
+          "maxLength": 5000,
+          "examples": [
+            "Through-the-veil shot of a bride's face during an Indian wedding ceremony, camera positioned behind the sheer red dupatta fabric, the embroidered pattern creating a textured overlay on her face, her eyes lined with kohl looking down at henna-covered hands, marigold garlands in soft background bokeh, 85mm f/1.2 focused through the fabric layer, warm tungsten and candlelight, Mira Nair Monsoon Wedding intimacy"
+          ],
+          "description": "The prompt to use for the generated video"
+        },
+        "duration": {
+          "title": "Duration",
+          "default": "auto",
+          "enum": [
+            6,
+            8,
+            10,
+            "auto"
+          ],
+          "description": "The duration of the generated video in seconds, up to 10 seconds. Set to 'auto' to let the model choose the duration automatically."
+        }
+      },
+      "title": "LTXV25TextToVideoRequest",
+      "x-fal-order-properties": [
+        "prompt",
+        "duration",
+        "resolution",
+        "aspect_ratio",
+        "fps",
+        "generate_audio",
+        "camera_motion"
+      ],
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "apiPath": "/lightricks/ltx-2.5/text-to-video/pro",
+    "apiPrompt": "/prompt",
+    "apiModelField": null,
+    "params": {
+      "fps": 25,
+      "resolution": "720p",
+      "generate_audio": true,
+      "aspect_ratio": "16:9",
+      "duration": 6
+    },
+    "referencePaths": [],
+    "referenceRoles": {},
+    "referenceTransport": "owned-url",
+    "exampleReferences": [],
+    "pricingRule": {
+      "type": "ltx25",
+      "rates": {
+        "720p": 120000,
+        "1080p": 170000,
+        "1440p": 250000,
+        "2160p": 390000
+      }
+    },
+    "deadlineMs": 1200000,
+    "maxPrompt": 5000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "nativeCapabilities": {
+      "maxReferences": 0,
+      "resolutions": [
+        "720p",
+        "1080p"
+      ],
+      "durations": [
+        6,
+        8,
+        10
+      ],
+      "fps": [
+        24,
+        25,
+        50
+      ]
+    },
+    "schemaCheckedAt": "2026-11-11",
+    "documentationCheckedAt": "2026-11-11",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://fal.ai/models/lightricks/ltx-2.5/text-to-video/pro/api",
+    "mime": "video/mp4",
+    "duration": 6,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc",
+      "av1"
+    ],
+    "audio": true,
+    "description": "Official LTX 2.5 text-to-video API. Provider-specific settings and verified reference inputs; asynchronous jobs are polled without resubmitting. Pricing is a public list-price estimate, not an invoice."
+  },
+  "studio/native/fal/lightricks/ltx-2.5/image-to-video/pro": {
+    "provider": "fal",
+    "apiModel": "lightricks/ltx-2.5/image-to-video/pro",
+    "name": "LTX 2.5 Pro · image-to-video (Fal)",
+    "vendor": "Lightricks",
+    "family": "LTX 2.5 Pro",
+    "kind": "video",
+    "nativeMedia": true,
+    "ltx25": true,
+    "ltxVariant": "pro",
+    "ltxTask": "image-to-video",
+    "adapter": "schema-fal",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "aspect_ratio": {
+          "type": "string",
+          "default": "auto",
+          "title": "Aspect Ratio",
+          "enum": [
+            "auto",
+            "16:9",
+            "9:16"
+          ],
+          "description": "The aspect ratio of the generated video. If 'auto', the aspect ratio will be determined automatically based on the input image."
+        },
+        "end_image_url": {
+          "title": "End Image URL",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The URL of the end image to use for the generated video. When provided, generates a transition video between start and end frames."
+        },
+        "camera_motion": {
+          "title": "Camera Motion",
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "dolly_in",
+                "dolly_out",
+                "dolly_left",
+                "dolly_right",
+                "jib_up",
+                "jib_down",
+                "static",
+                "focus_shift"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Optional camera motion applied to the generated video."
+        },
+        "resolution": {
+          "type": "string",
+          "default": "1080p",
+          "title": "Resolution",
+          "enum": [
+            "720p",
+            "1080p"
+          ],
+          "description": "The resolution of the generated video."
+        },
+        "prompt": {
+          "type": "string",
+          "title": "Prompt",
+          "minLength": 1,
+          "maxLength": 5000,
+          "examples": [
+            "Periscope-level shot from behind tall grass of two Maasai warriors mid-leap during an adumu jumping dance, bodies fully airborne against a golden savanna sunset, red shuka robes frozen in motion, dust kicked up from the earth catching backlight, 85mm f/1.4 isolating the pair from a blurred circle of onlookers, Steve McCurry meets Emmanuel Lubezki"
+          ],
+          "description": "The prompt to use for the generated video"
+        },
+        "fps": {
+          "type": "integer",
+          "default": 25,
+          "title": "Frames per Second",
+          "enum": [
+            24,
+            25,
+            50
+          ],
+          "description": "The frames per second of the generated video."
+        },
+        "image_url": {
+          "type": "string",
+          "title": "Start Image URL",
+          "examples": [
+            "https://v3b.fal.media/files/b/0a90dd31/uJG2pMMJMcnVeC4PmwnAF_image_004.png"
+          ],
+          "description": "The URL of the start image to use for the generated video."
+        },
+        "generate_audio": {
+          "type": "boolean",
+          "default": true,
+          "title": "Generate Audio",
+          "description": "Whether to generate audio for the generated video"
+        },
+        "duration": {
+          "title": "Duration",
+          "default": "auto",
+          "enum": [
+            6,
+            8,
+            10,
+            "auto"
+          ],
+          "description": "The duration of the generated video in seconds, up to 10 seconds. Set to 'auto' to let the model choose the duration automatically."
+        }
+      },
+      "title": "LTXV25ImageToVideoRequest",
+      "x-fal-order-properties": [
+        "image_url",
+        "end_image_url",
+        "prompt",
+        "duration",
+        "resolution",
+        "aspect_ratio",
+        "fps",
+        "generate_audio",
+        "camera_motion"
+      ],
+      "required": [
+        "prompt",
+        "image_url"
+      ],
+      "additionalProperties": false
+    },
+    "apiPath": "/lightricks/ltx-2.5/image-to-video/pro",
+    "apiPrompt": "/prompt",
+    "apiModelField": null,
+    "params": {
+      "aspect_ratio": "auto",
+      "resolution": "720p",
+      "fps": 25,
+      "generate_audio": true,
+      "duration": 6,
+      "image_url": "@reference:0"
+    },
+    "referencePaths": [
+      "/image_url",
+      "/end_image_url"
+    ],
+    "referenceRoles": {
+      "/image_url": [
+        "first"
+      ],
+      "/end_image_url": [
+        "last"
+      ]
+    },
+    "referenceTransport": "owned-url",
+    "exampleReferences": [
+      {
+        "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bytes": 100,
+        "mime": "image/png",
+        "role": "first",
+        "width": 1280,
+        "height": 720
+      }
+    ],
+    "pricingRule": {
+      "type": "ltx25",
+      "rates": {
+        "720p": 120000,
+        "1080p": 170000,
+        "1440p": 250000,
+        "2160p": 390000
+      }
+    },
+    "deadlineMs": 1200000,
+    "maxPrompt": 5000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "nativeCapabilities": {
+      "maxReferences": 2,
+      "resolutions": [
+        "720p",
+        "1080p"
+      ],
+      "durations": [
+        6,
+        8,
+        10
+      ],
+      "fps": [
+        24,
+        25,
+        50
+      ]
+    },
+    "schemaCheckedAt": "2026-11-11",
+    "documentationCheckedAt": "2026-11-11",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://fal.ai/models/lightricks/ltx-2.5/image-to-video/pro/api",
+    "mime": "video/mp4",
+    "duration": 6,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc",
+      "av1"
+    ],
+    "audio": true,
+    "description": "Official LTX 2.5 image-to-video API. Provider-specific settings and verified reference inputs; asynchronous jobs are polled without resubmitting. Pricing is a public list-price estimate, not an invoice."
+  },
+  "studio/native/fal/lightricks/ltx-2.5/audio-to-video/pro": {
+    "provider": "fal",
+    "apiModel": "lightricks/ltx-2.5/audio-to-video/pro",
+    "name": "LTX 2.5 Pro · audio-to-video (Fal)",
+    "vendor": "Lightricks",
+    "family": "LTX 2.5 Pro",
+    "kind": "video",
+    "nativeMedia": true,
+    "ltx25": true,
+    "ltxVariant": "pro",
+    "ltxTask": "audio-to-video",
+    "adapter": "schema-fal",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "aspect_ratio": {
+          "type": "string",
+          "default": "auto",
+          "title": "Aspect Ratio",
+          "enum": [
+            "auto",
+            "16:9",
+            "9:16"
+          ],
+          "description": "The aspect ratio of the generated video. If 'auto', the aspect ratio will be determined automatically based on the input image, or defaults to 16:9 if no image is provided."
+        },
+        "image_url": {
+          "title": "Image URL",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "examples": [
+            "https://v3b.fal.media/files/b/0a90dfd2/G1zBOgd-17yqZ-2S5TN4j_M3nzt3Sp.png"
+          ],
+          "description": "URL of an image to use as the first frame of the video. If not provided, prompt is required."
+        },
+        "enable_safety_checker": {
+          "type": "boolean",
+          "default": true,
+          "title": "Enable Safety Checker",
+          "description": "Authorized callers may set false to request relaxed screening."
+        },
+        "audio_url": {
+          "type": "string",
+          "title": "Audio URL",
+          "examples": [
+            "https://v3b.fal.media/files/b/0a90dfe7/3a-DUXzO79XWIYwUDfHZX_output.mp3"
+          ],
+          "description": "URL of the audio file to generate a video from. Duration must be between 2 and 20 seconds; pro models support a maximum of 10 seconds. Must be publicly accessible or base64 data URI."
+        },
+        "prompt": {
+          "title": "Prompt",
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 5000
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "examples": [
+            "A woman whispering to the microphone"
+          ],
+          "description": "Text description of how the video should be generated. Required if image_url is not provided. When image_url is provided, this describes how the image should be animated."
+        }
+      },
+      "title": "LTXV25AudioToVideoRequest",
+      "x-fal-order-properties": [
+        "audio_url",
+        "image_url",
+        "prompt",
+        "aspect_ratio",
+        "enable_safety_checker"
+      ],
+      "required": [
+        "audio_url"
+      ],
+      "additionalProperties": false
+    },
+    "apiPath": "/lightricks/ltx-2.5/audio-to-video/pro",
+    "apiPrompt": "/prompt",
+    "apiModelField": null,
+    "params": {
+      "aspect_ratio": "auto",
+      "enable_safety_checker": true,
+      "audio_url": "@reference:0"
+    },
+    "referencePaths": [
+      "/image_url",
+      "/audio_url"
+    ],
+    "referenceRoles": {
+      "/image_url": [
+        "first"
+      ],
+      "/audio_url": [
+        "audio"
+      ]
+    },
+    "referenceTransport": "owned-url",
+    "exampleReferences": [
+      {
+        "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bytes": 100,
+        "mime": "audio/wav",
+        "role": "audio",
+        "durationMs": 6000
+      }
+    ],
+    "pricingRule": {
+      "type": "ltx25",
+      "rates": {
+        "720p": 120000,
+        "1080p": 170000,
+        "1440p": 250000,
+        "2160p": 390000
+      }
+    },
+    "deadlineMs": 1200000,
+    "maxPrompt": 5000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "nativeCapabilities": {
+      "maxReferences": 3,
+      "resolutions": [
+        "1080p"
+      ],
+      "durations": [
+        6,
+        8,
+        10
+      ],
+      "fps": [
+        24,
+        25,
+        48,
+        50
+      ]
+    },
+    "schemaCheckedAt": "2026-11-11",
+    "documentationCheckedAt": "2026-11-11",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://fal.ai/models/lightricks/ltx-2.5/audio-to-video/pro/api",
+    "mime": "video/mp4",
+    "duration": 6,
+    "resolution": "1080p",
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc",
+      "av1"
+    ],
+    "audio": true,
+    "description": "Official LTX 2.5 audio-to-video API. Provider-specific settings and verified reference inputs; asynchronous jobs are polled without resubmitting. Pricing is a public list-price estimate, not an invoice."
+  },
+  "studio/wavespeed/wavespeed-ai/ltx-2.5/text-to-video": {
+    "provider": "wavespeed",
+    "apiModel": "wavespeed-ai/ltx-2.5/text-to-video",
+    "name": "LTX 2.5 · text-to-video (WaveSpeedAI)",
+    "vendor": "Lightricks",
+    "family": "LTX 2.5",
+    "kind": "video",
+    "nativeMedia": true,
+    "ltx25": true,
+    "ltxVariant": "wavespeed",
+    "ltxTask": "text-to-video",
+    "adapter": "schema-wavespeed",
+    "nativeSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "aspect_ratio": {
+          "default": "16:9",
+          "description": "Aspect ratio of the video.",
+          "enum": [
+            "16:9",
+            "9:16"
+          ],
+          "type": "string",
+          "x-ui-component": "select"
+        },
+        "duration": {
+          "default": 5,
+          "description": "The duration of the generated media in seconds.",
+          "maximum": 20,
+          "minimum": 5,
+          "type": "integer"
+        },
+        "prompt": {
+          "description": "The positive prompt for the generation.",
+          "type": "string",
+          "maxLength": 5000
+        },
+        "resolution": {
+          "default": "720p",
+          "description": "Video resolution.",
+          "enum": [
+            "720p",
+            "1080p",
+            "2k",
+            "4k"
+          ],
+          "type": "string",
+          "x-ui-component": "select"
+        },
+        "seed": {
+          "description": "The random seed to use for the generation. -1 means a random seed will be used.",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "type": "object",
+      "x-order-properties": [
+        "prompt",
+        "resolution",
+        "aspect_ratio",
+        "duration",
+        "seed"
+      ]
+    },
+    "apiPath": "/api/v3/wavespeed-ai/ltx-2.5/text-to-video",
+    "apiPrompt": "/prompt",
+    "apiModelField": null,
+    "params": {
+      "aspect_ratio": "16:9",
+      "duration": 5,
+      "resolution": "720p"
+    },
+    "exampleReferences": [],
+    "referencePaths": [],
+    "referenceRoles": {},
+    "referenceTransport": "owned-url",
+    "pricingRule": {
+      "type": "ltx25",
+      "rates": {
+        "720p": 100000,
+        "1080p": 140000,
+        "2k": 210000,
+        "4k": 330000
+      },
+      "sourceFormula": "{\"total_price\": duration * (resolution = \"720p\" ? base_price : (resolution = \"1080p\" ? 140000 : (resolution = \"2k\" ? 210000 : 330000)))}"
+    },
+    "schemaUrl": "https://wavespeed.ai/models/wavespeed-ai/ltx-2.5/text-to-video",
+    "schemaCheckedAt": "2026-11-11",
+    "documentationCheckedAt": "2026-11-11",
+    "validationStatus": "documentation-reviewed",
+    "nativeCapabilities": {
+      "maxReferences": 0,
+      "resolutions": [
+        "720p",
+        "1080p",
+        "2k",
+        "4k"
+      ]
+    },
+    "deadlineMs": 1200000,
+    "maxPrompt": 5000,
+    "seed": true,
+    "feeMultiplier": 1,
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc",
+      "av1"
+    ],
+    "audio": true,
+    "description": "LTX 2.5 via WaveSpeedAI. Provider-specific settings, verified image references and list-price estimates."
+  },
+  "studio/wavespeed/wavespeed-ai/ltx-2.5/image-to-video": {
+    "provider": "wavespeed",
+    "apiModel": "wavespeed-ai/ltx-2.5/image-to-video",
+    "name": "LTX 2.5 · image-to-video (WaveSpeedAI)",
+    "vendor": "Lightricks",
+    "family": "LTX 2.5",
+    "kind": "video",
+    "nativeMedia": true,
+    "ltx25": true,
+    "ltxVariant": "wavespeed",
+    "ltxTask": "image-to-video",
+    "adapter": "schema-wavespeed",
+    "nativeSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "duration": {
+          "default": 5,
+          "description": "The duration of the generated media in seconds.",
+          "maximum": 20,
+          "minimum": 5,
+          "type": "integer"
+        },
+        "image": {
+          "description": "The image for the generation.",
+          "type": "string"
+        },
+        "last_image": {
+          "description": "Optional last-frame image for the generation.",
+          "type": "string"
+        },
+        "prompt": {
+          "description": "The positive prompt for the generation.",
+          "type": "string",
+          "maxLength": 5000
+        },
+        "resolution": {
+          "default": "720p",
+          "description": "Video resolution.",
+          "enum": [
+            "720p",
+            "1080p",
+            "2k",
+            "4k"
+          ],
+          "type": "string",
+          "x-ui-component": "select"
+        },
+        "seed": {
+          "description": "The random seed to use for the generation. -1 means a random seed will be used.",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "image",
+        "prompt"
+      ],
+      "type": "object",
+      "x-order-properties": [
+        "prompt",
+        "image",
+        "last_image",
+        "resolution",
+        "duration",
+        "seed"
+      ]
+    },
+    "apiPath": "/api/v3/wavespeed-ai/ltx-2.5/image-to-video",
+    "apiPrompt": "/prompt",
+    "apiModelField": null,
+    "params": {
+      "duration": 5,
+      "resolution": "720p",
+      "image": "@reference:0"
+    },
+    "exampleReferences": [
+      {
+        "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bytes": 100,
+        "mime": "image/png",
+        "role": "first",
+        "width": 1280,
+        "height": 720
+      }
+    ],
+    "referencePaths": [
+      "/image",
+      "/last_image"
+    ],
+    "referenceRoles": {
+      "/image": "first",
+      "/last_image": "last"
+    },
+    "referenceTransport": "owned-url",
+    "pricingRule": {
+      "type": "ltx25",
+      "rates": {
+        "720p": 100000,
+        "1080p": 140000,
+        "2k": 210000,
+        "4k": 330000
+      },
+      "sourceFormula": "{\"total_price\": duration * (resolution = \"720p\" ? base_price : (resolution = \"1080p\" ? 140000 : (resolution = \"2k\" ? 210000 : 330000)))}"
+    },
+    "schemaUrl": "https://wavespeed.ai/models/wavespeed-ai/ltx-2.5/image-to-video",
+    "schemaCheckedAt": "2026-11-11",
+    "documentationCheckedAt": "2026-11-11",
+    "validationStatus": "documentation-reviewed",
+    "nativeCapabilities": {
+      "maxReferences": 2,
+      "resolutions": [
+        "720p",
+        "1080p",
+        "2k",
+        "4k"
+      ]
+    },
+    "deadlineMs": 1200000,
+    "maxPrompt": 5000,
+    "seed": true,
+    "feeMultiplier": 1,
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc",
+      "av1"
+    ],
+    "audio": true,
+    "description": "LTX 2.5 via WaveSpeedAI. Provider-specific settings, verified image references and list-price estimates."
+  }
+}

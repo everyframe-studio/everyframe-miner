@@ -464,6 +464,7 @@ const PROVIDERS = {
   pika: ["Pika", "Pika H3 Flex video with native audio, keyframes and visual references. Use a Pika developer API key. Your API balance is checked without generating media."],
   kling: ["Kling (direct)", "Kling developer API key, not a Fal key or legacy access/secret pair. API resource packs are separate from the web subscription. Model availability requires a signed worker release and pricing."],
   openrouter: ["OpenRouter", "Seedance and image models served through OpenRouter."],
+  ltx: ["LTX (Lightricks)", "LTX 2.5 Fast and Pro through the native LTX API. Use an LTX API key; check credit balances in the provider dashboard."],
   wavespeed: ["WaveSpeedAI", "Image, video and audio models through WaveSpeedAI. Use a generation-capable API key from wavespeed.ai/accesskey; balance checks do not generate media."],
   minimax: ["MiniMax (direct)", "MiniMax models served by MiniMax's own API."],
   bfl: ["Black Forest Labs", "FLUX image models from BFL's own API."],
@@ -476,7 +477,7 @@ const PROVIDERS = {
   "openrouter-billing": ["OpenRouter billing (optional)", "Used only on this computer to show your OpenRouter balance. Never sent to the worker."],
 };
 const providerName = (p) => (PROVIDERS[p] || [p])[0];
-const DIRECT_PROVIDERS = new Set(["alibaba", "byteplus", "volcengine", "luma-agents", "openai", "google", "xai", "elevenlabs", "minimax", "bfl", "kling", "pika", "runway", "luma", "vivix"]);
+const DIRECT_PROVIDERS = new Set(["ltx", "alibaba", "byteplus", "volcengine", "luma-agents", "openai", "google", "xai", "elevenlabs", "minimax", "bfl", "kling", "pika", "runway", "luma", "vivix"]);
 const compareProviders = (a, b) => Number(!DIRECT_PROVIDERS.has(a)) - Number(!DIRECT_PROVIDERS.has(b))
   || String(providerName(a) || "").localeCompare(String(providerName(b) || ""));
 

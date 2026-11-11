@@ -162,3 +162,5 @@ pub mod submission;
 pub mod terms;
 
 pub mod studio_tools;
+
+pub mod ltx25;
