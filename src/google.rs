@@ -44,6 +44,12 @@ pub fn body_with_references(spec: &Value, model: &Value, refs: &[Value]) -> Resu
         "unsupported_model",
     )?;
     let mut body = spec["input"].clone();
+    // Background TTS currently concatenates partial WAV/PCM fragments.
+    // Unary TTS returns a complete WAV and still supplies a durable stored ID
+    // that supports the same GET-only recovery path.
+    if crate::google_settings::CAPS[s(&spec["model"])?]["speech"] == true {
+        body["background"] = json!(false);
+    }
     // Google image and audio generation return inline bytes by default,
     // but reject an explicit delivery="inline" on these routes. Normalize only the outgoing request: changing
     // the signed input would invalidate existing job hashes and recovery IDs.
@@ -238,6 +244,17 @@ pub fn normalize_media(block: &Value, model: &Value, bytes: Vec<u8>) -> Result<V
         let expected = model["sampleRate"].as_u64().unwrap_or(rate);
         need(rate == expected, "invalid_provider_media")?;
         let channels = block["channels"].as_u64().unwrap_or(1);
+        if bytes.starts_with(b"RIFF") {
+            // Do not wrap an embedded WAV header/provenance as audio samples.
+            need(
+                bytes.len() >= 12
+                    && &bytes[8..12] == b"WAVE"
+                    && u32::from_le_bytes(bytes[4..8].try_into().unwrap()) as usize + 8
+                        == bytes.len(),
+                "invalid_provider_media",
+            )?;
+            return Ok(bytes);
+        }
         return crate::wav::pcm16_wav(bytes, rate, channels);
     }
     Ok(bytes)

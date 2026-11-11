@@ -20,6 +20,8 @@ fn google_audio_omits_rejected_explicit_inline_without_changing_signed_input() {
         let before = protocol::digest(&spec).unwrap();
         let body = google::body(&spec, models::info(model).unwrap()).unwrap();
         assert!(body["response_format"].get("delivery").is_none());
+        assert_eq!(body["background"], !model.ends_with("-tts"));
+        assert_eq!(spec["input"]["background"], true);
         assert_eq!(before, protocol::digest(&spec).unwrap());
         let mut uri = spec.clone();
         uri["input"]["response_format"]["delivery"] = json!("uri");
@@ -62,6 +64,14 @@ fn google_background_pcm_is_wrapped_as_requested_wav_with_bound_rate() {
     wrong["sample_rate"] = json!(16000);
     assert!(google::normalize_media(&wrong, &m, bytes.clone()).is_err());
     assert!(google::normalize_media(&block, &m, vec![1]).is_err());
+    let wav = everyframe_miner::wav::pcm16_wav(vec![1, 2, 3, 4], 24000, 1).unwrap();
+    assert_eq!(
+        google::normalize_media(&block, &m, wav.clone()).unwrap(),
+        wav
+    );
+    let mut partial = wav.clone();
+    partial.extend([1, 2]);
+    assert!(google::normalize_media(&block, &m, partial).is_err());
 }
 fn streaming_wav() -> Vec<u8> {
     let mut b = vec![0_u8; 44 + 480];

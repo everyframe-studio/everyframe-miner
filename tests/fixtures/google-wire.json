@@ -273,7 +273,7 @@
         ]
       },
       "store": true,
-      "background": true,
+      "background": false,
       "model": "gemini-3.8-flash-tts",
       "input": [
         {
@@ -325,7 +325,7 @@
         ]
       },
       "store": true,
-      "background": true,
+      "background": false,
       "model": "gemini-3.8-flash-lite-tts",
       "input": [
         {
