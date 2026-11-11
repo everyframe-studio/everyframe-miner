@@ -3379,5 +3379,77 @@
       "text": "A quiet river"
     },
     "estimateMicrousd": 1300
+  },
+  {
+    "request": {
+      "model": "studio/wavespeed/wavespeed-ai/ltx-2.5/text-to-video",
+      "prompt": "A blue bird",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/wavespeed-ai/ltx-2.5/text-to-video",
+      "input": {
+        "prompt": "A blue bird",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 5,
+          "resolution": "720p"
+        },
+        "references": []
+      }
+    },
+    "inputHash": "24b9ec6c9671e4de4f1b4f8b91f2c3ce50f75b72215584f8a4c40352722a225d",
+    "body": {
+      "aspect_ratio": "16:9",
+      "duration": 5,
+      "resolution": "720p",
+      "prompt": "A blue bird"
+    }
+  },
+  {
+    "request": {
+      "model": "studio/wavespeed/wavespeed-ai/ltx-2.5/image-to-video",
+      "prompt": "A blue bird",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 100,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1280,
+          "height": 720
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/wavespeed-ai/ltx-2.5/image-to-video",
+      "input": {
+        "prompt": "A blue bird",
+        "parameters": {
+          "duration": 5,
+          "resolution": "720p",
+          "image": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1280,
+            "height": 720
+          }
+        ]
+      }
+    },
+    "inputHash": "2343189058720d69ed60d77cc171045110cd25ee6bb014d3f6771946881d605a",
+    "body": {
+      "duration": 5,
+      "resolution": "720p",
+      "image": "https://api.everyframe.studio/v1/attachment/att_ltxfixture?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+      "prompt": "A blue bird"
+    }
   }
 ]

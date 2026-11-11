@@ -380,8 +380,14 @@ impl Miner<'_> {
                 url.query_pairs_mut().append_pair("profiles", "2");
             }
             if action == "worker-update"
-                && ["pika-v1", "native-v1", "native-v2", "native-v3"]
-                    .contains(&payload["providerEnvironment"].as_str().unwrap_or(""))
+                && [
+                    "pika-v1",
+                    "native-v1",
+                    "native-v2",
+                    "native-v3",
+                    "native-v4",
+                ]
+                .contains(&payload["providerEnvironment"].as_str().unwrap_or(""))
             {
                 url.query_pairs_mut()
                     .append_pair("providerEnvironment", s(&payload["providerEnvironment"])?);

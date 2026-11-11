@@ -204,14 +204,12 @@ fn providers_are_a_table_with_unknown_permissions_before_init() {
         &json!({"request":{"compose_file":{"allowed_envs":["FAL_KEY"]}}}),
         &json!({"FAL_KEY":"synthetic-key"}),
     );
-    assert_eq!(known[0]["releaseAllows"], true);
-    assert_eq!(known[1]["releaseAllows"], false);
-    assert!(
-        known[1]["reason"]
-            .as_str()
-            .unwrap()
-            .contains("Not included")
-    );
+    let rows = known.as_array().unwrap();
+    let fal = rows.iter().find(|r| r["provider"] == "fal").unwrap();
+    let ltx = rows.iter().find(|r| r["provider"] == "ltx").unwrap();
+    assert_eq!(fal["releaseAllows"], true);
+    assert_eq!(ltx["releaseAllows"], false);
+    assert!(ltx["reason"].as_str().unwrap().contains("Not included"));
 }
 
 #[test]

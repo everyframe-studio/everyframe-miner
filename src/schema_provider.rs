@@ -15,6 +15,9 @@ impl Router<'_> {
         model: &Value,
         body: &Value,
     ) -> Result<String> {
+        if model["ltx25"] == true && model["provider"] != "wavespeed" {
+            return self.ltx25_submit(spec, model, body);
+        }
         if model["provider"] == "wavespeed" {
             return self.wavespeed_submit(spec, model, body);
         }
@@ -287,6 +290,9 @@ impl Router<'_> {
         spec: &Value,
         model: &Value,
     ) -> Result<String> {
+        if model["ltx25"] == true && model["provider"] != "wavespeed" {
+            return self.ltx25_poll(reference, spec, model);
+        }
         if model["provider"] == "wavespeed" {
             return self.wavespeed_poll(reference, spec, model);
         }
@@ -368,6 +374,9 @@ impl Router<'_> {
         spec: &Value,
         model: &Value,
     ) -> Result<Output> {
+        if model["ltx25"] == true && model["provider"] != "wavespeed" {
+            return self.ltx25_result(reference, spec, model);
+        }
         if model["provider"] == "wavespeed" {
             return self.wavespeed_result(reference, spec, model);
         }

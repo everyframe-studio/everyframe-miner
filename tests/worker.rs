@@ -273,6 +273,13 @@ impl Provider for Handle {
     fn result(&mut self, _: &str, _: &Value) -> Result<Output> {
         std::thread::sleep(std::time::Duration::from_millis(self.options.blocking_ms));
         if let Some(code) = self.options.result_error {
+            if code == "unapproved_destination" {
+                return everyframe_miner::network::safe_url(
+                    "https://output.example.net/private/SECRET_PATH?token=SECRET_QUERY",
+                    &["static.wavespeed.ai".into()],
+                )
+                .map(|_| unreachable!());
+            }
             return Err(Error(code));
         }
         Ok(Output {
@@ -1075,4 +1082,122 @@ fn post_submission_budget_failure_is_terminal_on_both_protocol_versions() {
         assert_eq!(f.submits.get(), 1);
         assert!(f.rejections.borrow().is_empty());
     }
+}
+
+#[test]
+fn signed_failure_keeps_the_exact_output_error_when_debugging_is_advertised() {
+    let (mut w, f) = fixture(
+        Options {
+            result_error: Some("untrusted_destination"),
+            ..Default::default()
+        },
+        json!({}),
+    );
+    w.enroll().unwrap();
+    w.session["workerDiagnostics"] = json!(1);
+    assert_eq!(w.step().unwrap()["state"], "failed");
+    let reports = f.failure_reports.borrow();
+    assert_eq!(reports.len(), 1);
+    assert_eq!(reports[0]["reason"], "provider_generation_failed");
+    assert_eq!(
+        reports[0]["workerDiagnostic"]["code"],
+        "untrusted_destination"
+    );
+    assert_eq!(reports[0]["workerDiagnostic"]["phase"], "output_retrieval");
+    assert_eq!(reports[0]["workerDiagnostic"]["providerCompleted"], true);
+    assert_eq!(f.submits.get(), 1);
+}
+
+#[test]
+fn debug_metadata_never_replays_a_provider_call_when_a_legacy_server_rejects_it() {
+    let (mut w, f) = fixture(
+        Options {
+            result_error: Some("untrusted_destination"),
+            failed_report_failures: 1,
+            failed_report_error: Some("http_400"),
+            ..Default::default()
+        },
+        json!({}),
+    );
+    w.enroll().unwrap();
+    w.session["workerDiagnostics"] = json!(1);
+    assert_eq!(w.step().unwrap()["state"], "failed");
+    let reports = f.failure_reports.borrow();
+    assert_eq!(reports.len(), 2);
+    assert!(reports[0]["workerDiagnostic"].is_object());
+    assert!(reports[1]["workerDiagnostic"].is_null());
+    assert_eq!(reports[0]["reason"], reports[1]["reason"]);
+    assert_eq!(f.submits.get(), 1);
+}
+
+#[test]
+fn signed_destination_diagnostics_are_negotiated_and_redacted_end_to_end() {
+    for enabled in [false, true] {
+        let (mut worker, f) = fixture(
+            Options {
+                result_error: Some("unapproved_destination"),
+                ..Default::default()
+            },
+            json!({}),
+        );
+        worker.enroll().unwrap();
+        worker.session["workerDiagnostics"] = json!(1);
+        if enabled {
+            worker.session["destinationDiagnostics"] = json!(1);
+        }
+        assert_eq!(worker.step().unwrap()["state"], "failed");
+        let reports = f.failure_reports.borrow();
+        assert_eq!(reports.len(), 1);
+        let d = &reports[0]["workerDiagnostic"];
+        if enabled {
+            assert_eq!(d["destination"]["host"], "output.example.net");
+            assert_eq!(d["destination"]["rule"], "host_not_allowed");
+        } else {
+            assert!(d.get("destination").is_none());
+        }
+        assert!(!d.to_string().contains("SECRET"));
+        assert_eq!(f.submits.get(), 1);
+    }
+}
+
+#[test]
+fn detailed_failed_and_successful_jobs_retain_safe_execution_context() {
+    let (mut w, f) = fixture(
+        Options {
+            result_error: Some("unapproved_destination"),
+            ..Default::default()
+        },
+        json!({"jobId":"a".repeat(48),"attemptId":"b".repeat(48)}),
+    );
+    w.enroll().unwrap();
+    w.session["executionDiagnostics"] = json!(1);
+    w.session["workerDiagnostics"] = json!(1);
+    w.session["destinationDiagnostics"] = json!(1);
+    assert_eq!(w.step().unwrap()["state"], "failed");
+    let reports = f.failure_reports.borrow();
+    let ex = &reports[0]["workerDiagnostic"]["execution"];
+    assert_eq!(ex["input"]["model"], models::DEFAULT_MODEL);
+    assert!(ex["runtime"]["scratchFreeBytes"].is_number());
+    assert!(everyframe_miner::execution_diagnostics::sanitize(ex).is_some());
+    assert!(!ex.to_string().contains("A red boat"));
+    assert!(everyframe_miner::execution_diagnostics::snapshot().is_none());
+    drop(reports);
+    let (mut w, f) = fixture(
+        Options::default(),
+        json!({"jobId":"c".repeat(48),"attemptId":"d".repeat(48)}),
+    );
+    w.enroll().unwrap();
+    w.session["executionDiagnostics"] = json!(1);
+    assert_eq!(w.step().unwrap()["state"], "accepted");
+    let trace = everyframe_miner::worker_trace::Cache::default();
+    drop(trace);
+    let request = json!({"requestId":"e".repeat(48),"jobId":"c".repeat(48),"attemptId":"d".repeat(48),"inputHash":f.work["inputHash"],"expiresAt":20000});
+    let reply = everyframe_miner::worker_trace::answer(&request, 1000).unwrap();
+    let event = reply["trace"]["events"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|e| e["phase"] == "output_accepted")
+        .unwrap();
+    assert_eq!(event["diagnostic"]["execution"]["output"]["bytes"], 15);
 }

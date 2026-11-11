@@ -37,6 +37,7 @@ pub struct Router<'a> {
     submission_deadline: Option<i64>,
     budget: std::cell::RefCell<crate::provider_budget::Cache>,
     catalog: crate::model_availability::CatalogCache,
+    pub(crate) ltx25_cache: std::cell::RefCell<Option<(String, i64, Value)>>,
     pub(crate) wavespeed_cache: std::cell::RefCell<Option<crate::wavespeed::Cached>>,
 }
 fn reference(v: &Value) -> Result<String> {
@@ -100,6 +101,7 @@ impl<'a> Router<'a> {
             submission_deadline: None,
             budget: Default::default(),
             catalog: crate::model_availability::CatalogCache::default(),
+            ltx25_cache: std::cell::RefCell::default(),
             wavespeed_cache: std::cell::RefCell::default(),
         }
     }
@@ -708,6 +710,7 @@ impl<'a> Router<'a> {
         redirects: &[&str],
         limit: usize,
     ) -> Result<Vec<u8>> {
+        crate::destination_diagnostics::clear();
         let mut r = Request::get(url, hosts);
         safe_url(url, &r.hosts)?;
         r.limit = limit;

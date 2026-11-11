@@ -260,7 +260,14 @@ impl Router<'_> {
             .ok_or(Error("provider_no_media"))?;
         let bytes = self.download_bounded(
             url,
-            &["static.wavespeed.ai", "cdn.wavespeed.ai"],
+            // WaveSpeed also returns media from CloudFront distributions. Keep
+            // this scoped to provider-returned outputs: no auth or redirects,
+            // and retain the shared HTTPS/DNS/public-address/size checks.
+            &[
+                "static.wavespeed.ai",
+                "cdn.wavespeed.ai",
+                "*.cloudfront.net",
+            ],
             None,
             &[],
             80 * 1024 * 1024,

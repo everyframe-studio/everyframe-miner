@@ -14,6 +14,7 @@ const JSON_LIMIT: usize = OUTPUT_LIMIT * 4 / 3 + 1024 * 1024;
 
 fn origin(model: &Value) -> Result<&'static str> {
     match s(&model["provider"])? {
+        "ltx" => Ok("api.ltx.io"),
         "openai" => Ok("api.openai.com"),
         "openrouter" => Ok("openrouter.ai"),
         "fal" => Ok("queue.fal.run"),

@@ -11,6 +11,7 @@ struct Api {
     model: Value,
     calls: RefCell<Vec<Request>>,
     mode: Cell<u8>,
+    output_url: RefCell<Option<String>>,
 }
 impl Http for Api {
     fn bytes(&self, r: Request) -> Result<Vec<u8>> {
@@ -20,7 +21,9 @@ impl Http for Api {
             assert!(r.headers.is_empty());
             return Ok(PNG.to_vec());
         }
-        if u.host_str() == Some("static.wavespeed.ai") {
+        if u.host_str() == Some("static.wavespeed.ai")
+            || u.host_str().is_some_and(|h| h.ends_with(".cloudfront.net"))
+        {
             assert!(r.headers.is_empty());
             assert!(r.redirect_hosts.is_empty());
             return Ok(match self.model["kind"].as_str().unwrap() {
@@ -73,7 +76,7 @@ impl Http for Api {
    3=>json!({"code":200,"data":{"id":"task_123","model":self.model["apiModel"],"status":"failed","code":1200,"error":"Content policy. fixture-secret"}}),
    6=>json!({"code":200,"data":{"id":"task_123","model":self.model["apiModel"],"status":"failed","code":5003}}),
    4=>json!({"code":5003,"message":"temporarily unavailable"}),
-   _=>json!({"code":200,"data":{"id":"task_123","model":self.model["apiModel"],"status":"completed","outputs":[if self.mode.get()==5{"https://evil.example/x"}else{"https://static.wavespeed.ai/x"}]}})
+   _=>json!({"code":200,"data":{"id":"task_123","model":self.model["apiModel"],"status":"completed","outputs":[self.output_url.borrow().as_deref().unwrap_or(if self.mode.get()==5{"https://evil.example/x"}else{"https://static.wavespeed.ai/x"})]}})
   }.to_string().into_bytes())
     }
 }
@@ -82,6 +85,7 @@ fn api(model: &Value) -> Api {
         model: model.clone(),
         calls: RefCell::default(),
         mode: Cell::new(0),
+        output_url: RefCell::default(),
     }
 }
 fn input(id: &str, m: &Value) -> Value {
@@ -92,6 +96,68 @@ fn input(id: &str, m: &Value) -> Value {
     }
     models::spec(&json!({"model":id,"prompt":"A calm river","references":refs}))
         .unwrap_or_else(|e| panic!("{id}: {e:?}"))
+}
+#[test]
+fn seedream_downloads_wavespeed_cloudfront_distributions() {
+    let id = "studio/wavespeed/bytedance/seedream-v5.5";
+    let spec = input(id, &native_media::MODELS[id]);
+    for host in [
+        "d2h7xmz5gqybh9.cloudfront.net",
+        "d111111abcdef8.cloudfront.net",
+    ] {
+        let api = api(&native_media::MODELS[id]);
+        api.output_url
+            .replace(Some(format!("https://{host}/generated/fixture.png")));
+        let reference = native_media::reference(&spec, "task_123").unwrap();
+        // Recover an existing prediction without submitting another paid job.
+        let result = Router::new(&api, json!({"WAVESPEED_API_KEY":"fixture-secret"}))
+            .result(&reference, &spec)
+            .unwrap();
+        let bundle: Value = serde_json::from_slice(&result.media).unwrap();
+        assert_eq!(bundle["parts"][0]["type"], "image");
+        let calls = api.calls.borrow();
+        assert!(calls.iter().all(|r| r.method == "GET"));
+        let download = calls.last().unwrap();
+        assert_eq!(
+            url::Url::parse(&download.url).unwrap().host_str(),
+            Some(host)
+        );
+        assert!(download.hosts.iter().any(|h| h == "*.cloudfront.net"));
+        assert!(
+            download.headers.is_empty(),
+            "provider key must stay off the CDN"
+        );
+        assert!(download.redirect_hosts.is_empty());
+    }
+}
+
+#[test]
+fn seedream_cdn_allowance_keeps_other_destinations_blocked() {
+    let id = "studio/wavespeed/bytedance/seedream-v5.5";
+    let spec = input(id, &native_media::MODELS[id]);
+    let reference = native_media::reference(&spec, "task_123").unwrap();
+    for url in [
+        "https://cloudfront.net/generated/fixture.png",
+        "https://d2h7xmz5gqybh9.cloudfront.net.evil.example/fixture.png",
+        "http://d2h7xmz5gqybh9.cloudfront.net/fixture.png",
+        "https://d2h7xmz5gqybh9.cloudfront.net:444/fixture.png",
+        "https://user:pass@d2h7xmz5gqybh9.cloudfront.net/fixture.png",
+        "https://d2h7xmz5gqybh9.cloudfront.net/fixture.png#fragment",
+        "https://127.0.0.1/fixture.png",
+    ] {
+        let api = api(&native_media::MODELS[id]);
+        api.output_url.replace(Some(url.into()));
+        let err = Router::new(&api, json!({"WAVESPEED_API_KEY":"fixture-secret"}))
+            .result(&reference, &spec)
+            .err()
+            .expect("unapproved output must be rejected");
+        assert_eq!(err.0, "unapproved_destination", "{url}");
+        assert_eq!(
+            api.calls.borrow().len(),
+            1,
+            "only the status GET is permitted"
+        );
+    }
 }
 #[test]
 fn all_reviewed_wavespeed_endpoints_submit_once_and_recover_by_id() {
@@ -138,7 +204,7 @@ fn all_reviewed_wavespeed_endpoints_submit_once_and_recover_by_id() {
         }
         count += 1;
     }
-    assert_eq!(count, 85);
+    assert_eq!(count, 87); // Base catalog plus the two LTX 2.5 routes.
 }
 #[test]
 fn uncertainty_and_refusals_never_trigger_resubmission() {
@@ -237,7 +303,7 @@ fn http_5xx_and_ambiguous_payloads_do_not_prove_rejection() {
 fn worker_matches_all_coordinator_contract_hashes_and_provider_payloads() {
     let vectors: Vec<Value> =
         serde_json::from_str(include_str!("fixtures/wavespeed.json")).unwrap();
-    assert_eq!(vectors.len(), 85);
+    assert_eq!(vectors.len(), 87);
     for v in vectors {
         let spec = models::spec(&v["request"]).unwrap();
         assert_eq!(spec, v["spec"]);

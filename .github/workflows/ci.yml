@@ -17,16 +17,17 @@ jobs:
           - runner: macos-15-intel
             target: x86_64-apple-darwin
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       EVERYCLI_RELEASE_BUILD: '1'
+      EVERYFRAME_WORKER_BUILD_ID: ${{ github.sha }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Install release-matched toolchain
         run: rustup toolchain install 1.97.1 --profile minimal --component rustfmt --component clippy
       - run: cargo +1.97.1 fmt --check
       - run: cargo +1.97.1 clippy --release --locked --all-targets -- -D warnings
-      - run: cargo +1.97.1 test --release --locked
+      - run: cargo +1.97.1 test --release --locked --no-fail-fast
       - run: cargo +1.97.1 build --release --locked --bins
       - name: Install browser test dependencies
         if: matrix.runner == 'ubuntu-22.04'
@@ -63,4 +64,21 @@ jobs:
         with:
           name: everycli-${{ matrix.target }}
           path: dist/*
+          if-no-files-found: error
+
+      - name: Package reviewed worker for attested release testing
+        if: matrix.target == 'x86_64-unknown-linux-gnu' && (startsWith(github.ref, 'refs/heads/release/') || startsWith(github.head_ref, 'release/'))
+        run: |
+          mkdir -p worker-dist
+          cp target/release/everyframe-worker worker-dist/everyframe-worker
+          cp target/release/everyframe-updater worker-dist/everyframe-updater
+          cd worker-dist
+          sha256sum everyframe-worker everyframe-updater > everyframe-worker.sha256
+          jq -n --arg revision "$GITHUB_SHA" --arg platform "${{ matrix.target }}" '{sourceRevision:$revision,platform:$platform}' > build-manifest.json
+      - name: Upload reviewed worker
+        if: matrix.target == 'x86_64-unknown-linux-gnu' && (startsWith(github.ref, 'refs/heads/release/') || startsWith(github.head_ref, 'release/'))
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: everyframe-worker-${{ matrix.target }}
+          path: worker-dist/*
           if-no-files-found: error
