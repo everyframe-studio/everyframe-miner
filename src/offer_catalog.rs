@@ -83,6 +83,18 @@ pub fn offers(status: &Value, invitation: &Value, credentials: &Value) -> Value 
 }
 
 pub fn readiness(row: &Value) -> &'static str {
+    if row["blockers"]
+        .as_array()
+        .is_some_and(|b| b.iter().any(|v| v == "provider_budget_exhausted"))
+    {
+        return "Provider spending limit reached";
+    }
+    if row["blockers"]
+        .as_array()
+        .is_some_and(|b| b.iter().any(|v| v == "provider_budget_unverified"))
+    {
+        return "Provider spending limit check unavailable";
+    }
     if row["automaticOffer"]["managed"] == true && row["automaticOffer"]["state"] != "active" {
         return "Automatic offers paused";
     }

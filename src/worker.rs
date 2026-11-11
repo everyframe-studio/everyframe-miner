@@ -150,6 +150,11 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
         if let Some(rows) = availability {
             capabilities["modelAvailability"] = rows;
         }
+        if self.session["providerBudgetPolicy"] == 1
+            && let Some(proof) = self.provider.provider_budget()
+        {
+            capabilities["providerBudget"] = proof;
+        }
         if self.runtime.balances_enabled() {
             capabilities["balancePolicy"] = json!(1);
         }
@@ -222,6 +227,8 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                 Err(error) => {
                     let rejected = crate::submission::rejected(error.0);
                     let reason = rejected.unwrap_or_else(|| crate::submission::uncertain(error.0));
+                    let reason =
+                        budget_wire_reason(reason, self.session["providerBudgetPolicy"] == 1);
                     let action = if rejected.is_some() {
                         "submission_rejected"
                     } else {
@@ -236,7 +243,9 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                         "{}",
                         json!({"event":action,"jobId":work["jobId"],"attemptId":attempt,"reason":reason,"refusal":refusal})
                     );
-                    self.pause_provider_for(&work["spec"], reason);
+                    if error.0 != crate::provider_budget::EXHAUSTED {
+                        self.pause_provider_for(&work["spec"], reason);
+                    }
                     let mut with_refusal = refusal.is_some();
                     let mut with_provider_error = provider_error.is_some();
                     while self.runtime.now() < deadline {
@@ -468,8 +477,13 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
         if let Some(account) = crate::submission::rejected(reason) {
             self.pause_provider_for(&work["spec"], account);
         }
-        let category = report_category(reason);
-        self.pause_provider_for(&work["spec"], category);
+        let category = budget_wire_reason(
+            report_category(reason),
+            self.session["providerBudgetPolicy"] == 1,
+        );
+        if reason != crate::provider_budget::EXHAUSTED {
+            self.pause_provider_for(&work["spec"], category);
+        }
         // A refusal code is only meaningful with a provider failure category.
         let mut refusal = refusal.filter(|_| category.starts_with("provider_"));
         let mut detail = detail.filter(|_| category.starts_with("provider_"));
@@ -854,6 +868,7 @@ pub fn run_live() -> Result<()> {
 /// Maps an internal failure code to a category the coordinator accepts.
 pub fn report_category(reason: &str) -> &'static str {
     match reason {
+        "provider_budget_exhausted" => "provider_budget_exhausted",
         "provider_content_rejected" | "vivix_content_rejected" | "kling_content_rejected" => {
             "provider_content_rejected"
         }
@@ -886,5 +901,14 @@ pub fn report_category(reason: &str) -> &'static str {
             "output_invalid"
         }
         _ => "provider_generation_failed",
+    }
+}
+
+/// Older coordinators understand billing failures, but not the budget extension.
+fn budget_wire_reason(reason: &str, supported: bool) -> &str {
+    if reason == crate::provider_budget::EXHAUSTED && !supported {
+        "provider_billing_required"
+    } else {
+        reason
     }
 }

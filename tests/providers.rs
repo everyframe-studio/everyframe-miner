@@ -381,6 +381,10 @@ fn every_added_model_checks_deadline_and_does_not_retry_ambiguous_submission() {
             Err(everyframe_miner::Error("request_timeout"))
         }
         fn bytes(&self, r: Request) -> Result<Vec<u8>> {
+            if r.url == "https://openrouter.ai/api/v1/key" {
+                assert_eq!(r.method, "GET");
+                return Ok(json!({"data":{"limit":null,"limit_remaining":null,"budgets":[],"effective_budget":null}}).to_string().into_bytes());
+            }
             assert_eq!(r.method, "POST");
             assert!(r.submit_deadline.is_some());
             self.0.set(self.0.get() + 1);

@@ -20,6 +20,9 @@ pub trait Provider {
     }
     /// The coordinator's signed list of retired provider models (narrowing only).
     fn set_retirements(&mut self, _retired: &Value) {}
+    fn provider_budget(&self) -> Option<Value> {
+        None
+    }
     fn submit(&mut self, spec: &Value) -> Result<String>;
     fn submit_before(&mut self, spec: &Value, _deadline: i64) -> Result<String> {
         self.submit(spec)
@@ -32,6 +35,7 @@ pub struct Router<'a> {
     pub credentials: Value,
     pub(crate) speech: Option<(String, String, Vec<u8>, String)>,
     submission_deadline: Option<i64>,
+    budget: std::cell::RefCell<crate::provider_budget::Cache>,
     catalog: crate::model_availability::CatalogCache,
     pub(crate) wavespeed_cache: std::cell::RefCell<Option<crate::wavespeed::Cached>>,
 }
@@ -94,6 +98,7 @@ impl<'a> Router<'a> {
             credentials,
             speech: None,
             submission_deadline: None,
+            budget: Default::default(),
             catalog: crate::model_availability::CatalogCache::default(),
             wavespeed_cache: std::cell::RefCell::default(),
         }
@@ -130,6 +135,25 @@ impl<'a> Router<'a> {
         }
         Ok(h)
     }
+    fn provider_json(&self, provider: &str, req: Request) -> Result<Value> {
+        self.http.json(req).inspect_err(|error| {
+            if provider == "openrouter" {
+                let key = self.credentials["OPENROUTER_API_KEY"]
+                    .as_str()
+                    .unwrap_or("");
+                let now = crate::now();
+                if error.0 == "http_403" {
+                    // A fresh budget check can stop subsequent work, but cannot
+                    // prove what caused an ambiguous earlier 403. Preserve that
+                    // job's non-retryable classification, including moderation.
+                    self.budget.borrow_mut().recheck(self.http, key, now);
+                }
+                if error.0 == crate::provider_budget::EXHAUSTED {
+                    self.budget.borrow_mut().reject(key, now);
+                }
+            }
+        })
+    }
     fn api(&self, p: &str, path: &str, body: Option<&Value>) -> Result<Value> {
         let origin = prefix(p);
         need(!origin.is_empty(), "unsupported_provider")?;
@@ -148,7 +172,7 @@ impl<'a> Router<'a> {
             req = req.json("POST", b);
             self.guard_submission(&mut req)?;
         };
-        let data = self.http.json(req)?;
+        let data = self.provider_json(p, req)?;
         if p == "pika" && body.is_some() {
             if data["status"] == "failed" {
                 return Err(self.provider_failure(
@@ -319,7 +343,7 @@ impl<'a> Router<'a> {
         req.timeout = 300;
         req.limit = 40 * 1024 * 1024;
         self.guard_submission(&mut req)?;
-        let data = self.http.json(req)?;
+        let data = self.provider_json(p, req)?;
         need(data.get("error").is_none(), "provider_rejected")?;
         let media = if path == "/api/v1/images" {
             need(
@@ -699,13 +723,48 @@ impl<'a> Router<'a> {
 }
 impl Provider for Router<'_> {
     fn refresh_availability(&mut self, now: i64) -> Option<Value> {
-        Some(self.catalog.refresh(self.http, &self.credentials, now))
+        let mut rows = self.catalog.refresh(self.http, &self.credentials, now);
+        if configured(&self.credentials["OPENROUTER_API_KEY"]) {
+            self.budget.borrow_mut().refresh(
+                self.http,
+                self.credentials["OPENROUTER_API_KEY"]
+                    .as_str()
+                    .unwrap_or(""),
+                now,
+            );
+            if !self.budget.borrow().allows(now) {
+                for row in rows.as_array_mut().into_iter().flatten() {
+                    if models::info(row["model"].as_str().unwrap_or(""))
+                        .is_ok_and(|m| m["provider"] == "openrouter")
+                        && !matches!(row["status"].as_str(), Some("removed" | "deprecated"))
+                    {
+                        row["status"] = json!("access_denied");
+                    }
+                }
+            }
+        }
+        Some(rows)
+    }
+    fn provider_budget(&self) -> Option<Value> {
+        self.budget.borrow().proof()
     }
     fn set_retirements(&mut self, retired: &Value) {
         self.catalog.set_server_retirements(retired);
     }
     fn submit_before(&mut self, spec: &Value, deadline: i64) -> Result<String> {
         let (_, provider) = self.context(spec)?;
+        if provider == "openrouter" {
+            need(
+                self.catalog.allows(s(&spec["model"])?),
+                "provider_model_unavailable",
+            )?;
+            need(crate::now() < deadline, "submission_deadline_elapsed")?;
+            self.budget.borrow_mut().guard(
+                self.http,
+                s(&self.credentials["OPENROUTER_API_KEY"])?,
+                crate::now(),
+            )?;
+        }
         if provider == "vivix"
             && let Ok(balance) =
                 crate::balances::vivix_w_balance(self.http, s(&self.credentials["VIVIX_API_KEY"])?)
@@ -718,6 +777,15 @@ impl Provider for Router<'_> {
         self.submission_deadline = Some(deadline);
         let result = self.submit(spec);
         self.submission_deadline = None;
+        if provider == "openrouter"
+            && result
+                .as_ref()
+                .is_err_and(|e| e.0 == crate::provider_budget::EXHAUSTED)
+        {
+            self.budget
+                .borrow_mut()
+                .reject(s(&self.credentials["OPENROUTER_API_KEY"])?, crate::now());
+        }
         result
     }
     fn models(&self) -> Vec<String> {
@@ -728,6 +796,13 @@ impl Provider for Router<'_> {
             .chain(models::STUDIO_MODELS.as_object().unwrap().iter())
             .filter(|(id, m)| {
                 self.catalog.allows(id)
+                    && (m["provider"] != "openrouter"
+                        || self.budget.borrow().proof().is_none()
+                        || self
+                            .budget
+                            .borrow()
+                            .proof()
+                            .is_some_and(|v| v["state"] == "ready"))
                     && (m["provider"] != "alibaba"
                         || crate::invitation::valid_workspace(
                             &self.credentials[crate::invitation::ALIBABA_WORKSPACE_KEY],

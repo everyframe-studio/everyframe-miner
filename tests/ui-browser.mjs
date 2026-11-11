@@ -824,6 +824,8 @@ try {
   }));
   assert.equal(reasons.stale,'Provider catalog check is stale');
   assert.equal(reasons.offline,'Worker offline');
+  assert.match(await page.evaluate(() => readiness({blockers:['provider_budget_exhausted'],workerAvailability:{status:'access_denied'}})[0]), /Provider spending limit reached/);
+  assert.equal(await page.evaluate(() => readiness({blockers:['provider_budget_unverified']})[0]), 'Provider spending limit check unavailable');
   assert.equal(reasons.key,'Provider access unavailable for worker key');
 
   await page.evaluate(()=>{
