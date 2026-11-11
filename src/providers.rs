@@ -708,6 +708,7 @@ impl<'a> Router<'a> {
         redirects: &[&str],
         limit: usize,
     ) -> Result<Vec<u8>> {
+        crate::destination_diagnostics::clear();
         let mut r = Request::get(url, hosts);
         safe_url(url, &r.hosts)?;
         r.limit = limit;

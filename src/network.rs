@@ -46,7 +46,9 @@ pub trait Http {
         Err(Error("unsupported_stream_transport"))
     }
     fn json(&self, r: Request) -> Result<Value> {
-        serde_json::from_slice(&self.bytes(r)?).map_err(|_| Error("invalid_remote_json"))
+        let result = serde_json::from_slice(&self.bytes(r)?);
+        crate::execution_diagnostics::json_result(&result);
+        result.map_err(|_| Error("invalid_remote_json"))
     }
     /// Independent, read-only account queries. Test transports may stay serial.
     fn read_json_batch(&self, requests: Vec<Request>) -> Vec<Result<Value>> {
@@ -215,23 +217,35 @@ fn enrollment_error(status: u16, bytes: &[u8]) -> Error {
     crate::diagnostics::http_error(status)
 }
 pub fn safe_url(input: &str, hosts: &[String]) -> Result<Url> {
-    let u = Url::parse(input).map_err(|_| Error("unapproved_destination"))?;
+    safe_url_stage(input, hosts, "initial")
+}
+fn safe_url_stage(input: &str, hosts: &[String], stage: &str) -> Result<Url> {
+    let u = Url::parse(input).map_err(|_| {
+        crate::destination_diagnostics::capture(input, hosts, stage, "invalid_url");
+        Error("unapproved_destination")
+    })?;
     let host = u.host_str().unwrap_or("");
-    need(
-        u.scheme() == "https"
-            && u.username().is_empty()
-            && u.password().is_none()
-            && u.port_or_known_default() == Some(443)
-            && u.fragment().is_none()
-            && hosts.iter().any(|h| {
-                if let Some(suffix) = h.strip_prefix("*.") {
-                    host.ends_with(&format!(".{suffix}")) && host != suffix
-                } else {
-                    host == h
-                }
-            }),
-        "unapproved_destination",
-    )?;
+    let rule = if u.scheme() != "https" {
+        Some("https_required")
+    } else if !u.username().is_empty() || u.password().is_some() {
+        Some("userinfo_disallowed")
+    } else if u.port_or_known_default() != Some(443) {
+        Some("port_disallowed")
+    } else if u.fragment().is_some() {
+        Some("fragment_disallowed")
+    } else if !hosts.iter().any(|h| {
+        h.strip_prefix("*.").map_or(host == h, |suffix| {
+            host.ends_with(&format!(".{suffix}")) && host != suffix
+        })
+    }) {
+        Some("host_not_allowed")
+    } else {
+        None
+    };
+    if let Some(rule) = rule {
+        crate::destination_diagnostics::capture(input, hosts, stage, rule);
+        return Err(Error("unapproved_destination"));
+    }
     Ok(u)
 }
 pub fn public_address(ip: IpAddr) -> bool {
@@ -268,219 +282,259 @@ impl Http for PublicHttp {
         crate::native_websocket::dialogue(r, voices, inputs)
     }
     fn bytes(&self, mut r: Request) -> Result<Vec<u8>> {
-        for hop in 0..=2 {
-            let u = safe_url(&r.url, &r.hosts)?;
-            let host = u.host_str().ok_or(Error("unapproved_destination"))?;
-            let addresses = (host, 443)
-                .to_socket_addrs()
-                .map_err(|_| Error("dns_failed"))?
-                .collect::<Vec<_>>();
-            need(
-                !addresses.is_empty() && addresses.iter().all(|a| public_address(a.ip())),
-                "private_destination",
-            )?;
-            let client = reqwest::blocking::Client::builder()
-                .no_proxy()
-                .https_only(true)
-                .redirect(reqwest::redirect::Policy::none())
-                .retry(reqwest::retry::never())
-                .timeout(Duration::from_secs(r.timeout))
-                .connect_timeout(Duration::from_secs(r.timeout))
-                .resolve_to_addrs(host, &addresses)
-                .pool_max_idle_per_host(0)
-                .build()
-                .map_err(|_| Error("transport_failed"))?;
-            let method = reqwest::Method::from_bytes(r.method.as_bytes())
-                .map_err(|_| Error("invalid_method"))?;
-            let mut request = client.request(method, u.clone());
-            for (k, v) in &r.headers {
-                let mut value = reqwest::header::HeaderValue::from_str(v)
-                    .map_err(|_| Error("invalid_header"))?;
-                value.set_sensitive(true);
-                request = request.header(k, value)
-            }
-            if let Some(b) = r.body.clone() {
-                request = request.body(b)
-            }
-            // DNS, reference verification and request construction can be slow.
-            // Fence at the last boundary before any paid bytes leave the worker.
-            if let Some(deadline) = r.submit_deadline {
-                need(crate::now() < deadline, "submission_deadline_elapsed")?;
-            }
-            let response = request
-                .send()
-                .map_err(|e| crate::diagnostics::transport_error(&e))?;
-            if [301, 302, 303, 307, 308].contains(&response.status().as_u16())
-                && r.method == "GET"
-                && !r.redirect_hosts.is_empty()
-                && hop < 2
-            {
-                let location = response
-                    .headers()
-                    .get("location")
-                    .and_then(|v| v.to_str().ok())
-                    .ok_or(Error("invalid_redirect"))?;
-                let target = u.join(location).map_err(|_| Error("invalid_redirect"))?;
-                safe_url(target.as_str(), &r.redirect_hosts)?;
-                r.url = target.to_string();
-                r.hosts = r.redirect_hosts.clone();
-                r.headers.clear();
-                r.body = None;
-                continue;
-            }
-            if !response.status().is_success()
-                && u.host_str() == Some("subnet.everyframe.studio")
-                && u.path().contains("/onboarding/")
-            {
-                // Only expose fixed, known enrollment errors, never arbitrary
-                // remote text or response bodies that might contain secrets.
-                let mut bytes = Vec::new();
-                let status = response.status().as_u16();
-                response
-                    .take(4097)
-                    .read_to_end(&mut bytes)
-                    .map_err(|_| Error("response_read_failed"))?;
-                return Err(enrollment_error(status, &bytes));
-            }
-            if !response.status().is_success() {
-                if u.host_str() == Some("cloud-api.phala.com") {
-                    let status = response.status().as_u16();
-                    let request_id = response
+        let mut trace = crate::execution_diagnostics::HttpSpan::new(&r);
+        let result = (|| {
+            crate::destination_diagnostics::clear();
+            for hop in 0..=2 {
+                let u = safe_url_stage(
+                    &r.url,
+                    &r.hosts,
+                    if hop == 0 { "initial" } else { "redirect" },
+                )?;
+                let host = u.host_str().ok_or(Error("unapproved_destination"))?;
+                let dns_started = std::time::Instant::now();
+                let addresses = (host, 443)
+                    .to_socket_addrs()
+                    .map_err(|_| {
+                        crate::destination_diagnostics::capture(
+                            &r.url,
+                            &r.hosts,
+                            if hop == 0 { "initial" } else { "redirect" },
+                            "dns_failed",
+                        );
+                        Error("dns_failed")
+                    })?
+                    .collect::<Vec<_>>();
+                trace.dns(dns_started.elapsed().as_millis() as u64);
+                if addresses.is_empty() || !addresses.iter().all(|a| public_address(a.ip())) {
+                    crate::destination_diagnostics::capture(
+                        &r.url,
+                        &r.hosts,
+                        if hop == 0 { "initial" } else { "redirect" },
+                        "private_address",
+                    );
+                    return Err(Error("private_destination"));
+                }
+                let client = reqwest::blocking::Client::builder()
+                    .no_proxy()
+                    .https_only(true)
+                    .redirect(reqwest::redirect::Policy::none())
+                    .retry(reqwest::retry::never())
+                    .timeout(Duration::from_secs(r.timeout))
+                    .connect_timeout(Duration::from_secs(r.timeout))
+                    .resolve_to_addrs(host, &addresses)
+                    .pool_max_idle_per_host(0)
+                    .build()
+                    .map_err(|_| Error("transport_failed"))?;
+                let method = reqwest::Method::from_bytes(r.method.as_bytes())
+                    .map_err(|_| Error("invalid_method"))?;
+                let mut request = client.request(method, u.clone());
+                for (k, v) in &r.headers {
+                    let mut value = reqwest::header::HeaderValue::from_str(v)
+                        .map_err(|_| Error("invalid_header"))?;
+                    value.set_sensitive(true);
+                    request = request.header(k, value)
+                }
+                if let Some(b) = r.body.clone() {
+                    request = request.body(b)
+                }
+                // DNS, reference verification and request construction can be slow.
+                // Fence at the last boundary before any paid bytes leave the worker.
+                if let Some(deadline) = r.submit_deadline {
+                    need(crate::now() < deadline, "submission_deadline_elapsed")?;
+                }
+                let response = request
+                    .send()
+                    .map_err(|e| crate::diagnostics::transport_error(&e))?;
+                trace.response(
+                    response.status().as_u16(),
+                    response
                         .headers()
-                        .get("x-request-id")
-                        .and_then(|v| v.to_str().ok())
-                        .map(str::to_owned);
-                    let mut bytes = Vec::new();
-                    // A body-read error must not turn a known 422 into a timeout.
-                    let read = response
-                        .take(crate::phala_error::MAX_BODY as u64 + 1)
-                        .read_to_end(&mut bytes);
-                    if read.is_err() {
-                        bytes.clear();
-                    }
-                    return Err(crate::phala_error::failure(
-                        status,
-                        &bytes,
-                        request_id.as_deref(),
+                        .get("content-type")
+                        .and_then(|v| v.to_str().ok()),
+                    response.content_length(),
+                    crate::execution_diagnostics::public_request_id(
+                        ["x-request-id", "request-id", "x-amzn-requestid", "cf-ray"]
+                            .iter()
+                            .find_map(|k| response.headers().get(*k).and_then(|v| v.to_str().ok())),
                         &r,
-                    ));
-                }
-                if worker_update_endpoint(&u, &r.method) {
-                    let status = response.status().as_u16();
-                    let mut bytes = Vec::new();
+                    ),
                     response
-                        .take(4097)
-                        .read_to_end(&mut bytes)
-                        .map_err(|_| Error("response_read_failed"))?;
-                    return Err(worker_update_error(status, &bytes));
-                }
-                if u.host_str() == Some("subnet.everyframe.studio")
+                        .headers()
+                        .get("retry-after")
+                        .and_then(|v| v.to_str().ok()),
+                );
+                if [301, 302, 303, 307, 308].contains(&response.status().as_u16())
                     && r.method == "GET"
-                    && ["/v1/miner/jobs", "/mainnet/v1/miner/jobs"].contains(&u.path())
+                    && !r.redirect_hosts.is_empty()
+                    && hop < 2
                 {
-                    let status = response.status().as_u16();
-                    let mut bytes = Vec::new();
-                    response
-                        .take(4097)
-                        .read_to_end(&mut bytes)
-                        .map_err(|_| Error("response_read_failed"))?;
-                    return Err(history_error(status, &bytes));
+                    let location = response
+                        .headers()
+                        .get("location")
+                        .and_then(|v| v.to_str().ok())
+                        .ok_or(Error("invalid_redirect"))?;
+                    let target = u.join(location).map_err(|_| Error("invalid_redirect"))?;
+                    safe_url_stage(target.as_str(), &r.redirect_hosts, "redirect")?;
+                    r.url = target.to_string();
+                    r.hosts = r.redirect_hosts.clone();
+                    r.headers.clear();
+                    r.body = None;
+                    continue;
                 }
-                if u.host_str() == Some("subnet.everyframe.studio")
-                    && r.method == "POST"
-                    && [
-                        "/v1/miner/automatic-offers-policy",
-                        "/mainnet/v1/miner/automatic-offers-policy",
-                        "/v1/miner/automatic-offers-preview",
-                        "/mainnet/v1/miner/automatic-offers-preview",
-                        "/v1/miner/offer-batch",
-                        "/mainnet/v1/miner/offer-batch",
-                        "/v1/miner/offer",
-                        "/mainnet/v1/miner/offer",
-                    ]
-                    .contains(&u.path())
+                if !response.status().is_success()
+                    && u.host_str() == Some("subnet.everyframe.studio")
+                    && u.path().contains("/onboarding/")
                 {
-                    let status = response.status().as_u16();
+                    // Only expose fixed, known enrollment errors, never arbitrary
+                    // remote text or response bodies that might contain secrets.
                     let mut bytes = Vec::new();
-                    response
-                        .take(4097)
-                        .read_to_end(&mut bytes)
-                        .map_err(|_| Error("response_read_failed"))?;
-                    return Err(batch_offer_error(status, &bytes));
+                    let status = response.status().as_u16();
+                    let body_read = response.take(4097).read_to_end(&mut bytes);
+                    trace.body_bytes(bytes.len());
+                    body_read.map_err(|_| Error("response_read_failed"))?;
+                    return Err(enrollment_error(status, &bytes));
                 }
-                let host = u.host_str().unwrap_or_default();
-                if matches!(
-                    host,
-                    "api.vivix.ai"
-                        | "queue.fal.run"
-                        | "api-singapore.klingai.com"
-                        | "api.dev.pika.art"
-                ) || crate::asian_provider::api_host(host)
-                    || crate::submission::PROVIDER_ERROR_HOSTS.contains(&host)
-                    || host.starts_with("api.") && host.ends_with(".bfl.ai")
-                {
-                    let status = response.status().as_u16();
-                    let mut bytes = Vec::new();
-                    response
-                        .take(64001)
-                        .read_to_end(&mut bytes)
-                        .map_err(|_| Error("response_read_failed"))?;
-                    let error = match host {
-                        "openrouter.ai" => crate::provider_budget::http_error(status, &bytes),
-                        "api.wavespeed.ai" => crate::wavespeed::http_error(status, &bytes),
-                        "queue.fal.run" => crate::submission::fal_http_error(status, &bytes),
-                        "api-singapore.klingai.com" => {
-                            crate::submission::kling_http_error(status, &bytes)
+                if !response.status().is_success() {
+                    if u.host_str() == Some("cloud-api.phala.com") {
+                        let status = response.status().as_u16();
+                        let request_id = response
+                            .headers()
+                            .get("x-request-id")
+                            .and_then(|v| v.to_str().ok())
+                            .map(str::to_owned);
+                        let mut bytes = Vec::new();
+                        // A body-read error must not turn a known 422 into a timeout.
+                        let read = response
+                            .take(crate::phala_error::MAX_BODY as u64 + 1)
+                            .read_to_end(&mut bytes);
+                        trace.body_bytes(bytes.len());
+                        if read.is_err() {
+                            bytes.clear();
                         }
-                        "api.dev.pika.art" => crate::submission::pika_http_error(status, &bytes),
-                        "api.vivix.ai" => crate::submission::vivix_http_error(status, &bytes),
-                        h if crate::asian_provider::api_host(h) => {
-                            crate::asian_provider::http_error(status, &bytes)
-                        }
-                        _ => crate::diagnostics::http_error(status),
-                    };
-                    let secrets: Vec<String> = r
-                        .headers
-                        .iter()
-                        .filter(|(key, _)| {
-                            matches!(
-                                key.to_ascii_lowercase().as_str(),
-                                "authorization"
-                                    | "x-key"
-                                    | "x-api-key"
-                                    | "x-goog-api-key"
-                                    | "xi-api-key"
-                                    | "api-key"
-                            )
-                        })
-                        .flat_map(|(_, v)| {
-                            [
-                                v.clone(),
-                                v.split_once(' ').map_or(v.as_str(), |(_, s)| s).to_owned(),
-                            ]
-                        })
-                        .collect();
-                    return Err(crate::submission::with_body_provider_error(
-                        error, status, host, &bytes, &secrets,
-                    ));
+                        return Err(crate::phala_error::failure(
+                            status,
+                            &bytes,
+                            request_id.as_deref(),
+                            &r,
+                        ));
+                    }
+                    if worker_update_endpoint(&u, &r.method) {
+                        let status = response.status().as_u16();
+                        let mut bytes = Vec::new();
+                        let body_read = response.take(4097).read_to_end(&mut bytes);
+                        trace.body_bytes(bytes.len());
+                        body_read.map_err(|_| Error("response_read_failed"))?;
+                        return Err(worker_update_error(status, &bytes));
+                    }
+                    if u.host_str() == Some("subnet.everyframe.studio")
+                        && r.method == "GET"
+                        && ["/v1/miner/jobs", "/mainnet/v1/miner/jobs"].contains(&u.path())
+                    {
+                        let status = response.status().as_u16();
+                        let mut bytes = Vec::new();
+                        let body_read = response.take(4097).read_to_end(&mut bytes);
+                        trace.body_bytes(bytes.len());
+                        body_read.map_err(|_| Error("response_read_failed"))?;
+                        return Err(history_error(status, &bytes));
+                    }
+                    if u.host_str() == Some("subnet.everyframe.studio")
+                        && r.method == "POST"
+                        && [
+                            "/v1/miner/automatic-offers-policy",
+                            "/mainnet/v1/miner/automatic-offers-policy",
+                            "/v1/miner/automatic-offers-preview",
+                            "/mainnet/v1/miner/automatic-offers-preview",
+                            "/v1/miner/offer-batch",
+                            "/mainnet/v1/miner/offer-batch",
+                            "/v1/miner/offer",
+                            "/mainnet/v1/miner/offer",
+                        ]
+                        .contains(&u.path())
+                    {
+                        let status = response.status().as_u16();
+                        let mut bytes = Vec::new();
+                        let body_read = response.take(4097).read_to_end(&mut bytes);
+                        trace.body_bytes(bytes.len());
+                        body_read.map_err(|_| Error("response_read_failed"))?;
+                        return Err(batch_offer_error(status, &bytes));
+                    }
+                    let host = u.host_str().unwrap_or_default();
+                    if matches!(
+                        host,
+                        "api.vivix.ai"
+                            | "queue.fal.run"
+                            | "api-singapore.klingai.com"
+                            | "api.dev.pika.art"
+                    ) || crate::asian_provider::api_host(host)
+                        || crate::submission::PROVIDER_ERROR_HOSTS.contains(&host)
+                        || host.starts_with("api.") && host.ends_with(".bfl.ai")
+                    {
+                        let status = response.status().as_u16();
+                        let mut bytes = Vec::new();
+                        let body_read = response.take(64001).read_to_end(&mut bytes);
+                        trace.body_bytes(bytes.len());
+                        body_read.map_err(|_| Error("response_read_failed"))?;
+                        let error = match host {
+                            "openrouter.ai" => crate::provider_budget::http_error(status, &bytes),
+                            "api.wavespeed.ai" => crate::wavespeed::http_error(status, &bytes),
+                            "queue.fal.run" => crate::submission::fal_http_error(status, &bytes),
+                            "api-singapore.klingai.com" => {
+                                crate::submission::kling_http_error(status, &bytes)
+                            }
+                            "api.dev.pika.art" => {
+                                crate::submission::pika_http_error(status, &bytes)
+                            }
+                            "api.vivix.ai" => crate::submission::vivix_http_error(status, &bytes),
+                            h if crate::asian_provider::api_host(h) => {
+                                crate::asian_provider::http_error(status, &bytes)
+                            }
+                            _ => crate::diagnostics::http_error(status),
+                        };
+                        let secrets: Vec<String> = r
+                            .headers
+                            .iter()
+                            .filter(|(key, _)| {
+                                matches!(
+                                    key.to_ascii_lowercase().as_str(),
+                                    "authorization"
+                                        | "x-key"
+                                        | "x-api-key"
+                                        | "x-goog-api-key"
+                                        | "xi-api-key"
+                                        | "api-key"
+                                )
+                            })
+                            .flat_map(|(_, v)| {
+                                [
+                                    v.clone(),
+                                    v.split_once(' ').map_or(v.as_str(), |(_, s)| s).to_owned(),
+                                ]
+                            })
+                            .collect();
+                        return Err(crate::submission::with_body_provider_error(
+                            error, status, host, &bytes, &secrets,
+                        ));
+                    }
+                    return Err(crate::diagnostics::http_error(response.status().as_u16()));
                 }
-                return Err(crate::diagnostics::http_error(response.status().as_u16()));
+                need(
+                    response
+                        .content_length()
+                        .is_none_or(|len| len <= r.limit as u64),
+                    "response_too_large",
+                )?;
+                let mut bytes = Vec::new();
+                let body_read = response.take(r.limit as u64 + 1).read_to_end(&mut bytes);
+                trace.body_bytes(bytes.len());
+                body_read.map_err(|_| Error("response_read_failed"))?;
+                need(bytes.len() <= r.limit, "response_too_large")?;
+                return Ok(bytes);
             }
-            need(
-                response
-                    .content_length()
-                    .is_none_or(|len| len <= r.limit as u64),
-                "response_too_large",
-            )?;
-            let mut bytes = Vec::new();
-            response
-                .take(r.limit as u64 + 1)
-                .read_to_end(&mut bytes)
-                .map_err(|_| Error("response_read_failed"))?;
-            need(bytes.len() <= r.limit, "response_too_large")?;
-            return Ok(bytes);
-        }
-        Err(Error("unapproved_redirect"))
+            Err(Error("unapproved_redirect"))
+        })();
+        trace.finish(&result);
+        result
     }
 }
 

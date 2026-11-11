@@ -12,6 +12,7 @@ pub struct Reporter<'a> {
     sequence: u64,
     previous: Value,
     previous_at: i64,
+    work: Value,
 }
 impl<'a> Reporter<'a> {
     pub fn new(work: &Value, guard: &'a Guard) -> Self {
@@ -23,6 +24,7 @@ impl<'a> Reporter<'a> {
             sequence: 0,
             previous: Value::Null,
             previous_at: 0,
+            work: work.clone(),
         }
     }
     pub fn emit(&mut self, phase: &str, detail: Value, at: i64) {
@@ -59,6 +61,7 @@ impl<'a> Reporter<'a> {
         fields["runId"] = json!(self.run);
         fields["sequence"] = json!(self.sequence);
         fields["at"] = json!(at);
+        crate::worker_trace::record(&self.work, &fields, at);
         let _ = writeln!(
             std::io::stderr().lock(),
             "{}",
