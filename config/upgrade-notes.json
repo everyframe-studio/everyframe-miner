@@ -946,7 +946,8 @@
         "Adds LTX 2.5 Fast and Pro for text, image and audio inputs through native LTX and Fal, plus WaveSpeed text/image routes, with provider-specific settings, pricing and safe native-first routing.",
         "Fix Google Nano Banana image requests rejected with Image delivery mode is not supported, including combined text and image responses.",
         "Preserve signed job inputs, hashes and saved Google interaction IDs for safe recovery without duplicate submissions.",
-        "Retain the detailed worker diagnostics already available in the signed production worker."
+        "Retain the detailed worker diagnostics already available in the signed production worker.",
+        "Preserve the native-v4 environment request so signed worker updates can add the LTX provider key."
       ],
       "workerUpdate": "required",
       "actions": [

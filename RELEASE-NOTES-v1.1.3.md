@@ -5,6 +5,7 @@ Adds LTX 2.5 and fixes Google Nano Banana image requests rejected with “Image 
 - Adds 14 LTX 2.5 routes: native LTX and Fal Fast/Pro text-to-video, image-to-video and audio-to-video, plus WaveSpeed text/image generation.
 - Preserves each provider’s supported duration, resolution, frame-rate and reference controls. Compatible LTX routes try the native provider first, with safe fallback.
 - Uses Google’s default inline image output for Nano Banana 2.1, Nano Banana 2 Lite, Nano Banana 2 and Nano Banana Pro, including combined text/image formats.
+- Preserves the LTX environment request during signed worker updates.
 - Preserves signed inputs, job hashes and stored interaction IDs for safe recovery.
 - Retains the detailed job and network diagnostics from the current signed worker.
 

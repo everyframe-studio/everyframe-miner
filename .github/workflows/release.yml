@@ -44,7 +44,7 @@ jobs:
         run: |
           cargo +1.97.1 fmt --check
           cargo +1.97.1 clippy --release --all-targets --locked -- -D warnings
-          cargo +1.97.1 test --release --locked
+          cargo +1.97.1 test --release --locked --no-fail-fast
           cargo +1.97.1 build --release --locked --bin everycli
           target/release/everycli --version --json
           target/release/everycli --help
