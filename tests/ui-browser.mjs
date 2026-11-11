@@ -272,7 +272,13 @@ try {
   const summary = page.getByLabel('Miner overview summary', { exact: true });
   assert.deepEqual(await summary.locator('.label').allTextContents(), ['Worker', 'Status', 'Active offers', 'Jobs']);
   assert.equal(await summary.locator('.stat').count(), 4);
-  assert.equal(await summary.evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length), 4);
+  // Navigation/background renders can replace the card after locator resolution.
+  // Keep the four-column check, but inspect the connected card on each retry.
+  await page.waitForFunction(() => {
+    const card = document.querySelector('[aria-label="Miner overview summary"]');
+    return card?.isConnected
+      && getComputedStyle(card).gridTemplateColumns.trim().split(/\s+/).length === 4;
+  });
   const statusCases = [
     { health: null, expected: 'Checking…' },
     { health: { state: 'failed', result: { error: { message: 'Offline' } } }, expected: 'Unknown' },
