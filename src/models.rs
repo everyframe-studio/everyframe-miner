@@ -6,7 +6,7 @@ use crate::{
 use serde_json::{Value, json};
 use std::sync::LazyLock;
 pub const DEFAULT_MODEL: &str = "minimax/h3-max-turbo/text-to-video";
-pub const MAX_MEDIA: usize = 64 * 1024 * 1024;
+pub const MAX_MEDIA: usize = 128 * 1024 * 1024;
 pub static MODELS: LazyLock<Value> = LazyLock::new(|| {
     let mut models: Value = serde_json::from_str(include_str!("../config/models.json"))
         .expect("embedded reviewed model registry");

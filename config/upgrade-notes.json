@@ -920,6 +920,24 @@
           "when": "For automatic offers, enter your limits, preview prices, select available models and explicitly review and enable the policy. Updating does not enable or change an existing policy."
         }
       ]
+    },
+    {
+      "version": "v1.1.2",
+      "title": "OpenRouter spending-limit protection and safer failover",
+      "changes": [
+        "Check OpenRouter generation-key and organization budgets before accepting work. Keep that provider paused until a fresh check confirms it can serve again.",
+        "Recognize verified budget rejections and let the coordinator try another eligible miner before provider submission, within the existing price and deadline limits.",
+        "Show spending-limit and verification problems in Models while keeping other providers available.",
+        "Retain the production worker support for generated outputs up to 128 MiB."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If serving OpenRouter models, run everycli worker-update after updating the CLI to install budget checks and automatic recovery. The same VM and existing offers are retained."
+        }
+      ]
     }
   ]
 }
