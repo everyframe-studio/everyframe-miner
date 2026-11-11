@@ -27,7 +27,7 @@ pub fn normalize_openai_wav(mut bytes: Vec<u8>) -> Result<Vec<u8>> {
             && (8000..=48000).contains(&rate)
             && u32_at(28) as usize == rate * align
             && bytes.len() > 44
-            && (bytes.len() - 44) % align == 0
+            && (bytes.len() - 44).is_multiple_of(align)
             && bytes.len() <= crate::models::MAX_MEDIA,
         "invalid_provider_media",
     )?;
@@ -44,7 +44,7 @@ pub fn pcm16_wav(bytes: Vec<u8>, rate: u64, channels: u64) -> Result<Vec<u8>> {
             && [1, 2].contains(&channels)
             && !bytes.is_empty()
             && bytes.len() <= crate::models::MAX_MEDIA - 44
-            && bytes.len() % (channels as usize * 2) == 0,
+            && bytes.len().is_multiple_of(channels as usize * 2),
         "invalid_provider_media",
     )?;
     let mut header = vec![0_u8; 44];
