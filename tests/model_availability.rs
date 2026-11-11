@@ -20,7 +20,10 @@ impl Http for Api {
         if let Some(code) = *self.fail.borrow() {
             return Err(Error(code));
         }
-        let body = if r.url.contains("rest.alpha.fal.ai") {
+        let body = if r.url == "https://openrouter.ai/api/v1/key" {
+            assert_eq!(r.headers[0].1, "Bearer synthetic-secret");
+            json!({"data":{"limit":null,"limit_remaining":null,"budgets":[],"effective_budget":null}})
+        } else if r.url.contains("rest.alpha.fal.ai") {
             assert_eq!(r.timeout, 10);
             assert_eq!(r.url, "https://rest.alpha.fal.ai/billing/user_balance");
             assert!(
@@ -89,7 +92,7 @@ fn checked_models_only_narrow_registry_and_do_not_submit() {
     );
     assert!(!report.to_string().contains("synthetic-secret"));
     router.refresh_availability(1_000_001);
-    assert_eq!(api.calls.borrow().len(), 2);
+    assert_eq!(api.calls.borrow().len(), 3);
     *api.fail.borrow_mut() = Some("request_timeout");
     let report = router.refresh_availability(1_900_001).unwrap();
     assert!(router.models().is_empty());
@@ -98,7 +101,7 @@ fn checked_models_only_narrow_registry_and_do_not_submit() {
             .as_array()
             .unwrap()
             .iter()
-            .all(|r| r["status"] == "temporarily_unavailable")
+            .all(|r| r["status"] == "access_denied" || r["status"] == "temporarily_unavailable")
     );
 }
 #[test]

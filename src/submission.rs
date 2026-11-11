@@ -3,6 +3,8 @@ pub fn rejected(code: &str) -> Option<&'static str> {
     match code {
         "provider_auth_rejected" => Some("provider_auth_rejected"),
         "provider_billing_required" => Some("provider_billing_required"),
+        "provider_budget_exhausted" => Some("provider_budget_exhausted"),
+        "provider_budget_unverified" => Some("provider_capacity_limited"),
         "provider_capacity_limited" => Some("provider_capacity_limited"),
         "provider_content_rejected" => Some("provider_content_rejected"),
         "provider_invalid_request" | "alibaba_workspace_required" | "invalid_alibaba_workspace" => {

@@ -13,6 +13,8 @@ use std::{
 #[derive(Default)]
 struct Options {
     submit_error: bool,
+    budget_policy: bool,
+    budget_report: Option<Value>,
     submit_code: Option<&'static str>,
     report_failures: u32,
     failed_report_failures: u32,
@@ -108,7 +110,11 @@ impl Runtime for Handle {
                 assert_eq!(body["evidence"]["synthetic"], true);
                 *self.worker_key.borrow_mut() = body["signingKey"].as_str().unwrap().into();
                 *self.encryption_key.borrow_mut() = body["encryptionKey"].as_str().unwrap().into();
-                json!({"sessionId":"session","challengeId":"challenge","signingKey":body["signingKey"],"expires":9999999})
+                let mut reply = json!({"sessionId":"session","challengeId":"challenge","signingKey":body["signingKey"],"expires":9999999});
+                if self.options.budget_policy {
+                    reply["providerBudgetPolicy"] = json!(1);
+                }
+                reply
             }
             "/v1/action" => {
                 let request = protocol::verified(body, &self.worker_key.borrow())?;
@@ -117,6 +123,14 @@ impl Runtime for Handle {
                 let result = match action {
                     "claim" => {
                         assert_eq!(request["payload"]["durationPolicy"], 1);
+                        assert_eq!(
+                            request["payload"].get("providerBudget"),
+                            if self.options.budget_policy {
+                                self.options.budget_report.as_ref()
+                            } else {
+                                None
+                            }
+                        );
                         self.claim_models
                             .borrow_mut()
                             .push(request["payload"]["models"].clone());
@@ -208,6 +222,9 @@ impl Runtime for Handle {
     }
 }
 impl Provider for Handle {
+    fn provider_budget(&self) -> Option<Value> {
+        self.options.budget_report.clone()
+    }
     fn models(&self) -> Vec<String> {
         vec![models::DEFAULT_MODEL.into()]
     }
@@ -1005,5 +1022,57 @@ fn uncertain_submissions_keep_provider_diagnostics_without_claiming_a_confirmed_
     for report in f.rejections.borrow().iter() {
         assert!(report.get("providerError").is_some());
         assert!(report.get("refusal").is_none());
+    }
+}
+
+#[test]
+fn budget_report_is_negotiated_and_budget_failures_are_backward_compatible() {
+    for supported in [false, true] {
+        let (mut w, f) = fixture(
+            Options {
+                budget_policy: supported,
+                budget_report: Some(json!({"provider":"openrouter","state":"blocked"})),
+                submit_code: Some("provider_budget_exhausted"),
+                ..Default::default()
+            },
+            json!({}),
+        );
+        let result = w.step().unwrap();
+        let expected = if supported {
+            "provider_budget_exhausted"
+        } else {
+            "provider_billing_required"
+        };
+        assert_eq!(result["reason"], expected);
+        assert_eq!(f.rejections.borrow()[0]["reason"], expected);
+        assert_eq!(f.submits.get(), 1);
+        assert!(
+            w.provider_pause.is_empty(),
+            "The verified budget cache governs recovery, not a fixed 15-minute timer"
+        );
+    }
+}
+#[test]
+fn post_submission_budget_failure_is_terminal_on_both_protocol_versions() {
+    for supported in [false, true] {
+        let (mut w, f) = fixture(
+            Options {
+                budget_policy: supported,
+                poll_error: Some("provider_budget_exhausted"),
+                ..Default::default()
+            },
+            json!({}),
+        );
+        assert_eq!(w.step().unwrap()["state"], "failed");
+        assert_eq!(
+            f.failure_reports.borrow()[0]["reason"],
+            if supported {
+                "provider_budget_exhausted"
+            } else {
+                "provider_billing_required"
+            }
+        );
+        assert_eq!(f.submits.get(), 1);
+        assert!(f.rejections.borrow().is_empty());
     }
 }

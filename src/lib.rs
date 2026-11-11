@@ -31,6 +31,7 @@ pub mod offer_catalog;
 pub mod onboarding;
 pub mod phala_error;
 pub mod protocol;
+pub mod provider_budget;
 pub mod provider_error;
 pub mod provider_prices;
 pub mod providers;
