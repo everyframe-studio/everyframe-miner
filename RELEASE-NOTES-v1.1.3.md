@@ -8,6 +8,7 @@ Adds LTX 2.5 and fixes Google Nano Banana image requests rejected with “Image 
 - Preserves the LTX environment request during signed worker updates.
 - Preserves signed inputs, job hashes and stored interaction IDs for safe recovery.
 - Retains the detailed job and network diagnostics from the current signed worker.
+- Retains the WaveSpeed output download fix for provider-returned CloudFront URLs, including Seedream images.
 
 ## Upgrade
 

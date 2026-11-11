@@ -947,7 +947,8 @@
         "Fix Google Nano Banana image requests rejected with Image delivery mode is not supported, including combined text and image responses.",
         "Preserve signed job inputs, hashes and saved Google interaction IDs for safe recovery without duplicate submissions.",
         "Retain the detailed worker diagnostics already available in the signed production worker.",
-        "Preserve the native-v4 environment request so signed worker updates can add the LTX provider key."
+        "Preserve the native-v4 environment request so signed worker updates can add the LTX provider key.",
+        "Retain the WaveSpeed output download fix for provider-returned CloudFront URLs, including Seedream images."
       ],
       "workerUpdate": "required",
       "actions": [
