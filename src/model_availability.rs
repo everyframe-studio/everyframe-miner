@@ -94,6 +94,9 @@ impl CatalogCache {
                 .then_some("removed")
         })
     }
+    pub fn invalidate(&mut self) {
+        self.next_check = 0;
+    }
     pub fn allows(&self, id: &str) -> bool {
         self.retired_status(id).is_none()
             && self
@@ -155,12 +158,9 @@ impl CatalogCache {
             if !configured(&credentials[key]) {
                 continue;
             }
-            let contracts: Vec<_> = models::MODELS
-                .as_object()
-                .unwrap()
-                .iter()
-                .chain(models::STUDIO_MODELS.as_object().unwrap().iter())
-                .filter(|(_, m)| m["provider"] == *provider)
+            let contracts: Vec<_> = models::all()
+                .into_iter()
+                .filter(|(id, m)| crate::worker_catalog::visible(id) && m["provider"] == *provider)
                 .collect();
             let ids: BTreeSet<_> = contracts
                 .iter()
@@ -173,9 +173,9 @@ impl CatalogCache {
                 check_provider(http, provider, s(&credentials[key]).unwrap_or(""), &ids)
             };
             for (id, m) in contracts {
-                let status = self.retired_status(id).unwrap_or_else(|| match &checked {
+                let status = self.retired_status(&id).unwrap_or_else(|| match &checked {
                     Ok(Some(found)) => found
-                        .get(api_id(id, m))
+                        .get(api_id(&id, m))
                         .copied()
                         .unwrap_or("temporarily_unavailable"),
                     Ok(None) => "unchecked",

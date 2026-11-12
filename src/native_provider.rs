@@ -129,7 +129,7 @@ impl Router<'_> {
             }
             // Forward exactly the content-addressed bytes, never a mutable URL
             // or caller-supplied provider file ID.
-            let model = &native_media::MODELS[s(&spec["model"])?];
+            let model = native_media::info(s(&spec["model"])?)?;
             urls.push(if model["referenceTransport"] == "owned-url" {
                 s(&reference["url"])?.to_string()
             } else {

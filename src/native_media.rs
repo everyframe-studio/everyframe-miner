@@ -56,6 +56,13 @@ pub static MODELS: LazyLock<Value> = LazyLock::new(|| {
     models
 });
 
+pub fn info(id: &str) -> Result<&'static Value> {
+    crate::worker_catalog::contract(id)
+        .filter(|m| m["nativeMedia"] == true)
+        .or_else(|| MODELS.get(id))
+        .ok_or(Error("unsupported_model"))
+}
+
 pub fn reference(spec: &Value, id: &str) -> Result<String> {
     need(
         matches("[A-Za-z0-9_-]{1,100}", &json!(id)),
@@ -84,7 +91,7 @@ pub fn state(spec: &Value, id: &str, data: &Value) -> Result<&'static str> {
     if let Some(returned) = data.get("request_id") {
         need(returned == id, "provider_id_mismatch")?;
     }
-    let model = &MODELS[s(&spec["model"])?];
+    let model = info(s(&spec["model"])?)?;
     if let Some(returned) = data.get("model").filter(|v| !v.is_null()) {
         need(returned == &model["apiModel"], "provider_model_mismatch")?;
     }
@@ -133,7 +140,7 @@ fn optional_fields(v: &Value, fields: &[&str]) -> Result<()> {
 
 pub fn spec(value: &Value) -> Result<Value> {
     let model = s(&value["model"])?;
-    let policy = &MODELS[model];
+    let policy = info(model)?;
     need(policy.is_object(), "unsupported_model")?;
     optional_fields(value, &["model", "prompt", "parameters", "references"])?;
     let mut parameters = policy["params"].clone();
@@ -187,7 +194,12 @@ pub fn spec(value: &Value) -> Result<Value> {
 
 pub fn check(value: &Value) -> Result<()> {
     exact(value, &["model", "input"])?;
-    let policy = &MODELS[s(&value["model"])?];
+    let policy = info(s(&value["model"])?)?;
+    check_with(value, policy)
+}
+
+pub fn check_with(value: &Value, policy: &Value) -> Result<()> {
+    exact(value, &["model", "input"])?;
     need(policy.is_object(), "unsupported_model")?;
     let input = &value["input"];
     exact(input, &["prompt", "parameters", "references"])?;
@@ -624,7 +636,12 @@ pub fn check(value: &Value) -> Result<()> {
 
 pub fn body(spec: &Value, urls: &[String]) -> Result<(String, Value)> {
     check(spec)?;
-    let m = &MODELS[s(&spec["model"])?];
+    let m = info(s(&spec["model"])?)?;
+    body_with(spec, m, urls)
+}
+
+pub fn body_with(spec: &Value, m: &Value, urls: &[String]) -> Result<(String, Value)> {
+    check_with(spec, m)?;
     if m["asianMedia"] == true {
         return Ok((
             s(&m["apiPath"])?.into(),

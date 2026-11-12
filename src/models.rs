@@ -60,9 +60,8 @@ pub static STUDIO_MODELS: LazyLock<Value> = LazyLock::new(|| {
     models
 });
 pub fn info(id: &str) -> Result<&'static Value> {
-    MODELS
-        .get(id)
-        .or_else(|| STUDIO_MODELS.get(id))
+    crate::worker_catalog::contract(id)
+        .or_else(|| MODELS.get(id).or_else(|| STUDIO_MODELS.get(id)))
         .ok_or(Error("unsupported_model"))
 }
 // Explicit integer durations; Fal schemas checked 2026-10-08. Five-second
@@ -78,7 +77,7 @@ pub fn duration_range(model: &str) -> Option<(i64, i64)> {
 }
 pub fn spec(v: &Value) -> Result<Value> {
     let model = v.get("model").map(s).transpose()?.unwrap_or(DEFAULT_MODEL);
-    if crate::native_media::MODELS.get(model).is_some() {
+    if crate::native_media::info(model).is_ok() {
         return crate::native_media::spec(v);
     }
     if model.starts_with("studio/") {
@@ -195,4 +194,16 @@ fn model_max_job_ms() -> i64 {
         .filter_map(|m| m["deadlineMs"].as_i64())
         .max()
         .unwrap_or(480000)
+}
+
+/// Current registered contracts plus verified coordinator additions.
+pub fn all() -> Vec<(String, &'static Value)> {
+    MODELS
+        .as_object()
+        .unwrap()
+        .iter()
+        .chain(STUDIO_MODELS.as_object().unwrap().iter())
+        .map(|(id, m)| (id.clone(), m))
+        .chain(crate::worker_catalog::models())
+        .collect()
 }

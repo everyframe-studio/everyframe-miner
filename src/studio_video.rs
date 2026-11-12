@@ -13,8 +13,15 @@ pub static POLICIES: LazyLock<Value> = LazyLock::new(|| {
 });
 pub fn check(spec: &Value) -> Result<()> {
     exact(spec, &["model", "input"])?;
-    let p = &POLICIES[s(&spec["model"])?];
+    let id = s(&spec["model"])?;
+    let p = crate::catalog_adapters::policy(id, "studio-video")
+        .or_else(|| POLICIES.get(id))
+        .ok_or(Error("unsupported_model"))?;
     need(p.is_object(), "unsupported_studio_model")?;
+    check_with(spec, p)
+}
+pub fn check_with(spec: &Value, p: &Value) -> Result<()> {
+    exact(spec, &["model", "input"])?;
     let v = &spec["input"];
     exact(
         v,
@@ -277,7 +284,14 @@ pub fn references(http: &dyn Http, spec: &Value) -> Result<Vec<(Value, Vec<u8>)>
 /// verified bytes, other providers receive the immutable Everyframe sources.
 pub fn body(spec: &Value, urls: &[String]) -> Result<(String, Value)> {
     check(spec)?;
-    let p = &POLICIES[s(&spec["model"])?];
+    let id = s(&spec["model"])?;
+    let p = crate::catalog_adapters::policy(id, "studio-video")
+        .or_else(|| POLICIES.get(id))
+        .ok_or(Error("unsupported_model"))?;
+    body_with(spec, p, urls)
+}
+pub fn body_with(spec: &Value, p: &Value, urls: &[String]) -> Result<(String, Value)> {
+    check_with(spec, p)?;
     let v = &spec["input"];
     let refs = v["references"].as_array().unwrap();
     need(refs.len() == urls.len(), "reference_count_mismatch")?;

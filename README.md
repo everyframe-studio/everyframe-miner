@@ -1070,3 +1070,5 @@ See [LICENSE-NOTICE.md](LICENSE-NOTICE.md) for third-party licensing guidance.
 HeyGen Video, Gemini Omni Flash 1.1, and Vidu Q4 Preview use the Fal worker adapter. See [supported inputs and setup](VIDEO-MODELS-v0.7.4.md).
 
 See [OpenRouter video routes](OPENROUTER.md) for supported overlaps with Fal and worker upgrade requirements.
+
+Model-list updates for compatible provider adapters can be delivered by a signed coordinator catalog after the one-time compatibility worker update. See [model catalog refresh](docs/worker-model-catalog.md) for supported changes and rollout.
