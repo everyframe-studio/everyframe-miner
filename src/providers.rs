@@ -14,6 +14,9 @@ pub struct Output {
     pub response_hash: String,
 }
 pub trait Provider {
+    fn set_media_policy(&mut self, _policy: &Value, _chain: &Value, _now: i64) -> Result<()> {
+        Ok(())
+    }
     fn models(&self) -> Vec<String>;
     fn refresh_availability(&mut self, _now: i64) -> Option<Value> {
         None
@@ -33,6 +36,7 @@ pub trait Provider {
 pub struct Router<'a> {
     pub http: &'a dyn Http,
     pub credentials: Value,
+    pub(crate) media_policy: crate::media_policy::Cache,
     pub(crate) speech: Option<(String, String, Vec<u8>, String)>,
     submission_deadline: Option<i64>,
     budget: std::cell::RefCell<crate::provider_budget::Cache>,
@@ -98,6 +102,7 @@ impl<'a> Router<'a> {
             http,
             credentials,
             speech: None,
+            media_policy: Default::default(),
             submission_deadline: None,
             budget: Default::default(),
             catalog: crate::model_availability::CatalogCache::default(),
@@ -695,15 +700,17 @@ impl<'a> Router<'a> {
     }
     fn download(
         &self,
+        provider: &str,
         url: &str,
         hosts: &[&str],
         auth: Option<&str>,
         redirects: &[&str],
     ) -> Result<Vec<u8>> {
-        self.download_bounded(url, hosts, auth, redirects, MAX_MEDIA)
+        self.download_bounded(provider, url, hosts, auth, redirects, MAX_MEDIA)
     }
     pub(crate) fn download_bounded(
         &self,
+        provider: &str,
         url: &str,
         hosts: &[&str],
         auth: Option<&str>,
@@ -711,11 +718,23 @@ impl<'a> Router<'a> {
         limit: usize,
     ) -> Result<Vec<u8>> {
         crate::destination_diagnostics::clear();
+        // Policy applies only to output delivery, never API calls. Authenticated
+        // initial downloads retain their compiled API origin and path guards.
+        let effective = self.media_policy.hosts(provider, hosts, crate::now());
         let mut r = Request::get(url, hosts);
+        if auth.is_none() {
+            r.hosts = effective.clone();
+        }
         safe_url(url, &r.hosts)?;
         r.limit = limit;
         r.timeout = 180;
-        r.redirect_hosts = redirects.iter().map(|s| s.to_string()).collect();
+        r.redirect_hosts = if auth.is_none() {
+            effective
+        } else if !redirects.is_empty() {
+            self.media_policy.hosts(provider, redirects, crate::now())
+        } else {
+            vec![]
+        };
         if let Some(p) = auth {
             r.headers = self.auth(p)?
         };
@@ -725,6 +744,9 @@ impl<'a> Router<'a> {
     }
 }
 impl Provider for Router<'_> {
+    fn set_media_policy(&mut self, policy: &Value, chain: &Value, now: i64) -> Result<()> {
+        self.media_policy.install(policy, chain, now)
+    }
     fn refresh_availability(&mut self, now: i64) -> Option<Value> {
         let mut rows = self.catalog.refresh(self.http, &self.credentials, now);
         if configured(&self.credentials["OPENROUTER_API_KEY"]) {
@@ -1048,6 +1070,7 @@ impl Provider for Router<'_> {
                     crate::google::inline(block)?
                 } else {
                     self.download(
+                        &p,
                         &crate::google::download_url(block)?,
                         &["generativelanguage.googleapis.com"],
                         Some("google"),
@@ -1123,7 +1146,7 @@ impl Provider for Router<'_> {
                     .as_str()
                     .ok_or(Error("provider_no_media"))?,
             };
-            let media = self.download(url, &["*.fal.media"], None, &[])?;
+            let media = self.download(&p, url, &["*.fal.media"], None, &[])?;
             let media = if m["mime"] == "application/vnd.everyframe.motion+json" {
                 crate::studio_tools::motion_bundle(s(&spec["model"])?, &data, &media)?
             } else {
@@ -1149,6 +1172,7 @@ impl Provider for Router<'_> {
                     "provider_no_media",
                 )?;
                 self.download_bounded(
+                    &p,
                     s(&data["output"]["video"]["url"])?,
                     &["cdn.pika.art"],
                     None,
@@ -1166,11 +1190,12 @@ impl Provider for Router<'_> {
                 )?;
                 // No API credentials, redirects, arbitrary origins or caller URLs.
                 // Exact artifact admission and live CDN verification remain release gates.
-                self.download(s(&outputs[0]["url"])?, &["*.klingai.com"], None, &[])?
+                self.download(&p, s(&outputs[0]["url"])?, &["*.klingai.com"], None, &[])?
             }
             // Exact CDN hosts: clipgen-us was returned by the authenticated
             // W1 API in the 2026-10-12 smoke test. No wildcard or redirects.
             "vivix" => self.download(
+                &p,
                 s(&data["video_url"])?,
                 &["static.vivi-x.ai", "clipgen-us.vivi-x.ai"],
                 None,
@@ -1184,6 +1209,7 @@ impl Provider for Router<'_> {
                     "provider_file_mismatch",
                 )?;
                 let media = self.download(
+                    &p,
                     s(&file["file"]["download_url"])?,
                     &[
                         "file.cdn.minimax.io",
@@ -1197,6 +1223,7 @@ impl Provider for Router<'_> {
                 media
             }
             "openrouter" => self.download(
+                &p,
                 &format!("{}/api/v1/videos/{r}/content?index=0", prefix(&p)),
                 &["openrouter.ai"],
                 Some(&p),
@@ -1205,6 +1232,7 @@ impl Provider for Router<'_> {
             "bfl" => {
                 let delivery = crate::bfl::delivery_url(s(&data["result"]["sample"])?)?;
                 self.download(
+                    &p,
                     delivery.as_str(),
                     &[delivery.host_str().unwrap()],
                     None,
@@ -1212,6 +1240,7 @@ impl Provider for Router<'_> {
                 )?
             }
             "replicate" => self.download(
+                &p,
                 s(&data["output"])?,
                 &["replicate.delivery", "*.replicate.delivery"],
                 None,
@@ -1232,6 +1261,7 @@ impl Provider for Router<'_> {
                     "unapproved_download_path",
                 )?;
                 self.download(
+                    &p,
                     url,
                     &["generativelanguage.googleapis.com"],
                     Some(&p),
@@ -1248,6 +1278,7 @@ impl Provider for Router<'_> {
                     .ok_or(Error("provider_no_media"))?;
                 need(out.len() == 1, "provider_no_media")?;
                 self.download(
+                    &p,
                     s(&out[0])?,
                     &[
                         "*.runwayml.com",
@@ -1259,6 +1290,7 @@ impl Provider for Router<'_> {
                 )?
             }
             "luma" => self.download(
+                &p,
                 s(&data["assets"]["video"])?,
                 &["*.lumalabs.ai", "*.luma.ai", "storage.cdn-luma.com"],
                 None,

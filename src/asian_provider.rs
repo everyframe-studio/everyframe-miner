@@ -128,7 +128,7 @@ impl Router<'_> {
             "volcengine" => &["*.volces.com", "*.volccdn.com"],
             _ => return Err(Error("unsupported_provider")),
         };
-        self.download_bounded(url, hosts, None, &[], limit)
+        self.download_bounded(provider, url, hosts, None, &[], limit)
     }
     pub(crate) fn asian_submit(&mut self, spec: &Value, model: &Value) -> Result<String> {
         let urls = self.native_references(spec)?;

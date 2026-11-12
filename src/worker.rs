@@ -162,6 +162,10 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
             capabilities["diagnosticPolicy"] = json!(1);
         }
         let (result, nonce) = self.call("claim", capabilities)?;
+        if let Some(policy) = result.get("mediaPolicy") {
+            self.provider
+                .set_media_policy(policy, &self.chain, self.runtime.now())?;
+        }
         if self.session["diagnosticRequests"] == 1
             && result["work"].is_null()
             && let Some(requests) = result["diagnosticRequests"].as_array()
@@ -393,6 +397,17 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                 self.runtime.sleep(1000);
                 continue;
             };
+            // Metadata only: never repeat a billable submission. The nonce-bound signed
+            // response lets jobs already running adopt a newly reviewed CDN.
+            if self.session["mediaPolicy"] == 1 {
+                if let Ok((result, _)) = self.call("media_policy", json!({})) {
+                    if let Some(policy) = result.get("mediaPolicy") {
+                        let _ =
+                            self.provider
+                                .set_media_policy(policy, &self.chain, self.runtime.now());
+                    }
+                }
+            }
             progress.emit("retrieving_output", json!({}), self.runtime.now());
             crate::execution_diagnostics::phase("output_retrieval");
             let output = match self.provider.result(s(&reference)?, &work["spec"]) {

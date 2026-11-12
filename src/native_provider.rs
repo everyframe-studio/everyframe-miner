@@ -316,6 +316,7 @@ impl Router<'_> {
             )?;
             for image in images {
                 let bytes = self.download_bounded(
+                    s(&model["provider"])?,
                     s(&image["url"])?,
                     &["imgen.x.ai"],
                     None,
@@ -333,6 +334,7 @@ impl Router<'_> {
             }
         } else {
             let bytes = self.download_bounded(
+                s(&model["provider"])?,
                 s(&data["video"]["url"])?,
                 &["vidgen.x.ai"],
                 None,

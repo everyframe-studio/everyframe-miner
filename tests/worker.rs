@@ -14,6 +14,7 @@ use std::{
 struct Options {
     submit_error: bool,
     budget_policy: bool,
+    media_policy: bool,
     budget_report: Option<Value>,
     submit_code: Option<&'static str>,
     report_failures: u32,
@@ -56,6 +57,7 @@ struct Fixture {
     complete: Cell<u32>,
     claim_models: RefCell<Vec<Value>>,
     retirements: RefCell<Vec<Value>>,
+    media_policies: RefCell<Vec<Value>>,
     heartbeats: std::sync::Arc<std::sync::atomic::AtomicUsize>,
     options: Options,
 }
@@ -111,6 +113,9 @@ impl Runtime for Handle {
                 *self.worker_key.borrow_mut() = body["signingKey"].as_str().unwrap().into();
                 *self.encryption_key.borrow_mut() = body["encryptionKey"].as_str().unwrap().into();
                 let mut reply = json!({"sessionId":"session","challengeId":"challenge","signingKey":body["signingKey"],"expires":9999999});
+                if self.options.media_policy {
+                    reply["mediaPolicy"] = json!(1);
+                }
                 if self.options.budget_policy {
                     reply["providerBudgetPolicy"] = json!(1);
                 }
@@ -121,6 +126,7 @@ impl Runtime for Handle {
                 let action = request["action"].as_str().unwrap();
                 self.calls.borrow_mut().push(action.into());
                 let result = match action {
+                    "media_policy" => json!({"mediaPolicy":{"revision":2}}),
                     "claim" => {
                         assert_eq!(request["payload"]["durationPolicy"], 1);
                         assert_eq!(
@@ -135,6 +141,9 @@ impl Runtime for Handle {
                             .borrow_mut()
                             .push(request["payload"]["models"].clone());
                         let mut reply = json!({"work":protocol::seal(&self.work,&self.encryption_key.borrow(),&format!("session:{}",request["nonce"].as_str().unwrap()))?});
+                        if self.options.media_policy {
+                            reply["mediaPolicy"] = json!({"revision":1});
+                        }
                         if let Some(retired) = &self.options.retired_models {
                             reply["retiredModels"] = retired.clone();
                         }
@@ -222,6 +231,10 @@ impl Runtime for Handle {
     }
 }
 impl Provider for Handle {
+    fn set_media_policy(&mut self, policy: &Value, _: &Value, _: i64) -> Result<()> {
+        self.media_policies.borrow_mut().push(policy.clone());
+        Ok(())
+    }
     fn provider_budget(&self) -> Option<Value> {
         self.options.budget_report.clone()
     }
@@ -341,6 +354,7 @@ fn fixture(options: Options, patch: Value) -> (Worker<Handle, Handle>, Rc<Fixtur
         complete: Cell::new(0),
         claim_models: RefCell::default(),
         retirements: RefCell::default(),
+        media_policies: RefCell::default(),
         heartbeats: Default::default(),
         options,
     });
@@ -1200,4 +1214,25 @@ fn detailed_failed_and_successful_jobs_retain_safe_execution_context() {
         .find(|e| e["phase"] == "output_accepted")
         .unwrap();
     assert_eq!(event["diagnostic"]["execution"]["output"]["bytes"], 15);
+}
+
+#[test]
+fn in_flight_job_refreshes_cdn_policy_without_repeating_generation() {
+    let (mut w, f) = fixture(
+        Options {
+            media_policy: true,
+            ..Default::default()
+        },
+        json!({}),
+    );
+    assert_eq!(w.step().unwrap()["state"], "complete");
+    assert_eq!(f.submits.get(), 1);
+    assert_eq!(
+        *f.media_policies.borrow(),
+        vec![json!({"revision":1}), json!({"revision":2})]
+    );
+    let calls = f.calls.borrow();
+    let refresh = calls.iter().position(|a| a == "media_policy").unwrap();
+    assert!(calls.iter().position(|a| a == "submitted").unwrap() < refresh);
+    assert!(refresh < calls.iter().position(|a| a == "complete").unwrap());
 }

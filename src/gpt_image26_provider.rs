@@ -83,6 +83,7 @@ impl Router<'_> {
             let bytes = if fal {
                 // Credentials belong only on the queue host, never delivery hosts.
                 self.download_bounded(
+                    s(&m["provider"])?,
                     s(&image["url"])?,
                     &[
                         "fal.media",
