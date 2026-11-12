@@ -83,6 +83,8 @@ pub fn check(spec: &Value) -> Result<()> {
     need(
         if kind == "video" {
             ["480p", "768p", "1080p"].contains(&s(&v["resolution"])?)
+        } else if p["h3Image"] == true {
+            ["1k", "2k", "4k"].contains(&s(&v["resolution"])?)
         } else {
             v["resolution"] == if kind == "image" { "1k" } else { "audio" }
         },
@@ -301,6 +303,9 @@ pub fn check(spec: &Value) -> Result<()> {
             "audio_prompt_mismatch",
         )?;
     }
+    if p["h3Image"] == true {
+        crate::h3_image::studio_native(spec)?;
+    }
     Ok(())
 }
 /// Never submit paid work before all reference bytes match the signed manifest.
@@ -336,6 +341,15 @@ pub fn body(spec: &Value, urls: &[String]) -> Result<(String, Value)> {
         urls.len() == v["references"].as_array().unwrap().len(),
         "reference_count_mismatch",
     )?;
+    if p["h3Image"] == true {
+        let native = crate::h3_image::studio_native(spec)?;
+        let id = if s(&spec["model"])?.contains("/highspeed/") {
+            "studio/native/fal/minimax/h3-image-highspeed"
+        } else {
+            "studio/native/fal/minimax/h3-image"
+        };
+        return crate::h3_image::body(&native, &crate::native_media::MODELS[id], urls);
+    }
     if p["kind"] == "audio" {
         return Ok((format!("/{}", s(&p["path"])?), par.clone()));
     }
@@ -530,7 +544,7 @@ pub fn model_registry() -> Value {
             .collect::<Vec<_>>()
             .join("/");
         result.insert(id.clone(),json!({"provider":p["provider"],"apiModel":p["apiModel"],"app":app,"name":p["name"],"family":if kind=="video"{"H3"}else{"Studio Media"},"kind":kind,
-   "mime":p["outputMime"].as_str().unwrap_or(match kind{"video"=>"video/mp4","image"=>"image/png",_=>"audio/mpeg"}),"params":{},"seed":true,"duration":if kind=="video"{5}else{1},"resolution":if kind=="video"{"480p"}else if kind=="image"{"1k"}else{"audio"},"aspect":if kind=="audio"{"none"}else{"16:9"},"dimensions":[],"codecs":["h264","hevc"],"deadlineMs":p["deadlineMs"],"maxPrompt":p["maxPrompt"].as_u64().unwrap_or(50000)}));
+   "mime":p["outputMime"].as_str().unwrap_or(match kind{"video"=>"video/mp4","image"=>"image/png",_=>"audio/mpeg"}),"params":{},"seed":p["h3Image"]!=true,"duration":if kind=="video"{5}else{1},"resolution":if kind=="video"{"480p"}else if kind=="image"{"1k"}else{"audio"},"aspect":if kind=="audio"{"none"}else{"16:9"},"dimensions":[],"codecs":["h264","hevc"],"deadlineMs":p["deadlineMs"],"maxPrompt":p["maxPrompt"].as_u64().unwrap_or(50000)}));
     }
     Value::Object(result)
 }

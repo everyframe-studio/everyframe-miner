@@ -47,6 +47,12 @@ pub static MODELS: LazyLock<Value> = LazyLock::new(|| {
         );
         models[id] = model.clone();
     }
+    let h3: Value = serde_json::from_str(include_str!("../config/h3-image.json"))
+        .expect("reviewed H3 Image models");
+    for (id, m) in h3.as_object().unwrap() {
+        assert!(models.get(id).is_none());
+        models[id] = m.clone();
+    }
     models
 });
 
@@ -146,6 +152,13 @@ pub fn spec(value: &Value) -> Result<Value> {
                 parameters[k] = v.clone();
             }
         }
+    }
+    if policy["h3Image"] == true
+        && (value["parameters"].get("area").is_some()
+            || value["parameters"].get("aspect_ratio").is_some())
+        && value["parameters"].get("size").is_none()
+    {
+        parameters["size"] = json!("auto");
     }
     if policy["gptImage26"] == true
         && policy["provider"] != "openrouter"
@@ -264,6 +277,9 @@ pub fn check(value: &Value) -> Result<()> {
         *counts.entry(role).or_default() += 1;
     }
     let count = |role| *counts.get(role).unwrap_or(&0);
+    if policy["h3Image"] == true {
+        return crate::h3_image::check(p, policy, references);
+    }
     if policy["nativeSchema"].is_object() {
         if policy["adapter"] == "schema-bfl" {
             need(
@@ -611,6 +627,9 @@ pub fn body(spec: &Value, urls: &[String]) -> Result<(String, Value)> {
             s(&m["apiPath"])?.into(),
             crate::asian_media::body(spec, m, urls)?,
         ));
+    }
+    if m["h3Image"] == true {
+        return crate::h3_image::body(spec, m, urls);
     }
     if m["nativeSchema"].is_object() {
         return Ok((

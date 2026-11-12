@@ -142,6 +142,9 @@ impl Router<'_> {
         if model["asianMedia"] == true {
             return self.asian_submit(spec, model);
         }
+        if model["h3Image"] == true {
+            return self.h3_submit(spec, model);
+        }
         if model["gptImage26"] == true {
             return self.gpt26_submit(spec, model);
         }
@@ -249,6 +252,9 @@ impl Router<'_> {
         if model["asianMedia"] == true {
             return self.asian_poll(reference, spec, model);
         }
+        if model["h3Image"] == true {
+            return self.h3_poll(reference, spec, model);
+        }
         if model["gptImage26"] == true {
             return self.gpt26_poll(reference, spec, model);
         }
@@ -285,6 +291,9 @@ impl Router<'_> {
     ) -> Result<Output> {
         if model["asianMedia"] == true {
             return self.asian_result(reference, spec, model);
+        }
+        if model["h3Image"] == true {
+            return self.h3_result(reference, spec, model);
         }
         if model["gptImage26"] == true {
             return self.gpt26_result(reference, spec, model);

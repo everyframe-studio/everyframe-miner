@@ -19,7 +19,7 @@ fn every_native_model_has_a_valid_default_and_locked_provider_endpoint() {
             .values()
             .filter(|m| !m["nativeSchema"].is_object() && m["asianMedia"] != true)
             .count(),
-        16
+        22
     );
     for (model, contract) in MODELS
         .as_object()
@@ -30,7 +30,9 @@ fn every_native_model_has_a_valid_default_and_locked_provider_endpoint() {
         let value = spec(model, json!({}), json!([]));
         let (path, body) = native_media::body(&value, &[]).unwrap();
         assert!(
-            path.starts_with("/v1/") || contract["gptImage26"] == true,
+            path.starts_with("/v1/")
+                || contract["gptImage26"] == true
+                || contract["h3Image"] == true,
             "{model}"
         );
         assert!(body.get("api_key").is_none());

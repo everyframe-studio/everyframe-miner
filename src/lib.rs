@@ -16,6 +16,8 @@ pub mod google;
 pub mod google_settings;
 pub mod gpt_image26;
 mod gpt_image26_provider;
+pub mod h3_image;
+mod h3_image_provider;
 pub mod health;
 pub mod hotkey;
 pub mod invitation;
