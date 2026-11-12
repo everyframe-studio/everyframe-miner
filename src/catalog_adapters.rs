@@ -67,7 +67,14 @@ pub fn policy_compatible(t: &Value, m: &Value) -> bool {
     // model names are data. No descriptor may select a new provider or task mode.
     if let Some(t) = t.as_object() {
         return m.as_object().is_some_and(|m| {
-            t.iter().all(|(k, v)| {
+            m.iter().all(|(k, v)| {
+                t.contains_key(k)
+                    || (!v.is_boolean()
+                        && !matches!(
+                            k.as_str(),
+                            "provider" | "kind" | "mode" | "adapter" | "apiPath"
+                        ))
+            }) && t.iter().all(|(k, v)| {
                 m.get(k).is_some_and(|n| {
                     if matches!(
                         k.as_str(),

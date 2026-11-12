@@ -199,6 +199,18 @@ fn signed_catalog_adoption_security_recovery_and_transport() {
         v["entries"][0]["definition"] = json!("x".repeat(128 * 1024 + 1))
     });
     assert!(prepare(&e, &k).is_err());
+    let (extra_flag, flag_key) = signed_mutation(&f, |v| {
+        let entry = v["entries"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|e| e["model"] == "direct/google/catalog-image-v2")
+            .unwrap();
+        let mut d: Value = serde_json::from_str(entry["definition"].as_str().unwrap()).unwrap();
+        d["catalogPolicy"]["unreviewedSwitch"] = json!(true);
+        entry["definition"] = json!(d.to_string());
+    });
+    assert!(prepare(&extra_flag, &flag_key).is_err());
     let temp = tempfile::tempdir().unwrap();
     let path = temp.path().join("cache").join("catalog.json");
     catalog::save_cache(&path, envelope).unwrap();
