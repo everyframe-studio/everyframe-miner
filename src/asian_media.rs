@@ -10,6 +10,9 @@ pub fn check(spec: &Value, model: &Value) -> Result<()> {
         .as_array()
         .ok_or(Error("invalid_native_media_references"))?;
     let cap = &model["nativeCapabilities"];
+    if model["seedance20"] == true {
+        crate::seedance20::references(refs, s(&model["provider"])?)?;
+    }
     let count = |role: &str| refs.iter().filter(|r| r["role"] == role).count();
     if model["kind"] == "image" {
         need(
