@@ -744,7 +744,7 @@ impl<'a> Router<'a> {
         safe_url(url, &r.hosts)?;
         r.limit = limit;
         r.timeout = 180;
-        r.redirect_hosts = if auth.is_none() {
+        r.redirect_hosts = if auth.is_none() && self.media_policy.active(provider, crate::now()) {
             effective
         } else if !redirects.is_empty() {
             self.media_policy.hosts(provider, redirects, crate::now())

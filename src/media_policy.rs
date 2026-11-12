@@ -123,6 +123,11 @@ impl Cache {
         self.providers = providers;
         Ok(())
     }
+    pub fn active(&self, provider: &str, now: i64) -> bool {
+        now < self.expires_at
+            && now >= self.issued_at - 30_000
+            && self.providers.contains_key(provider)
+    }
     pub fn delivery_url(
         &self,
         provider: &str,
