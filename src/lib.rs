@@ -166,3 +166,4 @@ pub mod studio_tools;
 pub mod ltx25;
 
 pub mod media_policy;
+pub mod wav;

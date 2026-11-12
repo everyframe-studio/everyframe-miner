@@ -48,6 +48,18 @@ fn reference(v: &Value) -> Result<String> {
     need(matches("[a-zA-Z0-9_-]{1,150}", v), "invalid_provider_ref")?;
     Ok(s(v)?.into())
 }
+/// MiniMax's query response uses a string ID; file metadata may use int64.
+/// Compare losslessly, never through a floating point conversion.
+pub fn minimax_file_id(value: &Value) -> Result<String> {
+    if value.is_string() {
+        return reference(value);
+    }
+    value
+        .as_u64()
+        .map(|n| n.to_string())
+        .ok_or(Error("invalid_provider_ref"))
+}
+
 fn prefix(p: &str) -> &str {
     match p {
         "fal" => "https://queue.fal.run",
@@ -1081,6 +1093,7 @@ impl Provider for Router<'_> {
                         ],
                     )?
                 };
+                let bytes = crate::google::normalize_media(block, &expected, bytes)?;
                 if bundled {
                     parts.push(json!({"type":expected["kind"],"mime":expected["mime"],"data":crate::protocol::b64(&bytes)}));
                 } else {
@@ -1202,10 +1215,10 @@ impl Provider for Router<'_> {
                 &[],
             )?,
             "minimax" => {
-                let file_id = reference(&data["file_id"])?;
+                let file_id = minimax_file_id(&data["file_id"])?;
                 let file = self.api(&p, &format!("/v1/files/retrieve?file_id={file_id}"), None)?;
                 need(
-                    file["file"]["file_id"] == data["file_id"],
+                    minimax_file_id(&file["file"]["file_id"])? == file_id,
                     "provider_file_mismatch",
                 )?;
                 let media = self.download(
