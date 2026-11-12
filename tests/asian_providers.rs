@@ -112,7 +112,7 @@ fn spec(id: &str) -> Value {
 }
 #[test]
 fn all_regional_models_submit_once_and_return_hash_bound_outputs() {
-    assert_eq!(ids().len(), 11);
+    assert_eq!(ids().len(), 12);
     for id in ids() {
         let m = models::info(&id).unwrap();
         let p = m["provider"].as_str().unwrap();
@@ -237,9 +237,7 @@ fn duration_limits_and_single_image_contracts_are_enforced() {
         let mut s = spec(&id);
         if models::info(&id).unwrap()["kind"] == "video" {
             let maximum =
-                models::info(&id).unwrap()["parameterSchema"]["properties"]["duration"]["maximum"]
-                    .as_u64()
-                    .unwrap();
+                models::info(&id).unwrap()["nativeCapabilities"]["maxDuration"].as_u64().unwrap_or_else(|| models::info(&id).unwrap()["parameterSchema"]["properties"]["duration"]["maximum"].as_u64().unwrap());
             s["input"]["parameters"]["duration"] = json!(maximum);
             native_media::check(&s).unwrap();
             s["input"]["parameters"]["duration"] = json!(maximum + 1);

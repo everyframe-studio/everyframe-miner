@@ -42,6 +42,7 @@ pub mod providers;
 pub mod reconnect;
 mod schema_provider;
 pub mod seedance20;
+pub mod seedance25_premium;
 pub mod state;
 pub mod studio_media;
 pub mod studio_video;

@@ -923,5 +923,138 @@
     "audio": true,
     "maxDurationMs": 15000,
     "seedance20": true
+  },
+  "direct/byteplus/seedance-2.5-premium": {
+    "provider": "byteplus",
+    "apiModel": "dreamina-seedance-2-5-premium-260915",
+    "name": "Seedance 2.5 Premium \u00b7 4K (BytePlus)",
+    "vendor": "ByteDance",
+    "family": "Seedance",
+    "kind": "video",
+    "nativeMedia": true,
+    "asianMedia": true,
+    "adapter": "ark-video",
+    "apiPath": "/api/v3/contents/generations/tasks",
+    "referenceTransport": "owned-url",
+    "deadlineMs": 1200000,
+    "maxPrompt": 32000,
+    "seed": true,
+    "feeMultiplier": 1,
+    "mime": "video/mp4",
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "params": {
+      "duration": 5,
+      "resolution": "4k",
+      "aspect_ratio": "16:9",
+      "generate_audio": true,
+      "omni_reference_task_type": "reference",
+      "output_format": "mp4"
+    },
+    "parameterSchema": {
+      "type": "object",
+      "properties": {
+        "duration": {
+          "type": "integer",
+          "anyOf": [
+            {
+              "const": -1
+            },
+            {
+              "minimum": 4,
+              "maximum": 30,
+              "type": "integer"
+            }
+          ]
+        },
+        "resolution": {
+          "enum": [
+            "4k"
+          ]
+        },
+        "aspect_ratio": {
+          "enum": [
+            "16:9",
+            "9:16",
+            "1:1",
+            "4:3",
+            "3:4",
+            "21:9",
+            "adaptive"
+          ]
+        },
+        "generate_audio": {
+          "type": "boolean"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": -1,
+          "maximum": 4294967295
+        },
+        "omni_reference_task_type": {
+          "enum": [
+            "auto",
+            "reference",
+            "edit",
+            "extend"
+          ]
+        },
+        "output_format": {
+          "enum": [
+            "mp4",
+            "mov"
+          ]
+        }
+      },
+      "required": [
+        "duration",
+        "resolution",
+        "aspect_ratio",
+        "generate_audio"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxImages": 30,
+      "maxVideos": 10,
+      "maxAudios": 10,
+      "maxReferenceDurationMs": 30000,
+      "minDuration": 4,
+      "maxReferences": 50,
+      "resolutions": [
+        "4k"
+      ],
+      "maxDuration": 30,
+      "audioOnly": true,
+      "taskTypes": [
+        "auto",
+        "reference",
+        "edit",
+        "extend"
+      ],
+      "outputFormats": [
+        "mp4",
+        "mov"
+      ]
+    },
+    "schemaUrl": "https://github.com/byteplus-sa/ComfyUI-BytePlus-ModelArk/blob/main/nodes/models_config.py",
+    "documentationCheckedAt": "2026-11-12",
+    "validationStatus": "offline-tested-access-and-pricing-unverified",
+    "duration": 5,
+    "resolution": "4k",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        3840,
+        2160
+      ]
+    ],
+    "audio": true,
+    "maxDurationMs": 30000,
+    "seedance25Premium": true,
+    "providerAccess": "allowlist-required",
+    "pricingStatus": "account-quote-required"
   }
 }
