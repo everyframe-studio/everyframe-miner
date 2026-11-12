@@ -548,7 +548,13 @@ impl Router<'_> {
             });
         }
         need(d["status"] == "Ready", "provider_not_complete")?;
-        let delivery = crate::bfl::delivery_url(s(&d["result"]["sample"])?)?;
+        let raw = s(&d["result"]["sample"])?;
+        let delivery = self.media_policy.delivery_url(
+            "bfl",
+            raw,
+            crate::bfl::delivery_url(raw),
+            crate::now(),
+        )?;
         let bytes = self.download_bounded(
             s(&model["provider"])?,
             delivery.as_str(),

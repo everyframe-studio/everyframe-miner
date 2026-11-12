@@ -123,11 +123,27 @@ impl Cache {
         self.providers = providers;
         Ok(())
     }
+    pub fn delivery_url(
+        &self,
+        provider: &str,
+        raw: &str,
+        baseline: Result<url::Url>,
+        now: i64,
+    ) -> Result<url::Url> {
+        if now < self.expires_at
+            && now >= self.issued_at - 30_000
+            && let Some(hosts) = self.providers.get(provider)
+        {
+            return crate::network::safe_url(raw, hosts);
+        }
+        baseline
+    }
     pub fn hosts(&self, provider: &str, baseline: &[&str], now: i64) -> Vec<String> {
-        if now < self.expires_at && now >= self.issued_at - 30_000 {
-            if let Some(hosts) = self.providers.get(provider) {
-                return hosts.clone();
-            }
+        if now < self.expires_at
+            && now >= self.issued_at - 30_000
+            && let Some(hosts) = self.providers.get(provider)
+        {
+            return hosts.clone();
         }
         baseline.iter().map(|h| h.to_string()).collect()
     }

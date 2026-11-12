@@ -78,7 +78,7 @@ impl Http for Cdn {
         safe_url(&r.url, &r.hosts)?;
         if r.url.starts_with("https://api.vivix.ai/") {
             assert!(r.headers.iter().any(|(k, _)| k == "authorization"));
-            return Ok(json!({"job_id":"job123","status":"succeeded","outputs":[{"url":"https://crsr-fnv.vivi-x.ai/result.mp4"}]}).to_string().into_bytes());
+            return Ok(json!({"code":0,"data":{"job_id":"job123","status":"succeeded","video_url":"https://crsr-fnv.vivi-x.ai/result.mp4"}}).to_string().into_bytes());
         }
         assert!(r.url.starts_with("https://crsr-fnv.vivi-x.ai/"));
         assert!(r.headers.is_empty());
@@ -91,7 +91,7 @@ impl Http for Cdn {
 #[test]
 fn completed_vivix_can_download_new_cdn_after_signed_policy_install() {
     let spec = everyframe_miner::models::spec(
-        &json!({"model":"vivix/vivix-w1","prompt":"A bird flies","seed":117}),
+        &json!({"model":"direct/vivix/vivix-w1","prompt":"A bird flies","seed":117}),
     )
     .unwrap();
     let mut router = Router::new(&Cdn, json!({"VIVIX_API_KEY":"private-provider-key"}));

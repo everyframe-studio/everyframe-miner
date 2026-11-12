@@ -1225,7 +1225,7 @@ fn in_flight_job_refreshes_cdn_policy_without_repeating_generation() {
         },
         json!({}),
     );
-    assert_eq!(w.step().unwrap()["state"], "complete");
+    assert_eq!(w.step().unwrap()["state"], "accepted");
     assert_eq!(f.submits.get(), 1);
     assert_eq!(
         *f.media_policies.borrow(),

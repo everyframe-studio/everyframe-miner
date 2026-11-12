@@ -310,7 +310,11 @@ impl<'a> Router<'a> {
             let url = s(&result["data"]["url"])?;
             safe_url(
                 url,
-                &["static.vivi-x.ai".into(), "clipgen-us.vivi-x.ai".into()],
+                &self.media_policy.hosts(
+                    "vivix",
+                    &["static.vivi-x.ai", "clipgen-us.vivi-x.ai"],
+                    crate::now(),
+                ),
             )?;
             urls.push(url.into());
         }
@@ -1205,8 +1209,7 @@ impl Provider for Router<'_> {
                 // Exact artifact admission and live CDN verification remain release gates.
                 self.download(&p, s(&outputs[0]["url"])?, &["*.klingai.com"], None, &[])?
             }
-            // Exact CDN hosts: clipgen-us was returned by the authenticated
-            // W1 API in the 2026-10-12 smoke test. No wildcard or redirects.
+            // Bundled fallback; fresh signed policy controls reviewed delivery hosts.
             "vivix" => self.download(
                 &p,
                 s(&data["video_url"])?,
@@ -1243,7 +1246,13 @@ impl Provider for Router<'_> {
                 &[],
             )?,
             "bfl" => {
-                let delivery = crate::bfl::delivery_url(s(&data["result"]["sample"])?)?;
+                let raw = s(&data["result"]["sample"])?;
+                let delivery = self.media_policy.delivery_url(
+                    "bfl",
+                    raw,
+                    crate::bfl::delivery_url(raw),
+                    crate::now(),
+                )?;
                 self.download(
                     &p,
                     delivery.as_str(),

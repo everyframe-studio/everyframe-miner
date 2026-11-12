@@ -399,14 +399,13 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
             };
             // Metadata only: never repeat a billable submission. The nonce-bound signed
             // response lets jobs already running adopt a newly reviewed CDN.
-            if self.session["mediaPolicy"] == 1 {
-                if let Ok((result, _)) = self.call("media_policy", json!({})) {
-                    if let Some(policy) = result.get("mediaPolicy") {
-                        let _ =
-                            self.provider
-                                .set_media_policy(policy, &self.chain, self.runtime.now());
-                    }
-                }
+            if self.session["mediaPolicy"] == 1
+                && let Ok((result, _)) = self.call("media_policy", json!({}))
+                && let Some(policy) = result.get("mediaPolicy")
+            {
+                let _ = self
+                    .provider
+                    .set_media_policy(policy, &self.chain, self.runtime.now());
             }
             progress.emit("retrieving_output", json!({}), self.runtime.now());
             crate::execution_diagnostics::phase("output_retrieval");
