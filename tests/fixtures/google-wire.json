@@ -218,8 +218,7 @@
     "body": {
       "response_format": {
         "type": "audio",
-        "mime_type": "audio/mp3",
-        "delivery": "inline"
+        "mime_type": "audio/mp3"
       },
       "store": true,
       "background": true,
@@ -264,8 +263,7 @@
       "response_format": {
         "type": "audio",
         "mime_type": "audio/wav",
-        "sample_rate": 24000,
-        "delivery": "inline"
+        "sample_rate": 24000
       },
       "generation_config": {
         "speech_config": [
@@ -275,7 +273,7 @@
         ]
       },
       "store": true,
-      "background": true,
+      "background": false,
       "model": "gemini-3.8-flash-tts",
       "input": [
         {
@@ -317,8 +315,7 @@
       "response_format": {
         "type": "audio",
         "mime_type": "audio/wav",
-        "sample_rate": 24000,
-        "delivery": "inline"
+        "sample_rate": 24000
       },
       "generation_config": {
         "speech_config": [
@@ -328,7 +325,7 @@
         ]
       },
       "store": true,
-      "background": true,
+      "background": false,
       "model": "gemini-3.8-flash-lite-tts",
       "input": [
         {

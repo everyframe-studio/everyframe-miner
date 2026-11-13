@@ -39,8 +39,15 @@ impl Router<'_> {
     fn gpt26_queue_path(&self, spec: &Value, m: &Value, reference: &str) -> Result<String> {
         let refs = spec["input"]["references"].as_array().unwrap();
         let (path, _) = gpt_image26::body(spec, m, &vec![String::new(); refs.len()])?;
+        // Fal queue reads use the owner/app root, excluding endpoint subpaths.
+        let app = path
+            .trim_start_matches('/')
+            .split('/')
+            .take(2)
+            .collect::<Vec<_>>()
+            .join("/");
         Ok(format!(
-            "{path}/requests/{}",
+            "/{app}/requests/{}",
             native_media::reference_id(spec, reference)?
         ))
     }
@@ -83,6 +90,7 @@ impl Router<'_> {
             let bytes = if fal {
                 // Credentials belong only on the queue host, never delivery hosts.
                 self.download_bounded(
+                    s(&m["provider"])?,
                     s(&image["url"])?,
                     &[
                         "fal.media",

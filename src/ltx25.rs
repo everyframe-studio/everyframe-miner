@@ -210,7 +210,8 @@ impl Router<'_> {
             )
         };
         // Output downloads carry no provider credentials or caller-selected hosts.
-        let bytes = self.download_bounded(url, &hosts, None, &[], 90 * 1024 * 1024)?;
+        let bytes =
+            self.download_bounded(s(&m["provider"])?, url, &hosts, None, &[], 90 * 1024 * 1024)?;
         let media = native_provider::bundle(
             vec![native_provider::part("video", "video/mp4", &bytes)?],
             vec![],

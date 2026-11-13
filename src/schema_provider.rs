@@ -158,6 +158,7 @@ impl Router<'_> {
                 parts.push(native_provider::part("audio", mime, &bytes)?);
                 if spec["input"]["parameters"]["subtitle_enable"] == true {
                     let bytes = self.download_bounded(
+                        s(&model["provider"])?,
                         s(&data["data"]["subtitle_file"])?,
                         &["*.minimax.io", "*.minimaxi.com", "*.minimax.chat"],
                         None,
@@ -182,13 +183,18 @@ impl Router<'_> {
             let data =
                 self.http
                     .json(self.native_request(model, s(&model["apiPath"])?, Some(body))?)?;
-            let code = data["base_resp"]["status_code"]
-                .as_i64()
-                .ok_or(Error("invalid_provider_response"))?;
-            if code != 0 {
-                need(data["task_id"].is_null(), "invalid_provider_response")?;
-                return Err(crate::submission::minimax_error(code));
+            // Video V2 returns {task_id}, without the legacy base_resp wrapper.
+            // Preserve explicit legacy errors, then bind the durable task ID.
+            if !data["base_resp"].is_null() {
+                let code = data["base_resp"]["status_code"]
+                    .as_i64()
+                    .ok_or(Error("invalid_provider_response"))?;
+                if code != 0 {
+                    need(data["task_id"].is_null(), "invalid_provider_response")?;
+                    return Err(crate::submission::minimax_error(code));
+                }
             }
+            need(data["error"].is_null(), "invalid_provider_response")?;
             return native_media::reference(spec, s(&data["task_id"])?);
         }
         need(model["adapter"] == "schema-bfl", "unsupported_provider")?;
@@ -399,6 +405,7 @@ impl Router<'_> {
             let mut parts = vec![];
             for row in rows {
                 let bytes = self.download_bounded(
+                    s(&model["provider"])?,
                     s(row)?,
                     &[
                         "*.runwayml.com",
@@ -437,6 +444,7 @@ impl Router<'_> {
             let kind = s(&model["kind"])?;
             need(rows[0]["type"] == kind, "invalid_provider_media")?;
             let bytes = self.download_bounded(
+                s(&model["provider"])?,
                 s(&rows[0]["url"])?,
                 &["*.lumalabs.ai", "*.luma.ai", "storage.cdn-luma.com"],
                 None,
@@ -484,6 +492,7 @@ impl Router<'_> {
                     continue;
                 }
                 let bytes = self.download_bounded(
+                    s(&model["provider"])?,
                     s(&row["url"])?,
                     &["*.klingai.com", "h1.inkwai.com"],
                     None,
@@ -512,8 +521,10 @@ impl Router<'_> {
         if model["adapter"] == "schema-minimax-video" {
             need(d["status"] == "succeeded", "provider_not_complete")?;
             let bytes = self.download_bounded(
+                s(&model["provider"])?,
                 s(&d["content"]["url"])?,
                 &[
+                    "cdn.hailuoai.com",
                     "video-product.cdn.minimax.io",
                     "video.cdn.minimax.io",
                     "file.cdn.minimax.io",
@@ -537,8 +548,15 @@ impl Router<'_> {
             });
         }
         need(d["status"] == "Ready", "provider_not_complete")?;
-        let delivery = crate::bfl::delivery_url(s(&d["result"]["sample"])?)?;
+        let raw = s(&d["result"]["sample"])?;
+        let delivery = self.media_policy.delivery_url(
+            "bfl",
+            raw,
+            crate::bfl::delivery_url(raw),
+            crate::now(),
+        )?;
         let bytes = self.download_bounded(
+            s(&model["provider"])?,
             delivery.as_str(),
             &[delivery.host_str().unwrap()],
             None,
