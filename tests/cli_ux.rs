@@ -421,8 +421,13 @@ fn recovery_error_codes_have_specific_actionable_messages() {
     for (code, message, next) in [
         (
             "operation_locked",
-            "already changing this miner profile",
-            "Wait for that command to finish, then rerun this one",
+            "holds this miner profile's lock",
+            "An idle UI does not need to be closed",
+        ),
+        (
+            "resume_not_ready",
+            "not ready to resume work",
+            "continue it with everycli worker-update",
         ),
         (
             "hotkey_delegation_expired_reinitialize",
