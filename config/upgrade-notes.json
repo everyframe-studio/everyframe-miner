@@ -988,6 +988,25 @@
       ],
       "workerUpdate": "not_required",
       "actions": []
+    },
+    {
+      "version": "v1.2.2",
+      "title": "Dashboard update recovery and Veo negative prompts",
+      "changes": [
+        "Keep automatic-update status polling from blocking worker updates while the dashboard is open.",
+        "Keep Continue and Cancel available for saved manual updates after a failed check, and guide recovery before resuming work or enabling automatic updates.",
+        "Label actions blocked before submission as Not started while preserving the original operation for recovery.",
+        "Add versioned Veo 3.1 negative-prompt contracts for OpenRouter and Fal, preserving exact negative text, video settings, audio and first/last frames.",
+        "Show available models without false account-access warnings when no per-model probe is available; retain reported access and readiness failures."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "For Veo 3.1 negative-prompt jobs, update the compatible worker with everycli worker-update and explicitly offer the new contracts. If a manual update is unfinished, first continue it in the same profile. The dashboard fixes alone require only a CLI update and reopening the UI."
+        }
+      ]
     }
   ]
 }
