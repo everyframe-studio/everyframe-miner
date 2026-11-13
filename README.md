@@ -36,7 +36,7 @@ every model in the registry is necessarily available for mining.
 
 ## What's new
 
-v1.2.2 fixes dashboard polling that could block worker updates while the UI is open. Saved updates keep their Continue/Cancel controls after failed checks, and actions blocked before submission show **Not started**. Run `everycli update`, then reopen `everycli ui`. If an update is unfinished, choose **Worker → Continue worker update**. These dashboard fixes do not require a new worker deployment.
+v1.2.2 fixes dashboard polling that could block worker updates while the UI is open. Saved updates keep their Continue/Cancel controls after failed checks, and actions blocked before submission show **Not started**. Run `everycli update`, then reopen `everycli ui`. If an update is unfinished, choose **Worker → Continue worker update**. These dashboard fixes do not require a new worker deployment. v1.2.2 also adds [Veo 3.1 negative prompts](docs/veo-negative-prompts.md) through OpenRouter and Fal; update the compatible worker and explicitly offer the new contracts to serve those jobs.
 
 v1.2.1 adds the expanded OpenRouter Veo 3.1 contract: 4, 6 or 8 seconds, 720p or 1080p, landscape or portrait, audio and first/last frames. Workers already on v1.2.0 can receive it through the signed catalog; review `studio/openrouter/google/veo-3.1` on the Models page to place an offer. See [Veo setup](docs/worker-model-catalog.md#veo-31).
 
