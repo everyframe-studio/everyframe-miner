@@ -66,5 +66,26 @@ advertisement. Workers advertising cached extension IDs require catalog protocol
 support; if a coordinator rollback lacks it, the worker advertises its compiled
 baseline only. Unsupported definitions stay blocked pending an adapter update.
 
-This change is prepared for review. It does not release or deploy a worker,
-change a production coordinator, enroll existing miners, or call a paid provider.
+## Veo 3.1
+
+The expanded contract is `studio/openrouter/google/veo-3.1`. It supports 4, 6 or
+8 seconds at 720p or 1080p, 16:9 or 9:16, generated audio and first/last frames.
+It uses your OpenRouter generation key. Generic reference images are not part
+of this contract.
+
+Update the CLI with `everycli update`. If your worker is older than v1.2.0,
+run `everycli worker-update` once for signed-catalog support. A v1.2.0 worker
+can fetch this definition between jobs without another binary update.
+
+Review the model on the Models page or run `everycli offers`. After the model
+is available to your miner, use the following command to choose an offer:
+
+```sh
+everycli offer --model studio/openrouter/google/veo-3.1 --discount-pct <your-discount>
+```
+ Replace `<your-discount>` with your chosen percentage. New offers do
+not replace the separate fixed-setting Veo contracts or resume a paused miner.
+
+The displayed base quote uses this contract's 8-second default. Jobs are
+priced for their actual duration and resolution before applying your discount.
+
