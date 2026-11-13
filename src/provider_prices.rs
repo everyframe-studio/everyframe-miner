@@ -71,7 +71,8 @@ pub fn model_request(model: &str) -> Option<(&'static str, String)> {
     if let Some(api) = PROFILES["fal"][model]["apiModel"].as_str() {
         return Some(("fal", api.into()));
     }
-    let p = &crate::studio_video::POLICIES[model];
+    let p = crate::catalog_adapters::policy(model, "studio-video")
+        .unwrap_or(&crate::studio_video::POLICIES[model]);
     if p["provider"] == "openrouter" {
         return Some(("openrouter", p["apiModel"].as_str()?.into()));
     }

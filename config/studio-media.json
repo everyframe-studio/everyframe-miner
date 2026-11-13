@@ -459,5 +459,71 @@
       }
     },
     "maxPrompt": 32000
+  },
+  "studio/media/fal/minimax/h3-image/text-to-image": {
+    "provider": "fal",
+    "apiModel": "minimax/h3-image/text-to-image",
+    "name": "MiniMax H3 Image (Studio)",
+    "kind": "image",
+    "maxReferences": 16,
+    "path": "minimax/h3-image/text-to-image",
+    "deadlineMs": 720000,
+    "h3Image": true,
+    "maxPrompt": 32000,
+    "parameters": {
+      "negative": {
+        "type": "string",
+        "max": 32000
+      },
+      "quality": {
+        "enum": [
+          "medium"
+        ]
+      },
+      "editPrecision": {
+        "enum": [
+          "none"
+        ]
+      },
+      "maskIndex": {
+        "enum": [
+          -1
+        ]
+      }
+    },
+    "outputMime": "image/jpeg"
+  },
+  "studio/media/fal/minimax/h3-image/highspeed/text-to-image": {
+    "provider": "fal",
+    "apiModel": "minimax/h3-image/highspeed/text-to-image",
+    "name": "MiniMax H3 Image Highspeed (Studio)",
+    "kind": "image",
+    "maxReferences": 16,
+    "path": "minimax/h3-image/highspeed/text-to-image",
+    "deadlineMs": 720000,
+    "h3Image": true,
+    "maxPrompt": 32000,
+    "parameters": {
+      "negative": {
+        "type": "string",
+        "max": 32000
+      },
+      "quality": {
+        "enum": [
+          "medium"
+        ]
+      },
+      "editPrecision": {
+        "enum": [
+          "none"
+        ]
+      },
+      "maskIndex": {
+        "enum": [
+          -1
+        ]
+      }
+    },
+    "outputMime": "image/jpeg"
   }
 }

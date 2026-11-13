@@ -1,0 +1,1715 @@
+{
+  "key": "MCowBQYDK2VwAyEAJ4adTa7tqc4pUPGPsdl0gMu31/QGH65nGxkm+OsaIP0=",
+  "envelope": {
+    "value": {
+      "protocol": 1,
+      "action": "worker-catalog",
+      "minerId": "catalog-miner",
+      "chain": {
+        "network": "test"
+      },
+      "sessionId": "session",
+      "nonce": "nonce",
+      "at": 1000,
+      "revision": "b082bae3f112dc87d46d67738f78e31cc1cc6f9bfa03c3a380882cfdbce28b9f",
+      "models": [
+        "bytedance/seedance-2.5/text-to-video",
+        "direct/alibaba/qwen-image-3.0",
+        "direct/alibaba/qwen-image-3.0-pro",
+        "direct/alibaba/wan-3.0",
+        "direct/alibaba/wan-3.0-prime",
+        "direct/bfl/flux-2-flex",
+        "direct/bfl/flux-2-klein-4b",
+        "direct/bfl/flux-2-klein-9b",
+        "direct/bfl/flux-2-max",
+        "direct/bfl/flux-2-pro",
+        "direct/byteplus/seedance-2.0",
+        "direct/byteplus/seedance-2.5",
+        "direct/byteplus/seedance-2.5-premium",
+        "direct/byteplus/seedream-5.0-flash",
+        "direct/byteplus/seedream-5.0-pro",
+        "direct/elevenlabs/flash-v2.5-rachel",
+        "direct/elevenlabs/multilingual-v2-rachel",
+        "direct/elevenlabs/v3-rachel",
+        "direct/elevenlabs/v4-rachel",
+        "direct/elevenlabs/v4-turbo-rachel",
+        "direct/google/catalog-image-v2",
+        "direct/google/gemini-3.8-flash-lite-tts",
+        "direct/google/gemini-3.8-flash-tts",
+        "direct/google/gemini-omni-1.2-flash",
+        "direct/google/gemini-omni-flash",
+        "direct/google/lyria-3.5",
+        "direct/google/nano-banana-2",
+        "direct/google/nano-banana-2-lite",
+        "direct/google/nano-banana-2.1",
+        "direct/google/nano-banana-pro",
+        "direct/google/veo-3.1",
+        "direct/kling/kling-3.0",
+        "direct/luma/ray-2",
+        "direct/luma/ray-flash-2",
+        "direct/minimax/h3-image",
+        "direct/minimax/h3-image-highspeed",
+        "direct/minimax/hailuo-02",
+        "direct/minimax/hailuo-2.3",
+        "direct/openai/gpt-audio-1.5",
+        "direct/openai/gpt-image-2",
+        "direct/openai/gpt-image-2.5-flare",
+        "direct/openai/gpt-image-2.5-sunburst",
+        "direct/openai/gpt-image-2.6-flare",
+        "direct/openai/gpt-image-2.6-sunburst",
+        "direct/openrouter/veo-3.1",
+        "direct/openrouter/veo-3.1-fast",
+        "direct/openrouter/veo-3.1-lite",
+        "direct/replicate/flux-2-pro",
+        "direct/replicate/hailuo-02",
+        "direct/runway/gen4.5",
+        "direct/runway/veo-3.1",
+        "direct/runway/veo-3.1-fast",
+        "direct/vivix/vivix-w1",
+        "direct/volcengine/seedance-2.5",
+        "direct/volcengine/seedream-5.0-flash",
+        "direct/volcengine/seedream-5.0-pro",
+        "direct/xai/grok-imagine-image",
+        "direct/xai/grok-imagine-image-2.0",
+        "direct/xai/grok-imagine-video",
+        "direct/xai/grok-imagine-video-1.5",
+        "direct/xai/grok-imagine-video-1.5-lite",
+        "direct/xai/tts",
+        "fal-ai/bytedance/seedance/v1.5/pro/text-to-video",
+        "fal-ai/bytedance/seedance/v1/lite/text-to-video",
+        "fal-ai/bytedance/seedance/v1/pro/fast/text-to-video",
+        "fal-ai/bytedance/seedance/v1/pro/text-to-video",
+        "fal-ai/kling-video/v1.6/pro/text-to-video",
+        "fal-ai/kling-video/v1.6/standard/text-to-video",
+        "fal-ai/kling-video/v2.1/master/text-to-video",
+        "fal-ai/kling-video/v2.5-turbo/pro/text-to-video",
+        "fal-ai/kling-video/v2.6/pro/text-to-video",
+        "fal-ai/kling-video/v2/master/text-to-video",
+        "fal-ai/kling-video/v3/pro/text-to-video",
+        "fal-ai/kling-video/v3/standard/text-to-video",
+        "fal-ai/ltx-2.3/text-to-video",
+        "fal-ai/ltx-2.3/text-to-video/fast",
+        "fal-ai/ltx-2/text-to-video",
+        "fal-ai/minimax/hailuo-02/pro/text-to-video",
+        "fal-ai/minimax/hailuo-02/standard/text-to-video",
+        "fal-ai/pixverse/v4.5/text-to-video",
+        "fal-ai/pixverse/v5.5/text-to-video",
+        "fal-ai/pixverse/v5/text-to-video",
+        "fal-ai/pixverse/v6/text-to-video",
+        "fal-ai/sora-2/text-to-video",
+        "fal-ai/sora-2/text-to-video/pro",
+        "fal-ai/veo2",
+        "fal-ai/veo3",
+        "fal-ai/veo3.1",
+        "fal-ai/veo3.1/fast",
+        "fal-ai/veo3/fast",
+        "fal-ai/wan-25-preview/text-to-video",
+        "fal-ai/wan/v2.2-5b/text-to-video",
+        "fal-ai/wan/v2.2-a14b/text-to-video",
+        "minimax/h3-max-turbo/text-to-video",
+        "minimax/h3-max/text-to-video",
+        "studio/fal/alibaba/wan-3.0/text-to-video",
+        "studio/fal/blackforestlabs/flux-3-max/text-to-video",
+        "studio/fal/bytedance/seedance-2.0/text-to-video",
+        "studio/fal/bytedance/seedance-2.5/text-to-video",
+        "studio/fal/fal-ai/vidu/q4/image-to-video",
+        "studio/fal/fixture/catalog-video-v2/text-to-video",
+        "studio/fal/google/gemini-omni-flash/v1.1/text-to-video",
+        "studio/fal/google/gemini-omni-flash/v1.2/text-to-video",
+        "studio/fal/heygen/heygen-video/text-to-video",
+        "studio/fal/kling/v4/text-to-video",
+        "studio/fal/minimax/h3-max-turbo/text-to-video",
+        "studio/fal/minimax/h3-max/text-to-video",
+        "studio/fal/xai/grok-imagine-video/text-to-video",
+        "studio/media/fal/blackforestlabs/flux-3",
+        "studio/media/fal/fal-ai/elevenlabs/sound-effects/v2",
+        "studio/media/fal/fal-ai/elevenlabs/tts/eleven-v4",
+        "studio/media/fal/fal-ai/ideogram/v4.5",
+        "studio/media/fal/fal-ai/stable-audio-25/text-to-audio",
+        "studio/media/fal/google/nano-banana-2.1",
+        "studio/media/fal/ideogram/vector/text-to-vector",
+        "studio/media/fal/minimax/h3-image/highspeed/text-to-image",
+        "studio/media/fal/minimax/h3-image/text-to-image",
+        "studio/media/fal/minimax/h3-max/text-to-video",
+        "studio/media/fal/minimax/music-3",
+        "studio/media/fal/xai/grok-imagine-image",
+        "studio/media/openrouter/google/gemini-3-pro-image",
+        "studio/media/openrouter/google/gemini-3.1-flash-lite-image",
+        "studio/media/openrouter/openai/gpt-image-2.5-sunburst",
+        "studio/media/openrouter/openai/gpt-image-2.6-flare",
+        "studio/media/openrouter/openai/gpt-image-2.6-sunburst",
+        "studio/native/bfl/flux-2-flex",
+        "studio/native/bfl/flux-2-klein-4b",
+        "studio/native/bfl/flux-2-klein-9b",
+        "studio/native/bfl/flux-2-max",
+        "studio/native/bfl/flux-2-pro",
+        "studio/native/bfl/flux-3-image",
+        "studio/native/bfl/flux-3-image-klein",
+        "studio/native/bfl/flux-3-video",
+        "studio/native/bfl/flux-dev",
+        "studio/native/bfl/flux-kontext-max",
+        "studio/native/bfl/flux-kontext-pro",
+        "studio/native/bfl/flux-pro-1.0-fill",
+        "studio/native/bfl/flux-pro-1.1",
+        "studio/native/bfl/flux-pro-1.1-ultra",
+        "studio/native/elevenlabs/eleven_flash_v2",
+        "studio/native/elevenlabs/eleven_flash_v2_5",
+        "studio/native/elevenlabs/eleven_multilingual_v2",
+        "studio/native/elevenlabs/eleven_text_to_sound_v2",
+        "studio/native/elevenlabs/eleven_text_to_sound_v3",
+        "studio/native/elevenlabs/eleven_v3",
+        "studio/native/elevenlabs/eleven_v3_conversational",
+        "studio/native/elevenlabs/eleven_v4",
+        "studio/native/elevenlabs/eleven_v4_turbo",
+        "studio/native/elevenlabs/music_v2",
+        "studio/native/elevenlabs/music_v2_5",
+        "studio/native/fal/lightricks/ltx-2.5/audio-to-video/fast",
+        "studio/native/fal/lightricks/ltx-2.5/audio-to-video/pro",
+        "studio/native/fal/lightricks/ltx-2.5/image-to-video/fast",
+        "studio/native/fal/lightricks/ltx-2.5/image-to-video/pro",
+        "studio/native/fal/lightricks/ltx-2.5/text-to-video/fast",
+        "studio/native/fal/lightricks/ltx-2.5/text-to-video/pro",
+        "studio/native/fal/minimax/h3-image",
+        "studio/native/fal/minimax/h3-image-highspeed",
+        "studio/native/fal/openai/gpt-image-2.6/flare",
+        "studio/native/fal/openai/gpt-image-2.6/sunburst",
+        "studio/native/kling/kling-2.5-turbo",
+        "studio/native/kling/kling-2.5-turbo-image-to-video",
+        "studio/native/kling/kling-2.6",
+        "studio/native/kling/kling-2.6-image-to-video",
+        "studio/native/kling/kling-3.0",
+        "studio/native/kling/kling-3.0-omni",
+        "studio/native/kling/kling-3.0-turbo",
+        "studio/native/kling/kling-3.0-turbo-image-to-video",
+        "studio/native/kling/kling-4.0",
+        "studio/native/kling/kling-image-o1",
+        "studio/native/kling/kling-o1",
+        "studio/native/kling/kling-v2-1",
+        "studio/native/kling/kling-v3",
+        "studio/native/kling/kling-v3-omni",
+        "studio/native/ltx/ltx-2.5-fast/audio-to-video",
+        "studio/native/ltx/ltx-2.5-fast/image-to-video",
+        "studio/native/ltx/ltx-2.5-fast/text-to-video",
+        "studio/native/ltx/ltx-2.5-pro/audio-to-video",
+        "studio/native/ltx/ltx-2.5-pro/image-to-video",
+        "studio/native/ltx/ltx-2.5-pro/text-to-video",
+        "studio/native/luma-agents/ray-3.2",
+        "studio/native/luma-agents/uni-1",
+        "studio/native/luma-agents/uni-1-max",
+        "studio/native/minimax/image-01",
+        "studio/native/minimax/minimax-h3",
+        "studio/native/minimax/minimax-h3-highspeed",
+        "studio/native/minimax/minimax-h3-lite",
+        "studio/native/minimax/minimax-h3-max",
+        "studio/native/minimax/speech-02-hd",
+        "studio/native/minimax/speech-02-turbo",
+        "studio/native/minimax/speech-2.6-hd",
+        "studio/native/minimax/speech-2.6-turbo",
+        "studio/native/minimax/speech-2.8-hd",
+        "studio/native/minimax/speech-2.8-turbo",
+        "studio/native/openrouter/minimax/h3-image",
+        "studio/native/openrouter/minimax/h3-image-highspeed",
+        "studio/native/openrouter/openai/gpt-image-2.6-flare",
+        "studio/native/openrouter/openai/gpt-image-2.6-sunburst",
+        "studio/native/runway/act_two",
+        "studio/native/runway/aleph2",
+        "studio/native/runway/gen4.5",
+        "studio/native/runway/gen4.5-image-to-video",
+        "studio/native/runway/gen4_image",
+        "studio/native/runway/gen4_image_turbo",
+        "studio/native/runway/gen4_turbo",
+        "studio/native/runway/muse_image",
+        "studio/openrouter/alibaba/happyhorse-1.0",
+        "studio/openrouter/alibaba/happyhorse-1.1",
+        "studio/openrouter/alibaba/wan-2.6",
+        "studio/openrouter/alibaba/wan-2.7",
+        "studio/openrouter/alibaba/wan-3.0",
+        "studio/openrouter/alibaba/wan-3.0-prime",
+        "studio/openrouter/black-forest-labs/flux-3-video",
+        "studio/openrouter/bytedance/seedance-2.0",
+        "studio/openrouter/bytedance/seedance-2.0-fast",
+        "studio/openrouter/bytedance/seedance-2.0-mini",
+        "studio/openrouter/bytedance/seedance-2.5",
+        "studio/openrouter/google/gemini-omni-1.2-flash",
+        "studio/openrouter/kwaivgi/kling-v3.0-pro",
+        "studio/openrouter/kwaivgi/kling-v3.0-std",
+        "studio/openrouter/kwaivgi/kling-video-o1",
+        "studio/openrouter/minimax/hailuo-2.3",
+        "studio/openrouter/minimax/hailuo-3",
+        "studio/openrouter/minimax/hailuo-3-max",
+        "studio/openrouter/runway/gen-4.5",
+        "studio/openrouter/x-ai/grok-imagine-video",
+        "studio/openrouter/x-ai/grok-imagine-video-1.5",
+        "studio/openrouter/x-ai/grok-imagine-video-1.5-lite",
+        "studio/pika/pika-h3-flex",
+        "studio/tool/fal/blackforestlabs/flux-3/klein/edit-image/lora",
+        "studio/tool/fal/blackforestlabs/flux-3/klein/text-to-image/lora",
+        "studio/tool/fal/fal-ai/motion-to-code/glsl",
+        "studio/tool/fal/fal-ai/motion-to-code/gsap",
+        "studio/tool/fal/heygen/heygen-voice",
+        "studio/tool/fal/heygen/heygen-voice/turbo",
+        "studio/tool/fal/kling/v4/video-to-video/edit",
+        "studio/tool/fal/minimax/h3-max/recast",
+        "studio/tool/fal/minimax/h3-max/relight",
+        "studio/tool/fal/veed/dubbing",
+        "studio/tool/fal/veed/dubbing/pro",
+        "studio/vivix/vivix-w1",
+        "studio/vivix/vivix-w1-fast",
+        "studio/vivix/vivix-w1-ultrafast",
+        "studio/wavespeed/alibaba/qwen-image-3.0-pro/edit",
+        "studio/wavespeed/alibaba/qwen-image-3.0-pro/text-to-image",
+        "studio/wavespeed/alibaba/qwen-image-3.0/edit",
+        "studio/wavespeed/alibaba/qwen-image-3.0/text-to-image",
+        "studio/wavespeed/alibaba/wan-3.0/image-to-video",
+        "studio/wavespeed/alibaba/wan-3.0/reference-to-video",
+        "studio/wavespeed/alibaba/wan-3.0/text-to-video",
+        "studio/wavespeed/black-forest-labs/flux-3/image-edit",
+        "studio/wavespeed/black-forest-labs/flux-3/image-to-video",
+        "studio/wavespeed/black-forest-labs/flux-3/start-end-to-video",
+        "studio/wavespeed/black-forest-labs/flux-3/text-to-image",
+        "studio/wavespeed/black-forest-labs/flux-3/text-to-video",
+        "studio/wavespeed/bytedance/seedance-2.0-fast/image-to-video",
+        "studio/wavespeed/bytedance/seedance-2.0-fast/reference-to-video",
+        "studio/wavespeed/bytedance/seedance-2.0-fast/text-to-video",
+        "studio/wavespeed/bytedance/seedance-2.0-mini/image-to-video",
+        "studio/wavespeed/bytedance/seedance-2.0-mini/reference-to-video",
+        "studio/wavespeed/bytedance/seedance-2.0-mini/text-to-video",
+        "studio/wavespeed/bytedance/seedance-2.5/image-to-video",
+        "studio/wavespeed/bytedance/seedance-2.5/reference-to-video",
+        "studio/wavespeed/bytedance/seedance-2.5/text-to-video",
+        "studio/wavespeed/bytedance/seedream-v5.0-flash",
+        "studio/wavespeed/bytedance/seedream-v5.0-flash/edit",
+        "studio/wavespeed/bytedance/seedream-v5.0-pro",
+        "studio/wavespeed/bytedance/seedream-v5.0-pro/edit",
+        "studio/wavespeed/bytedance/seedream-v5.5",
+        "studio/wavespeed/bytedance/seedream-v5.5/edit",
+        "studio/wavespeed/fixture/catalog-image-v2",
+        "studio/wavespeed/google/gemini-omni-1.1-flash/image-to-video",
+        "studio/wavespeed/google/gemini-omni-1.1-flash/reference-to-video",
+        "studio/wavespeed/google/gemini-omni-1.1-flash/text-to-video",
+        "studio/wavespeed/google/gemini-omni-1.2-flash/image-to-video",
+        "studio/wavespeed/google/gemini-omni-1.2-flash/reference-to-video",
+        "studio/wavespeed/google/gemini-omni-1.2-flash/text-to-video",
+        "studio/wavespeed/google/nano-banana-2.1/edit",
+        "studio/wavespeed/google/nano-banana-2.1/text-to-image",
+        "studio/wavespeed/ideogram-ai/ideogram-v4.5",
+        "studio/wavespeed/ideogram-ai/ideogram-v4.5/edit",
+        "studio/wavespeed/kwaivgi/kling-v4.0/image-to-video",
+        "studio/wavespeed/kwaivgi/kling-v4.0/reference-to-video",
+        "studio/wavespeed/kwaivgi/kling-v4.0/text-to-video",
+        "studio/wavespeed/minimax/h3-highspeed/image-to-video",
+        "studio/wavespeed/minimax/h3-highspeed/reference-to-video",
+        "studio/wavespeed/minimax/h3-highspeed/text-to-video",
+        "studio/wavespeed/minimax/h3-lite/image-to-video",
+        "studio/wavespeed/minimax/h3-lite/reference-to-video",
+        "studio/wavespeed/minimax/h3-lite/text-to-video",
+        "studio/wavespeed/minimax/h3/image-to-video",
+        "studio/wavespeed/minimax/h3/reference-to-video",
+        "studio/wavespeed/minimax/h3/text-to-video",
+        "studio/wavespeed/minimax/music-3.0",
+        "studio/wavespeed/minimax/speech-2.6-hd",
+        "studio/wavespeed/minimax/speech-2.6-turbo",
+        "studio/wavespeed/openai/gpt-image-2.5-flare/edit",
+        "studio/wavespeed/openai/gpt-image-2.5-flare/text-to-image",
+        "studio/wavespeed/openai/gpt-image-2.5-sunburst/edit",
+        "studio/wavespeed/openai/gpt-image-2.5-sunburst/text-to-image",
+        "studio/wavespeed/openai/gpt-image-2.6-flare/edit",
+        "studio/wavespeed/openai/gpt-image-2.6-flare/text-to-image",
+        "studio/wavespeed/openai/gpt-image-2.6-sunburst/edit",
+        "studio/wavespeed/openai/gpt-image-2.6-sunburst/text-to-image",
+        "studio/wavespeed/wavespeed-ai/flux-2-max/edit",
+        "studio/wavespeed/wavespeed-ai/flux-2-max/text-to-image",
+        "studio/wavespeed/wavespeed-ai/flux-2-pro/edit",
+        "studio/wavespeed/wavespeed-ai/flux-2-pro/text-to-image",
+        "studio/wavespeed/wavespeed-ai/flux-3-klein-image-base/edit",
+        "studio/wavespeed/wavespeed-ai/flux-3-klein-image-base/text-to-image",
+        "studio/wavespeed/wavespeed-ai/flux-3-klein-image-distilled/edit",
+        "studio/wavespeed/wavespeed-ai/flux-3-klein-image-distilled/text-to-image",
+        "studio/wavespeed/wavespeed-ai/hunyuan-video-1.5/image-to-video",
+        "studio/wavespeed/wavespeed-ai/hunyuan-video-1.5/text-to-video",
+        "studio/wavespeed/wavespeed-ai/ltx-2.5/image-to-video",
+        "studio/wavespeed/wavespeed-ai/ltx-2.5/text-to-video",
+        "studio/wavespeed/wavespeed-ai/minimax-h3/image-edit",
+        "studio/wavespeed/wavespeed-ai/minimax-h3/image-to-video",
+        "studio/wavespeed/wavespeed-ai/minimax-h3/reference-to-video",
+        "studio/wavespeed/wavespeed-ai/minimax-h3/text-to-image",
+        "studio/wavespeed/wavespeed-ai/minimax-h3/text-to-video",
+        "studio/wavespeed/wavespeed-ai/z-image/base",
+        "studio/wavespeed/wavespeed-ai/z-image/turbo",
+        "studio/wavespeed/x-ai/grok-imagine-image-v2.0/edit",
+        "studio/wavespeed/x-ai/grok-imagine-image-v2.0/text-to-image",
+        "studio/wavespeed/x-ai/grok-imagine-video-v1.5/image-to-video",
+        "studio/wavespeed/x-ai/grok-imagine-video-v1.5/reference-to-video",
+        "studio/wavespeed/x-ai/grok-imagine-video-v1.5/text-to-video",
+        "studio/wavespeed/x-ai/grok-imagine-video/image-to-video",
+        "studio/wavespeed/x-ai/grok-imagine-video/reference-to-video",
+        "studio/wavespeed/x-ai/grok-imagine-video/text-to-video",
+        "wan/v2.6/text-to-video",
+        "xai/grok-imagine-video/text-to-video",
+        "xai/grok-imagine-video/v1.5/text-to-video"
+      ],
+      "entries": [
+        {
+          "model": "studio/wavespeed/fixture/catalog-image-v2",
+          "template": "studio/wavespeed/google/nano-banana-2.1/text-to-image",
+          "definition": "{\"provider\":\"wavespeed\",\"apiModel\":\"fixture/catalog-image-v2\",\"name\":\"Fixture catalog image\",\"vendor\":\"google\",\"family\":\"Nano Banana 2.1\",\"kind\":\"image\",\"nativeMedia\":true,\"adapter\":\"schema-wavespeed\",\"nativeSchema\":{\"additionalProperties\":false,\"properties\":{\"aspect_ratio\":{\"default\":\"1:1\",\"enum\":[\"1:1\",\"3:2\",\"2:3\",\"3:4\",\"4:3\",\"4:5\",\"5:4\",\"9:16\",\"16:9\",\"21:9\",\"1:4\",\"4:1\",\"1:8\",\"8:1\"],\"type\":\"string\"},\"enable_image_search\":{\"default\":false,\"type\":\"boolean\"},\"enable_web_search\":{\"default\":false,\"type\":\"boolean\"},\"output_format\":{\"default\":\"png\",\"enum\":[\"png\",\"jpeg\"],\"type\":\"string\"},\"prompt\":{\"type\":\"string\",\"maxLength\":1000000},\"resolution\":{\"default\":\"1k\",\"enum\":[\"1k\",\"2k\",\"4k\"],\"type\":\"string\"}},\"required\":[\"prompt\"],\"type\":\"object\"},\"apiPath\":\"/api/v3/fixture/catalog-image-v2\",\"apiPrompt\":\"/prompt\",\"apiModelField\":null,\"params\":{\"aspect_ratio\":\"1:1\",\"enable_image_search\":false,\"enable_web_search\":false,\"output_format\":\"png\",\"resolution\":\"1k\"},\"exampleReferences\":[],\"referencePaths\":[],\"referenceRoles\":{},\"referenceTransport\":\"owned-url\",\"pricingRule\":{\"type\":\"wavespeed\",\"baseMicrousd\":40000,\"formula\":\"{\\\"total_price\\\": (resolution = \\\"4k\\\" ? 135000 : (resolution = \\\"2k\\\" ? 60000 : base_price)) + (enable_web_search ? 14000 : 0) + (enable_image_search ? 14000 : 0)}\",\"ast\":[\"binary\",\"+\",[\"binary\",\"+\",[\"if\",[\"binary\",\"=\",[\"get\",\"resolution\"],[\"literal\",\"4k\"]],[\"literal\",135000],[\"if\",[\"binary\",\"=\",[\"get\",\"resolution\"],[\"literal\",\"2k\"]],[\"literal\",60000],[\"get\",\"base_price\"]]],[\"if\",[\"get\",\"enable_web_search\"],[\"literal\",14000],[\"literal\",0]]],[\"if\",[\"get\",\"enable_image_search\"],[\"literal\",14000],[\"literal\",0]]]},\"mime\":\"image/png\",\"duration\":null,\"resolution\":\"1k\",\"aspect\":\"1:1\",\"dimensions\":[],\"codecs\":[\"mjpeg\",\"png\",\"webp\"],\"audio\":false,\"seed\":false,\"maxPrompt\":1000000,\"deadlineMs\":1200000,\"feeMultiplier\":1,\"schemaUrl\":\"https://wavespeed.ai/models/google/nano-banana-2.1/text-to-image\",\"schemaCheckedAt\":\"2026-11-10\",\"validationStatus\":\"documentation-reviewed\",\"nativeCapabilities\":{\"fields\":[\"aspect_ratio\",\"enable_image_search\",\"enable_web_search\",\"output_format\",\"prompt\",\"resolution\"],\"maxReferences\":0,\"resolutions\":[\"1k\",\"2k\",\"4k\"],\"aspects\":[\"1:1\",\"3:2\",\"2:3\",\"3:4\",\"4:3\",\"4:5\",\"5:4\",\"9:16\",\"16:9\",\"21:9\",\"1:4\",\"4:1\",\"1:8\",\"8:1\"],\"qualities\":[],\"formats\":[\"png\",\"jpeg\"]},\"sourceSha256\":\"010a10f25e1364d1cdf12d5275d75e0d597db336a6a8a42336109b39fd2444d9\"}",
+          "example": "{\"model\":\"studio/wavespeed/fixture/catalog-image-v2\",\"input\":{\"prompt\":\"Catalog compatibility check\",\"parameters\":{\"aspect_ratio\":\"1:1\",\"enable_image_search\":false,\"enable_web_search\":false,\"output_format\":\"png\",\"resolution\":\"1k\"},\"references\":[]}}"
+        },
+        {
+          "model": "direct/google/catalog-image-v2",
+          "template": "direct/google/nano-banana-2.1",
+          "definition": "{\"provider\":\"google\",\"vendor\":\"Google\",\"deadlineMs\":480000,\"seed\":false,\"maxPrompt\":1048576,\"feeMultiplier\":1,\"interaction\":true,\"schemaUrl\":\"https://ai.google.dev/api/interactions-api\",\"schemaCheckedAt\":\"2026-11-02\",\"documentationCheckedAt\":\"2026-11-02\",\"validationStatus\":\"documentation-reviewed\",\"apiModel\":\"catalog-image-v2\",\"name\":\"Catalog Google image\",\"kind\":\"image\",\"family\":\"Nano Banana 2.1\",\"params\":{\"response_format\":{\"type\":\"image\",\"image_size\":\"1K\",\"aspect_ratio\":\"1:1\",\"mime_type\":\"image/jpeg\",\"delivery\":\"inline\"},\"store\":true,\"background\":true},\"mime\":\"image/jpeg\",\"duration\":null,\"resolution\":\"1k\",\"aspect\":\"1:1\",\"dimensions\":[[1024,1024]],\"codecs\":[\"mjpeg\"],\"audio\":false,\"mediaPolicy\":2,\"description\":\"Nano Banana 2.1 (Google direct) with provider-supported settings and reference inputs.\",\"flexibleGoogle\":true,\"catalogAdapter\":\"google-interactions\",\"catalogPolicy\":{\"kind\":\"image\",\"inputTokens\":131072,\"outputTokens\":32768,\"imageReferences\":14,\"videoReferences\":1,\"documentReferences\":true,\"search\":true,\"speech\":false,\"resolutions\":[\"1K\",\"2K\",\"4K\"],\"aspects\":[\"1:1\",\"1:4\",\"1:8\",\"2:3\",\"3:2\",\"3:4\",\"4:1\",\"4:3\",\"4:5\",\"5:4\",\"8:1\",\"9:16\",\"16:9\",\"21:9\"],\"dimensions\":{\"1:1\":{\"1K\":[1024,1024],\"2K\":[2048,2048],\"4K\":[4096,4096]},\"1:4\":{\"1K\":[512,2048],\"2K\":[1024,4096],\"4K\":[2048,8192]},\"1:8\":{\"1K\":[384,3072],\"2K\":[768,6144],\"4K\":[1536,12288]},\"2:3\":{\"1K\":[848,1264],\"2K\":[1696,2528],\"4K\":[3392,5056]},\"3:2\":{\"1K\":[1264,848],\"2K\":[2528,1696],\"4K\":[5056,3392]},\"3:4\":{\"1K\":[896,1200],\"2K\":[1792,2400],\"4K\":[3584,4800]},\"4:1\":{\"1K\":[2048,512],\"2K\":[4096,1024],\"4K\":[8192,2048]},\"4:3\":{\"1K\":[1200,896],\"2K\":[2400,1792],\"4K\":[4800,3584]},\"4:5\":{\"1K\":[928,1152],\"2K\":[1856,2304],\"4K\":[3712,4608]},\"5:4\":{\"1K\":[1152,928],\"2K\":[2304,1856],\"4K\":[4608,3712]},\"8:1\":{\"1K\":[3072,384],\"2K\":[6144,768],\"4K\":[12288,1536]},\"9:16\":{\"1K\":[768,1376],\"2K\":[1536,2752],\"4K\":[3072,5504]},\"16:9\":{\"1K\":[1376,768],\"2K\":[2752,1536],\"4K\":[5504,3072]},\"21:9\":{\"1K\":[1584,672],\"2K\":[3168,1344],\"4K\":[6336,2688]}}}}",
+          "example": "{\"model\":\"direct/google/catalog-image-v2\",\"input\":{\"response_format\":{\"type\":\"image\",\"image_size\":\"1K\",\"aspect_ratio\":\"1:1\",\"mime_type\":\"image/jpeg\",\"delivery\":\"inline\"},\"store\":true,\"background\":true,\"prompt\":\"Catalog compatibility check\"}}"
+        },
+        {
+          "model": "studio/fal/fixture/catalog-video-v2/text-to-video",
+          "template": "studio/fal/alibaba/wan-3.0/text-to-video",
+          "definition": "{\"provider\":\"fal\",\"apiModel\":\"fixture/catalog-video-v2/text-to-video\",\"app\":\"fixture/catalog-video-v2\",\"name\":\"Catalog Fal video\",\"vendor\":\"fal\",\"family\":\"Studio\",\"kind\":\"video\",\"mime\":\"video/mp4\",\"params\":{},\"seed\":true,\"duration\":5,\"resolution\":\"480p\",\"aspect\":\"16:9\",\"dimensions\":[],\"codecs\":[\"h264\",\"hevc\"],\"deadlineMs\":480000,\"feeMultiplier\":1,\"audio\":true,\"maxPrompt\":50000,\"schemaUrl\":\"https://fal.ai/models/xai/grok-imagine-video/text-to-video/api\",\"schemaCheckedAt\":\"2026-10-13\",\"validationStatus\":\"local-tests-required\",\"description\":\"Studio video contract with pinned settings and hash-bound references. Requires a matching attested worker and separately accepted pricing.\",\"catalogAdapter\":\"studio-video\",\"catalogPolicy\":{\"provider\":\"fal\",\"apiModel\":\"fixture/catalog-video-v2/text-to-video\",\"name\":\"Grok Imagine Video\",\"aspects\":[\"16:9\",\"4:3\",\"1:1\",\"3:4\",\"9:16\"],\"min\":1,\"max\":15,\"resolutions\":[\"480p\",\"720p\"],\"refs\":{\"image\":0,\"video\":0,\"audio\":0},\"frames\":1,\"mixed\":false,\"maxPrompt\":50000}}",
+          "example": "{\"model\":\"studio/fal/fixture/catalog-video-v2/text-to-video\",\"input\":{\"prompt\":\"Catalog compatibility check\",\"seed\":0,\"duration\":5,\"resolution\":\"480p\",\"aspect\":\"16:9\",\"references\":[],\"promptExpansion\":\"balanced\"}}"
+        }
+      ],
+      "blocked": []
+    },
+    "signature": "XFIOXDHSR55qKMrUGX9oOIn5bRTFTCGxuqzFxVQYQb5RBeal2OmVRkBkm4Izwu3qzgQ0UtXfR4/MS5DBma5kCw=="
+  },
+  "baseline": [
+    {
+      "model": "minimax/h3-max-turbo/text-to-video",
+      "hash": "6b44095ae7ed702b4ae3e4b4c43377f2dfb96b7e3a9ad88baf475884d22fb09f"
+    },
+    {
+      "model": "minimax/h3-max/text-to-video",
+      "hash": "50c942ac51d24746093f3e22cec6176c3090d9bb16c92a03906eb95b03e004e2"
+    },
+    {
+      "model": "bytedance/seedance-2.5/text-to-video",
+      "hash": "c78baa19335357070413113dc5a67c518286a5534ea1f12127c7af00a467cdf5"
+    },
+    {
+      "model": "fal-ai/veo3.1",
+      "hash": "de968565297984d7156203ff0d9dd0ef049dc2bd6d2eac6efcbc0bbf8df8f6f6"
+    },
+    {
+      "model": "fal-ai/veo3.1/fast",
+      "hash": "db86acd8f2566f9a77fe0042a7d8c7496e727bc3fc2916734a25cb3ddc83d51f"
+    },
+    {
+      "model": "fal-ai/veo3",
+      "hash": "ab5740e8b9e82dad9ac1e888de6510b42a5ff32ed25246f034700b42e165dacf"
+    },
+    {
+      "model": "fal-ai/veo3/fast",
+      "hash": "cd57bccf0a40bee75fe53e86a622c76acfc06a0f1f0c880f56b075321d60a63e"
+    },
+    {
+      "model": "fal-ai/veo2",
+      "hash": "d7d13a11c0ada7374260e138a9fda1b7fe737391e1421a7f9b2299ad51b7c245"
+    },
+    {
+      "model": "fal-ai/kling-video/v3/pro/text-to-video",
+      "hash": "17050f63d791db68590f9d33960f030ad5d06aa656f9a0fab06318801f71fcd1"
+    },
+    {
+      "model": "fal-ai/kling-video/v3/standard/text-to-video",
+      "hash": "118dd3cad9110587d8f5767466679e1d718b5775f3dd6a27f9cb24343e0c2157"
+    },
+    {
+      "model": "fal-ai/kling-video/v2.6/pro/text-to-video",
+      "hash": "74c36b2431d1cb54bdafba3601ef0f4495b768eeeb7214597d3cb63eea2b5f8f"
+    },
+    {
+      "model": "fal-ai/kling-video/v2.5-turbo/pro/text-to-video",
+      "hash": "6767481ad799957cbd9db82ac6b303ed1b294531046449a8d0de135540333402"
+    },
+    {
+      "model": "fal-ai/kling-video/v2.1/master/text-to-video",
+      "hash": "583eec371ea042c6393a945b6bd10a126fa8acfe04976cc815fa50f6a36e564e"
+    },
+    {
+      "model": "fal-ai/kling-video/v2/master/text-to-video",
+      "hash": "e394a527212368c743e2b77b75f00a628fde0637877a76009dc01ae1deed894c"
+    },
+    {
+      "model": "fal-ai/kling-video/v1.6/pro/text-to-video",
+      "hash": "9f7c51e092d3e1b04e817a57111af7cfee2066143962445e0b68710a65f8e4a3"
+    },
+    {
+      "model": "fal-ai/kling-video/v1.6/standard/text-to-video",
+      "hash": "bfa1d96042e2f1906c6aa9be75c203971f68d6f8eeea0114f2f02ee2a5cdb8ce"
+    },
+    {
+      "model": "wan/v2.6/text-to-video",
+      "hash": "3be4350c43a3be0d09d599c080885c5a5c613dd3cab67234ff1f9a4c94b502b4"
+    },
+    {
+      "model": "fal-ai/wan-25-preview/text-to-video",
+      "hash": "1efea5553b8b00642364d323aefa8dc6219a45cc565180f2b9b0f053647f9f1c"
+    },
+    {
+      "model": "fal-ai/wan/v2.2-a14b/text-to-video",
+      "hash": "9fc99f1c6b7e76a91782a5c4309b37135e4556b012f2346ac5d83912a066d24e"
+    },
+    {
+      "model": "fal-ai/wan/v2.2-5b/text-to-video",
+      "hash": "f51ed4e01c56a77b5d67932dfb23f98cf40554d9784a0490e701c22414f40141"
+    },
+    {
+      "model": "fal-ai/ltx-2/text-to-video",
+      "hash": "61ad18f306c712edd5092fd630a011d8d45a06ed2b29af214afe51efe67f52d3"
+    },
+    {
+      "model": "fal-ai/ltx-2.3/text-to-video",
+      "hash": "10e25bf2fcd985d919984ea1749c3d500206ecb5070a2fbc86f64b630d7a04e0"
+    },
+    {
+      "model": "fal-ai/ltx-2.3/text-to-video/fast",
+      "hash": "1b8b75ec646df7a12df536b87606b19fa5896ec155da624ed035629928c7bc04"
+    },
+    {
+      "model": "fal-ai/pixverse/v6/text-to-video",
+      "hash": "11e94c76dc903ace0be1c67489ffc249ea8926c6295654b0b40f43f4c9a6eedc"
+    },
+    {
+      "model": "fal-ai/pixverse/v5.5/text-to-video",
+      "hash": "116954b9e6ea253c7a0337c7cf7c3453f97de80683ffa1878e4189d82bbe28bc"
+    },
+    {
+      "model": "fal-ai/pixverse/v5/text-to-video",
+      "hash": "8b93a2a9c76687de66ce6d26b430b5fe8a72cca1c36581e66647df1ff33d6a2a"
+    },
+    {
+      "model": "fal-ai/pixverse/v4.5/text-to-video",
+      "hash": "94c9e411f01b377220b2c277136cf7f52038274cd234c49d69fea762f173763b"
+    },
+    {
+      "model": "fal-ai/minimax/hailuo-02/standard/text-to-video",
+      "hash": "8c5be712c63142b60e77db0e1e20f22ab9f4934db33dfe7177594fa4f8e88828"
+    },
+    {
+      "model": "fal-ai/minimax/hailuo-02/pro/text-to-video",
+      "hash": "ca3bf1f1b726fa6e8f2c5901e1ea8640e70d71836580a84c4c263afb13ed350d"
+    },
+    {
+      "model": "fal-ai/bytedance/seedance/v1/pro/text-to-video",
+      "hash": "24741120c8335cf01e6b4891e8a24f05e143a82d02e2666ff9d7316a62243860"
+    },
+    {
+      "model": "fal-ai/bytedance/seedance/v1/pro/fast/text-to-video",
+      "hash": "7fd105eff9057243eda08e9ad4c3f09bd3493b00a34035874ece59216a78edf4"
+    },
+    {
+      "model": "fal-ai/bytedance/seedance/v1/lite/text-to-video",
+      "hash": "39a4575f1d1d300c4752cf10f9635b6cdb4468b3fad7047177a2499d4b4b4c29"
+    },
+    {
+      "model": "fal-ai/bytedance/seedance/v1.5/pro/text-to-video",
+      "hash": "145d82b11ae660ebb3cb6efcc7e63631323fd71c943c6096284562b8f027df11"
+    },
+    {
+      "model": "xai/grok-imagine-video/text-to-video",
+      "hash": "fd80c834a0c953d69d01d12425800252122f4d63ed888d31fb3d2e53a6f5f593"
+    },
+    {
+      "model": "xai/grok-imagine-video/v1.5/text-to-video",
+      "hash": "74ba2fed47f9011f6702f540bc3d0cd620be2a2d94ec8ebff9b74e58c08d27d7"
+    },
+    {
+      "model": "fal-ai/sora-2/text-to-video",
+      "hash": "d2277a3affd66aeb4e9f623a65a1891fca592eba2bfc3e90ee42862a0281c855"
+    },
+    {
+      "model": "fal-ai/sora-2/text-to-video/pro",
+      "hash": "a97cbb7cf63df9f7425a69dd1ac2a77eb56ceae94ee8de8a609839ab1740eb9d"
+    },
+    {
+      "model": "direct/minimax/hailuo-02",
+      "hash": "8c4c09fc88d4b5c733287ce2f412247d4be24a157e9272e09c201c4a6dbb17b3"
+    },
+    {
+      "model": "direct/bfl/flux-2-max",
+      "hash": "6c758fc11d94661e609c2ca1c85330331b04c770cb3554e803890769908ddaf3"
+    },
+    {
+      "model": "direct/bfl/flux-2-flex",
+      "hash": "83eccf55ae74dcc3c18eda35fe7f6246fc86a9149c8710485c7049bf76a97944"
+    },
+    {
+      "model": "direct/bfl/flux-2-klein-4b",
+      "hash": "3789b780f9c41a8e96222d8fc4d2b61f2391e3bdbc2a1b6cd0a4c483e90f18a2"
+    },
+    {
+      "model": "direct/bfl/flux-2-klein-9b",
+      "hash": "a45786b77d590267e8d2ebd3394e7dcc813bde11e14b719d1c44e27704aafa1f"
+    },
+    {
+      "model": "direct/replicate/flux-2-pro",
+      "hash": "803300bfc94b61db9c3e188b71680e76bc5a3afb2d7f4280b27037cf6ae180d3"
+    },
+    {
+      "model": "direct/runway/veo-3.1",
+      "hash": "b13c943203fbf5a6dbdcafd69b30c23ae81630b509e0d6b88b5f32bae12b1978"
+    },
+    {
+      "model": "direct/runway/veo-3.1-fast",
+      "hash": "3364012139cf19da0288e7df03fd18a1c242db594d9fb0962a1c3e38b565887b"
+    },
+    {
+      "model": "direct/luma/ray-flash-2",
+      "hash": "4f8f3232f716942245849feaac61eee7f1244781eaf1bc2c09f6437002934516"
+    },
+    {
+      "model": "direct/elevenlabs/v4-rachel",
+      "hash": "2618e778470dfbab08ceabc360c51b343d76c9fded631d510f39bedab227ca60"
+    },
+    {
+      "model": "direct/elevenlabs/v4-turbo-rachel",
+      "hash": "b4cca72842ad5f01499824c484ef4ed8ebd3fc8f49ccb84995615fcc60da9b1a"
+    },
+    {
+      "model": "direct/elevenlabs/v3-rachel",
+      "hash": "be65fb8af1902cff67d24ecaf298f4b2101dfdfa51a34302ca6db8ec73424903"
+    },
+    {
+      "model": "direct/elevenlabs/flash-v2.5-rachel",
+      "hash": "8f0bdef3cc4505fc0343db6af1175eba7c133bbbe6c08f97fed21e33878d2965"
+    },
+    {
+      "model": "direct/openrouter/veo-3.1-fast",
+      "hash": "54446a3fdaaaff278edb43ffa46faec66c9288a400bc0982a331a5bdf22ff837"
+    },
+    {
+      "model": "direct/openrouter/veo-3.1-lite",
+      "hash": "3e5b47913091996d90c3dff65224340f7543d2d8dfeab8d50f6d85563ae5eb8f"
+    },
+    {
+      "model": "direct/google/gemini-omni-flash",
+      "hash": "76f4fc83042ba7c0fb668a7511475cb92346e60d53ede24fbec0c7afc36d855d"
+    },
+    {
+      "model": "direct/google/nano-banana-2.1",
+      "hash": "0dc799306723b1cba55ce3368c98254f31da88d4bfe825a4be9276cd40681994"
+    },
+    {
+      "model": "direct/google/nano-banana-2-lite",
+      "hash": "15ab0de4559e994930a25b3d492fe526207424c52437ea80ea1bb8d73ab7feb5"
+    },
+    {
+      "model": "direct/google/nano-banana-2",
+      "hash": "0b1b03a79557162140f3e977251a072637651665e0491393cde2adf235ed4874"
+    },
+    {
+      "model": "direct/google/nano-banana-pro",
+      "hash": "94a32147c602f4eec62d7e24e547686a5f0bf0234922a9f951206146b687aba2"
+    },
+    {
+      "model": "direct/google/lyria-3.5",
+      "hash": "7e6b6a5529225be1517c7b2af9ea420462986993a28157a53e650a6b2fa7fe63"
+    },
+    {
+      "model": "direct/google/gemini-3.8-flash-tts",
+      "hash": "cbedc20ec5999071e5d75127a2ff0c1446db6ed91eb1d4fc425fdabab01fb03a"
+    },
+    {
+      "model": "direct/google/gemini-3.8-flash-lite-tts",
+      "hash": "b8532294d31578bacb7bd842a781209630892fc94e34b6c2d3026b7fe92480fc"
+    },
+    {
+      "model": "direct/google/gemini-omni-1.2-flash",
+      "hash": "02274cac022fd53adfd9a625442a5c3cb19e3f80f3c95227628102847566d070"
+    },
+    {
+      "model": "direct/minimax/h3-image",
+      "hash": "18bdc79061f4ed5f057e9896b7bde723233d0369f03e78964622140d64be83d4"
+    },
+    {
+      "model": "studio/native/openrouter/minimax/h3-image",
+      "hash": "e01db3cd93215036be80e8738f9273be0115abd48344ee2880c193bdb18d3cb5"
+    },
+    {
+      "model": "studio/native/fal/minimax/h3-image",
+      "hash": "52d3842ae9b6b05f284450719933c7269118e8399241e19664e072ab6cd0521e"
+    },
+    {
+      "model": "direct/minimax/h3-image-highspeed",
+      "hash": "6d4c3b5449fd6b175ea03e5387d8f5abbcc13a6d69c69ae36f038524f317bfa1"
+    },
+    {
+      "model": "studio/native/openrouter/minimax/h3-image-highspeed",
+      "hash": "83d5c43a22ff1d7b685d56f4ac51f5dd59f97ce0a5b68dd5f1b6f674d1955a95"
+    },
+    {
+      "model": "studio/native/fal/minimax/h3-image-highspeed",
+      "hash": "41a4518479f527dcf584716feb391fff56fa8d5ce5712c15a92747154dc41593"
+    },
+    {
+      "model": "studio/native/ltx/ltx-2.5-fast/text-to-video",
+      "hash": "4244a757c3b0f8e426ac6c723129fbbef36cf46ccfbc70b029d91350e9e64d6b"
+    },
+    {
+      "model": "studio/native/ltx/ltx-2.5-fast/image-to-video",
+      "hash": "e196e437a22fd0c3e746f8911c4a3aa9052015c456452f7ac22163da775f729d"
+    },
+    {
+      "model": "studio/native/ltx/ltx-2.5-fast/audio-to-video",
+      "hash": "0a0e6c76acc9d376e0d56c0da4ead6aad6463eef807a57454e4d09e0a0a55e61"
+    },
+    {
+      "model": "studio/native/ltx/ltx-2.5-pro/text-to-video",
+      "hash": "50ffda1392b91e79e191ef46a3ccbbcaca79eeed4d832bf13f90ddc7aa1ce96e"
+    },
+    {
+      "model": "studio/native/ltx/ltx-2.5-pro/image-to-video",
+      "hash": "946deb5ec4a58c4739c7a56e5233b6632f65a62fab6f50db2ede1fe7b5332a8d"
+    },
+    {
+      "model": "studio/native/ltx/ltx-2.5-pro/audio-to-video",
+      "hash": "4ba33f14e87e024ee487936ff0a2ca471c0d1e17e8df06f9d48a4106e7acab1e"
+    },
+    {
+      "model": "studio/native/fal/lightricks/ltx-2.5/text-to-video/fast",
+      "hash": "7561adc06a51e797b98e4bdfdec92d76611f576a5551aae7adb18f9bb3530dd4"
+    },
+    {
+      "model": "studio/native/fal/lightricks/ltx-2.5/image-to-video/fast",
+      "hash": "456859e14d22f9cbc5bf26758b45d2965781df1fdf7fc792562e3cfd76524b78"
+    },
+    {
+      "model": "studio/native/fal/lightricks/ltx-2.5/audio-to-video/fast",
+      "hash": "fce46a3cbd51b08957a8fedbda0e9467e1e7cde4ef67fbb070faff2f39cf7419"
+    },
+    {
+      "model": "studio/native/fal/lightricks/ltx-2.5/text-to-video/pro",
+      "hash": "ba814bbd191e1f98df0dda1cf5e58e1d10621fb5698abbe7cf726a69a44e6fad"
+    },
+    {
+      "model": "studio/native/fal/lightricks/ltx-2.5/image-to-video/pro",
+      "hash": "03ddfb4da17d68829ae16f049fe4d88abcc586cf874ea258fff141562158b52f"
+    },
+    {
+      "model": "studio/native/fal/lightricks/ltx-2.5/audio-to-video/pro",
+      "hash": "c33b0f3c73f59ec0d69a10f0d005602812d042cc63063dce37572add482a86e5"
+    },
+    {
+      "model": "studio/wavespeed/wavespeed-ai/ltx-2.5/text-to-video",
+      "hash": "7da0910a652acaa3d19969c44c7ce81fb3eb120659d2415db0470860c72df0c6"
+    },
+    {
+      "model": "studio/wavespeed/wavespeed-ai/ltx-2.5/image-to-video",
+      "hash": "16585857d684373fe8f3d2842149f5416618a8de37c49d844087c4184c45d59c"
+    },
+    {
+      "model": "direct/alibaba/wan-3.0",
+      "hash": "ab6fe2c86d5b3f24ebce45774d2669ea76ba4a0a6d2e662fa17c25a5c96b5427"
+    },
+    {
+      "model": "direct/alibaba/wan-3.0-prime",
+      "hash": "4892520f4c858e2b09339087aeffa73b59ed0ae076374819f1a2cc86057f4367"
+    },
+    {
+      "model": "direct/byteplus/seedance-2.5",
+      "hash": "27381dc94e8439acfc572ef888a40f9a3fc61e98d24184e08acd6c196ad71933"
+    },
+    {
+      "model": "direct/volcengine/seedance-2.5",
+      "hash": "6ac0360a231352b4cb0cb83217f7bec4c94f55904a0ecd5abfb31b52529bd691"
+    },
+    {
+      "model": "direct/alibaba/qwen-image-3.0",
+      "hash": "57a764c955505195f135b61dcc0d978072757e969b4f8cd4a4b7eaa3551e9325"
+    },
+    {
+      "model": "direct/alibaba/qwen-image-3.0-pro",
+      "hash": "7bbe18445e73936b214ba50d151b7129cd904a1d254e766d2849efd2027babff"
+    },
+    {
+      "model": "direct/byteplus/seedream-5.0-pro",
+      "hash": "481d86f7bc19310594fbc6308c112ff8507d1f2c707a4a0a6c2f5a9599f84ad6"
+    },
+    {
+      "model": "direct/byteplus/seedream-5.0-flash",
+      "hash": "69b8d6f7506cf9f4df58b1f5d7d69d6672dc3237ff13355d8ffe7a8772bd7a64"
+    },
+    {
+      "model": "direct/volcengine/seedream-5.0-pro",
+      "hash": "6ed16f4e9572bb2ea0130e37132a63c408dbb00e1548a31b15fa54cc7f5403fb"
+    },
+    {
+      "model": "direct/volcengine/seedream-5.0-flash",
+      "hash": "801ce1d22001fbcc8b0f96d14a2a82223f862c65ec1dc8ffeee5c81cfcacaa73"
+    },
+    {
+      "model": "direct/byteplus/seedance-2.0",
+      "hash": "56d7525f31bf047d475dd6631cae35a5c84493165d3b4758bb568f801f2d0211"
+    },
+    {
+      "model": "direct/byteplus/seedance-2.5-premium",
+      "hash": "8e09ac24626dc9859c66831789d7aefb824b9db70e85443814d4bc4582a44110"
+    },
+    {
+      "model": "studio/wavespeed/google/gemini-omni-1.2-flash/text-to-video",
+      "hash": "58713f8c3eb2ea25c262990675e16fe64fc457a1bc1b3332e53bba04058ccd8a"
+    },
+    {
+      "model": "studio/wavespeed/google/gemini-omni-1.2-flash/image-to-video",
+      "hash": "84dd2b5a9ce4744861c17f0c2cf1c23e7ce6dd29a04ab4cccbb3d1b64f34c49d"
+    },
+    {
+      "model": "studio/wavespeed/google/gemini-omni-1.2-flash/reference-to-video",
+      "hash": "0b4943c8e52e04e02384cdf1a51e2b73e8ff38e355e0bef9e6319230f58d2851"
+    },
+    {
+      "model": "studio/wavespeed/openai/gpt-image-2.6-flare/text-to-image",
+      "hash": "5d42e84d4c9badb67d31d5f61b5f19ae556fccfbfb3530e7bdcb32a9f65047ff"
+    },
+    {
+      "model": "studio/wavespeed/openai/gpt-image-2.6-flare/edit",
+      "hash": "7387a79da5a5ee2b7c52088e0cd80876a6133a6f9fd6c84acc99fb54fed0dfb8"
+    },
+    {
+      "model": "studio/wavespeed/openai/gpt-image-2.6-sunburst/text-to-image",
+      "hash": "034af1b1af03de89d4b0fd77f80c4502812b0a205053943d100b6b225d9840f0"
+    },
+    {
+      "model": "studio/wavespeed/openai/gpt-image-2.6-sunburst/edit",
+      "hash": "c689e45391d48b20e599af7312230fab224f1a7e5e294b1d4e68eb475fe7da2f"
+    },
+    {
+      "model": "studio/wavespeed/google/nano-banana-2.1/edit",
+      "hash": "9f44db905d55d968021af2e46f421754d284c6eb61be8b2a95c32851afd612c8"
+    },
+    {
+      "model": "studio/wavespeed/google/nano-banana-2.1/text-to-image",
+      "hash": "f9625a2d8b0a3abcc112b2c89cfad77c917859bb12aaa65be1d55f03cc200f0e"
+    },
+    {
+      "model": "studio/wavespeed/openai/gpt-image-2.5-sunburst/edit",
+      "hash": "cad2f711345fa2162a710572ec29d4de3d1d9f1120d457370865813c18169597"
+    },
+    {
+      "model": "studio/wavespeed/openai/gpt-image-2.5-sunburst/text-to-image",
+      "hash": "c8dbda2f81be5517952b31fcca2b30651bb1e33ddd50cf650ea61ba87893d341"
+    },
+    {
+      "model": "studio/wavespeed/openai/gpt-image-2.5-flare/edit",
+      "hash": "c40f7f850ef2be87fb5b6d899c6ff18c764dc75fa9ca2a4626e40843ba00b38a"
+    },
+    {
+      "model": "studio/wavespeed/openai/gpt-image-2.5-flare/text-to-image",
+      "hash": "4da45bbc9564b17b8da2c302fcec8cddb7d634ae283a4f6e3843769779e71f41"
+    },
+    {
+      "model": "studio/wavespeed/bytedance/seedance-2.5/image-to-video",
+      "hash": "f7a119cfcf1fae40dec634516de25ac42c9e46dec7fd6d0118e99b4ee3602d67"
+    },
+    {
+      "model": "studio/wavespeed/bytedance/seedance-2.5/text-to-video",
+      "hash": "ca50fe8de39b1f9ef5f63b29de8f125c6ff062e3b44f72b3e7ab960d1afaa608"
+    },
+    {
+      "model": "studio/wavespeed/bytedance/seedance-2.5/reference-to-video",
+      "hash": "2e4e08c253d242c22f2ad797c818cbcbfd5202043a1efb41d8b0012c6c10dab7"
+    },
+    {
+      "model": "studio/wavespeed/alibaba/wan-3.0/reference-to-video",
+      "hash": "6c59ef5dd3dbf555ab0acf305d1f13df6bc965ea5da91e6ab09ef4e3188e5278"
+    },
+    {
+      "model": "studio/wavespeed/alibaba/wan-3.0/image-to-video",
+      "hash": "7f841d5185958af261a4d1369cb9db37a1fe5f6baf5dd898f94202aa19e4fe11"
+    },
+    {
+      "model": "studio/wavespeed/alibaba/wan-3.0/text-to-video",
+      "hash": "1a4d9c1be8277940ad53d3e8a7c4656c4a8bc6518de5d64cd5ce7ec609055dc1"
+    },
+    {
+      "model": "studio/wavespeed/kwaivgi/kling-v4.0/reference-to-video",
+      "hash": "222c2eef1d39486020027fabd1c08ef21c55c3d125407a84b7b724415af051b0"
+    },
+    {
+      "model": "studio/wavespeed/kwaivgi/kling-v4.0/image-to-video",
+      "hash": "72318292447247cb726157e03e00f2acad7649ffa338ab41fb00b8adc5b7a0b0"
+    },
+    {
+      "model": "studio/wavespeed/kwaivgi/kling-v4.0/text-to-video",
+      "hash": "eb03d6af2925187cbdf81ac3e3641b430db2f12c3513d20edd5a7226fb90026a"
+    },
+    {
+      "model": "studio/wavespeed/wavespeed-ai/minimax-h3/image-edit",
+      "hash": "d36c76fa91e0991d7a86f23a333fe077934cc7e2c0aa06ac8dda5e7e9e596e7c"
+    },
+    {
+      "model": "studio/wavespeed/wavespeed-ai/minimax-h3/text-to-image",
+      "hash": "4ec0fe459af66f978334c8ac78882c612fab38be35a3b9187fe15ed38e8c9cc3"
+    },
+    {
+      "model": "studio/wavespeed/wavespeed-ai/minimax-h3/reference-to-video",
+      "hash": "7eb92f91e89093c54f4d8a6b8fce8b9769cc90a43156a1c07d46736f359b543b"
+    },
+    {
+      "model": "studio/wavespeed/wavespeed-ai/minimax-h3/image-to-video",
+      "hash": "bb244ca19eb58d9966e0ad3e2578b22cc70cb3ba76afca165442c72606dd0241"
+    },
+    {
+      "model": "studio/wavespeed/wavespeed-ai/minimax-h3/text-to-video",
+      "hash": "3cee049e1af4de687d58cd64d0a02699b15be4df0e4ba18af01fdaaa8728b7f6"
+    },
+    {
+      "model": "studio/wavespeed/bytedance/seedream-v5.5/edit",
+      "hash": "5eaf641cca650b217a7af2c5eaff7e92b05dbdf1fd2590b3838b1bd1d8c8c7e2"
+    },
+    {
+      "model": "studio/wavespeed/bytedance/seedream-v5.0-pro/edit",
+      "hash": "3d75f3cf7406aefe4f51c53d431dfdd5dd6abe61552b12d1226d84df47fe772b"
+    },
+    {
+      "model": "studio/wavespeed/bytedance/seedream-v5.5",
+      "hash": "24081ee7fb4f97e6f18ff0f5604912fb6969e91e7ac622df031ec5ebc4e59de0"
+    },
+    {
+      "model": "studio/wavespeed/bytedance/seedream-v5.0-pro",
+      "hash": "faaa10af7e760421a4711dd9895d8e6e1054db3a5c2af8957f15b1d0696fe608"
+    },
+    {
+      "model": "studio/wavespeed/bytedance/seedream-v5.0-flash/edit",
+      "hash": "9d012afe07a76dc4a8cdfbeb9aa3ea3ac37bf2945a6fda7f969d8f4229dc08b9"
+    },
+    {
+      "model": "studio/wavespeed/bytedance/seedream-v5.0-flash",
+      "hash": "1869c0c6e9ebc969fb29e606a435127684b87e88b6f001d077fe623c417e55e4"
+    },
+    {
+      "model": "studio/wavespeed/alibaba/qwen-image-3.0/text-to-image",
+      "hash": "cdead5243a65883b1b78546ee0ab9938405a86b7f3d4dfcfac0160e448a9952f"
+    },
+    {
+      "model": "studio/wavespeed/alibaba/qwen-image-3.0/edit",
+      "hash": "6e11892fa2cff0bbed70176498cae626857202d6f8c1f175488abec95130b8c7"
+    },
+    {
+      "model": "studio/wavespeed/x-ai/grok-imagine-video-v1.5/reference-to-video",
+      "hash": "53433cf8e3c16a12f3add32e6b4047c3a095f1a8e7e9546059cae4fdde3e565c"
+    },
+    {
+      "model": "studio/wavespeed/x-ai/grok-imagine-video-v1.5/text-to-video",
+      "hash": "1ecfdaf073a272b7f37eba3c0617bd8d41fd1617b39f007a4b86fcd5ac1a4bda"
+    },
+    {
+      "model": "studio/wavespeed/alibaba/qwen-image-3.0-pro/text-to-image",
+      "hash": "1cf1b0808f28e04c8deb4e4d1da184fa05d1153814ec189da9e501f061ab10fe"
+    },
+    {
+      "model": "studio/wavespeed/alibaba/qwen-image-3.0-pro/edit",
+      "hash": "12828374251f26d6aad422d93e14221c314f57ee6447309fa23e25c43e3e229b"
+    },
+    {
+      "model": "studio/wavespeed/x-ai/grok-imagine-video-v1.5/image-to-video",
+      "hash": "77bc9056fe8784c758304c28ed41794eb6ece84fe82bae99c8f2592d60768a7b"
+    },
+    {
+      "model": "studio/wavespeed/x-ai/grok-imagine-image-v2.0/edit",
+      "hash": "e9a99ed459fe85617f6bfd1aa71939392783fed13c9b68636a9b8957e495d509"
+    },
+    {
+      "model": "studio/wavespeed/x-ai/grok-imagine-image-v2.0/text-to-image",
+      "hash": "020af37a57cad1a98411995ae3a677be8bcf4dda2282ee0686c9f942ff19ea55"
+    },
+    {
+      "model": "studio/wavespeed/black-forest-labs/flux-3/start-end-to-video",
+      "hash": "d22a439e0bb7e24cc09dd80f4b65067a3a893be523ad4c15f66746cea298c6ea"
+    },
+    {
+      "model": "studio/wavespeed/black-forest-labs/flux-3/image-to-video",
+      "hash": "b36ed0f9e8fe82a3d0e1c6abc7db60e9c4c696eb3a3d7200c434e9f075cdd396"
+    },
+    {
+      "model": "studio/wavespeed/black-forest-labs/flux-3/text-to-video",
+      "hash": "767411d9cce9618f1c5293490160f8172f9cf57a40f0a7d5784a0f514a49a060"
+    },
+    {
+      "model": "studio/wavespeed/minimax/h3-lite/text-to-video",
+      "hash": "4e27ed45cedd3ae45fc336a3e4ef2d37ab0ab14838502a4389d7ab194aa5a3a2"
+    },
+    {
+      "model": "studio/wavespeed/minimax/h3-lite/reference-to-video",
+      "hash": "9b0ab14bdf3644d2abbb1c48a18a93c10c7484de9a83906a98109da37d831a79"
+    },
+    {
+      "model": "studio/wavespeed/minimax/h3-lite/image-to-video",
+      "hash": "a0cf40707d3b6e191c9a170c0093d06d290ef0b1cdb4ed45b18bf0661d579d53"
+    },
+    {
+      "model": "studio/wavespeed/minimax/h3-highspeed/text-to-video",
+      "hash": "aded0c7d1f5df8020f7e3837240cbcdad21770792c793814fee4a7ac3df154e7"
+    },
+    {
+      "model": "studio/wavespeed/minimax/h3-highspeed/reference-to-video",
+      "hash": "85a12176c6e390e30b644f4f43082aea303f94f901455bf5942c2cd3c56580df"
+    },
+    {
+      "model": "studio/wavespeed/minimax/h3-highspeed/image-to-video",
+      "hash": "327a7bf55e345af7632f24e33ee1935b6bf9de38e2ce501c5937db1abc2f0f0a"
+    },
+    {
+      "model": "studio/wavespeed/minimax/h3/reference-to-video",
+      "hash": "f9cb14b32e7c87f94fb14307f86cc1ff43ec1397e331777c69e7157bb503b892"
+    },
+    {
+      "model": "studio/wavespeed/minimax/h3/image-to-video",
+      "hash": "c7b3d1fc1f06897f75c9c64235ed1077bde25369ea55bdbfc7a21760062f4754"
+    },
+    {
+      "model": "studio/wavespeed/minimax/h3/text-to-video",
+      "hash": "ee3721409277434338cf005780a0860e66692e4d65e0e6a4a03f14abfcef0135"
+    },
+    {
+      "model": "studio/wavespeed/bytedance/seedance-2.0-mini/image-to-video",
+      "hash": "7adf9c6afb39074c7e688c22227aa7cb89a43ae23c2502d663c100b85d8b939a"
+    },
+    {
+      "model": "studio/wavespeed/black-forest-labs/flux-3/image-edit",
+      "hash": "e3c4273a13eabe3121bbfa12bf523af90fea8ebdcef83845383445efd390a383"
+    },
+    {
+      "model": "studio/wavespeed/black-forest-labs/flux-3/text-to-image",
+      "hash": "7c8a028ed0784bd1ba626fdef8e2402eebc9078ff748d3752acb54d482a01eef"
+    },
+    {
+      "model": "studio/wavespeed/ideogram-ai/ideogram-v4.5",
+      "hash": "af91e9fcf239c610395c77008f34f1dd53d843f8ed5c145ecd52d3b2b4c3992d"
+    },
+    {
+      "model": "studio/wavespeed/ideogram-ai/ideogram-v4.5/edit",
+      "hash": "dd53796b098b34191bf77c2d7aac21906144c6304a37822afcc6206f1f1324a9"
+    },
+    {
+      "model": "studio/wavespeed/google/gemini-omni-1.1-flash/reference-to-video",
+      "hash": "1364eb8adfc7d8c95377f205c6465f6a8d29f9609ae93f06dc3f7c034a0878b1"
+    },
+    {
+      "model": "studio/wavespeed/google/gemini-omni-1.1-flash/image-to-video",
+      "hash": "bcf9da7dce04a38e2940f3a69bdee5696ecbc00f74c6c921688806ee7f062573"
+    },
+    {
+      "model": "studio/wavespeed/google/gemini-omni-1.1-flash/text-to-video",
+      "hash": "b149982f990181dbb3d2777d8af4f4baf3b5fd52110fc9868db92355f345c5b1"
+    },
+    {
+      "model": "studio/wavespeed/minimax/music-3.0",
+      "hash": "4da66dd186d651569c3f4a93cf8876ef964cb425dc706670038f4ca353b68d6e"
+    },
+    {
+      "model": "studio/wavespeed/bytedance/seedance-2.0-mini/text-to-video",
+      "hash": "bc9f85f79be82931b283604195d30fbb283f1f4db51c8620d805a8f5bed8efad"
+    },
+    {
+      "model": "studio/wavespeed/bytedance/seedance-2.0-mini/reference-to-video",
+      "hash": "c6c037cfaa2cdfbf8880af64815329da0fe68b6873dfd75123e7da78dc96623a"
+    },
+    {
+      "model": "studio/wavespeed/bytedance/seedance-2.0-fast/image-to-video",
+      "hash": "189cee7597f56f2cc8ad2e8af01c9408755eeeeff1bd2681d0c0c48f1d5486fa"
+    },
+    {
+      "model": "studio/wavespeed/bytedance/seedance-2.0-fast/text-to-video",
+      "hash": "a11b200f3df3b7f4fcd1aa57e4b592b9afceb68f5770c9fd9f5880f6f576a287"
+    },
+    {
+      "model": "studio/wavespeed/bytedance/seedance-2.0-fast/reference-to-video",
+      "hash": "8c29fffbe14b8389f6fe1b63e342435f39d6be4e3d104e0ef450007a53289fd4"
+    },
+    {
+      "model": "studio/wavespeed/wavespeed-ai/flux-3-klein-image-base/edit",
+      "hash": "cfd9392bd6dc6b97980fb98de39ff41904ead7aab2588abce93988aa59478414"
+    },
+    {
+      "model": "studio/wavespeed/wavespeed-ai/flux-3-klein-image-base/text-to-image",
+      "hash": "34a44ad129209faa30dd1870d0bad941eca1da3a15e90d1e1d00ff2ae7415859"
+    },
+    {
+      "model": "studio/wavespeed/wavespeed-ai/flux-3-klein-image-distilled/edit",
+      "hash": "c09f4492d2ba2ac562311a6fff6d095641860e5d0201403f4c9a84e41ec77a06"
+    },
+    {
+      "model": "studio/wavespeed/wavespeed-ai/flux-3-klein-image-distilled/text-to-image",
+      "hash": "b93deb25fcc8a191998c0d27870fd61f14c3c4ed0d393561421cb71fb5d99fba"
+    },
+    {
+      "model": "studio/wavespeed/x-ai/grok-imagine-video/reference-to-video",
+      "hash": "714a5efe41d3f8c261686cd2b90e2774441bce4f4e62ddb91a9ce8a014db02a9"
+    },
+    {
+      "model": "studio/wavespeed/x-ai/grok-imagine-video/image-to-video",
+      "hash": "b6654de863b6049bf81895e37462286ff3d5f7cec3ea3895cdef8ee658a026b4"
+    },
+    {
+      "model": "studio/wavespeed/x-ai/grok-imagine-video/text-to-video",
+      "hash": "6ad1378c89853d8b18a9bd28e3bd05b0a04ab575eb386b643771ffdab4ca5591"
+    },
+    {
+      "model": "studio/wavespeed/wavespeed-ai/z-image/base",
+      "hash": "b5baedf5b837d6b09ec8292817000556e00436149f22bc76e68a8d18fa1994dc"
+    },
+    {
+      "model": "studio/wavespeed/wavespeed-ai/flux-2-max/edit",
+      "hash": "5c0dde6c88c40e70d837949227a3c4481f7c7925a92213cc69c5345d7587af50"
+    },
+    {
+      "model": "studio/wavespeed/wavespeed-ai/flux-2-max/text-to-image",
+      "hash": "8390b3b611ce734f05cbd0566af103967e9f7b708990db24785d65bff6138a1a"
+    },
+    {
+      "model": "studio/wavespeed/wavespeed-ai/z-image/turbo",
+      "hash": "0421d6453957ebbabec0623974506a1451048b39858745a16bbb5dbfb82a1af9"
+    },
+    {
+      "model": "studio/wavespeed/wavespeed-ai/flux-2-pro/edit",
+      "hash": "fa2ac2d67ce9bfd6342f8b98793fedb4de3b71aac67c03e6850d6ba0e73381e6"
+    },
+    {
+      "model": "studio/wavespeed/wavespeed-ai/flux-2-pro/text-to-image",
+      "hash": "e7d9913fc7da1ebd1de0830a49f850ff180a8ace6d8a2fd0f3f47f02acb89b11"
+    },
+    {
+      "model": "studio/wavespeed/wavespeed-ai/hunyuan-video-1.5/image-to-video",
+      "hash": "28b3ebee366d4e348ea739f779c47d2e55e4e890944d93f6813d1b32b1b85bec"
+    },
+    {
+      "model": "studio/wavespeed/wavespeed-ai/hunyuan-video-1.5/text-to-video",
+      "hash": "996e645d10a7352d4c1d793682a33087be16e92089062be48ca5b16ffe2af81e"
+    },
+    {
+      "model": "studio/wavespeed/minimax/speech-2.6-turbo",
+      "hash": "a59ef676b3e3490071fa748b1fe56577d99efe076ff9493c35f66b61d29a7527"
+    },
+    {
+      "model": "studio/wavespeed/minimax/speech-2.6-hd",
+      "hash": "161f796351860d9fca40726abfe506f1b0d0328e3be5d95d3108787dad251c36"
+    },
+    {
+      "model": "direct/openai/gpt-image-2.6-sunburst",
+      "hash": "fcb3d3356dee086f2cc3c5a56b3ee397a795bad626d56367d34161fb3f8c4b3a"
+    },
+    {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-sunburst",
+      "hash": "0c2b747ef004201b84c9caca8a27834f9eec14bc5fe59e07ece7363c0ad80824"
+    },
+    {
+      "model": "studio/native/fal/openai/gpt-image-2.6/sunburst",
+      "hash": "a7ea1565abc48cb22284585c5c3602f84c520c2aca42bab2799df429bd398a90"
+    },
+    {
+      "model": "direct/openai/gpt-image-2.6-flare",
+      "hash": "b7643542cc5f5224053d4fd35bc726f5a855d8134f8ae6b9cdd66790f7ed69a6"
+    },
+    {
+      "model": "studio/native/openrouter/openai/gpt-image-2.6-flare",
+      "hash": "b37b4b3fdebeda1dbbd891567571da4b718b241a5e5d138ccec679ec3e6087fa"
+    },
+    {
+      "model": "studio/native/fal/openai/gpt-image-2.6/flare",
+      "hash": "9c8fc44c792efd7ef8470030820df32a5d49e122eaa536f8554bb85d246b470e"
+    },
+    {
+      "model": "direct/openai/gpt-image-2.5-sunburst",
+      "hash": "6f3138a6c2f63cb156c9e7b986bd2ea8046ce7c25f888cddd1d36531586718f9"
+    },
+    {
+      "model": "direct/openai/gpt-image-2.5-flare",
+      "hash": "8b6b20586cf6e3ad2d479abf7919ac8dc939e9393c965f3e90b6f38b7de46960"
+    },
+    {
+      "model": "direct/openai/gpt-image-2",
+      "hash": "bd33bac403f304e8d7d25a57de8f9a43a883e7f06e86d95b56991b12ed78f9c6"
+    },
+    {
+      "model": "direct/openai/gpt-audio-1.5",
+      "hash": "9b19ffd712547db9357090d16b8242825089fb466b82dfe1438eebcb48be3dd7"
+    },
+    {
+      "model": "direct/xai/grok-imagine-image-2.0",
+      "hash": "56c58356f77fe76c9e8269a52980df4d9033d592034bc3b85a8b9ba6ce9dcf13"
+    },
+    {
+      "model": "direct/xai/grok-imagine-image",
+      "hash": "266c979ca23f454aa4df11337c95698248d0e68b650c74c2b1c62a1ca1480df5"
+    },
+    {
+      "model": "direct/xai/grok-imagine-video-1.5",
+      "hash": "98ff975ae655a490e147cdf87bd54dd29bd6377de297568a97eaabf7292adb9c"
+    },
+    {
+      "model": "direct/xai/grok-imagine-video-1.5-lite",
+      "hash": "41319b0338638af1a00391192703e9f35e5385cf7b613a954883149f13af1cf0"
+    },
+    {
+      "model": "direct/xai/grok-imagine-video",
+      "hash": "2cf3c34765a7a571a0b640574fcbf2a44db0a484682c91639b911a6067bb3e3f"
+    },
+    {
+      "model": "direct/xai/tts",
+      "hash": "99b045632aa9ddecb592d1bc5e2151e94234421d45eaf112965ab93836122d0d"
+    },
+    {
+      "model": "studio/native/bfl/flux-pro-1.1",
+      "hash": "6d9a4e91502187642cb92e5827d0a4aeeefb778fa1ea019560744b3e2d5db4b9"
+    },
+    {
+      "model": "studio/native/bfl/flux-dev",
+      "hash": "d2476c101c34224e8fc53e5c6f86c561dabddf7cc54c8783f57ac0c523495b1a"
+    },
+    {
+      "model": "studio/native/bfl/flux-pro-1.1-ultra",
+      "hash": "96125b43c6565db0df3c24f1044dc987bf2fb1dcf91a27bde8a6b137b4908e40"
+    },
+    {
+      "model": "studio/native/bfl/flux-pro-1.0-fill",
+      "hash": "026f76060008badbe71e77dc604fc939c177cb322d99805759a2b8cf9ae8daf8"
+    },
+    {
+      "model": "studio/native/bfl/flux-2-flex",
+      "hash": "ebf453a7db4fca5239e9b9cd25517a3f9232808901a8294a1460ee4deb5db6ab"
+    },
+    {
+      "model": "studio/native/bfl/flux-2-klein-9b",
+      "hash": "afb3f173b933a2e6071aeb305352082017e89dd09f797451b3f4a4a228d6d8d1"
+    },
+    {
+      "model": "studio/native/bfl/flux-2-klein-4b",
+      "hash": "0fa355a7cb42121d9e95691634da64dd280b13cf3aec0c0244ed9d5c6e0325b8"
+    },
+    {
+      "model": "studio/native/bfl/flux-2-max",
+      "hash": "ed5fd9140c70f3a77b70a7466fc8ac2f94a2842cda705b8522435ce08e78037c"
+    },
+    {
+      "model": "studio/native/bfl/flux-2-pro",
+      "hash": "6fad4b20ad262edf86be09a31dd9dde1af5d81109fa71ac12a7fbb6c31f75c5c"
+    },
+    {
+      "model": "studio/native/bfl/flux-3-video",
+      "hash": "c5422939a1c7a6208263259e12c5bdeabffb1237c6a7ac5e06bfce9798ec8da3"
+    },
+    {
+      "model": "studio/native/bfl/flux-3-image",
+      "hash": "f9954a7db22333f12ea9cba39624db036fc58824c661983ebc1b07ec42ac9b29"
+    },
+    {
+      "model": "studio/native/bfl/flux-3-image-klein",
+      "hash": "d75a91814d70e2dbf658a4418e4721492b3c1a09310e84decb9e1b2bda99c246"
+    },
+    {
+      "model": "studio/native/bfl/flux-kontext-max",
+      "hash": "c0ef81576ee0cdfb8950ae3243466edacf3129d786f2c52d814baaa8edabbdae"
+    },
+    {
+      "model": "studio/native/bfl/flux-kontext-pro",
+      "hash": "6d1551cf284f52e3bf405e15df1f9091a32c3287f82659a34dbb7313d54df417"
+    },
+    {
+      "model": "studio/native/minimax/minimax-h3",
+      "hash": "49c76fdf893c974ff16834b17779a2953edbe7fe3edba5782b23373605ee4e36"
+    },
+    {
+      "model": "studio/native/minimax/minimax-h3-highspeed",
+      "hash": "269e78a9548e830f3c5c304ade90dfa1f353988775a579d50a1aaa5cdd68f7ed"
+    },
+    {
+      "model": "studio/native/minimax/minimax-h3-lite",
+      "hash": "c40f8d222f28b7aeccc97b70bb42f2dd50e8e36a983caa734e0819c3ca180e78"
+    },
+    {
+      "model": "studio/native/minimax/minimax-h3-max",
+      "hash": "ad32099dce2d2ab76e4a4f5e1605520693fa86fde35790c2ffb6bef73981c548"
+    },
+    {
+      "model": "studio/native/minimax/speech-2.8-hd",
+      "hash": "cc21336c8581fbf4df6a9d5b8dccbfcba2b61b1d5e06a416cd8a46b2da819340"
+    },
+    {
+      "model": "studio/native/minimax/speech-2.8-turbo",
+      "hash": "8688485995d819de85f91149e06c2e92b1db2ffcae13b0e59cd003afb47f1902"
+    },
+    {
+      "model": "studio/native/minimax/speech-2.6-hd",
+      "hash": "55606f7b555ff5dab2ab8e1b6c99c1762039ae459eab4de82bfa4168c41fba85"
+    },
+    {
+      "model": "studio/native/minimax/speech-2.6-turbo",
+      "hash": "876c639dfe14dc361956c348e46680f2b2d9013991a1aeda78cc8efd3329966b"
+    },
+    {
+      "model": "studio/native/minimax/speech-02-hd",
+      "hash": "fd8a80c189c9440b6b35d03a1d000fdd418f7322dbb57d865d5859530d947f63"
+    },
+    {
+      "model": "studio/native/minimax/speech-02-turbo",
+      "hash": "0e95758e9d692d5be239a42c75b3811fa75c88c7c06fc5f425dda9dfd9d5a7d4"
+    },
+    {
+      "model": "studio/native/minimax/image-01",
+      "hash": "be32a57f8eed125f475938a13fa47fb4645ed6d10dd0474ab4d6827449a7f5d4"
+    },
+    {
+      "model": "studio/native/kling/kling-4.0",
+      "hash": "de25ed1ec2b5e35ee118614c0f9cba8270ee2f58fbfd191fdb30ecf8177e7026"
+    },
+    {
+      "model": "studio/native/kling/kling-3.0-omni",
+      "hash": "1f97dfa695f67e7fb20e8ff0baae56e9e0a1435955d0965cd0fad4a4daf7a3c2"
+    },
+    {
+      "model": "studio/native/kling/kling-o1",
+      "hash": "f1104e001bd7b5731f3a8f7539750885b33097c9a3b8d66703567734ebf34604"
+    },
+    {
+      "model": "studio/native/kling/kling-3.0",
+      "hash": "57625ac5c58841e44a3cad2360a5a04c055254774e8de06166b45ce2d7e3323c"
+    },
+    {
+      "model": "studio/native/kling/kling-3.0-turbo",
+      "hash": "fdbff509a30816da6a44a3ffcd00c564c37611c85ec08ca672bd772e51e4ad7f"
+    },
+    {
+      "model": "studio/native/kling/kling-3.0-turbo-image-to-video",
+      "hash": "d5683389c3940f3e07a338d1efaf73975014a6a56cc44697656842e4ebd84124"
+    },
+    {
+      "model": "studio/native/kling/kling-2.6",
+      "hash": "c7ec404160c7682670b7e65bcfe6515c65e795c74900f2c12aa8450f26c42c10"
+    },
+    {
+      "model": "studio/native/kling/kling-2.6-image-to-video",
+      "hash": "78ebe133c136247346e8b2bea88479595cb081db52419efb4860f48d51465086"
+    },
+    {
+      "model": "studio/native/kling/kling-2.5-turbo",
+      "hash": "c4addf12a7e7fa9cd6b0fb68a705ff7c77c662663b6517d8576a641fc0e90149"
+    },
+    {
+      "model": "studio/native/kling/kling-2.5-turbo-image-to-video",
+      "hash": "9d3e2dd0a429a77d35edd268113421d50841cad9f2238ffe7ed4d605461d08f0"
+    },
+    {
+      "model": "studio/native/kling/kling-v3",
+      "hash": "39f4e6e7b05efde9e2c5ba120c7c46f3cff97aa213251eea76aa137c7c057c61"
+    },
+    {
+      "model": "studio/native/kling/kling-v2-1",
+      "hash": "07847e9a54a440711a0caf4c1b0cfa94cff1b5e0f6885582023650daf3b8bb33"
+    },
+    {
+      "model": "studio/native/kling/kling-v3-omni",
+      "hash": "465b089fdd03f0cab70bed657e2353bd4454ca6b43885b167aec43130e25cbf4"
+    },
+    {
+      "model": "studio/native/kling/kling-image-o1",
+      "hash": "7f7e3b6d682d6b16629b3eb53a20d02c9acb69db1dd7dcd495e13134418bda58"
+    },
+    {
+      "model": "studio/native/elevenlabs/eleven_v4",
+      "hash": "dc25c19a2fb95739ffb418bb4fb42a041af4470913ed93a58e1f9f89bd02c0ef"
+    },
+    {
+      "model": "studio/native/elevenlabs/eleven_v3",
+      "hash": "9594c43bbdebd92b24b44fee52aea4fb2c04e6492259ae7b6aebb72dff17bcc7"
+    },
+    {
+      "model": "studio/native/elevenlabs/eleven_multilingual_v2",
+      "hash": "eb909f7888356bb08949f0bb9b19b846b427a1d9ccfb71b442a1a2bf5f02561a"
+    },
+    {
+      "model": "studio/native/elevenlabs/eleven_flash_v2_5",
+      "hash": "3a1e88f5060c35b976b3959fc4bedee50b8effc597b6cf491648c3109ce374e1"
+    },
+    {
+      "model": "studio/native/elevenlabs/eleven_flash_v2",
+      "hash": "b4accd3e17fffaaee60b3ca8f85357ab355e44de71320a40163cfde11e9a9703"
+    },
+    {
+      "model": "studio/native/elevenlabs/eleven_text_to_sound_v2",
+      "hash": "36f89b85a334360eead1339ca7ee989dc54ee82466a1858976baca813968cbcd"
+    },
+    {
+      "model": "studio/native/elevenlabs/eleven_text_to_sound_v3",
+      "hash": "df0c9013aceba4c811714dd971d144fa655a8f341dc59cf3473f4a0db6917161"
+    },
+    {
+      "model": "studio/native/elevenlabs/music_v2",
+      "hash": "47fd3a9fd009a85c4e7ee287adaa4f63a1b249338712cdf42c009df694ae7f17"
+    },
+    {
+      "model": "studio/native/elevenlabs/music_v2_5",
+      "hash": "e449ec9ffe8f99f2e54c312c1327b553010bdfd642efffa80632a2073886ed0e"
+    },
+    {
+      "model": "studio/native/luma-agents/uni-1",
+      "hash": "d5b925ff22134305702cd5ea279f3d3addfe908e154be2c1fb508e8ffb1d6561"
+    },
+    {
+      "model": "studio/native/luma-agents/uni-1-max",
+      "hash": "dc7e7ea0d8326a1f882c96735a3f142a0a333266d9170ec36951c95cddc1ec5a"
+    },
+    {
+      "model": "studio/native/luma-agents/ray-3.2",
+      "hash": "e2f5ca9ce0099695520f3ae09fdd85a69299e1c571efdf3c32bcbb04f86a7718"
+    },
+    {
+      "model": "studio/native/runway/gen4.5",
+      "hash": "a91b3a336ead315806c8dd7889ab2d62482ff80ad09c9565a77d2f1b12bc4d29"
+    },
+    {
+      "model": "studio/native/runway/gen4.5-image-to-video",
+      "hash": "6aaf60e7e1ec632f541d4c2072a23e489f9ed317eb66b099162320076e6ed33c"
+    },
+    {
+      "model": "studio/native/runway/gen4_turbo",
+      "hash": "59e727be9167df3d01ff333ddcddc4e426d37e939c30d340112bc449fcbe4ad8"
+    },
+    {
+      "model": "studio/native/runway/aleph2",
+      "hash": "fa010f1093e5b0d30ab21c7227703c9e06acdb44e1fced4bbcf0a4485f554ff0"
+    },
+    {
+      "model": "studio/native/runway/gen4_image_turbo",
+      "hash": "f7ff46593ea332215df424df3353f4c52c7657d5e32b3fcb481f9a08bfff660f"
+    },
+    {
+      "model": "studio/native/runway/gen4_image",
+      "hash": "571964a48751176b29fd2b3c1d6f8e27475b9eff718f99a45f8c27e925dbc779"
+    },
+    {
+      "model": "studio/native/runway/muse_image",
+      "hash": "8f3406939af47f059c0e54d164e5c2516a334b1fd89b14f3cbc8ad92c6bed743"
+    },
+    {
+      "model": "studio/native/runway/act_two",
+      "hash": "a2e92e8673069b445d9f2273a375eb0a26d6879434612fc0409651173f66f1fe"
+    },
+    {
+      "model": "studio/native/elevenlabs/eleven_v4_turbo",
+      "hash": "01292ff7bf1ab203a0fa7e5dfb4abf108c90fbd8a8a47dc81cc997d738df694e"
+    },
+    {
+      "model": "studio/native/elevenlabs/eleven_v3_conversational",
+      "hash": "70eaf7576f3ab23324a4a999576ab05acd01ed10c770fc35f3701669de70840b"
+    },
+    {
+      "model": "direct/kling/kling-3.0",
+      "hash": "f4c50b6c51fd8e3c70027015f57aa5a1a1339f20e24f2d6f0b455b25dd1179cd"
+    },
+    {
+      "model": "direct/vivix/vivix-w1",
+      "hash": "03be1ab363312581081af446179986ec5cc36ff289baea1a4707915d762e9476"
+    },
+    {
+      "model": "direct/minimax/hailuo-2.3",
+      "hash": "cad103e345da731d231dd8174957e83e605be2448304a725887c9c07bf59f560"
+    },
+    {
+      "model": "direct/openrouter/veo-3.1",
+      "hash": "60645a0e7dbfa63edd311e8f243cbc3e020ff9ee1a3aaae9a3004cab0101277c"
+    },
+    {
+      "model": "direct/bfl/flux-2-pro",
+      "hash": "fffed09c26bab16958c097d9baad92e3509cf656760035b2dc4afa4a59631bf3"
+    },
+    {
+      "model": "direct/replicate/hailuo-02",
+      "hash": "e9984751ed9524f7718e0666ac876d07a75cf0903b38d01b4a6906ac9c00994d"
+    },
+    {
+      "model": "direct/google/veo-3.1",
+      "hash": "fba6c9d605f05104315021bff7b4ac823cba7b0a865936d76382972c56c5f3dc"
+    },
+    {
+      "model": "direct/runway/gen4.5",
+      "hash": "7161e3b32ed6782318195125ee4a9afd31917fe797cef8a0403304827d680fe7"
+    },
+    {
+      "model": "direct/luma/ray-2",
+      "hash": "7d06b44f99db76967d5d23c12ba41e59b8b518a1cbdc0a4f07d15f45681996f5"
+    },
+    {
+      "model": "direct/elevenlabs/multilingual-v2-rachel",
+      "hash": "04d8eb6c33b1bdae5b532d2f1a31a9934bbe7c9309532e62d2be83856103a9ac"
+    },
+    {
+      "model": "studio/pika/pika-h3-flex",
+      "hash": "a03ea414a037810c870d08b325eae2c74d0b53da3ab15eb0f55d20dffe25ef47"
+    },
+    {
+      "model": "studio/fal/heygen/heygen-video/text-to-video",
+      "hash": "ff7ea4f502d264b6a34fb059a4a477afb95bca233a087a5fa88b8ea496e152f4"
+    },
+    {
+      "model": "studio/fal/google/gemini-omni-flash/v1.1/text-to-video",
+      "hash": "1160e3e1dcc27f0121bb351c364c7c44fc7196e39629a7a7f73114e21dac92bc"
+    },
+    {
+      "model": "studio/fal/fal-ai/vidu/q4/image-to-video",
+      "hash": "866d338f448d8b03d3703fcb9e3f78ad94421a17282d11b2a817046e002b4e62"
+    },
+    {
+      "model": "studio/fal/kling/v4/text-to-video",
+      "hash": "ce0a92b00946bcea2c3ff3b3a1868bf8c7ed7a3bf1d3c8e493f6326a33d2c769"
+    },
+    {
+      "model": "studio/fal/blackforestlabs/flux-3-max/text-to-video",
+      "hash": "9b3b210244da132820a6b61f63e8c39ada7a77ed897c6d72e7ebb6929db92f33"
+    },
+    {
+      "model": "studio/fal/minimax/h3-max/text-to-video",
+      "hash": "ac3f88b37fedd01bff4c9edf3b280876decdff0306b45c94b1fe8341fc0db21c"
+    },
+    {
+      "model": "studio/fal/minimax/h3-max-turbo/text-to-video",
+      "hash": "d2f7476d0f66c1509ff830d308bcb400a95f11b2dc770763681bdc36eb735db8"
+    },
+    {
+      "model": "studio/fal/alibaba/wan-3.0/text-to-video",
+      "hash": "da1df70b6c8a1571d6d3a6595a6f359752e41eb310317d7ba7d6eb6e2c058319"
+    },
+    {
+      "model": "studio/fal/bytedance/seedance-2.5/text-to-video",
+      "hash": "e9d35077884b6c04ac3c15fb8e4278e703ae57167775db7c8ff2e31685836067"
+    },
+    {
+      "model": "studio/fal/xai/grok-imagine-video/text-to-video",
+      "hash": "33329ea12304a4e08595543aa51796c490ffb0441441197265d15221e4ef1674"
+    },
+    {
+      "model": "studio/vivix/vivix-w1",
+      "hash": "ef37dbb44ef235533cd42f04cb4dc8e74666eecad8fd78fba2e6e2f3d0f9d651"
+    },
+    {
+      "model": "studio/vivix/vivix-w1-fast",
+      "hash": "6556237f27e87031cbcfd323a58282dfae16fb4a1b079a2fc3fb277e41dd72dd"
+    },
+    {
+      "model": "studio/vivix/vivix-w1-ultrafast",
+      "hash": "31cf9ba80283f23c95b238856aa4b0fdc2ba0fc423947655e290b30b339c93c4"
+    },
+    {
+      "model": "studio/openrouter/bytedance/seedance-2.0-mini",
+      "hash": "d2e57a50676ac8eadec762ab23d41e528c934904734928e6c32c785abd05f340"
+    },
+    {
+      "model": "studio/openrouter/bytedance/seedance-2.0-fast",
+      "hash": "a9af874c69e4750c72a57194f185e60534f5d99bf396eb5ed71df4a554379dbf"
+    },
+    {
+      "model": "studio/openrouter/bytedance/seedance-2.5",
+      "hash": "39948094a8dcc4909045b3db52d6eaca95cb504d3b64679a60d393d315378384"
+    },
+    {
+      "model": "studio/openrouter/alibaba/wan-3.0",
+      "hash": "f737250c8226c511c00521e59c5a82fa138d5f1653f062aca70b0b7c14fa8609"
+    },
+    {
+      "model": "studio/openrouter/x-ai/grok-imagine-video",
+      "hash": "54c4fb43e03f404d743d25917da67c8892ccda65464192498889a8ff7d6bc142"
+    },
+    {
+      "model": "studio/openrouter/x-ai/grok-imagine-video-1.5",
+      "hash": "7cad647e2fa4d929b818b5867a4e3d2e0adcc625a0ea55fd3f223b4279485a0e"
+    },
+    {
+      "model": "studio/openrouter/x-ai/grok-imagine-video-1.5-lite",
+      "hash": "6bdcde8a187409a590a6d961caf880b02f8c0e6e92cb4505afa5efa12fc39be0"
+    },
+    {
+      "model": "studio/openrouter/minimax/hailuo-3-max",
+      "hash": "bb317575f75edac013a8f5dac285ce9ad968bdcc9ccb4d655b871cefb60c2293"
+    },
+    {
+      "model": "studio/openrouter/alibaba/wan-3.0-prime",
+      "hash": "c8a1e2b0967319183eed258f661e5ab7808f84f1ceedbe706cc2ef7592939b1c"
+    },
+    {
+      "model": "studio/openrouter/runway/gen-4.5",
+      "hash": "dad1a083b10fbcd5195ffd3fe0cb70a06131a80637d6ae542ab03e58d27a16c0"
+    },
+    {
+      "model": "studio/openrouter/alibaba/happyhorse-1.0",
+      "hash": "12702be632d0298ee0d5bd2398b23f8a8d9b999ce2ba758c4526b7f97d2ae0ea"
+    },
+    {
+      "model": "studio/openrouter/alibaba/happyhorse-1.1",
+      "hash": "9cd41109dd2cbe7f76abe934c6c702e88316d8883a2e5b7cac3f0b34b5ca477d"
+    },
+    {
+      "model": "studio/openrouter/kwaivgi/kling-v3.0-pro",
+      "hash": "4e2eb8978ca3d8f54ab6670ed00c6a9b276838e7186c1767dbe049292ba15bef"
+    },
+    {
+      "model": "studio/openrouter/kwaivgi/kling-v3.0-std",
+      "hash": "01e7d37b01d8ccbadd3dab4bf666c511c7613b9e28f55b1ecd3c5bf19909b0b9"
+    },
+    {
+      "model": "studio/openrouter/kwaivgi/kling-video-o1",
+      "hash": "ce7d6e49e57b2cb645b7346c5e007b02cde0d830a47c5e38786dfdc70c72497a"
+    },
+    {
+      "model": "studio/openrouter/minimax/hailuo-2.3",
+      "hash": "a5a5ad3b52ca852787f2e941d986f7b7c60d274559542bf15eef7407411b9088"
+    },
+    {
+      "model": "studio/openrouter/alibaba/wan-2.7",
+      "hash": "44e67859925f2d8b9c3fe84b5a0f1f978a42ba5574535ff0e8848c4bdc84846b"
+    },
+    {
+      "model": "studio/openrouter/alibaba/wan-2.6",
+      "hash": "b530c4c34b84df9f9a894f1c42652f121abbc5fb67794b686bc8b11a17b141ee"
+    },
+    {
+      "model": "studio/openrouter/black-forest-labs/flux-3-video",
+      "hash": "b0df1b55decef4e9fed6513f00168da615ab8fb9df52cd33cd7965281e96eda8"
+    },
+    {
+      "model": "studio/openrouter/minimax/hailuo-3",
+      "hash": "e7ed1eb5250ff9df6f8743b67286586470ff0df0709f091314e187c365d5f669"
+    },
+    {
+      "model": "studio/fal/google/gemini-omni-flash/v1.2/text-to-video",
+      "hash": "82acd69c00f2392622189af2ec704e141f36880aedc89f52023b765f5f1b2f4f"
+    },
+    {
+      "model": "studio/openrouter/google/gemini-omni-1.2-flash",
+      "hash": "71532837cbe69146d1439c2af1cd3212eb16bab180c5aa7bf3db90317bca943b"
+    },
+    {
+      "model": "studio/fal/bytedance/seedance-2.0/text-to-video",
+      "hash": "366969eb4e880c85ecf3b8ce1e8c1b0277a61da30c4b0eebb6a950572efeb88b"
+    },
+    {
+      "model": "studio/openrouter/bytedance/seedance-2.0",
+      "hash": "d18a8a0133f1d7df56fa14e324f4e03c65f5bab89f40f2d497c3a1f99ec07915"
+    },
+    {
+      "model": "studio/tool/fal/kling/v4/video-to-video/edit",
+      "hash": "94417a4a906bd00704c879924297648c566cf82340763dacf3d18c97ce098068"
+    },
+    {
+      "model": "studio/tool/fal/minimax/h3-max/recast",
+      "hash": "b23523c833a7c6b3f7ffcfd351f19e154babff37e25ef519361e5a1dcce87dde"
+    },
+    {
+      "model": "studio/tool/fal/minimax/h3-max/relight",
+      "hash": "5d7b06eba68871caff516a47b8310cae42402bdedd0fd68da237b6dda3c613ae"
+    },
+    {
+      "model": "studio/tool/fal/veed/dubbing",
+      "hash": "f06dcabb3763911ea9bd503c807402023a83037d90afbb58d2d6401832ff0d32"
+    },
+    {
+      "model": "studio/tool/fal/veed/dubbing/pro",
+      "hash": "7190f00477fe6fe2728d43e9bc506c33a5771b03d00aaca077d51ed05d8c8718"
+    },
+    {
+      "model": "studio/tool/fal/heygen/heygen-voice",
+      "hash": "a5f0f357c201922044981056c43aefa28b07dc61d2d63ea00592920a45e1348c"
+    },
+    {
+      "model": "studio/tool/fal/heygen/heygen-voice/turbo",
+      "hash": "618a59d833e66481cd13a3afa1bf11f6dc0b631d3adf74ed230d0c757a5c0dad"
+    },
+    {
+      "model": "studio/tool/fal/blackforestlabs/flux-3/klein/text-to-image/lora",
+      "hash": "c65a513130c37b07e41575ad08b47bee7dbd63839590bae5001fe9dfa0c3bb01"
+    },
+    {
+      "model": "studio/tool/fal/blackforestlabs/flux-3/klein/edit-image/lora",
+      "hash": "38c3bc5057d3a3dd0b947715e1abd0d0f0dea4e9ac199ab010e2972fa460b7a3"
+    },
+    {
+      "model": "studio/tool/fal/fal-ai/motion-to-code/gsap",
+      "hash": "b59c7a865562e712cc28aaa1bcc8c5f7ded10e5120cfd09345d34c75d59b7b55"
+    },
+    {
+      "model": "studio/tool/fal/fal-ai/motion-to-code/glsl",
+      "hash": "d94346f60480592a3ea2b61bb810aff1ffc30272a174f1ebad89a559d82d7c2c"
+    },
+    {
+      "model": "studio/media/fal/fal-ai/ideogram/v4.5",
+      "hash": "18737672bfecbd52b1710855747edb1537660b535863defae9e75478e6256138"
+    },
+    {
+      "model": "studio/media/fal/xai/grok-imagine-image",
+      "hash": "e2604e5e19cf9c19f053148cf7ddda482d5b6b7d21f25ec46a9596acd68870bb"
+    },
+    {
+      "model": "studio/media/fal/blackforestlabs/flux-3",
+      "hash": "5af852d71eae493ecc83b5f1528209cb0e018548eadfb6ed5e1034cc5f54975d"
+    },
+    {
+      "model": "studio/media/fal/google/nano-banana-2.1",
+      "hash": "6674ffe359b1c2b4ea746839bcf6f19fbda576e5b213ba13cf51d08062e2f851"
+    },
+    {
+      "model": "studio/media/openrouter/openai/gpt-image-2.5-sunburst",
+      "hash": "ac338e42357b5f544a58852fbfb91de112e09374a9b23ddc8109bb9c02a35829"
+    },
+    {
+      "model": "studio/media/openrouter/google/gemini-3.1-flash-lite-image",
+      "hash": "45789be72cf257d07238bf7922e7da0d8249a022b83c31c159081de99f93277c"
+    },
+    {
+      "model": "studio/media/openrouter/google/gemini-3-pro-image",
+      "hash": "cab81004d3ba64b90333f4573f8f218e934e90eddb7794532210772cc626108b"
+    },
+    {
+      "model": "studio/media/fal/fal-ai/elevenlabs/tts/eleven-v4",
+      "hash": "6243d0b95a0827400bd548ade0d59b5bec3efb1e21d0e22caa852cd471860c62"
+    },
+    {
+      "model": "studio/media/fal/minimax/music-3",
+      "hash": "a80f99f3d544809a87e0349734022d1be582db69f83fc2545c5174fdff53b632"
+    },
+    {
+      "model": "studio/media/fal/fal-ai/stable-audio-25/text-to-audio",
+      "hash": "adb9297848c47697eb1e0905e561fc8abbf29bf36cd304fe04e9118f784eccc9"
+    },
+    {
+      "model": "studio/media/fal/fal-ai/elevenlabs/sound-effects/v2",
+      "hash": "b45971ef57b083691b72bfecff9a50b454e5ea423546f5d6467e8811699a8445"
+    },
+    {
+      "model": "studio/media/fal/minimax/h3-max/text-to-video",
+      "hash": "37bf508eefc0cdec9f68d27cca243925d46f1f57949123b14ca56fc8d2460a8a"
+    },
+    {
+      "model": "studio/media/fal/ideogram/vector/text-to-vector",
+      "hash": "6557164566aa0f519d8339dada8f991b15895bbc861b8c521d30d8f16433eb61"
+    },
+    {
+      "model": "studio/media/openrouter/openai/gpt-image-2.6-sunburst",
+      "hash": "8e36cab4f0ed612608fab1065ad602f41061430054e9b784da9a353a834afabf"
+    },
+    {
+      "model": "studio/media/openrouter/openai/gpt-image-2.6-flare",
+      "hash": "5e1c0c92a5751284f5ecca171389f5020db33cc23e31c2744967b1dfd7a98126"
+    },
+    {
+      "model": "studio/media/fal/minimax/h3-image/text-to-image",
+      "hash": "22aa8a260107b2170570beb33516ad54cb193d17459751c3e3a372440d5a5140"
+    },
+    {
+      "model": "studio/media/fal/minimax/h3-image/highspeed/text-to-image",
+      "hash": "35297938b22bf0898e463ae4f2e9c474c2388c1de11bd1db3820c7ecbb635d27"
+    }
+  ],
+  "numeric": {
+    "value": {
+      "z": 0.1,
+      "😀": -2.25,
+      "a": [
+        1,
+        1,
+        true,
+        null,
+        "é"
+      ]
+    },
+    "hash": "b16e3645613dd350f5b6ed03d00159192a4e6dee0dce3e6153604edd2c3086f9"
+  }
+}

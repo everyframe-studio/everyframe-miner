@@ -1,0 +1,78 @@
+[
+  {
+    "request": {
+      "model": "studio/fal/bytedance/seedance-2.0/text-to-video",
+      "prompt": "A quiet lake",
+      "seed": 42,
+      "duration": 5,
+      "resolution": "4k",
+      "aspect": "16:9",
+      "references": [],
+      "promptExpansion": "balanced"
+    },
+    "spec": {
+      "model": "studio/fal/bytedance/seedance-2.0/text-to-video",
+      "input": {
+        "prompt": "A quiet lake",
+        "seed": 42,
+        "duration": 5,
+        "resolution": "4k",
+        "aspect": "16:9",
+        "references": [],
+        "promptExpansion": "balanced"
+      }
+    },
+    "inputHash": "867b6ed7e8ad938d60fab8ebf080cf1535391895f89a97c867ab57530fca5527",
+    "contractHash": "faf06d02cf450226c6e4ba6e40cb00ca2d1abbf0f73846e49b5c7a6c0bddb67d"
+  },
+  {
+    "request": {
+      "model": "studio/openrouter/bytedance/seedance-2.0",
+      "prompt": "A quiet lake",
+      "seed": 42,
+      "duration": 5,
+      "resolution": "4k",
+      "aspect": "16:9",
+      "references": [],
+      "promptExpansion": "balanced"
+    },
+    "spec": {
+      "model": "studio/openrouter/bytedance/seedance-2.0",
+      "input": {
+        "prompt": "A quiet lake",
+        "seed": 42,
+        "duration": 5,
+        "resolution": "4k",
+        "aspect": "16:9",
+        "references": [],
+        "promptExpansion": "balanced"
+      }
+    },
+    "inputHash": "b3323d4721a2f27cec0956f03c4313c6e0526ce7616112e50e576c30f7c8bc16",
+    "contractHash": "0055858cb55e68e1aa0d69108d0e3c26417b0c25a9246e4a89c942eb00f51ed1"
+  },
+  {
+    "request": {
+      "model": "direct/byteplus/seedance-2.0",
+      "prompt": "A quiet lake",
+      "parameters": {
+        "resolution": "4k"
+      }
+    },
+    "spec": {
+      "model": "direct/byteplus/seedance-2.0",
+      "input": {
+        "prompt": "A quiet lake",
+        "parameters": {
+          "duration": 5,
+          "resolution": "4k",
+          "aspect_ratio": "16:9",
+          "generate_audio": true
+        },
+        "references": []
+      }
+    },
+    "inputHash": "4ee24709190c0821aad485871443f81f8d92b41345bac62fd7f853a5a583225b",
+    "contractHash": "67c279c4461d8d790f0bdfbfa9419199497164ae36d439b2619bcd2d25af0494"
+  }
+]

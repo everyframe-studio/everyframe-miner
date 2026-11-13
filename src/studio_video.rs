@@ -13,8 +13,15 @@ pub static POLICIES: LazyLock<Value> = LazyLock::new(|| {
 });
 pub fn check(spec: &Value) -> Result<()> {
     exact(spec, &["model", "input"])?;
-    let p = &POLICIES[s(&spec["model"])?];
+    let id = s(&spec["model"])?;
+    let p = crate::catalog_adapters::policy(id, "studio-video")
+        .or_else(|| POLICIES.get(id))
+        .ok_or(Error("unsupported_model"))?;
     need(p.is_object(), "unsupported_studio_model")?;
+    check_with(spec, p)
+}
+pub fn check_with(spec: &Value, p: &Value) -> Result<()> {
+    exact(spec, &["model", "input"])?;
     let v = &spec["input"];
     exact(
         v,
@@ -66,6 +73,9 @@ pub fn check(spec: &Value) -> Result<()> {
         refs.len() <= p["maxReferences"].as_u64().unwrap_or(14) as usize,
         "invalid_studio_references",
     )?;
+    if p["seedance20"] == true {
+        crate::seedance20::references(refs, s(&p["provider"])?)?;
+    }
     let kling = p["apiModel"] == "kling/v4/text-to-video";
     let pika = p["provider"] == "pika";
     let reference_duration = p["referenceDurationMs"].as_i64().unwrap_or(15000);
@@ -119,7 +129,13 @@ pub fn check(spec: &Value) -> Result<()> {
             ],
         };
         need(allowed.contains(&mime), "invalid_reference_mime")?;
-        let max = if p["provider"] == "vivix" {
+        let max = if p["seedance20"] == true {
+            match kind {
+                1 => 200,
+                2 => 15,
+                _ => 30,
+            }
+        } else if p["provider"] == "vivix" {
             10
         } else if pika {
             24
@@ -268,7 +284,14 @@ pub fn references(http: &dyn Http, spec: &Value) -> Result<Vec<(Value, Vec<u8>)>
 /// verified bytes, other providers receive the immutable Everyframe sources.
 pub fn body(spec: &Value, urls: &[String]) -> Result<(String, Value)> {
     check(spec)?;
-    let p = &POLICIES[s(&spec["model"])?];
+    let id = s(&spec["model"])?;
+    let p = crate::catalog_adapters::policy(id, "studio-video")
+        .or_else(|| POLICIES.get(id))
+        .ok_or(Error("unsupported_model"))?;
+    body_with(spec, p, urls)
+}
+pub fn body_with(spec: &Value, p: &Value, urls: &[String]) -> Result<(String, Value)> {
+    check_with(spec, p)?;
     let v = &spec["input"];
     let refs = v["references"].as_array().unwrap();
     need(refs.len() == urls.len(), "reference_count_mismatch")?;
@@ -380,6 +403,9 @@ pub fn body(spec: &Value, urls: &[String]) -> Result<(String, Value)> {
             }
             b["frame_images"] = json!(frames);
         }
+        if model == "bytedance/seedance-2.0" && v["resolution"] == "4k" {
+            b["resolution"] = json!("4K");
+        }
         return Ok(("/api/v1/videos".into(), b));
     }
     let omni = [
@@ -474,7 +500,7 @@ pub fn body(spec: &Value, urls: &[String]) -> Result<(String, Value)> {
     }
     let h3 = app.starts_with("minimax/h3-max");
     let wan = app == "alibaba/wan-3.0";
-    let seedance = app == "bytedance/seedance-2.5";
+    let seedance = app == "bytedance/seedance-2.5" || app == "bytedance/seedance-2.0";
     if app == "blackforestlabs/flux-3-max" {
         b["generate_audio"] = json!(true);
         // Studio's fast/balanced intent maps to FLUX's documented low effort.

@@ -37,8 +37,15 @@ pub fn format<'a>(input: &'a Value, kind: &str) -> Result<&'a Value> {
 }
 pub fn check(v: &Value) -> Result<()> {
     exact(v, &["model", "input"])?;
-    let c = &CAPS[s(&v["model"])?];
+    let id = s(&v["model"])?;
+    let c = crate::catalog_adapters::policy(id, "google-interactions")
+        .or_else(|| CAPS.get(id))
+        .ok_or(Error("unsupported_model"))?;
     need(c.is_object(), "unsupported_model")?;
+    check_with(v, c)
+}
+pub fn check_with(v: &Value, c: &Value) -> Result<()> {
+    exact(v, &["model", "input"])?;
     let x = &v["input"];
     fields(
         x,
@@ -524,7 +531,10 @@ pub fn spec(v: &Value, m: &Value) -> Result<Value> {
             "seed",
         ],
     )?;
-    let c = &CAPS[s(&v["model"])?];
+    let id = s(&v["model"])?;
+    let c = crate::catalog_adapters::policy(id, "google-interactions")
+        .or_else(|| CAPS.get(id))
+        .ok_or(Error("unsupported_model"))?;
     let mut x = m["params"].clone();
     x["prompt"] = if let Some(p) = v.get("prompt") {
         p.clone()

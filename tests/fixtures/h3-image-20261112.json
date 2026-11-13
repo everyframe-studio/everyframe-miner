@@ -1,0 +1,290 @@
+[
+  {
+    "input": {
+      "model": "direct/minimax/h3-image",
+      "prompt": "Blue crane · 青い鳥 🪶",
+      "parameters": {
+        "size": "1024x1024",
+        "output_format": "webp"
+      }
+    },
+    "spec": {
+      "model": "direct/minimax/h3-image",
+      "input": {
+        "prompt": "Blue crane · 青い鳥 🪶",
+        "parameters": {
+          "size": "1024x1024",
+          "n": 1,
+          "output_format": "webp",
+          "disable_prompt_enhanced": false
+        },
+        "references": []
+      }
+    },
+    "digest": "fa9b03400109a46fb01290b36e677d44bf3fefb8c55b54e1199115cae50c13c9"
+  },
+  {
+    "input": {
+      "model": "direct/minimax/h3-image",
+      "prompt": "Blue crane · 青い鳥 🪶",
+      "parameters": {
+        "size": "5472x3072",
+        "output_format": "webp"
+      }
+    },
+    "spec": {
+      "model": "direct/minimax/h3-image",
+      "input": {
+        "prompt": "Blue crane · 青い鳥 🪶",
+        "parameters": {
+          "size": "5472x3072",
+          "n": 1,
+          "output_format": "webp",
+          "disable_prompt_enhanced": false
+        },
+        "references": []
+      }
+    },
+    "digest": "f0d8e5b08d3858663aa7a5e805d69a9da70adac6554dc59435aea7f8b6967297"
+  },
+  {
+    "input": {
+      "model": "studio/native/openrouter/minimax/h3-image",
+      "prompt": "Blue crane · 青い鳥 🪶",
+      "parameters": {
+        "size": "1024x1024",
+        "output_format": "webp"
+      }
+    },
+    "spec": {
+      "model": "studio/native/openrouter/minimax/h3-image",
+      "input": {
+        "prompt": "Blue crane · 青い鳥 🪶",
+        "parameters": {
+          "size": "1024x1024",
+          "n": 1,
+          "output_format": "webp",
+          "disable_prompt_enhanced": false
+        },
+        "references": []
+      }
+    },
+    "digest": "dae9f1a1536d5035cf959e53e90b3a56f4ac8324a3e55831786fe066b4f3a92e"
+  },
+  {
+    "input": {
+      "model": "studio/native/openrouter/minimax/h3-image",
+      "prompt": "Blue crane · 青い鳥 🪶",
+      "parameters": {
+        "size": "5472x3072",
+        "output_format": "webp"
+      }
+    },
+    "spec": {
+      "model": "studio/native/openrouter/minimax/h3-image",
+      "input": {
+        "prompt": "Blue crane · 青い鳥 🪶",
+        "parameters": {
+          "size": "5472x3072",
+          "n": 1,
+          "output_format": "webp",
+          "disable_prompt_enhanced": false
+        },
+        "references": []
+      }
+    },
+    "digest": "f15ca2f1c37ca93e0d1b5db5e08f1f3ee5376d2cf7b628475f99a40a024841e2"
+  },
+  {
+    "input": {
+      "model": "studio/native/fal/minimax/h3-image",
+      "prompt": "Blue crane · 青い鳥 🪶",
+      "parameters": {
+        "size": "1024x1024",
+        "output_format": "webp"
+      }
+    },
+    "spec": {
+      "model": "studio/native/fal/minimax/h3-image",
+      "input": {
+        "prompt": "Blue crane · 青い鳥 🪶",
+        "parameters": {
+          "size": "1024x1024",
+          "n": 1,
+          "output_format": "webp",
+          "disable_prompt_enhanced": false
+        },
+        "references": []
+      }
+    },
+    "digest": "d89a1cacdfca5d6fc6386d89748f26a5ec0f94022479e22ae362d99ddcc3c968"
+  },
+  {
+    "input": {
+      "model": "studio/native/fal/minimax/h3-image",
+      "prompt": "Blue crane · 青い鳥 🪶",
+      "parameters": {
+        "size": "5472x3072",
+        "output_format": "webp"
+      }
+    },
+    "spec": {
+      "model": "studio/native/fal/minimax/h3-image",
+      "input": {
+        "prompt": "Blue crane · 青い鳥 🪶",
+        "parameters": {
+          "size": "5472x3072",
+          "n": 1,
+          "output_format": "webp",
+          "disable_prompt_enhanced": false
+        },
+        "references": []
+      }
+    },
+    "digest": "4166fac1dee73f98b79550bc14a27dde9a6be55999a8358683d21dd246ecc6d9"
+  },
+  {
+    "input": {
+      "model": "direct/minimax/h3-image-highspeed",
+      "prompt": "Blue crane · 青い鳥 🪶",
+      "parameters": {
+        "size": "1024x1024",
+        "output_format": "webp"
+      }
+    },
+    "spec": {
+      "model": "direct/minimax/h3-image-highspeed",
+      "input": {
+        "prompt": "Blue crane · 青い鳥 🪶",
+        "parameters": {
+          "size": "1024x1024",
+          "n": 1,
+          "output_format": "webp",
+          "disable_prompt_enhanced": false
+        },
+        "references": []
+      }
+    },
+    "digest": "cfc81f1f2855e66cd5040b8f9efded0bae141a7d006b14bbe536853a71ac9007"
+  },
+  {
+    "input": {
+      "model": "direct/minimax/h3-image-highspeed",
+      "prompt": "Blue crane · 青い鳥 🪶",
+      "parameters": {
+        "size": "5472x3072",
+        "output_format": "webp"
+      }
+    },
+    "spec": {
+      "model": "direct/minimax/h3-image-highspeed",
+      "input": {
+        "prompt": "Blue crane · 青い鳥 🪶",
+        "parameters": {
+          "size": "5472x3072",
+          "n": 1,
+          "output_format": "webp",
+          "disable_prompt_enhanced": false
+        },
+        "references": []
+      }
+    },
+    "digest": "1720d958a8b313dfb93787a7ac5a13f82fab0b731e40a5b32f8d5b03a22dffb0"
+  },
+  {
+    "input": {
+      "model": "studio/native/openrouter/minimax/h3-image-highspeed",
+      "prompt": "Blue crane · 青い鳥 🪶",
+      "parameters": {
+        "size": "1024x1024",
+        "output_format": "webp"
+      }
+    },
+    "spec": {
+      "model": "studio/native/openrouter/minimax/h3-image-highspeed",
+      "input": {
+        "prompt": "Blue crane · 青い鳥 🪶",
+        "parameters": {
+          "size": "1024x1024",
+          "n": 1,
+          "output_format": "webp",
+          "disable_prompt_enhanced": false
+        },
+        "references": []
+      }
+    },
+    "digest": "99ea86ad2c7d41ab7c36df781eb9a8bff248794baa6188aff5e5f015467490c0"
+  },
+  {
+    "input": {
+      "model": "studio/native/openrouter/minimax/h3-image-highspeed",
+      "prompt": "Blue crane · 青い鳥 🪶",
+      "parameters": {
+        "size": "5472x3072",
+        "output_format": "webp"
+      }
+    },
+    "spec": {
+      "model": "studio/native/openrouter/minimax/h3-image-highspeed",
+      "input": {
+        "prompt": "Blue crane · 青い鳥 🪶",
+        "parameters": {
+          "size": "5472x3072",
+          "n": 1,
+          "output_format": "webp",
+          "disable_prompt_enhanced": false
+        },
+        "references": []
+      }
+    },
+    "digest": "1e24797813327e4824d99d83c3c384165a15b9650927e1a71ecba1e7971fe012"
+  },
+  {
+    "input": {
+      "model": "studio/native/fal/minimax/h3-image-highspeed",
+      "prompt": "Blue crane · 青い鳥 🪶",
+      "parameters": {
+        "size": "1024x1024",
+        "output_format": "webp"
+      }
+    },
+    "spec": {
+      "model": "studio/native/fal/minimax/h3-image-highspeed",
+      "input": {
+        "prompt": "Blue crane · 青い鳥 🪶",
+        "parameters": {
+          "size": "1024x1024",
+          "n": 1,
+          "output_format": "webp",
+          "disable_prompt_enhanced": false
+        },
+        "references": []
+      }
+    },
+    "digest": "eee1f109256b364751589b641c852d50458a26eadef4d1a460b14449d6379e51"
+  },
+  {
+    "input": {
+      "model": "studio/native/fal/minimax/h3-image-highspeed",
+      "prompt": "Blue crane · 青い鳥 🪶",
+      "parameters": {
+        "size": "5472x3072",
+        "output_format": "webp"
+      }
+    },
+    "spec": {
+      "model": "studio/native/fal/minimax/h3-image-highspeed",
+      "input": {
+        "prompt": "Blue crane · 青い鳥 🪶",
+        "parameters": {
+          "size": "5472x3072",
+          "n": 1,
+          "output_format": "webp",
+          "disable_prompt_enhanced": false
+        },
+        "references": []
+      }
+    },
+    "digest": "c1ebac5a9f4d11b52fd169b2507a29eed936925f41469a0940c9b280dee7c81a"
+  }
+]

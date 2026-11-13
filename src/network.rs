@@ -476,7 +476,27 @@ impl Http for PublicHttp {
                         trace.body_bytes(bytes.len());
                         body_read.map_err(|_| Error("response_read_failed"))?;
                         let error = match host {
+                            "openrouter.ai"
+                                if status == 422
+                                    && r.body
+                                        .as_ref()
+                                        .and_then(|b| serde_json::from_slice::<Value>(b).ok())
+                                        .is_some_and(|v| {
+                                            v["model"].as_str().is_some_and(|id| {
+                                                id == "minimax/minimax-h3-image"
+                                                    || id == "minimax/minimax-h3-image-highspeed"
+                                            })
+                                        }) =>
+                            {
+                                crate::h3_image::http_error(status)
+                            }
                             "openrouter.ai" => crate::provider_budget::http_error(status, &bytes),
+                            "api.minimax.io"
+                                if ["/v1/images/generations", "/v1/images/edits"]
+                                    .contains(&u.path()) =>
+                            {
+                                crate::h3_image::http_error(status)
+                            }
                             "api.wavespeed.ai" => crate::wavespeed::http_error(status, &bytes),
                             "queue.fal.run" => crate::submission::fal_http_error(status, &bytes),
                             "api-singapore.klingai.com" => {

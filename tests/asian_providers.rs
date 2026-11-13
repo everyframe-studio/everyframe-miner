@@ -111,8 +111,8 @@ fn spec(id: &str) -> Value {
     models::spec(&json!({"model":id,"prompt":"A quiet lake"})).unwrap()
 }
 #[test]
-fn all_ten_models_submit_once_and_return_hash_bound_outputs() {
-    assert_eq!(ids().len(), 10);
+fn all_regional_models_submit_once_and_return_hash_bound_outputs() {
+    assert_eq!(ids().len(), 12);
     for id in ids() {
         let m = models::info(&id).unwrap();
         let p = m["provider"].as_str().unwrap();
@@ -236,9 +236,11 @@ fn duration_limits_and_single_image_contracts_are_enforced() {
     for id in ids() {
         let mut s = spec(&id);
         if models::info(&id).unwrap()["kind"] == "video" {
-            s["input"]["parameters"]["duration"] = json!(30);
+            let maximum =
+                models::info(&id).unwrap()["nativeCapabilities"]["maxDuration"].as_u64().unwrap_or_else(|| models::info(&id).unwrap()["parameterSchema"]["properties"]["duration"]["maximum"].as_u64().unwrap());
+            s["input"]["parameters"]["duration"] = json!(maximum);
             native_media::check(&s).unwrap();
-            s["input"]["parameters"]["duration"] = json!(31);
+            s["input"]["parameters"]["duration"] = json!(maximum + 1);
         } else {
             s["input"]["parameters"]["n"] = json!(2);
         }

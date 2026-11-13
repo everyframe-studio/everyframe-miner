@@ -20,6 +20,7 @@ pub trait Provider {
     }
     /// The coordinator's signed list of retired provider models (narrowing only).
     fn set_retirements(&mut self, _retired: &Value) {}
+    fn catalog_updated(&mut self) {}
     fn provider_budget(&self) -> Option<Value> {
         None
     }
@@ -725,6 +726,9 @@ impl<'a> Router<'a> {
     }
 }
 impl Provider for Router<'_> {
+    fn catalog_updated(&mut self) {
+        self.catalog.invalidate();
+    }
     fn refresh_availability(&mut self, now: i64) -> Option<Value> {
         let mut rows = self.catalog.refresh(self.http, &self.credentials, now);
         if configured(&self.credentials["OPENROUTER_API_KEY"]) {
@@ -792,13 +796,11 @@ impl Provider for Router<'_> {
         result
     }
     fn models(&self) -> Vec<String> {
-        models::MODELS
-            .as_object()
-            .unwrap()
-            .iter()
-            .chain(models::STUDIO_MODELS.as_object().unwrap().iter())
+        models::all()
+            .into_iter()
             .filter(|(id, m)| {
-                self.catalog.allows(id)
+                crate::worker_catalog::visible(id)
+                    && self.catalog.allows(id)
                     && (m["provider"] != "openrouter"
                         || self.budget.borrow().proof().is_none()
                         || self

@@ -126,12 +126,37 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
     }
     pub fn claim(&mut self) -> Result<Value> {
         // Refresh before enrollment/claim, never during a paid generation.
-        let availability = self.provider.refresh_availability(self.runtime.now());
+        let mut availability = self.provider.refresh_availability(self.runtime.now());
         if self.session.is_null()
             || n(&self.session["expires"])? < self.runtime.now() + models::max_job_ms() + 20000
         {
             self.enroll()?
         };
+        if self.session["modelCatalogPolicy"] == 1 {
+            match crate::worker_catalog::refresh(self) {
+                Ok(true) => {
+                    self.provider.catalog_updated();
+                    availability = self.provider.refresh_availability(self.runtime.now());
+                }
+                Err(error) => eprintln!(
+                    "{}",
+                    json!({"event":"worker_catalog_refresh_failed","reason":error.0})
+                ),
+                _ => {}
+            }
+        }
+        let catalog_negotiated = self.session["modelCatalogPolicy"] == 1;
+        // A coordinator rollback cannot understand cached extension IDs. Keep
+        // their definitions for recovery, but advertise only the baseline there.
+        if !catalog_negotiated
+            && let Some(rows) = availability.as_mut().and_then(Value::as_array_mut)
+        {
+            rows.retain(|row| {
+                row["model"].as_str().is_some_and(|id| {
+                    models::MODELS.get(id).is_some() || models::STUDIO_MODELS.get(id).is_some()
+                })
+            });
+        }
         let now = self.runtime.now();
         self.provider_pause.retain(|_, until| *until > now);
         let models: Vec<String> = self
@@ -139,6 +164,12 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
             .models()
             .into_iter()
             .filter(|id| {
+                if !catalog_negotiated
+                    && models::MODELS.get(id).is_none()
+                    && models::STUDIO_MODELS.get(id).is_none()
+                {
+                    return false;
+                }
                 let provider = models::info(id)
                     .ok()
                     .and_then(|m| m["provider"].as_str())
@@ -680,7 +711,9 @@ impl Runtime for LiveRuntime {
             .ok_or(Error("invalid_release_url"))?
             .to_string();
         let mut r = Request::get(url, &[&host]).json("POST", body);
-        r.limit = if body["value"]["action"] == "claim"
+        r.limit = if body["value"]["action"] == "catalog_sync" {
+            crate::worker_catalog::MAX_CATALOG_BYTES + 4096
+        } else if body["value"]["action"] == "claim"
             && body["value"]["payload"]["models"]
                 .as_array()
                 .is_some_and(|a| {
@@ -689,7 +722,8 @@ impl Runtime for LiveRuntime {
                             .get(id.as_str().unwrap_or(""))
                             .is_some()
                     })
-                }) {
+                })
+        {
             32 * 1024 * 1024
         } else {
             300000
@@ -858,6 +892,16 @@ pub fn run_live() -> Result<()> {
     }
     if let Ok(workspace) = std::env::var(crate::invitation::ALIBABA_WORKSPACE_KEY) {
         credentials[crate::invitation::ALIBABA_WORKSPACE_KEY] = json!(workspace);
+    }
+    if let Err(error) = crate::worker_catalog::restore_default(
+        s(&release["coordinatorSigningKey"])?,
+        &chain,
+        &miner,
+    ) {
+        eprintln!(
+            "{}",
+            json!({"event":"worker_catalog_cache_rejected","reason":error.0})
+        );
     }
     let stop = Arc::new(AtomicBool::new(false));
     for signal in [signal_hook::consts::SIGTERM, signal_hook::consts::SIGINT] {
