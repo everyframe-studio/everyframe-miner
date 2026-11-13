@@ -615,3 +615,40 @@ fn openrouter_h3_submits_once_then_polls_and_downloads_through_the_existing_api(
         1
     );
 }
+
+#[test]
+fn veo31_preserves_expanded_settings_audio_and_frames() {
+    let id = "studio/openrouter/google/veo-3.1";
+    let policy = &studio_video::POLICIES[id];
+    for duration in [4, 6, 8] {
+        for resolution in ["720p", "1080p"] {
+            for aspect in ["16:9", "9:16"] {
+                let mut s = spec("openrouter", "google/veo-3.1");
+                s["input"]["duration"] = json!(duration);
+                s["input"]["resolution"] = json!(resolution);
+                s["input"]["aspect"] = json!(aspect);
+                studio_video::check_with(&s, policy).unwrap();
+                let (path, body) = studio_video::body_with(&s, policy, &[]).unwrap();
+                assert_eq!(path, "/api/v1/videos");
+                assert_eq!(
+                    body,
+                    json!({"model":"google/veo-3.1","prompt":"A cinematic product shot","seed":42,"duration":duration,"resolution":resolution,"aspect_ratio":aspect,"generate_audio":true})
+                );
+                s["input"]["references"] = json!([asset("first"), asset("last")]);
+                studio_video::check_with(&s, policy).unwrap();
+                let (_, body) =
+                    studio_video::body_with(&s, policy, &["first".into(), "last".into()]).unwrap();
+                assert_eq!(body["frame_images"][0]["frame_type"], "first_frame");
+                assert_eq!(body["frame_images"][1]["frame_type"], "last_frame");
+                assert_eq!(body["frame_images"][1]["image_url"]["url"], "last");
+                assert_eq!(body["duration"], duration);
+                assert_eq!(body["generate_audio"], true);
+            }
+        }
+    }
+    for duration in [3, 5, 7, 9] {
+        let mut s = spec("openrouter", "google/veo-3.1");
+        s["input"]["duration"] = json!(duration);
+        assert!(studio_video::check_with(&s, policy).is_err());
+    }
+}
