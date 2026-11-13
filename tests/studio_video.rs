@@ -630,10 +630,14 @@ fn veo31_preserves_expanded_settings_audio_and_frames() {
                 studio_video::check_with(&s, policy).unwrap();
                 let (path, body) = studio_video::body_with(&s, policy, &[]).unwrap();
                 assert_eq!(path, "/api/v1/videos");
-                assert_eq!(body, json!({"model":"google/veo-3.1","prompt":"A cinematic product shot","seed":42,"duration":duration,"resolution":resolution,"aspect_ratio":aspect,"generate_audio":true}));
+                assert_eq!(
+                    body,
+                    json!({"model":"google/veo-3.1","prompt":"A cinematic product shot","seed":42,"duration":duration,"resolution":resolution,"aspect_ratio":aspect,"generate_audio":true})
+                );
                 s["input"]["references"] = json!([asset("first"), asset("last")]);
                 studio_video::check_with(&s, policy).unwrap();
-                let (_, body) = studio_video::body_with(&s, policy, &["first".into(), "last".into()]).unwrap();
+                let (_, body) =
+                    studio_video::body_with(&s, policy, &["first".into(), "last".into()]).unwrap();
                 assert_eq!(body["frame_images"][0]["frame_type"], "first_frame");
                 assert_eq!(body["frame_images"][1]["frame_type"], "last_frame");
                 assert_eq!(body["frame_images"][1]["image_url"]["url"], "last");
