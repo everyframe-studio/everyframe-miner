@@ -1147,6 +1147,41 @@ fn health_never_hides_an_optional_saved_provider_release_mismatch() {
     );
 }
 impl Rig {
+    fn stale_worker_profile_fixture() -> (Self, Value) {
+        let mut r = Self::updater_enrollment_fixture();
+        // The management profile keeps release A while another authorized
+        // update/repair has already admitted release B on the same VM.
+        let predecessor = r.inv["composeHash"].clone();
+        r.inv["release"] = json!("test-running-release-B");
+        r.inv["previousComposeHash"] = predecessor;
+        let compose = &mut r.inv["request"]["compose_file"];
+        compose["docker_compose_file"] = json!(
+            compose["docker_compose_file"]
+                .as_str()
+                .unwrap()
+                .replace(&"a".repeat(64), &"c".repeat(64))
+        );
+        r.inv["composeHash"] = json!(cloud::compose_hash(compose).unwrap());
+        r.info.borrow_mut()["compose_hash"] = r.inv["composeHash"].clone();
+        r.status.borrow_mut()["composeHash"] = r.inv["composeHash"].clone();
+        r.status.borrow_mut()["routingEnabled"] = json!(true);
+        let mut next = r.inv.clone();
+        next["release"] = json!("test-next-release-C");
+        next["previousComposeHash"] = r.inv["composeHash"].clone();
+        let compose = &mut next["request"]["compose_file"];
+        compose["docker_compose_file"] = json!(
+            compose["docker_compose_file"]
+                .as_str()
+                .unwrap()
+                .replace(&"c".repeat(64), &"b".repeat(64))
+        );
+        next["composeHash"] = json!(cloud::compose_hash(compose).unwrap());
+        let envelope = r.sign(&next);
+        r.status.borrow_mut()["update"] = json!({"state":"available","release":envelope});
+        r.calls.borrow_mut().clear();
+        (r, envelope)
+    }
+
     fn updater_enrollment_fixture() -> Self {
         let (mut r, path) = Self::reconnect_fixture();
         *r.fail.borrow_mut() = String::new();
@@ -1970,6 +2005,183 @@ fn automatic_update_rejects_tampered_or_wrong_target_packages_before_draining() 
         );
         assert!(r.calls.borrow().iter().all(|(p, _)| p.starts_with("GET")));
         assert!(r.state().read("worker-update", true).unwrap().is_null());
+    }
+}
+
+#[test]
+fn worker_update_refreshes_a_stale_profile_from_the_verified_same_vm_then_completes() {
+    for accepting in [true, false] {
+        let (r, next) = Rig::stale_worker_profile_fixture();
+        r.status.borrow_mut()["draining"] = json!(!accepting);
+        let credentials = r.state().read("credentials", false).unwrap();
+        let offers = r.status.borrow()["offers"].clone();
+        let deployment = r.state().read("deployment", false).unwrap();
+        let result = r
+            .miner()
+            .worker_update_with_wait(
+                false,
+                &|_| {
+                    // Recovery precedes the first update confirmation and every
+                    // mutation; the profile now describes the actually running B.
+                    let saved = r.state().read("config", false).unwrap();
+                    assert_eq!(
+                        saved["invitation"]["value"]["composeHash"],
+                        r.inv["composeHash"]
+                    );
+                    assert_eq!(r.state().read("credentials", false).unwrap(), credentials);
+                    assert_eq!(r.state().read("deployment", false).unwrap(), deployment);
+                    assert!(r.calls.borrow().iter().all(|(p, _)| p.starts_with("GET ")));
+                    Ok(())
+                },
+                &|_| {},
+                &|stage| r.advance_update(stage, &next),
+            )
+            .unwrap();
+        assert_eq!(result["state"], "complete");
+        assert_eq!(r.status.borrow()["draining"], !accepting);
+        assert_eq!(r.status.borrow()["offers"], offers);
+        assert_eq!(r.state().read("credentials", false).unwrap(), credentials);
+        assert_eq!(
+            r.state().read("config", false).unwrap()["invitation"]["value"]["composeHash"],
+            next["value"]["composeHash"]
+        );
+        assert_eq!(
+            r.calls
+                .borrow()
+                .iter()
+                .filter(|(p, _)| p.ends_with("/configuration"))
+                .count(),
+            1
+        );
+        assert_eq!(
+            r.calls
+                .borrow()
+                .iter()
+                .filter(|(p, _)| p.ends_with("/worker-update"))
+                .count(),
+            2
+        );
+    }
+}
+
+#[test]
+fn worker_update_stale_profile_check_is_read_only() {
+    let (r, _) = Rig::stale_worker_profile_fixture();
+    let config = r.state().read("config", false).unwrap();
+    assert_eq!(
+        r.miner()
+            .worker_update_with_wait(true, &|_| panic!(), &|_| {}, &|_| panic!())
+            .unwrap_err()
+            .0,
+        "update_target_mismatch"
+    );
+    assert_eq!(r.state().read("config", false).unwrap(), config);
+    assert!(
+        r.calls
+            .borrow()
+            .iter()
+            .all(|(p, _)| p.starts_with("GET ") && !p.ends_with("/configuration"))
+    );
+}
+
+#[test]
+fn worker_update_stale_profile_refresh_rejects_unverified_configuration_without_mutations() {
+    for case in [
+        "app",
+        "name",
+        "os",
+        "resources",
+        "hash",
+        "expired",
+        "status_binding",
+        "cloud_binding",
+        "cloud_name",
+        "cloud_hash",
+        "cloud_stopped",
+        "pending",
+        "configuration_timeout",
+    ] {
+        let (mut r, _) = Rig::stale_worker_profile_fixture();
+        match case {
+            "app" => r.inv["appId"] = json!("2".repeat(40)),
+            "name" => r.inv["request"]["name"] = json!("other-worker"),
+            "os" => r.inv["osImageHash"] = json!("e".repeat(64)),
+            "resources" => r.inv["request"]["disk_size"] = json!(40),
+            "hash" => r.inv["composeHash"] = json!("f".repeat(64)),
+            "expired" => r.inv["expiresAt"] = json!(now() - 1),
+            "status_binding" => r.status.borrow_mut()["appId"] = json!("2".repeat(40)),
+            "cloud_binding" => r.info.borrow_mut()["app_id"] = json!("2".repeat(40)),
+            "cloud_name" => r.info.borrow_mut()["name"] = json!("other-worker"),
+            "cloud_hash" => r.info.borrow_mut()["compose_hash"] = json!("f".repeat(64)),
+            "cloud_stopped" => r.info.borrow_mut()["status"] = json!("stopped"),
+            "pending" => {
+                let mut d = r.state().read("deployment", false).unwrap();
+                d["pendingInvitation"] = r.sign(&r.inv);
+                r.state().write("deployment", &d).unwrap();
+            }
+            "configuration_timeout" => *r.fail.borrow_mut() = "/configuration".into(),
+            _ => unreachable!(),
+        }
+        let config = r.state().read("config", false).unwrap();
+        let deployment = r.state().read("deployment", false).unwrap();
+        let credentials = r.state().read("credentials", false).unwrap();
+        assert!(
+            r.miner()
+                .worker_update_with_wait(
+                    false,
+                    &|_| panic!("unverified profile must not confirm: {case}"),
+                    &|_| {},
+                    &|_| panic!()
+                )
+                .is_err(),
+            "{case}"
+        );
+        assert_eq!(r.state().read("config", false).unwrap(), config, "{case}");
+        assert_eq!(
+            r.state().read("deployment", false).unwrap(),
+            deployment,
+            "{case}"
+        );
+        assert_eq!(
+            r.state().read("credentials", false).unwrap(),
+            credentials,
+            "{case}"
+        );
+        assert!(
+            r.calls.borrow().iter().all(|(p, _)| p.starts_with("GET ")),
+            "{case}"
+        );
+        assert!(
+            r.state().read("worker-update", true).unwrap().is_null(),
+            "{case}"
+        );
+    }
+}
+
+#[test]
+fn worker_update_wrong_identity_never_attempts_profile_refresh() {
+    for field in ["appId", "osImageHash", "keyVersion"] {
+        let (r, mut next) = Rig::stale_worker_profile_fixture();
+        next["value"][field] = match field {
+            "keyVersion" => json!(8),
+            "appId" => json!("2".repeat(40)),
+            _ => json!("e".repeat(64)),
+        };
+        next = r.sign(&next["value"]);
+        r.status.borrow_mut()["update"]["release"] = next;
+        let config = r.state().read("config", false).unwrap();
+        assert!(
+            r.miner()
+                .worker_update_with_wait(false, &|_| panic!(), &|_| {}, &|_| panic!())
+                .is_err()
+        );
+        assert_eq!(r.state().read("config", false).unwrap(), config);
+        assert!(
+            r.calls
+                .borrow()
+                .iter()
+                .all(|(p, _)| p.starts_with("GET ") && !p.ends_with("/configuration"))
+        );
     }
 }
 
