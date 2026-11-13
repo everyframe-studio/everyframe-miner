@@ -78,6 +78,9 @@ fn studio_contracts_validate_every_resolution_aspect_and_duration() {
                     // The signed contract ID can differ from a provider's API
                     // route (Pika uses separate text/keyframe/reference routes).
                     s["model"] = json!(id);
+                    if p["negativePrompt"] == true {
+                        s["input"]["negative"] = json!("blur, flicker");
+                    }
                     s["input"]["aspect"] = aspect.clone();
                     s["input"]["resolution"] = resolution.clone();
                     s["input"]["duration"] = json!(duration);
