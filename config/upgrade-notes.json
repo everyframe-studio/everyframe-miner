@@ -977,6 +977,17 @@
           "when": "Run everycli worker-update once after updating the CLI to enable signed model catalogs, reviewed CDN policies and the provider fixes. Updating the CLI alone does not change the deployed worker."
         }
       ]
+    },
+    {
+      "version": "v1.2.1",
+      "title": "Expanded Veo 3.1 video settings",
+      "changes": [
+        "Add the OpenRouter Veo 3.1 Studio contract for 4, 6 and 8-second video at 720p or 1080p, in landscape or portrait, with audio and first/last-frame inputs.",
+        "Compatible v1.2.0 workers receive this contract through the signed model catalog between jobs.",
+        "Review the new Veo offer on the Models page and choose your discount; existing fixed-setting Veo offers are retained."
+      ],
+      "workerUpdate": "not_required",
+      "actions": []
     }
   ]
 }
