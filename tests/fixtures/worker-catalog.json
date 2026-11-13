@@ -1700,6 +1700,14 @@
     {
       "model": "studio/openrouter/google/veo-3.1",
       "hash": "d25b6f12f9dce27132ed0bc1469c499f5ce35506aa025db2a11630dd43e455c3"
+    },
+    {
+      "model": "studio/openrouter/google/veo-3.1-negative",
+      "hash": "4159df5a1e35545bd2e316307f86e1dee14b1369b16ac9c259359c02d380c705"
+    },
+    {
+      "model": "studio/fal/fal-ai/veo3.1-negative",
+      "hash": "6f2f9d92f92232767f48446db5cc2476700ba065165c79220de5f54d626985de"
     }
   ],
   "numeric": {
