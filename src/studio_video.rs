@@ -23,18 +23,27 @@ pub fn check(spec: &Value) -> Result<()> {
 pub fn check_with(spec: &Value, p: &Value) -> Result<()> {
     exact(spec, &["model", "input"])?;
     let v = &spec["input"];
-    exact(
-        v,
-        &[
-            "prompt",
-            "seed",
-            "duration",
-            "resolution",
-            "aspect",
-            "references",
-            "promptExpansion",
-        ],
-    )?;
+    let mut fields = vec![
+        "prompt",
+        "seed",
+        "duration",
+        "resolution",
+        "aspect",
+        "references",
+        "promptExpansion",
+    ];
+    if p["negativePrompt"] == true {
+        fields.push("negative");
+    }
+    exact(v, &fields)?;
+    if p["negativePrompt"] == true {
+        let negative = s(&v["negative"])?;
+        need(
+            negative.len() <= 150000
+                && negative.encode_utf16().count() <= n(&p["maxNegativePrompt"])? as usize,
+            "invalid_studio_negative_prompt",
+        )?;
+    }
     let prompt = s(&v["prompt"])?;
     need(
         !prompt.trim().is_empty()
@@ -369,6 +378,10 @@ pub fn body_with(spec: &Value, p: &Value, urls: &[String]) -> Result<(String, Va
     }
     if p["provider"] == "openrouter" {
         b["model"] = json!(model);
+        if p["negativePrompt"] == true {
+            need(model == "google/veo-3.1", "unsupported_negative_prompt")?;
+            b["provider"] = json!({"options":{"google-vertex":{"parameters":{"negativePrompt":v["negative"]}}}});
+        }
         if p["seed"] == false {
             b.as_object_mut().unwrap().remove("seed");
         }
@@ -407,6 +420,26 @@ pub fn body_with(spec: &Value, p: &Value, urls: &[String]) -> Result<(String, Va
             b["resolution"] = json!("4K");
         }
         return Ok(("/api/v1/videos".into(), b));
+    }
+    if p["provider"] == "fal" && p["negativePrompt"] == true {
+        need(model == "fal-ai/veo3.1", "unsupported_negative_prompt")?;
+        b["negative_prompt"] = v["negative"].clone();
+        b["duration"] = json!(format!("{}s", n(&v["duration"])?));
+        b["generate_audio"] = json!(true);
+        let path = if let Some(first) = first {
+            b["aspect_ratio"] = json!("auto");
+            if let Some(last) = last {
+                b["first_frame_url"] = json!(first);
+                b["last_frame_url"] = json!(last);
+                "/fal-ai/veo3.1/first-last-frame-to-video"
+            } else {
+                b["image_url"] = json!(first);
+                "/fal-ai/veo3.1/image-to-video"
+            }
+        } else {
+            "/fal-ai/veo3.1"
+        };
+        return Ok((path.into(), b));
     }
     let omni = [
         "google/gemini-omni-flash/v1.1/text-to-video",
