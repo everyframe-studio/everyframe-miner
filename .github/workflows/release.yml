@@ -42,6 +42,7 @@ jobs:
         env:
           EVERYCLI_RELEASE_BUILD: '1'
         run: |
+          python3 scripts/check-build-context.py
           cargo +1.97.1 fmt --check
           cargo +1.97.1 clippy --release --all-targets --locked -- -D warnings
           cargo +1.97.1 test --release --locked --no-fail-fast
