@@ -958,6 +958,25 @@
           "when": "Run everycli worker-update after updating the CLI for LTX 2.5 support and the Google image delivery fix. Updating only the CLI leaves the deployed worker unchanged."
         }
       ]
+    },
+    {
+      "version": "v1.2.0",
+      "title": "Automatic model catalogs and provider delivery improvements",
+      "changes": [
+        "Receive compatible model additions from signed coordinator catalogs after the compatibility worker update. Refresh occurs between jobs while existing jobs keep their original definitions.",
+        "Refresh reviewed provider CDN policies through signed coordinator replies, with provider credentials confined to their API origins.",
+        "Add MiniMax H3 Image Standard and Highspeed routes and Seedance 2.0 video through 4K.",
+        "Improve complete Google audio delivery, MiniMax task recovery and Fal image-result polling.",
+        "Show offerable models in Not offered, with persistent new-model badges and explicit acknowledgments."
+      ],
+      "workerUpdate": "required",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "required",
+          "when": "Run everycli worker-update once after updating the CLI to enable signed model catalogs, reviewed CDN policies and the provider fixes. Updating the CLI alone does not change the deployed worker."
+        }
+      ]
     }
   ]
 }

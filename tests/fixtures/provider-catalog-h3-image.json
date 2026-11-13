@@ -1,0 +1,134 @@
+[
+  {
+    "model": "direct/minimax/h3-image",
+    "provider": "minimax",
+    "request": {
+      "model": "direct/minimax/h3-image",
+      "prompt": "A quiet lake"
+    },
+    "spec": {
+      "model": "direct/minimax/h3-image",
+      "input": {
+        "prompt": "A quiet lake",
+        "parameters": {
+          "size": "1024x1024",
+          "n": 1,
+          "output_format": "jpeg",
+          "disable_prompt_enhanced": false
+        },
+        "references": []
+      }
+    },
+    "hash": "c40b010e04d9968a4022cc95a91927115d600a90e94677ca7555f6e6d3f3fd86"
+  },
+  {
+    "model": "studio/native/openrouter/minimax/h3-image",
+    "provider": "openrouter",
+    "request": {
+      "model": "studio/native/openrouter/minimax/h3-image",
+      "prompt": "A quiet lake"
+    },
+    "spec": {
+      "model": "studio/native/openrouter/minimax/h3-image",
+      "input": {
+        "prompt": "A quiet lake",
+        "parameters": {
+          "size": "1024x1024",
+          "n": 1,
+          "output_format": "jpeg",
+          "disable_prompt_enhanced": false
+        },
+        "references": []
+      }
+    },
+    "hash": "393d45bcd36abd28712753d48c145f1aaac068dc484183d300b943037467121b"
+  },
+  {
+    "model": "studio/native/fal/minimax/h3-image",
+    "provider": "fal",
+    "request": {
+      "model": "studio/native/fal/minimax/h3-image",
+      "prompt": "A quiet lake"
+    },
+    "spec": {
+      "model": "studio/native/fal/minimax/h3-image",
+      "input": {
+        "prompt": "A quiet lake",
+        "parameters": {
+          "size": "1024x1024",
+          "n": 1,
+          "output_format": "jpeg",
+          "disable_prompt_enhanced": false
+        },
+        "references": []
+      }
+    },
+    "hash": "18b7e398d39834f665a23534635659206c1bbd1ada657384bb0ac1b5474f6cde"
+  },
+  {
+    "model": "direct/minimax/h3-image-highspeed",
+    "provider": "minimax",
+    "request": {
+      "model": "direct/minimax/h3-image-highspeed",
+      "prompt": "A quiet lake"
+    },
+    "spec": {
+      "model": "direct/minimax/h3-image-highspeed",
+      "input": {
+        "prompt": "A quiet lake",
+        "parameters": {
+          "size": "1024x1024",
+          "n": 1,
+          "output_format": "jpeg",
+          "disable_prompt_enhanced": false
+        },
+        "references": []
+      }
+    },
+    "hash": "da3e40ff732e715a35ad06f4f666e3f2872f22252b68452106508a20167766cc"
+  },
+  {
+    "model": "studio/native/openrouter/minimax/h3-image-highspeed",
+    "provider": "openrouter",
+    "request": {
+      "model": "studio/native/openrouter/minimax/h3-image-highspeed",
+      "prompt": "A quiet lake"
+    },
+    "spec": {
+      "model": "studio/native/openrouter/minimax/h3-image-highspeed",
+      "input": {
+        "prompt": "A quiet lake",
+        "parameters": {
+          "size": "1024x1024",
+          "n": 1,
+          "output_format": "jpeg",
+          "disable_prompt_enhanced": false
+        },
+        "references": []
+      }
+    },
+    "hash": "e4385a45384074159cf822d40a8343b7f10981812c91f76a2b080999044697e0"
+  },
+  {
+    "model": "studio/native/fal/minimax/h3-image-highspeed",
+    "provider": "fal",
+    "request": {
+      "model": "studio/native/fal/minimax/h3-image-highspeed",
+      "prompt": "A quiet lake"
+    },
+    "spec": {
+      "model": "studio/native/fal/minimax/h3-image-highspeed",
+      "input": {
+        "prompt": "A quiet lake",
+        "parameters": {
+          "size": "1024x1024",
+          "n": 1,
+          "output_format": "jpeg",
+          "disable_prompt_enhanced": false
+        },
+        "references": []
+      }
+    },
+    "hash": "28d0a14e708fc071f58a6c861e9a7c0658a37765a61178838686abbb0ccc5086"
+  }
+]

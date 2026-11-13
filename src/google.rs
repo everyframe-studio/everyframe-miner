@@ -44,21 +44,29 @@ pub fn body_with_references(spec: &Value, model: &Value, refs: &[Value]) -> Resu
         "unsupported_model",
     )?;
     let mut body = spec["input"].clone();
-    // Gemini returns image bytes inline by default, but rejects an explicit
-    // image delivery="inline". Normalize only the outgoing request: changing
+    // Background TTS currently concatenates partial WAV/PCM fragments.
+    // Unary TTS returns a complete WAV and still supplies a durable stored ID
+    // that supports the same GET-only recovery path.
+    if crate::google_settings::capabilities(s(&spec["model"])?)?["speech"] == true {
+        body["background"] = json!(false);
+    }
+    // Google image and audio generation return inline bytes by default,
+    // but reject an explicit delivery="inline" on these routes. Normalize only the outgoing request: changing
     // the signed input would invalidate existing job hashes and recovery IDs.
     // Keep explicit URI requests intact rather than silently changing delivery.
-    fn image_delivery(format: &mut Value) {
-        if format["type"] == "image" && format["delivery"] == "inline" {
+    fn media_delivery(format: &mut Value) {
+        if matches!(format["type"].as_str(), Some("image" | "audio"))
+            && format["delivery"] == "inline"
+        {
             format.as_object_mut().unwrap().remove("delivery");
         }
     }
     if let Some(formats) = body["response_format"].as_array_mut() {
         for format in formats {
-            image_delivery(format);
+            media_delivery(format);
         }
     } else {
-        image_delivery(&mut body["response_format"]);
+        media_delivery(&mut body["response_format"]);
     }
     let prompt = body
         .as_object_mut()
@@ -111,6 +119,9 @@ pub fn output_model(spec: &Value, model: &Value) -> Result<Value> {
         } else {
             mime
         });
+        if let Some(rate) = f.get("sample_rate") {
+            m["sampleRate"] = rate.clone();
+        }
     }
     Ok(m)
 }
@@ -167,7 +178,9 @@ pub fn media_blocks<'a>(data: &'a Value, model: &Value) -> Result<Vec<&'a Value>
             .unwrap()
             .to_ascii_lowercase();
         need(
-            mime == s(&model["mime"])? || (model["mime"] == "audio/mpeg" && mime == "audio/mp3"),
+            mime == s(&model["mime"])?
+                || (model["mime"] == "audio/mpeg" && mime == "audio/mp3")
+                || (model["mime"] == "audio/wav" && mime == "audio/l16"),
             "invalid_provider_media",
         )?;
         need(
@@ -217,4 +230,32 @@ pub fn download_url(block: &Value) -> Result<String> {
 pub fn response_hash(spec: &Value, data: &Value, media: &[u8]) -> Result<String> {
     protocol::digest(&json!({"provider":"google","interactionId":data["id"],
         "inputHash":protocol::digest(spec)?,"responseHash":protocol::sha(data.to_string()),"outputHash":protocol::sha(media)}))
+}
+
+/// The background TTS endpoint can return PCM16 even when WAV was requested.
+/// Wrap the provider's actual sample bytes; never relabel raw PCM as a WAV.
+pub fn normalize_media(block: &Value, model: &Value, bytes: Vec<u8>) -> Result<Vec<u8>> {
+    let mime = s(&block["mime_type"])?.split(';').next().unwrap();
+    if model["mime"] == "audio/wav" && mime == "audio/l16" {
+        let rate = block["sample_rate"]
+            .as_u64()
+            .or_else(|| model["sampleRate"].as_u64())
+            .unwrap_or(24000);
+        let expected = model["sampleRate"].as_u64().unwrap_or(rate);
+        need(rate == expected, "invalid_provider_media")?;
+        let channels = block["channels"].as_u64().unwrap_or(1);
+        if bytes.starts_with(b"RIFF") {
+            // Do not wrap an embedded WAV header/provenance as audio samples.
+            need(
+                bytes.len() >= 12
+                    && &bytes[8..12] == b"WAVE"
+                    && u32::from_le_bytes(bytes[4..8].try_into().unwrap()) as usize + 8
+                        == bytes.len(),
+                "invalid_provider_media",
+            )?;
+            return Ok(bytes);
+        }
+        return crate::wav::pcm16_wav(bytes, rate, channels);
+    }
+    Ok(bytes)
 }

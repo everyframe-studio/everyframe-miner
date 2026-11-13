@@ -21,7 +21,11 @@ fn google_contracts_match_coordinator_wire_fixtures_and_reject_extra_options() {
         models::check(spec).unwrap();
         assert_eq!(protocol::digest(spec).unwrap(), row["hash"]);
         assert_eq!(google::body(spec, m).unwrap(), row["body"]);
-        assert_eq!(row["body"]["background"], true);
+        assert_eq!(
+            row["body"]["background"],
+            everyframe_miner::google_settings::CAPS[spec["model"].as_str().unwrap()]["speech"]
+                != true
+        );
         assert_eq!(row["body"]["store"], true);
         assert!(row["body"].get("tools").is_none());
         for key in ["tools", "endpoint", "previous_interaction_id"] {

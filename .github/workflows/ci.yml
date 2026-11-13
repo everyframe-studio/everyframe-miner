@@ -25,6 +25,8 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Install release-matched toolchain
         run: rustup toolchain install 1.97.1 --profile minimal --component rustfmt --component clippy
+      - name: Check compiled container assets
+        run: python3 scripts/check-build-context.py
       - run: cargo +1.97.1 fmt --check
       - run: cargo +1.97.1 clippy --release --locked --all-targets -- -D warnings
       - run: cargo +1.97.1 test --release --locked --no-fail-fast

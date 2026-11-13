@@ -36,6 +36,8 @@ every model in the registry is necessarily available for mining.
 
 ## What's new
 
+v1.2.0 adds signed model catalog refreshes for existing provider adapters and reviewed provider delivery policies. Install the compatibility worker once; compatible future model additions can then arrive between jobs without another binary update. The Models page highlights new offerable models and keeps **Not offered** focused on models you can offer. See [model catalog refresh](docs/worker-model-catalog.md).
+
 v1.1.1 improves [automatic offers](docs/automatic-offers.md): check prices first, choose models that pass your limits, and see per-model reasons when a price check fails. It also adds longer bounded coordinator requests and VEED input-second pricing support. Update the CLI and reopen the UI; automatic-offer users should also install the matching signed worker.
 
 v1.1.0 adds direct [Alibaba Cloud, BytePlus and Volcengine](ASIAN-PROVIDERS.md) providers for Wan, Qwen Image, Seedance and Seedream, including the reviewed download, update-recovery and provider-error fixes.
@@ -1070,3 +1072,5 @@ See [LICENSE-NOTICE.md](LICENSE-NOTICE.md) for third-party licensing guidance.
 HeyGen Video, Gemini Omni Flash 1.1, and Vidu Q4 Preview use the Fal worker adapter. See [supported inputs and setup](VIDEO-MODELS-v0.7.4.md).
 
 See [OpenRouter video routes](OPENROUTER.md) for supported overlaps with Fal and worker upgrade requirements.
+
+Model-list updates for compatible provider adapters can be delivered by a signed coordinator catalog after the one-time compatibility worker update. See [model catalog refresh](docs/worker-model-catalog.md) for supported changes and rollout.

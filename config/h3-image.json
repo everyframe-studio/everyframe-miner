@@ -1,0 +1,392 @@
+{
+  "direct/minimax/h3-image": {
+    "provider": "minimax",
+    "apiModel": "MiniMax-H3-Image",
+    "name": "MiniMax H3 Image",
+    "vendor": "MiniMax",
+    "family": "H3 Image",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "h3-image",
+    "h3Image": true,
+    "h3Variant": "standard",
+    "deadlineMs": 720000,
+    "maxPrompt": 32000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "params": {
+      "size": "1024x1024",
+      "n": 1,
+      "output_format": "jpeg",
+      "disable_prompt_enhanced": false
+    },
+    "nativeCapabilities": {
+      "maxPrompt": 32000,
+      "maxReferences": 16,
+      "count": [
+        1,
+        10
+      ],
+      "areas": [
+        "1K",
+        "2K",
+        "4K"
+      ],
+      "formats": [
+        "jpeg",
+        "png",
+        "webp"
+      ],
+      "pixelRange": [
+        655360,
+        20000000
+      ],
+      "maxAspect": 3,
+      "mask": false
+    },
+    "schemaCheckedAt": "2026-11-12",
+    "documentationCheckedAt": "2026-11-12",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://platform.minimax.io/docs/guides/image-generation",
+    "mime": "image/jpeg",
+    "duration": null,
+    "resolution": "1k",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "codecs": [
+      "mjpeg"
+    ],
+    "audio": false,
+    "referenceTransport": "owned-url"
+  },
+  "studio/native/openrouter/minimax/h3-image": {
+    "provider": "openrouter",
+    "apiModel": "minimax/minimax-h3-image",
+    "name": "MiniMax H3 Image",
+    "vendor": "MiniMax",
+    "family": "H3 Image",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "h3-image",
+    "h3Image": true,
+    "h3Variant": "standard",
+    "deadlineMs": 720000,
+    "maxPrompt": 32000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "params": {
+      "size": "1024x1024",
+      "n": 1,
+      "output_format": "jpeg",
+      "disable_prompt_enhanced": false
+    },
+    "nativeCapabilities": {
+      "maxPrompt": 32000,
+      "maxReferences": 16,
+      "count": [
+        1,
+        10
+      ],
+      "areas": [
+        "1K",
+        "2K",
+        "4K"
+      ],
+      "formats": [
+        "jpeg",
+        "png",
+        "webp"
+      ],
+      "pixelRange": [
+        655360,
+        20000000
+      ],
+      "maxAspect": 3,
+      "mask": false
+    },
+    "schemaCheckedAt": "2026-11-12",
+    "documentationCheckedAt": "2026-11-12",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://openrouter.ai/docs/guides/overview/multimodal/image-generation",
+    "mime": "image/jpeg",
+    "duration": null,
+    "resolution": "1k",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "codecs": [
+      "mjpeg"
+    ],
+    "audio": false,
+    "referenceTransport": "owned-url"
+  },
+  "studio/native/fal/minimax/h3-image": {
+    "provider": "fal",
+    "apiModel": "minimax/h3-image/text-to-image",
+    "name": "MiniMax H3 Image",
+    "vendor": "MiniMax",
+    "family": "H3 Image",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "h3-image",
+    "h3Image": true,
+    "h3Variant": "standard",
+    "deadlineMs": 720000,
+    "maxPrompt": 32000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "params": {
+      "size": "1024x1024",
+      "n": 1,
+      "output_format": "jpeg",
+      "disable_prompt_enhanced": false
+    },
+    "nativeCapabilities": {
+      "maxPrompt": 32000,
+      "maxReferences": 16,
+      "count": [
+        1,
+        10
+      ],
+      "areas": [
+        "1K",
+        "2K",
+        "4K"
+      ],
+      "formats": [
+        "jpeg",
+        "png",
+        "webp"
+      ],
+      "pixelRange": [
+        655360,
+        20000000
+      ],
+      "maxAspect": 3,
+      "mask": false
+    },
+    "schemaCheckedAt": "2026-11-12",
+    "documentationCheckedAt": "2026-11-12",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://fal.ai/models/minimax/h3-image/text-to-image/api",
+    "mime": "image/jpeg",
+    "duration": null,
+    "resolution": "1k",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "codecs": [
+      "mjpeg"
+    ],
+    "audio": false,
+    "referenceTransport": "owned-url"
+  },
+  "direct/minimax/h3-image-highspeed": {
+    "provider": "minimax",
+    "apiModel": "MiniMax-H3-Image-Highspeed",
+    "name": "MiniMax H3 Image Highspeed",
+    "vendor": "MiniMax",
+    "family": "H3 Image-highspeed",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "h3-image",
+    "h3Image": true,
+    "h3Variant": "highspeed",
+    "deadlineMs": 720000,
+    "maxPrompt": 32000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "params": {
+      "size": "1024x1024",
+      "n": 1,
+      "output_format": "jpeg",
+      "disable_prompt_enhanced": false
+    },
+    "nativeCapabilities": {
+      "maxPrompt": 32000,
+      "maxReferences": 16,
+      "count": [
+        1,
+        10
+      ],
+      "areas": [
+        "1K",
+        "2K",
+        "4K"
+      ],
+      "formats": [
+        "jpeg",
+        "png",
+        "webp"
+      ],
+      "pixelRange": [
+        655360,
+        20000000
+      ],
+      "maxAspect": 3,
+      "mask": false
+    },
+    "schemaCheckedAt": "2026-11-12",
+    "documentationCheckedAt": "2026-11-12",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://platform.minimax.io/docs/guides/image-generation",
+    "mime": "image/jpeg",
+    "duration": null,
+    "resolution": "1k",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "codecs": [
+      "mjpeg"
+    ],
+    "audio": false,
+    "referenceTransport": "owned-url"
+  },
+  "studio/native/openrouter/minimax/h3-image-highspeed": {
+    "provider": "openrouter",
+    "apiModel": "minimax/minimax-h3-image-highspeed",
+    "name": "MiniMax H3 Image Highspeed",
+    "vendor": "MiniMax",
+    "family": "H3 Image-highspeed",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "h3-image",
+    "h3Image": true,
+    "h3Variant": "highspeed",
+    "deadlineMs": 720000,
+    "maxPrompt": 32000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "params": {
+      "size": "1024x1024",
+      "n": 1,
+      "output_format": "jpeg",
+      "disable_prompt_enhanced": false
+    },
+    "nativeCapabilities": {
+      "maxPrompt": 32000,
+      "maxReferences": 16,
+      "count": [
+        1,
+        10
+      ],
+      "areas": [
+        "1K",
+        "2K",
+        "4K"
+      ],
+      "formats": [
+        "jpeg",
+        "png",
+        "webp"
+      ],
+      "pixelRange": [
+        655360,
+        20000000
+      ],
+      "maxAspect": 3,
+      "mask": false
+    },
+    "schemaCheckedAt": "2026-11-12",
+    "documentationCheckedAt": "2026-11-12",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://openrouter.ai/docs/guides/overview/multimodal/image-generation",
+    "mime": "image/jpeg",
+    "duration": null,
+    "resolution": "1k",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "codecs": [
+      "mjpeg"
+    ],
+    "audio": false,
+    "referenceTransport": "owned-url"
+  },
+  "studio/native/fal/minimax/h3-image-highspeed": {
+    "provider": "fal",
+    "apiModel": "minimax/h3-image/highspeed/text-to-image",
+    "name": "MiniMax H3 Image Highspeed",
+    "vendor": "MiniMax",
+    "family": "H3 Image-highspeed",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "h3-image",
+    "h3Image": true,
+    "h3Variant": "highspeed",
+    "deadlineMs": 720000,
+    "maxPrompt": 32000,
+    "seed": false,
+    "feeMultiplier": 1,
+    "params": {
+      "size": "1024x1024",
+      "n": 1,
+      "output_format": "jpeg",
+      "disable_prompt_enhanced": false
+    },
+    "nativeCapabilities": {
+      "maxPrompt": 32000,
+      "maxReferences": 16,
+      "count": [
+        1,
+        10
+      ],
+      "areas": [
+        "1K",
+        "2K",
+        "4K"
+      ],
+      "formats": [
+        "jpeg",
+        "png",
+        "webp"
+      ],
+      "pixelRange": [
+        655360,
+        20000000
+      ],
+      "maxAspect": 3,
+      "mask": false
+    },
+    "schemaCheckedAt": "2026-11-12",
+    "documentationCheckedAt": "2026-11-12",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://fal.ai/models/minimax/h3-image/highspeed/text-to-image/api",
+    "mime": "image/jpeg",
+    "duration": null,
+    "resolution": "1k",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "codecs": [
+      "mjpeg"
+    ],
+    "audio": false,
+    "referenceTransport": "owned-url"
+  }
+}

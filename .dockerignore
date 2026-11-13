@@ -9,6 +9,8 @@ config/*
 !config/models.json
 !config/provider-expansion.json
 !config/native-media.json
+!config/ltx25-models.json
+!config/h3-image.json
 !config/asian-providers.json
 !config/wavespeed-models.json
 !config/native-schema-models.json

@@ -1128,5 +1128,78 @@
       "3840x2160",
       "2160x3840"
     ]
+  },
+  "studio/fal/bytedance/seedance-2.0/text-to-video": {
+    "provider": "fal",
+    "apiModel": "bytedance/seedance-2.0/text-to-video",
+    "name": "Seedance 2.0 \u00b7 4K (Fal)",
+    "aspects": [
+      "21:9",
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+    ],
+    "min": 4,
+    "max": 15,
+    "resolutions": [
+      "480p",
+      "720p",
+      "1080p",
+      "4k"
+    ],
+    "refs": {
+      "image": 9,
+      "video": 3,
+      "audio": 3
+    },
+    "frames": 2,
+    "mixed": false,
+    "maxPrompt": 150000,
+    "maxReferences": 12,
+    "referenceDurationMs": 15000,
+    "referenceTotalDurationMs": 15000,
+    "deadlineMs": 1200000,
+    "seed": false,
+    "seedance20": true,
+    "schemaCheckedAt": "2026-11-12"
+  },
+  "studio/openrouter/bytedance/seedance-2.0": {
+    "provider": "openrouter",
+    "apiModel": "bytedance/seedance-2.0",
+    "name": "Seedance 2.0 \u00b7 4K (OpenRouter)",
+    "aspects": [
+      "21:9",
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+    ],
+    "min": 4,
+    "max": 15,
+    "resolutions": [
+      "480p",
+      "720p",
+      "1080p",
+      "4k"
+    ],
+    "refs": {
+      "image": 9,
+      "video": 3,
+      "audio": 3
+    },
+    "frames": 2,
+    "mixed": false,
+    "maxPrompt": 150000,
+    "maxReferences": 12,
+    "referenceDurationMs": 15000,
+    "referenceTotalDurationMs": 15000,
+    "deadlineMs": 1200000,
+    "seed": true,
+    "seedance20": true,
+    "schemaCheckedAt": "2026-11-12",
+    "generateAudio": true
   }
 }

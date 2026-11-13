@@ -1,0 +1,361 @@
+[
+  {
+    "request": {
+      "model": "direct/byteplus/seedance-2.5-premium",
+      "prompt": "A quiet lake"
+    },
+    "spec": {
+      "model": "direct/byteplus/seedance-2.5-premium",
+      "input": {
+        "prompt": "A quiet lake",
+        "parameters": {
+          "duration": 5,
+          "resolution": "4k",
+          "aspect_ratio": "16:9",
+          "generate_audio": true,
+          "omni_reference_task_type": "reference",
+          "output_format": "mp4"
+        },
+        "references": []
+      }
+    },
+    "inputHash": "8519210c2f7988b7e6dd840aaa32b7eda074c0851a7aa1109252865b015c9ae9",
+    "contractHash": "71bc4af8df353a5b97496f58dbebc60516b5cc337ba0a9272aea7664349d77e3",
+    "body": {
+      "omni_reference_task_type": "reference",
+      "output_format": "mp4",
+      "model": "dreamina-seedance-2-5-premium-260915",
+      "content": [
+        {
+          "type": "text",
+          "text": "A quiet lake"
+        }
+      ],
+      "duration": 5,
+      "resolution": "4k",
+      "ratio": "16:9",
+      "generate_audio": true,
+      "watermark": false
+    }
+  },
+  {
+    "request": {
+      "model": "direct/byteplus/seedance-2.5-premium",
+      "prompt": "A quiet lake",
+      "parameters": {
+        "duration": 30
+      },
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_fixture?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 128,
+          "mime": "audio/wav",
+          "role": "audio",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 4000
+        }
+      ]
+    },
+    "spec": {
+      "model": "direct/byteplus/seedance-2.5-premium",
+      "input": {
+        "prompt": "A quiet lake",
+        "parameters": {
+          "duration": 30,
+          "resolution": "4k",
+          "aspect_ratio": "16:9",
+          "generate_audio": true,
+          "omni_reference_task_type": "reference",
+          "output_format": "mp4"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_fixture?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 128,
+            "mime": "audio/wav",
+            "role": "audio",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 4000
+          }
+        ]
+      }
+    },
+    "inputHash": "07be8e7576340086e9da947c8b9f9a4d15b2d854f8cb797dd83f76102ae2f528",
+    "contractHash": "71bc4af8df353a5b97496f58dbebc60516b5cc337ba0a9272aea7664349d77e3",
+    "body": {
+      "omni_reference_task_type": "reference",
+      "output_format": "mp4",
+      "model": "dreamina-seedance-2-5-premium-260915",
+      "content": [
+        {
+          "type": "text",
+          "text": "A quiet lake"
+        },
+        {
+          "type": "audio_url",
+          "role": "reference_audio",
+          "audio_url": {
+            "url": "https://api.everyframe.studio/v1/attachment/att_fixture?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        }
+      ],
+      "duration": 30,
+      "resolution": "4k",
+      "ratio": "16:9",
+      "generate_audio": true,
+      "watermark": false
+    }
+  },
+  {
+    "request": {
+      "model": "direct/byteplus/seedance-2.5-premium",
+      "prompt": "A quiet lake",
+      "parameters": {
+        "aspect_ratio": "adaptive"
+      },
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_fixture?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 128,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_fixture?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 128,
+          "mime": "image/png",
+          "role": "last",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 0
+        }
+      ]
+    },
+    "spec": {
+      "model": "direct/byteplus/seedance-2.5-premium",
+      "input": {
+        "prompt": "A quiet lake",
+        "parameters": {
+          "duration": 5,
+          "resolution": "4k",
+          "aspect_ratio": "adaptive",
+          "generate_audio": true,
+          "omni_reference_task_type": "reference",
+          "output_format": "mp4"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_fixture?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 128,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_fixture?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 128,
+            "mime": "image/png",
+            "role": "last",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 0
+          }
+        ]
+      }
+    },
+    "inputHash": "8cd955abce6f37654cbd241e98d8a66fa3d9718c8fb6f4cc4c9943e4c8840b88",
+    "contractHash": "71bc4af8df353a5b97496f58dbebc60516b5cc337ba0a9272aea7664349d77e3",
+    "body": {
+      "omni_reference_task_type": "reference",
+      "output_format": "mp4",
+      "model": "dreamina-seedance-2-5-premium-260915",
+      "content": [
+        {
+          "type": "text",
+          "text": "A quiet lake"
+        },
+        {
+          "type": "image_url",
+          "role": "first_frame",
+          "image_url": {
+            "url": "https://api.everyframe.studio/v1/attachment/att_fixture?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        },
+        {
+          "type": "image_url",
+          "role": "last_frame",
+          "image_url": {
+            "url": "https://api.everyframe.studio/v1/attachment/att_fixture?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        }
+      ],
+      "duration": 5,
+      "resolution": "4k",
+      "ratio": "adaptive",
+      "generate_audio": true,
+      "watermark": false
+    }
+  },
+  {
+    "request": {
+      "model": "direct/byteplus/seedance-2.5-premium",
+      "prompt": "A quiet lake",
+      "parameters": {
+        "duration": -1,
+        "aspect_ratio": "adaptive",
+        "omni_reference_task_type": "edit",
+        "output_format": "mov"
+      },
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_fixture?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 128,
+          "mime": "video/mp4",
+          "role": "video",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 4000
+        }
+      ]
+    },
+    "spec": {
+      "model": "direct/byteplus/seedance-2.5-premium",
+      "input": {
+        "prompt": "A quiet lake",
+        "parameters": {
+          "duration": -1,
+          "resolution": "4k",
+          "aspect_ratio": "adaptive",
+          "generate_audio": true,
+          "omni_reference_task_type": "edit",
+          "output_format": "mov"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_fixture?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 128,
+            "mime": "video/mp4",
+            "role": "video",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 4000
+          }
+        ]
+      }
+    },
+    "inputHash": "d8865cf8ec3f3d630d79dec0ca42bc97b6cb684b46ad460af6ee6b24b60008f9",
+    "contractHash": "71bc4af8df353a5b97496f58dbebc60516b5cc337ba0a9272aea7664349d77e3",
+    "body": {
+      "omni_reference_task_type": "edit",
+      "output_format": "mov",
+      "model": "dreamina-seedance-2-5-premium-260915",
+      "content": [
+        {
+          "type": "text",
+          "text": "A quiet lake"
+        },
+        {
+          "type": "video_url",
+          "role": "reference_video",
+          "video_url": {
+            "url": "https://api.everyframe.studio/v1/attachment/att_fixture?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        }
+      ],
+      "duration": -1,
+      "resolution": "4k",
+      "ratio": "adaptive",
+      "generate_audio": true,
+      "watermark": false
+    }
+  },
+  {
+    "request": {
+      "model": "direct/byteplus/seedance-2.5-premium",
+      "prompt": "A quiet lake",
+      "parameters": {
+        "duration": 8,
+        "aspect_ratio": "adaptive",
+        "omni_reference_task_type": "extend"
+      },
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_fixture?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 128,
+          "mime": "video/mp4",
+          "role": "video",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 4000
+        }
+      ]
+    },
+    "spec": {
+      "model": "direct/byteplus/seedance-2.5-premium",
+      "input": {
+        "prompt": "A quiet lake",
+        "parameters": {
+          "duration": 8,
+          "resolution": "4k",
+          "aspect_ratio": "adaptive",
+          "generate_audio": true,
+          "omni_reference_task_type": "extend",
+          "output_format": "mp4"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_fixture?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 128,
+            "mime": "video/mp4",
+            "role": "video",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 4000
+          }
+        ]
+      }
+    },
+    "inputHash": "0edfa2da7c64ee803ed647903a447c0b79dee3566997be6cfa19fb9dabe96b5b",
+    "contractHash": "71bc4af8df353a5b97496f58dbebc60516b5cc337ba0a9272aea7664349d77e3",
+    "body": {
+      "omni_reference_task_type": "extend",
+      "output_format": "mp4",
+      "model": "dreamina-seedance-2-5-premium-260915",
+      "content": [
+        {
+          "type": "text",
+          "text": "A quiet lake"
+        },
+        {
+          "type": "video_url",
+          "role": "reference_video",
+          "video_url": {
+            "url": "https://api.everyframe.studio/v1/attachment/att_fixture?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        }
+      ],
+      "duration": 8,
+      "resolution": "4k",
+      "ratio": "adaptive",
+      "generate_audio": true,
+      "watermark": false
+    }
+  }
+]

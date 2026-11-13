@@ -16,8 +16,15 @@ fn int(v: &Value, min: i64, max: i64) -> bool {
 }
 pub fn check(spec: &Value) -> Result<()> {
     exact(spec, &["model", "input"])?;
-    let p = &POLICIES[s(&spec["model"])?];
+    let id = s(&spec["model"])?;
+    let p = crate::catalog_adapters::policy(id, "studio-tool")
+        .or_else(|| POLICIES.get(id))
+        .ok_or(Error("unsupported_model"))?;
     need(p.is_object(), "unsupported_tool_model")?;
+    check_with(spec, p)
+}
+pub fn check_with(spec: &Value, p: &Value) -> Result<()> {
+    exact(spec, &["model", "input"])?;
     let v = &spec["input"];
     exact(
         v,
@@ -384,8 +391,16 @@ fn relight_aspect(source: &Value) -> Result<&'static str> {
 }
 pub fn body(spec: &Value, urls: &[String]) -> Result<(String, Value)> {
     check(spec)?;
+    let id = s(&spec["model"])?;
+    let p = crate::catalog_adapters::policy(id, "studio-tool")
+        .or_else(|| POLICIES.get(id))
+        .ok_or(Error("unsupported_model"))?;
+
+    body_with(spec, p, urls)
+}
+pub fn body_with(spec: &Value, p: &Value, urls: &[String]) -> Result<(String, Value)> {
+    check_with(spec, p)?;
     let v = &spec["input"];
-    let p = &POLICIES[s(&spec["model"])?];
     let refs = v["references"].as_array().unwrap();
     need(refs.len() == urls.len(), "reference_count_mismatch")?;
     let group = |role: &str| {
@@ -482,7 +497,10 @@ pub fn model_registry() -> Value {
 /// Preserve executable source as inert data, bound to the same receipt as the preview.
 pub fn motion_bundle(model: &str, data: &Value, video: &[u8]) -> Result<Vec<u8>> {
     use base64::Engine;
-    let mode = s(&POLICIES[model]["mode"])?;
+    let policy = crate::catalog_adapters::policy(model, "studio-tool")
+        .or_else(|| POLICIES.get(model))
+        .ok_or(Error("unsupported_model"))?;
+    let mode = s(&policy["mode"])?;
     need(["gsap", "glsl"].contains(&mode), "invalid_motion_format")?;
     need(
         video.len() >= 24 && video.len() <= 40 * 1024 * 1024 && &video[4..8] == b"ftyp",

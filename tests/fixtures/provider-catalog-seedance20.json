@@ -1,0 +1,27 @@
+[
+  {
+    "model": "direct/byteplus/seedance-2.0",
+    "provider": "byteplus",
+    "request": {
+      "model": "direct/byteplus/seedance-2.0",
+      "prompt": "A quiet lake",
+      "parameters": {
+        "resolution": "4k"
+      }
+    },
+    "spec": {
+      "model": "direct/byteplus/seedance-2.0",
+      "input": {
+        "prompt": "A quiet lake",
+        "parameters": {
+          "duration": 5,
+          "resolution": "4k",
+          "aspect_ratio": "16:9",
+          "generate_audio": true
+        },
+        "references": []
+      }
+    },
+    "hash": "4ee24709190c0821aad485871443f81f8d92b41345bac62fd7f853a5a583225b"
+  }
+]

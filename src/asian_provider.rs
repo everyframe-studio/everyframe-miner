@@ -128,7 +128,7 @@ impl Router<'_> {
             "volcengine" => &["*.volces.com", "*.volccdn.com"],
             _ => return Err(Error("unsupported_provider")),
         };
-        self.download_bounded(url, hosts, None, &[], limit)
+        self.download_bounded(provider, url, hosts, None, &[], limit)
     }
     pub(crate) fn asian_submit(&mut self, spec: &Value, model: &Value) -> Result<String> {
         let urls = self.native_references(spec)?;
@@ -243,9 +243,16 @@ impl Router<'_> {
         } else {
             &data["content"]["video_url"]
         };
-        let bytes = self.asian_download(s(url)?, s(&model["provider"])?, 64 * 1024 * 1024)?;
+        let premium = model["seedance25Premium"] == true;
+        let limit = if premium { 90 } else { 64 } * 1024 * 1024;
+        let bytes = self.asian_download(s(url)?, s(&model["provider"])?, limit)?;
+        let mime = if premium && spec["input"]["parameters"]["output_format"] == "mov" {
+            "video/quicktime"
+        } else {
+            "video/mp4"
+        };
         let media = native_provider::bundle(
-            vec![native_provider::part("video", "video/mp4", &bytes)?],
+            vec![native_provider::part("video", mime, &bytes)?],
             vec![],
             Value::Null,
         )?;

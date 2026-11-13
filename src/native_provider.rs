@@ -129,7 +129,7 @@ impl Router<'_> {
             }
             // Forward exactly the content-addressed bytes, never a mutable URL
             // or caller-supplied provider file ID.
-            let model = &native_media::MODELS[s(&spec["model"])?];
+            let model = native_media::info(s(&spec["model"])?)?;
             urls.push(if model["referenceTransport"] == "owned-url" {
                 s(&reference["url"])?.to_string()
             } else {
@@ -141,6 +141,9 @@ impl Router<'_> {
     pub(crate) fn native_submit(&mut self, spec: &Value, model: &Value) -> Result<String> {
         if model["asianMedia"] == true {
             return self.asian_submit(spec, model);
+        }
+        if model["h3Image"] == true {
+            return self.h3_submit(spec, model);
         }
         if model["gptImage26"] == true {
             return self.gpt26_submit(spec, model);
@@ -201,11 +204,13 @@ impl Router<'_> {
                     "provider_no_media",
                 )?;
                 let audio = &choices[0]["message"]["audio"];
-                parts.push(part(
-                    "audio",
-                    audio_mime(spec, model)?,
-                    &inline(&audio["data"])?,
-                )?);
+                let bytes = inline(&audio["data"])?;
+                let bytes = if audio_mime(spec, model)? == "audio/wav" {
+                    crate::wav::normalize_openai_wav(bytes)?
+                } else {
+                    bytes
+                };
+                parts.push(part("audio", audio_mime(spec, model)?, &bytes)?);
                 if let Some(transcript) = audio["transcript"].as_str() {
                     text.push(transcript.to_string());
                 }
@@ -249,6 +254,9 @@ impl Router<'_> {
         if model["asianMedia"] == true {
             return self.asian_poll(reference, spec, model);
         }
+        if model["h3Image"] == true {
+            return self.h3_poll(reference, spec, model);
+        }
         if model["gptImage26"] == true {
             return self.gpt26_poll(reference, spec, model);
         }
@@ -286,6 +294,9 @@ impl Router<'_> {
         if model["asianMedia"] == true {
             return self.asian_result(reference, spec, model);
         }
+        if model["h3Image"] == true {
+            return self.h3_result(reference, spec, model);
+        }
         if model["gptImage26"] == true {
             return self.gpt26_result(reference, spec, model);
         }
@@ -316,6 +327,7 @@ impl Router<'_> {
             )?;
             for image in images {
                 let bytes = self.download_bounded(
+                    s(&model["provider"])?,
                     s(&image["url"])?,
                     &["imgen.x.ai"],
                     None,
@@ -333,6 +345,7 @@ impl Router<'_> {
             }
         } else {
             let bytes = self.download_bounded(
+                s(&model["provider"])?,
                 s(&data["video"]["url"])?,
                 &["vidgen.x.ai"],
                 None,
