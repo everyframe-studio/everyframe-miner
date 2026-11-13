@@ -97,6 +97,16 @@ reasons![
         "Check the signed release again. No new update was authorized by this response."
     ),
     (
+        "update_target_mismatch",
+        "The signed update does not continue the deployment saved in this profile.",
+        "Run everycli reconnect with the same hotkey to verify and refresh the existing VM profile, then worker-update. If either target check still fails, keep the profile and report the miner ID."
+    ),
+    (
+        "worker_update_profile_changed",
+        "The signed configuration and existing VM could not be verified as the same deployment. The saved profile was not changed.",
+        "Run everycli reconnect with the same hotkey. If verification still fails, preserve the profile and report the miner ID; do not redeploy or bypass the target check."
+    ),
+    (
         "invalid_updater_capsule",
         "The updater enrollment identifier is missing or invalid.",
         "Use explicit enrollment for this exact VM. Never share or edit the credential capsule."
