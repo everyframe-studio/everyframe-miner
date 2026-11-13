@@ -36,7 +36,12 @@ try {
   await page.addInitScript(() => {
     window.reviewIntervals = [];
     const original = window.setInterval;
-    window.setInterval = (fn, ms, ...args) => { window.reviewIntervals.push({ fn, ms }); return original(fn, ms, ...args); };
+    window.setInterval = (fn, ms, ...args) => {
+      window.reviewIntervals.push({ fn, ms });
+      // Invoke dashboard polls explicitly below. A wall-clock poll during a
+      // mocked operation otherwise adds unrelated requests on slower runners.
+      return original(ms === 30000 ? () => {} : fn, ms, ...args);
+    };
   });
   await page.goto(url);
   await page.getByRole('heading', { name: 'Setup guide', exact: true }).waitFor();
@@ -950,6 +955,40 @@ try {
   assert.match(workerUpdate.after,/Worker update complete/);
   assert.equal(workerUpdate.canContinue,true);
   assert.deepEqual(workerUpdate.calls,['worker-update-check','worker-update','worker-update-abort']);
+  // A failed update check must not hide recovery of the persisted manual flow.
+  const savedRecovery = await page.evaluate(async () => {
+    const original = { api, run, overview: S.overview, health: S.health, workerUpdate: S.workerUpdate, workerAuto: S.workerAuto, openStep: S.openStep };
+    let submissions = 0;
+    try {
+      S.overview = { ...S.overview, deployment: { phase: 'awaiting_readmission', appId: '1'.repeat(40) }, workerUpdate: { pending: true, stage: 'readmitting', automatic: false } };
+      S.health = { result: { value: { cloudStatus: 'running', checks: [{name:'Workload attestation',ok:true},{name:'Accepting new work',ok:false}] } } };
+      S.workerUpdate = { state: 'failed', result: { error: { code: 'operation_locked', message: 'Another operation holds the lock.' } } };
+      S.workerAuto = { state:'done', result:{value:{automaticUpdates:{enabled:false}}} };
+      history.replaceState(null, '', '#/worker'); render();
+      const button = name => [...document.querySelectorAll('#main button')].find(b => b.textContent === name);
+      const recovery = { continue: !button('Continue worker update').disabled, cancel: !button('Cancel worker update').disabled, autoDisabled: button('Enable…').disabled, resumeDisabled: button('Resume').disabled };
+      history.replaceState(null, '', '#/setup'); S.openStep='resume'; render();
+      recovery.setupResumeDisabled = button('Start accepting work').disabled;
+      S.pendingOperations.set('b'.repeat(32), {id:'b'.repeat(32),action:'worker-update',unconfirmed:true});
+      api = async () => { submissions++; throw Error('must not submit'); };
+      const job = await run('offer', {model:'fixture/model',discountPct:'10'});
+      recovery.blockedState=job.state;
+      recovery.activity=document.querySelector('#activity').innerText;
+      recovery.pending=S.pendingOperations.size;
+      await checkWorkerUpdate(true);
+      recovery.submissions=submissions;
+      return recovery;
+    } finally {
+      api=original.api;run=original.run;S.overview=original.overview;S.health=original.health;S.workerUpdate=original.workerUpdate;S.workerAuto=original.workerAuto;S.openStep=original.openStep;
+      S.pendingOperations.clear();savePendingOperations();document.querySelector('#activity').replaceChildren();
+      history.replaceState(null,'','#/worker');render();
+    }
+  });
+  assert.equal(savedRecovery.continue,true);assert.equal(savedRecovery.cancel,true);
+  assert.equal(savedRecovery.autoDisabled,true);assert.equal(savedRecovery.resumeDisabled,true);assert.equal(savedRecovery.setupResumeDisabled,true);
+  assert.equal(savedRecovery.blockedState,'blocked');assert.match(savedRecovery.activity,/NOT STARTED/);assert.doesNotMatch(savedRecovery.activity,/UNCONFIRMED/);
+  assert.equal(savedRecovery.pending,1);assert.equal(savedRecovery.submissions,0);
+
   const reasons=await page.evaluate(()=>({
     stale:readiness({providerAvailability:{status:'temporarily_unavailable',checkedAt:Date.now()-7200000}})[0],
     offline:readiness({providerAvailability:{status:'temporarily_unavailable',checkedAt:Date.now()-7200000},blockers:['worker_offline']})[0],

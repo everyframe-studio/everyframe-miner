@@ -4798,3 +4798,39 @@ fn automatic_policy_enable_checks_ack_and_disable_withdraws_managed_scope() {
     );
     assert_eq!(disabled["automaticOffers"]["providers"][0]["revision"], 2);
 }
+
+#[test]
+fn automatic_update_status_can_be_read_during_a_locked_manual_update() {
+    let r = Rig::new();
+    r.status.borrow_mut()["automaticUpdates"] = json!({"enabled":false});
+    let state = r.state();
+    let flow = json!({"version":1,"stage":"attesting","release":{"secret":"never discard"}});
+    state.write("worker-update", &flow).unwrap();
+    let config = state.read("config", false).unwrap();
+    let credentials = state.read("credentials", false).unwrap();
+    let _guard = state.lock().unwrap();
+    let out = r
+        .miner()
+        .worker_auto_settings(None, &|_| panic!("read-only status must not confirm"))
+        .unwrap();
+    assert_eq!(out["automaticUpdates"]["enabled"], false);
+    assert_eq!(r.calls.borrow().len(), 1);
+    assert!(r.calls.borrow()[0].0.starts_with("GET "));
+    assert!(
+        r.calls.borrow()[0]
+            .0
+            .ends_with("/v1/miner/worker-auto-update")
+    );
+    // A policy mutation still respects the actual operation lock.
+    assert_eq!(
+        r.miner()
+            .worker_auto_settings(Some(false), &|_| panic!())
+            .unwrap_err()
+            .0,
+        "operation_locked"
+    );
+    assert_eq!(r.calls.borrow().len(), 1);
+    assert_eq!(state.read("worker-update", false).unwrap(), flow);
+    assert_eq!(state.read("config", false).unwrap(), config);
+    assert_eq!(state.read("credentials", false).unwrap(), credentials);
+}

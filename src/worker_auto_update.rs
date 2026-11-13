@@ -15,7 +15,10 @@ impl Miner<'_> {
         if enabled == Some(true) {
             return self.enroll_updater(confirm);
         }
-        let _lock = self.state.lock()?;
+        // Dashboard polling is read-only. Holding the mutation lock across this
+        // network request can prevent the user from continuing a saved update.
+        // Policy changes still serialize with every other profile mutation.
+        let _lock = enabled.map(|_| self.state.lock()).transpose()?;
         let c = self.load(false)?;
         let status = self.api(&c, "worker-auto-update", json!({}))?;
         let result = if enabled == Some(false) {

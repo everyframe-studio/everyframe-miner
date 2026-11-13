@@ -116,7 +116,7 @@ const LABELS = {
 async function run(action, params = {}, opts = {}) {
   const changes = new Set(["auto-offers-enable", "auto-offers-disable", "terms-accept", "register-hotkey", "init", "reconnect", "reconcile", "offer", "offer-batch", "deploy", "start", "activate", "apply-api-keys", "resume", "stop", "label", "delete", "worker-update", "worker-update-abort", "worker-auto-enable", "worker-auto-disable", "remove-api-key", "balances-publish"]);
   if (changes.has(action) && action !== "reconcile" && !(action === "stop" && params.force) && S.pendingOperations.size) {
-    const job = { state: "unknown", result: { error: { code: "ui_operation_unconfirmed", message: "Check the existing operation before starting another change." } } };
+    const job = { state: "blocked", result: { error: { code: "ui_operation_in_progress", message: "This action was not submitted. Another operation is still running or needs checking.", next: "Check the existing operation's result before starting another change." } } };
     if (!opts.quiet) Activity.add(opts.label || LABELS[action] || action).finish(job);
     return job;
   }
@@ -245,6 +245,9 @@ const Activity = {
                 S.pendingOperations.delete(job.operationId); savePendingOperations(); patchPendingBanner(); box.remove();
               }
             }, "small")));
+        } else if (job.state === "blocked") {
+          setIcon("warn", "NOT STARTED");
+          msg.replaceChildren(errorView(err));
         } else if (job.state === "done") {
           setIcon("ok", "DONE");
           msg.textContent = (v && typeof v.next === "string") ? v.next : "Finished.";
@@ -434,10 +437,16 @@ function workerState() {
   if (p === "running" && (!S.health || errorOf(S.health) || !cloud || cloud === "unknown")) return ["Checking state", "warn"];
   return phaseLabel(p);
 }
+function savedWorkerUpdate() { return S.overview?.workerUpdate?.pending === true; }
+function workerUpdateNotice() {
+  return savedWorkerUpdate() ? notice("warn", "Finish the saved worker update", h("div", null,
+    h("p", null, "An unfinished worker update is saved. Continue it on the same VM, or review cancellation, before enabling automatic updates or resuming work."),
+    h("a", { class: "btn small", href: "#/worker" }, "Open Worker"))) : null;
+}
 function workerControls() {
   const d = S.overview?.deployment || {}, p = d.phase || "not_deployed", h = value(S.health);
   const exists = !!d.appId && !["deleted", "not_deployed"].includes(p);
-  const pending = !!d.needsReconcile || S.pendingOperations.size > 0 || /_intent$/.test(p) || ["starting", "stopping", "deleting", "updating"].includes(p);
+  const pending = savedWorkerUpdate() || !!d.needsReconcile || S.pendingOperations.size > 0 || /_intent$/.test(p) || ["starting", "stopping", "deleting", "updating"].includes(p);
   const stopped = ["stopped", "exited"].includes(h?.cloudStatus) || p === "stopped";
   const live = exists && !pending && !stopped;
   const ready = h && !errorOf(S.health) && findCheck("Workload attestation")?.ok === true;
@@ -1193,6 +1202,8 @@ function pageSetup() {
 }
 function patchSetupProgress() {
   if (currentRoute() !== "setup") return;
+  const resume = $("#setup-resume");
+  if (resume) resume.disabled = !workerControls().resume;
   const steps = S.overview?.steps || [], done = steps.filter(stepDone).length, first = steps.find(st => !stepDone(st))?.id;
   const counter = document.querySelector("[data-setup-progress]");
   if (counter) counter.textContent = done + " of " + steps.length + " steps done";
@@ -1292,10 +1303,11 @@ function stepBody(id) {
       h("a", { class: "btn primary", href: "#/models" }, "Open Models"));
     case "resume": return h("div", null,
       h("p", null, "Resume lets the network route paid jobs to your worker. Your provider account pays for each generation; rewards are alpha emissions for accepted, verified work. Traffic isn't guaranteed."),
+      workerUpdateNotice(),
       findCheck("Accepting new work")?.ok === true ? notice("ok", "Accepting work is enabled", "The coordinator confirmed that routing is enabled and this miner is not paused.")
         : errorOf(S.resumeResult) ? errorView(errorOf(S.resumeResult))
         : S.resumeResult?.state === "done" ? notice("warn", "Start request accepted", "The status check has not confirmed it yet. Refresh status to check without sending another start request.") : null,
-      h("div", { class: "row" }, button("Start accepting work", startAcceptingWork, "primary"),
+      h("div", { class: "row" }, Object.assign(button("Start accepting work", startAcceptingWork, "primary"), { id: "setup-resume", disabled: !workerControls().resume }),
         button("Refresh status", async () => { await loadHealth(false); render(); }, "small")));
   }
   return null;
@@ -2035,7 +2047,7 @@ function patchWorkerUpdate() {
   if (currentRoute() === "worker") $("#worker-software")?.replaceWith(workerUpdateCard());
 }
 async function checkWorkerUpdate(quiet = false) {
-  if (S.workerUpdateBusy || S.workerUpdateRunning || !managedHere()) return;
+  if (S.workerUpdateBusy || S.workerUpdateRunning || S.pendingOperations.size || !managedHere()) return;
   S.workerUpdateBusy = true; patchWorkerUpdate();
   try { S.workerUpdate = await run("worker-update-check", {}, { quiet }); S.workerUpdateAt = Date.now(); }
   finally { S.workerUpdateBusy = false; patchWorkerUpdate(); }
@@ -2055,18 +2067,20 @@ async function loadWorkerTools() {
 }
 function workerUpdateCard() {
   const v = value(S.workerUpdate), phase = v?.state, controls = workerControls();
+  const saved = savedWorkerUpdate(), manual = saved && S.overview.workerUpdate.automatic !== true;
   const busy = S.workerUpdateBusy || S.workerUpdateRunning, uncertain = S.pendingOperations.size > 0;
-  const waiting = phase === "waiting" || phase === "release_expired";
+  const waiting = manual || phase === "waiting" || phase === "release_expired";
   const check = button("Check for worker update", () => checkWorkerUpdate());
   check.disabled = busy || !managedHere() || uncertain;
-  const update = button(phase === "waiting" ? "Continue worker update" : "Update worker", () => changeWorkerUpdate(), "primary");
+  const update = button(manual || phase === "waiting" ? "Continue worker update" : "Update worker", () => changeWorkerUpdate(), "primary");
   update.disabled = busy || uncertain || !controls.exists || automaticMode() !== false
-    || !(phase === "available" && !controls.pending || phase === "waiting");
+    || !(phase === "available" && !controls.pending || phase === "waiting" || manual);
   const cancel = waiting ? button("Cancel worker update", () => changeWorkerUpdate(true), "small") : null;
   if (cancel) cancel.disabled = busy || uncertain || !controls.exists;
   const labels = { available: "Worker update available", current: "Worker is up to date", complete: "Worker update complete", waiting: "Worker update needs to continue", release_expired: "Worker update needs attention", aborted: "Worker update cancelled", unavailable: "No compatible worker update" };
   const panel = card("Worker software", null,
     h("p", { class: "small muted" }, "Installed release: ", h("span", { class: "wrap mono" }, S.overview?.profile?.release || "Not reported")),
+    saved ? h("p", { class: "notice warn" }, "Saved update stage: " + (S.overview.workerUpdate.stage || "Needs checking") + ". " + (manual ? "Continue the saved update below; it checks the existing VM before proceeding." : "The automatic updater manages this operation.")) : null,
     h("div", { class: "worker-update-result", "aria-live": "polite" },
       busy ? h("p", null, S.workerUpdateRunning ? "Updating worker… Follow the progress and confirmations below." : "Checking for a compatible signed update…")
         : S.workerUpdate?.state === "unknown" ? notice("warn", "Update result is unconfirmed", "Check the existing operation above before continuing.")
@@ -2101,8 +2115,9 @@ function workerAutoCard() {
   const labels = { idle: "Idle", updated: "Updated", current: "Up to date", needs_attention: "Needs attention", failed: "Needs attention", updating: "Updating", enrolling: "Enrolling" };
   const enable = button("Enable…", async () => { await run("worker-auto-enable"); await loadWorkerAuto(); await refreshAll(); }, "primary");
   const disable = button("Disable", async () => { await run("worker-auto-disable"); await loadWorkerAuto(); await refreshAll(); });
-  enable.disabled = enabled !== false || !workerControls().exists; disable.disabled = enabled !== true;
+  enable.disabled = enabled !== false || !workerControls().exists || savedWorkerUpdate() || S.pendingOperations.size > 0; disable.disabled = enabled !== true;
   const panel = card("Automatic worker updates", null,
+    workerUpdateNotice(),
     errorOf(S.workerAuto) ? errorView(errorOf(S.workerAuto)) : h("dl", { class: "kv" },
       h("dt", null, "Mode"), h("dd", null, enabled === null ? "Not checked" : enabled ? "Automatic (in VM)" : "Manual"),
       h("dt", null, "Last result"), h("dd", null, labels[a?.report?.state || a?.state] || a?.report?.state || "Not reported"),

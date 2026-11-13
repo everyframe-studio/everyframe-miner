@@ -366,6 +366,7 @@ pub fn overview(sh: &Shared) -> Result<Value> {
     let config = state.read("config", true)?;
     let credentials = state.read("credentials", true)?;
     let deployment = state.read("deployment", true)?;
+    let worker_update = state.read("worker-update", true)?;
     let label = state.read("label", true)?;
     let saved = |key: &str| invitation::configured(&credentials[key]);
     let keys: Vec<Value> = onboarding::credential_providers()
@@ -443,6 +444,10 @@ pub fn overview(sh: &Shared) -> Result<Value> {
             "needsReconcile":(phase.ends_with("_intent") && phase != "delete_intent") || ["provisioned","starting","stopping","updating"].contains(&phase)},
         "label":label["name"],
         "recoveryPending":!state.read("profile-recovery", true)?.is_null(),
+        // Recovery controls must survive a failed network check. Never expose
+        // the signed envelope, delegates or credentials from the journal.
+        "workerUpdate": {"pending":worker_update.is_object() && worker_update["stage"] != "complete",
+            "stage":worker_update["stage"].as_str(),"automatic":worker_update["automatic"] == true},
         "keys":keys,"steps":steps,"terms":terms,"checkedAt":now()
     }))
 }
@@ -693,7 +698,11 @@ fn run(sh: &Arc<Shared>, body: &Value) -> Response {
             )
         };
     }
-    if changes {
+    // A compatibility check takes the CLI profile lock even though it cannot
+    // mutate the VM. Serialize it with writes in this UI, without treating it
+    // as an uncertain mutation in the browser.
+    let exclusive = changes || action == "worker-update-check";
+    if exclusive {
         let mut busy = sh.busy.lock().unwrap();
         if let Some(running) = busy.as_ref() {
             return error(
@@ -740,12 +749,13 @@ fn run(sh: &Arc<Shared>, body: &Value) -> Response {
     let job_id = id.clone();
     std::thread::spawn(move || {
         let (state, result) = execute(&shared, &job_id, &args, &approvals);
-        if let Some(job) = shared.jobs.lock().unwrap().get_mut(&job_id) {
+        let mut jobs = shared.jobs.lock().unwrap();
+        if exclusive {
+            *shared.busy.lock().unwrap() = None;
+        }
+        if let Some(job) = jobs.get_mut(&job_id) {
             job.state = state;
             job.result = result;
-        }
-        if changes {
-            *shared.busy.lock().unwrap() = None;
         }
     });
     reply(202, json!({"job":id}))
@@ -778,7 +788,7 @@ pub fn execute(
         }
     };
     let progress = |message: &str| log(message.to_string());
-    match cli::run_with(args, &PublicHttp, &confirm, &progress) {
+    match cli::run_with(args, sh.http.as_ref(), &confirm, &progress) {
         Err(e) if e.0 == "ui_confirmation_required" => {
             let (text, hash) = pending.lock().unwrap().take().unwrap_or_default();
             ("confirm", json!({"question":text,"hash":hash}))
@@ -948,4 +958,36 @@ pub fn serve(args: &Args) -> Result<Value> {
         std::thread::spawn(move || serve_connection(&sh, stream));
     }
     Ok(json!({"stopped":true}))
+}
+
+#[cfg(test)]
+mod operation_serialization_tests {
+    use super::*;
+
+    #[test]
+    fn update_checks_cannot_race_mutations_but_status_remains_available() {
+        let dir = tempfile::tempdir().unwrap();
+        let sh = Arc::new(Shared::new(
+            "testnet",
+            Some(dir.path().join("profile").to_str().unwrap()),
+            47117,
+        ));
+        for running in ["worker-update", "worker-update-check"] {
+            *sh.busy.lock().unwrap() = Some(running.into());
+            for action in [
+                "worker-update-check",
+                "worker-update",
+                "worker-update-abort",
+                "worker-auto-enable",
+            ] {
+                let response = run(&sh, &json!({"action":action,"params":{}}));
+                assert_eq!(response.status, 409, "{running} / {action}");
+                let body: Value = serde_json::from_slice(&response.body).unwrap();
+                assert_eq!(body["error"]["code"], "ui_operation_in_progress");
+                assert!(sh.jobs.lock().unwrap().is_empty());
+            }
+        }
+        let response = run(&sh, &json!({"action":"status","params":{}}));
+        assert_eq!(response.status, 202);
+    }
 }

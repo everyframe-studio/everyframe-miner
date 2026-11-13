@@ -636,3 +636,32 @@ fn automatic_offer_actions_separate_read_only_previews_from_reviewed_mutations()
     bad["yes"] = json!(true);
     assert!(ui::action_args(&sh, "auto-offers-enable", &bad).is_err());
 }
+
+#[test]
+fn overview_retains_update_recovery_without_exposing_the_signed_envelope() {
+    let dir = common::tempdir();
+    let sh = shared(dir.path());
+    let state = everyframe_miner::state::State::new(
+        "testnet",
+        Some(dir.path().join("profile").to_str().unwrap()),
+    )
+    .unwrap();
+    for stage in [
+        "draining",
+        "applying",
+        "attesting",
+        "readmitting",
+        "restoring",
+        "complete",
+    ] {
+        let flow = json!({"stage":stage,"release":{"private":"hidden-envelope"},"credentials":"hidden-credentials"});
+        state.write("worker-update", &flow).unwrap();
+        let out = ui::overview(&sh).unwrap();
+        assert_eq!(
+            out["workerUpdate"],
+            json!({"pending":stage!="complete","stage":stage,"automatic":false})
+        );
+        assert!(!out.to_string().contains("hidden-"));
+        assert_eq!(state.read("worker-update", false).unwrap(), flow);
+    }
+}
