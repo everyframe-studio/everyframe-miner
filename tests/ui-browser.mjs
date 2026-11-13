@@ -515,12 +515,24 @@ try {
   assert.equal(availabilityUI.canWithdraw,true);
   assert.match(availabilityUI.report[0].message,/Skipped.*deprecated/);
 
-  const falReadiness=await page.evaluate(()=>({
-    unchecked:readiness({provider:'fal',offerable:true,workerAvailability:{status:'unchecked'},blockers:[]}),
-    rejected:readiness({provider:'fal',offerable:false,workerAvailability:{status:'access_denied'},blockers:['provider_model_access_denied']})
+  const providerReadiness=await page.evaluate(()=>({
+    unchecked:['bfl','fal','google','openrouter','runway','minimax'].map(provider=>readiness({provider,offerable:true,workerAvailability:{status:'unchecked'},blockers:[]})),
+    rejected:readiness({provider:'bfl',offerable:false,workerAvailability:{status:'access_denied'},blockers:['provider_model_access_denied']}),
+    offline:readiness({provider:'bfl',offerable:false,workerAvailability:{status:'unchecked'},blockers:['worker_offline']}),
+    expiredPrice:readiness({provider:'bfl',offerable:false,workerAvailability:{status:'unchecked'},blockers:['pricing_required']}),
+    failedCheck:readiness({provider:'bfl',offerable:false,workerAvailability:{status:'temporarily_unavailable'},blockers:[]}),
+    row:(()=>{
+      const model={model:'direct/bfl/flux-2-max',name:'FLUX.2 Max (direct)',provider:'bfl',offered:true,offerable:true,pricingCurrent:true,discountBp:500,localKeyConfigured:true,workerAvailability:{status:'unchecked'},blockers:[]};
+      const before=JSON.stringify(model),row=offerRow(model),badge=row.querySelector('[data-label="Readiness"] .badge');
+      return {label:badge.textContent,warn:badge.classList.contains('warn'),verified:badge.classList.contains('ok'),offer:row.querySelector('[data-label="Your offer"]').textContent,unchanged:before===JSON.stringify(model)};
+    })()
   }));
-  assert.deepEqual(falReadiness.unchecked,['Available · no per-model check','']);
-  assert.equal(falReadiness.rejected[1],'bad');
+  for(const result of providerReadiness.unchecked)assert.deepEqual(result,['Available','']);
+  assert.equal(providerReadiness.rejected[1],'bad');
+  assert.deepEqual(providerReadiness.offline,['Worker offline','bad']);
+  assert.deepEqual(providerReadiness.expiredPrice,['Pricing required','warn']);
+  assert.equal(providerReadiness.failedCheck[1],'warn');
+  assert.deepEqual(providerReadiness.row,{label:'Available',warn:false,verified:false,offer:'Active · 5.00% off',unchanged:true});
 
   const approvalGuard = await page.evaluate(async () => {
     const originals = { api, poll, confirmDialog };

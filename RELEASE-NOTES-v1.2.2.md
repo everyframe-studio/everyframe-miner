@@ -6,6 +6,7 @@ Update workers with the dashboard open, recover unfinished updates more clearly,
 - Saved manual updates retain **Continue worker update** and **Cancel worker update** controls even after a failed status check.
 - The dashboard directs you to finish a saved update before resuming work or enabling automatic worker updates.
 - Actions blocked before submission show **Not started**, while the original operation remains available for recovery.
+- Available models no longer show an account warning merely because no per-model access check is available. Reported access and readiness problems remain visible.
 - Adds `studio/openrouter/google/veo-3.1-negative` and `studio/fal/fal-ai/veo3.1-negative`, preserving negative-prompt text alongside 4, 6 or 8-second video, 720p/1080p settings, audio, and first/last frames.
 
 ## Upgrade
