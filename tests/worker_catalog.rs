@@ -363,6 +363,29 @@ fn signed_catalog_adoption_security_recovery_and_transport() {
     std::os::unix::fs::symlink(&path, &link).unwrap();
     assert!(catalog::save_cache(&link, envelope).is_err());
     assert!(catalog::restore(&link, key, &json!({"network":"test"}), "catalog-miner").is_err());
+    // A model added by catalog must receive the same unary, complete-audio
+    // normalization as a compiled Google TTS model (PRs 89 + 94 together).
+    let template = "direct/google/gemini-3.8-flash-tts";
+    let id = "direct/google/catalog-tts-v2";
+    let mut definition = everyframe_miner::catalog_adapters::compiled(template).unwrap();
+    definition["apiModel"] = json!("catalog-tts-v2");
+    let mut example =
+        models::spec(&json!({"model":template,"prompt":"Read this test sentence."})).unwrap();
+    example["model"] = json!(id);
+    let (tts, tts_key) = signed_mutation(&f, |v| {
+        v["models"].as_array_mut().unwrap().push(json!(id));
+        v["entries"].as_array_mut().unwrap().push(json!({"model":id,"template":template,"definition":definition.to_string(),"example":example.to_string()}));
+    });
+    assert_eq!(
+        catalog::install(prepare(&tts, &tts_key).unwrap()).unwrap(),
+        1
+    );
+    let spec = models::spec(&json!({"model":id,"prompt":"Read this test sentence."})).unwrap();
+    let body = everyframe_miner::google::body(&spec, models::info(id).unwrap()).unwrap();
+    assert_eq!(spec["input"]["background"], true);
+    assert_eq!(body["background"], false);
+    assert_eq!(body["store"], true);
+    assert!(body["response_format"].get("delivery").is_none());
 }
 #[test]
 fn catalog_cache_reader() {

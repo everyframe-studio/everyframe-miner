@@ -35,12 +35,14 @@ pub fn format<'a>(input: &'a Value, kind: &str) -> Result<&'a Value> {
         .find(|f| f["type"] == kind)
         .ok_or(Error("invalid_google_format"))
 }
+pub fn capabilities(id: &str) -> Result<&'static Value> {
+    crate::catalog_adapters::policy(id, "google-interactions")
+        .or_else(|| CAPS.get(id))
+        .ok_or(Error("unsupported_model"))
+}
 pub fn check(v: &Value) -> Result<()> {
     exact(v, &["model", "input"])?;
-    let id = s(&v["model"])?;
-    let c = crate::catalog_adapters::policy(id, "google-interactions")
-        .or_else(|| CAPS.get(id))
-        .ok_or(Error("unsupported_model"))?;
+    let c = capabilities(s(&v["model"])?)?;
     need(c.is_object(), "unsupported_model")?;
     check_with(v, c)
 }
@@ -531,10 +533,7 @@ pub fn spec(v: &Value, m: &Value) -> Result<Value> {
             "seed",
         ],
     )?;
-    let id = s(&v["model"])?;
-    let c = crate::catalog_adapters::policy(id, "google-interactions")
-        .or_else(|| CAPS.get(id))
-        .ok_or(Error("unsupported_model"))?;
+    let c = capabilities(s(&v["model"])?)?;
     let mut x = m["params"].clone();
     x["prompt"] = if let Some(p) = v.get("prompt") {
         p.clone()

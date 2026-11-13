@@ -47,7 +47,7 @@ pub fn body_with_references(spec: &Value, model: &Value, refs: &[Value]) -> Resu
     // Background TTS currently concatenates partial WAV/PCM fragments.
     // Unary TTS returns a complete WAV and still supplies a durable stored ID
     // that supports the same GET-only recovery path.
-    if crate::google_settings::CAPS[s(&spec["model"])?]["speech"] == true {
+    if crate::google_settings::capabilities(s(&spec["model"])?)?["speech"] == true {
         body["background"] = json!(false);
     }
     // Google image and audio generation return inline bytes by default,

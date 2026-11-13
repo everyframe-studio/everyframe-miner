@@ -162,6 +162,14 @@ impl Http for Api {
             .host_str()
             .unwrap()
             .to_owned();
+        if host == "queue.fal.run" && r.method == "GET" {
+            let path = url::Url::parse(&r.url).unwrap().path().to_owned();
+            assert!(
+                path == "/minimax/h3-image/requests/h3job"
+                    || path == "/minimax/h3-image/requests/h3job/status",
+                "queue reads must omit all endpoint/variant segments: {path}"
+            );
+        }
         let answer = if host == "api.everyframe.studio"
             || host == "file.cdn.minimax.io"
             || host == "v3b.fal.media"
@@ -291,5 +299,43 @@ fn timeout_and_per_image_failure_never_replay_the_submission() {
                 .count(),
             1
         );
+    }
+}
+
+#[test]
+fn minimax_explicit_account_refusals_are_definitive_without_replaying_post() {
+    struct Reject {
+        code: i64,
+        calls: std::cell::Cell<u32>,
+    }
+    impl Http for Reject {
+        fn bytes(&self, r: Request) -> Result<Vec<u8>> {
+            assert_eq!(r.method, "POST");
+            self.calls.set(self.calls.get() + 1);
+            Ok(
+                json!({"base_resp":{"status_code":self.code,"status_msg":"account refusal"}})
+                    .to_string()
+                    .into_bytes(),
+            )
+        }
+    }
+    let spec = models::spec(&input("direct/minimax/h3-image", json!({}), json!([]))).unwrap();
+    for (code, reason) in [
+        (1008, "provider_billing_required"),
+        (1004, "provider_auth_rejected"),
+        (1026, "provider_content_rejected"),
+        (2013, "provider_invalid_request"),
+    ] {
+        let api = Reject {
+            code,
+            calls: std::cell::Cell::new(0),
+        };
+        let mut router = Router::new(&api, json!({"MINIMAX_API_KEY":"fixture-key"}));
+        let error = router.submit(&spec).unwrap_err();
+        assert_eq!(
+            everyframe_miner::submission::rejected(error.0),
+            Some(reason)
+        );
+        assert_eq!(api.calls.get(), 1);
     }
 }

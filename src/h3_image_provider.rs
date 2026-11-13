@@ -21,8 +21,15 @@ impl Router<'_> {
     fn h3_queue_path(&self, spec: &Value, m: &Value, reference: &str) -> Result<String> {
         let refs = spec["input"]["references"].as_array().unwrap();
         let (path, _) = h3_image::body(spec, m, &vec![String::new(); refs.len()])?;
+        // Queue status/results belong to owner/app, never the endpoint suffix.
+        let app = path
+            .trim_start_matches('/')
+            .split('/')
+            .take(2)
+            .collect::<Vec<_>>()
+            .join("/");
         Ok(format!(
-            "{path}/requests/{}",
+            "/{app}/requests/{}",
             native_media::reference_id(spec, reference)?
         ))
     }
@@ -32,6 +39,18 @@ impl Router<'_> {
         let mut request = self.native_request(m, &path, Some(&body))?;
         request.timeout = 660;
         let data = self.http.json(request)?;
+        if m["provider"] == "minimax" && !data["base_resp"].is_null() {
+            let code = data["base_resp"]["status_code"]
+                .as_i64()
+                .ok_or(Error("invalid_provider_response"))?;
+            if code != 0 {
+                return Err(self.provider_failure(
+                    crate::submission::minimax_error(code),
+                    "minimax",
+                    &data,
+                ));
+            }
+        }
         if !data["error"].is_null() {
             return Err(self.provider_failure(
                 Error("provider_rejected"),
@@ -72,6 +91,7 @@ impl Router<'_> {
             let bytes = if fal {
                 // Credentials belong only on the queue host, never delivery hosts.
                 self.download_bounded(
+                    s(&m["provider"])?,
                     s(&image["url"])?,
                     &[
                         "fal.media",
@@ -86,6 +106,7 @@ impl Router<'_> {
                 )?
             } else if m["provider"] == "minimax" {
                 self.download_bounded(
+                    s(&m["provider"])?,
                     s(&image["url"])?,
                     &["*.minimax.io", "*.minimaxi.com", "*.minimax.chat"],
                     None,
