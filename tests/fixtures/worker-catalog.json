@@ -1696,6 +1696,10 @@
     {
       "model": "studio/media/fal/minimax/h3-image/highspeed/text-to-image",
       "hash": "35297938b22bf0898e463ae4f2e9c474c2388c1de11bd1db3820c7ecbb635d27"
+    },
+    {
+      "model": "studio/openrouter/google/veo-3.1",
+      "hash": "d25b6f12f9dce27132ed0bc1469c499f5ce35506aa025db2a11630dd43e455c3"
     }
   ],
   "numeric": {

@@ -1201,5 +1201,38 @@
     "seedance20": true,
     "schemaCheckedAt": "2026-11-12",
     "generateAudio": true
+  },
+  "studio/openrouter/google/veo-3.1": {
+    "provider": "openrouter",
+    "apiModel": "google/veo-3.1",
+    "name": "Veo 3.1 (OpenRouter)",
+    "aspects": [
+      "16:9",
+      "9:16"
+    ],
+    "min": 4,
+    "max": 8,
+    "durations": [
+      4,
+      6,
+      8
+    ],
+    "defaultDuration": 8,
+    "resolutions": [
+      "720p",
+      "1080p"
+    ],
+    "refs": {
+      "image": 0,
+      "video": 0,
+      "audio": 0
+    },
+    "frames": 2,
+    "mixed": false,
+    "maxPrompt": 20000,
+    "seed": true,
+    "generateAudio": true,
+    "schemaCheckedAt": "2026-11-13",
+    "deadlineMs": 1200000
   }
 }
