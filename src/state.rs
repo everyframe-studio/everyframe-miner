@@ -119,6 +119,7 @@ impl State {
                 "terms-acceptance",
                 "worker-update",
                 "worker-auto-update",
+                "updater-enrollment",
                 "auto-update-settings",
                 "auto-update-result",
                 "last-successful-update",
@@ -139,12 +140,17 @@ impl State {
         }
         if matches!(
             name,
-            "profile-recovery" | "last-successful-update" | "auto-update-result"
+            "profile-recovery"
+                | "last-successful-update"
+                | "auto-update-result"
+                | "updater-enrollment"
         ) {
             serde_json::from_slice(&read(
                 &p,
                 true,
-                if name == "profile-recovery" {
+                if name == "updater-enrollment" {
+                    400_000
+                } else if name == "profile-recovery" {
                     2_000_000
                 } else {
                     4_000_000

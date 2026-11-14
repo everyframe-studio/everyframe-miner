@@ -210,6 +210,14 @@ pub fn diagnostic(error: &Error, args: Option<&Args>) -> Value {
         _ => (format!("{}.", error.0.replace('_', " ")), help),
     };
     let mut out = json!({"ok":false,"error":error.0,"message":message,"next":next});
+    if let Some(ErrorContext::OperationCause(cause)) = &error.1 {
+        out["cause"] = json!(crate::diagnostics::safe_code(cause));
+        out["message"] = json!(format!(
+            "{} Cause: {}.",
+            out["message"].as_str().unwrap_or("Operation failed."),
+            crate::diagnostics::safe_code(cause)
+        ));
+    }
     if let Some(ErrorContext::AutomaticOfferIssues(issues)) = &error.1 {
         let safe: Vec<_> = issues.iter().take(64).filter(|(model, _)|
             crate::provider_prices::model_request(model).is_some()

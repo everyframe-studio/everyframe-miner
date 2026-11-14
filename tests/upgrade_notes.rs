@@ -190,3 +190,24 @@ fn v113_displays_ltx_and_required_worker_upgrade() {
             .any(|a| a["command"] == "everycli worker-update" && a["requirement"] == "required")
     );
 }
+
+#[test]
+fn v123_auto_update_recovery_is_cli_only_and_has_reconcile_guidance() {
+    let v = upgrade_notes::bundled("1.2.2", "v1.2.3");
+    assert_eq!(v["status"], "complete");
+    assert_eq!(v["workerUpdate"], "not_required");
+    assert!(
+        v["actions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|a| a["kind"] == "reconcile")
+    );
+    assert!(
+        !v["actions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|a| a["kind"] == "worker-update")
+    );
+}

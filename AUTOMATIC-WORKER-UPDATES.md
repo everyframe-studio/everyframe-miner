@@ -123,3 +123,21 @@ opted in automatically.
 The v0.7.0 candidate additionally introduces Kling direct API support. The live
 test above remains evidence for its pinned v0.6.3 images only. Any rebuilt worker
 or supervisor requires new exact-artifact admission before production signing.
+
+## Enrollment recovery (v1.2.3)
+
+The management CLI saves a private recovery record before draining. If enabling
+the policy fails before a VM restart, it restores the original accepting/paused
+state and previous policy, without changing offers. A failed HTTP response can
+follow a successful database write: enable and disable therefore check fresh
+signed status before reporting failure. They do not blindly repeat the request.
+
+If the coordinator cannot be reached, the record remains pending. Use
+`everycli reconcile` in the same profile once connectivity returns, or choose
+**Reconcile enrollment** on the Worker page. If a restart may have been submitted,
+reconciliation waits for fresh attestation and never repeats it. Keep the profile.
+
+For a worker left draining by v1.2.2 or older, first use `everycli resume --yes`
+if accepting work is intended, then `everycli worker-auto-update --enable --yes`.
+Manual resume disables automatic updates, so do not reverse that order.
+These management-CLI fixes do not require a worker image update.
