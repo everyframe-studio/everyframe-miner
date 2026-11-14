@@ -186,6 +186,7 @@ struct Rig {
     os_retired: RefCell<bool>,
     operation_status: RefCell<Value>,
     operation_history: RefCell<Value>,
+    live_heartbeat: Cell<bool>,
 }
 
 #[test]
@@ -1182,6 +1183,9 @@ impl Rig {
         r.state().write("deployment", &deployment).unwrap();
         r.status.borrow_mut()["draining"] = json!(false);
         r.status.borrow_mut()["sessionExpires"] = json!(now() + 60000);
+        // This fixture models a healthy running worker, including while a
+        // loaded CI host spends seconds fsyncing each recovery record.
+        r.live_heartbeat.set(true);
         r.calls.borrow_mut().clear();
         r.envs.borrow_mut().clear();
         r
@@ -1347,6 +1351,7 @@ impl Rig {
             os_retired: RefCell::default(),
             operation_status: RefCell::new(json!({"status":"idle","operation":null})),
             operation_history: RefCell::new(json!({"items":[]})),
+            live_heartbeat: Cell::new(false),
         };
         r.miner().init(&r.sign(&r.inv), &r.credentials).unwrap();
         r
@@ -2685,6 +2690,10 @@ impl Http for Rig {
                 body["nonce"].as_str().unwrap().into()
             };
             let mut status = self.status.borrow_mut();
+            if self.live_heartbeat.get() {
+                status["lastSeen"] = json!(now());
+                status["sessionExpires"] = json!(now() + 60000);
+            }
             if action == "worker-update-prepare" {
                 let mut back = self.inv.clone();
                 back["appId"] = status["appId"].clone();
