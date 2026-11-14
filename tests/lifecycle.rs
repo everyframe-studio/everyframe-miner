@@ -1899,6 +1899,25 @@ fn uncertain_enrollment_restart_is_never_replayed_or_resumed() {
         "updater_enrollment_recovery_pending"
     );
     assert_eq!(r.envs.borrow().len(), 1);
+    // Provider keys alone do not prove the updater accepted its capsule.
+    let operation_at = r.state().read("deployment", false).unwrap()["operationAt"]
+        .as_i64()
+        .unwrap();
+    r.status.borrow_mut()["attestation"]["at"] = json!(operation_at + 1);
+    r.status.borrow_mut()["modelCatalog"] =
+        json!([{"model":"fixture/video","provider":"fal","workerAvailable":true}]);
+    assert_eq!(r.miner().reconcile().unwrap()["resolved"], false);
+    {
+        let mut status = r.status.borrow_mut();
+        status["automaticUpdates"]["report"] = json!({"state":"waiting","pending":false,
+            "composeHash":status["composeHash"],"at":operation_at+1});
+    }
+    assert_eq!(r.miner().reconcile().unwrap()["activation"], "confirmed");
+    assert_eq!(
+        r.state().read("updater-enrollment", false).unwrap()["stage"],
+        "complete"
+    );
+    assert_eq!(r.envs.borrow().len(), 1);
 }
 
 #[test]
