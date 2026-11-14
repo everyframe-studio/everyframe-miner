@@ -49,6 +49,7 @@ pub mod studio_media;
 pub mod studio_video;
 pub mod ui;
 pub mod update;
+mod updater_enrollment;
 pub mod updater_vm;
 pub mod upgrade_notes;
 pub mod wavespeed;
@@ -68,6 +69,8 @@ pub enum ErrorContext {
     File(std::path::PathBuf),
     Option(String),
     Command(String),
+    /// A fixed local diagnostic code, never a remote response body.
+    OperationCause(&'static str),
     Phala(Box<phala_error::PhalaError>),
     /// Known model identifiers and fixed reason codes, never upstream bodies.
     AutomaticOfferIssues(Vec<(String, String)>),
@@ -89,6 +92,10 @@ pub fn Error(code: &'static str) -> Error {
     Failure(code, None)
 }
 impl Failure {
+    pub fn caused_by(mut self, cause: &Error) -> Self {
+        self.1 = Some(ErrorContext::OperationCause(cause.0));
+        self
+    }
     pub fn at_file(mut self, path: &std::path::Path) -> Self {
         self.1 = Some(ErrorContext::File(path.to_path_buf()));
         self

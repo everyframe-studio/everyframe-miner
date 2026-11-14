@@ -48,7 +48,7 @@ pub fn render(command: &str) -> String {
     let name = public_name(command);
     let (summary, options, example) = match name {
         "worker-auto-update" => (
-            "Opt-in automatic worker updates inside the existing attested VM. Works while your computer is offline. Requires the signed updater bootstrap release; transfers management credentials only after consent and fresh attestation. No new VM or changed offers.",
+            "Opt-in automatic worker updates inside the existing attested VM. Works while your computer is offline. Requires the signed updater bootstrap release; transfers management credentials only after consent and fresh attestation. Failed enrollment before a restart restores the previous accepting/paused state. Lost replies are checked against signed status. Use reconcile for saved recovery; uncertain restarts are never repeated. No new VM or changed offers.",
             "  --enable   Enroll the isolated updater (one-time VM restart)\n  --disable  Disable further automatic stages remotely; hosting continues\n  No flags   Show coordinator-reported automation status",
             "worker-auto-update --enable",
         ),
