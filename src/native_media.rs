@@ -254,7 +254,7 @@ pub fn check_with(value: &Value, policy: &Value) -> Result<()> {
         need(
             bytes > 0
                 && bytes
-                    <= if policy["seedance25Premium"] == true {
+                    <= if policy["seedance25Premium"] == true || policy["seedance25Flash"] == true {
                         200 * 1024 * 1024
                     } else if policy["provider"] == "kling" {
                         300 * 1024 * 1024
@@ -278,7 +278,8 @@ pub fn check_with(value: &Value, policy: &Value) -> Result<()> {
                     mime == "video/mp4"
                         || (policy["adapter"] == "schema-minimax-video"
                             || policy["provider"] == "kling"
-                            || policy["seedance25Premium"] == true)
+                            || policy["seedance25Premium"] == true
+                            || policy["seedance25Flash"] == true)
                             && mime == "video/quicktime"
                 }
                 _ => {

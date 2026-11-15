@@ -5,6 +5,12 @@ use crate::{Result, need, s};
 use serde_json::Value;
 
 pub fn check(spec: &Value) -> Result<()> {
+    check_references(spec)
+}
+
+/// Shared 2.5 family input constraints. Flash membership and caps are
+/// explicitly published by BytePlus; output tiers/options remain separate.
+pub fn check_references(spec: &Value) -> Result<()> {
     let p = &spec["input"]["parameters"];
     let refs = spec["input"]["references"].as_array().unwrap();
     let count = |role: &str| refs.iter().filter(|r| r["role"] == role).count();

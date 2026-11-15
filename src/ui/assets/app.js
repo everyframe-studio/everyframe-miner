@@ -1808,7 +1808,10 @@ function nativeCapabilityDetails(r) {
   if (c.aspects?.length) parts.push("Aspect ratios: " + c.aspects.join(", "));
   if (c.qualities?.length) parts.push("Quality: " + c.qualities.join(", "));
   if (c.formats?.length || c.codecs?.length) parts.push("Formats: " + (c.formats || c.codecs).join(", "));
-  if (c.tasks?.length) parts.push("Tasks: " + c.tasks.join(", "));
+  if (c.tasks?.length || c.taskTypes?.length) parts.push("Tasks: " + (c.tasks || c.taskTypes).join(", "));
+  if (c.minDuration && c.maxDuration) parts.push("Duration: " + c.minDuration + "–" + c.maxDuration + " seconds");
+  if (c.audioOnly) parts.push("Audio-only references supported");
+  if (c.maxImages || c.maxVideos || c.maxAudios) parts.push("Reference limits: " + (c.maxImages || 0) + " images, " + (c.maxVideos || 0) + " videos, " + (c.maxAudios || 0) + " audio clips");
   if (c.maxReferences) parts.push("Reference inputs: up to " + c.maxReferences);
   if (c.count) parts.push("Images per request: " + c.count.join("–"));
   if (c.keyframes) parts.push("Keyframes: up to " + c.keyframes);
