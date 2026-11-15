@@ -1708,6 +1708,10 @@
     {
       "model": "studio/fal/fal-ai/veo3.1-negative",
       "hash": "6f2f9d92f92232767f48446db5cc2476700ba065165c79220de5f54d626985de"
+    },
+    {
+      "model": "direct/byteplus/seedance-2.5-flash",
+      "hash": "7706e6dd57493296d46e1d773fde12f3d5d8b9a520aca51f1f3c1d8258a2f347"
     }
   ],
   "numeric": {

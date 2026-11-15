@@ -10,7 +10,16 @@ pub fn check(spec: &Value, model: &Value) -> Result<()> {
         .as_array()
         .ok_or(Error("invalid_native_media_references"))?;
     let cap = &model["nativeCapabilities"];
-    if model["seedance25Premium"] == true {
+    if model["seedance25Flash"] == true {
+        need(
+            !crate::matches(
+                r"(?s).*--(rs|resolution|rt|ratio|dur|duration|frames|seed|generate_audio|wm|watermark|cf|camera_fixed)\b.*",
+                &spec["input"]["prompt"],
+            ),
+            "prompt_parameter_override_not_supported",
+        )?;
+    }
+    if model["seedance25Premium"] == true || model["seedance25Flash"] == true {
         return crate::seedance25_premium::check(spec);
     }
     if model["seedance20"] == true {
@@ -187,6 +196,9 @@ pub fn body(spec: &Value, model: &Value, urls: &[String]) -> Result<Value> {
             content.push(item);
         }
         let mut b = json!({"model":model["apiModel"],"content":content,"duration":p["duration"],"resolution":p["resolution"],"ratio":p["aspect_ratio"],"generate_audio":p["generate_audio"],"watermark":false});
+        if model["seedance25Flash"] == true {
+            b["omni_reference_task_type"] = p["omni_reference_task_type"].clone();
+        }
         if model["seedance25Premium"] == true {
             for key in ["omni_reference_task_type", "output_format"] {
                 b[key] = p[key].clone();
