@@ -20,7 +20,7 @@ pub fn check(spec: &Value, model: &Value) -> Result<()> {
         )?;
     }
     if model["seedance25Premium"] == true || model["seedance25Flash"] == true {
-        return crate::seedance25_premium::check(spec);
+        return crate::seedance25_premium::check_references(spec);
     }
     if model["seedance20"] == true {
         crate::seedance20::references(refs, s(&model["provider"])?)?;

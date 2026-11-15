@@ -278,8 +278,8 @@ pub fn check_with(value: &Value, policy: &Value) -> Result<()> {
                     mime == "video/mp4"
                         || (policy["adapter"] == "schema-minimax-video"
                             || policy["provider"] == "kling"
-                            || (policy["seedance25Premium"] == true
-                                || policy["seedance25Flash"] == true))
+                            || policy["seedance25Premium"] == true
+                            || policy["seedance25Flash"] == true)
                             && mime == "video/quicktime"
                 }
                 _ => {
