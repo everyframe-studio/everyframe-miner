@@ -354,6 +354,8 @@ impl Miner<'_> {
             "automatic-offers",
             "automatic-offers-preview",
             "automatic-offers-policy",
+            "worker-auto-update",
+            "worker-auto-update-policy",
         ]
         .contains(&action)
         {
@@ -2067,17 +2069,34 @@ impl Miner<'_> {
     fn reconcile_activation(&self, c: &Context, info: &Value) -> Result<Value> {
         let status = s(&info["status"])?;
         let mut d = c.deployment.clone();
+        let enrollment = self.state.read("updater-enrollment", true)?;
+        let enrolling =
+            ["installing", "cloud_pending"].contains(&enrollment["stage"].as_str().unwrap_or(""));
         if status == "running"
             && info["compose_hash"] == c.invitation["composeHash"]
             && self.activation_observed(c)
+            && (!enrolling || self.updater_enrollment_observed(c, &enrollment))
         {
             d["phase"] = json!("awaiting_readmission");
             d["providerConfigured"] = json!(true);
             d["activationReconciledAt"] = json!(now());
             self.state.write("deployment", &d)?;
+            if enrolling {
+                self.finish_updater_enrollment_record()?;
+                return Ok(
+                    json!({"phase":"awaiting_readmission","resolved":true,"activation":"confirmed","cloudStatus":status,
+                    "next":"Updater enrollment activation is confirmed. Check everycli worker-auto-update; the in-VM updater restores the original accepting/paused state after fresh attestation. No cloud request was repeated."}),
+                );
+            }
             return Ok(
                 json!({"phase":"awaiting_readmission","resolved":true,"activation":"confirmed","cloudStatus":status,
                 "next":"Key activation confirmed: the running worker attested after the request and reports provider-backed models. Run everycli resume when you are ready to accept provider-billed work. No cloud request was repeated."}),
+            );
+        }
+        if enrolling {
+            return Ok(
+                json!({"phase":"activate_intent","resolved":false,"activation":"unconfirmed","cloudStatus":status,
+                "next":"Updater enrollment activation is still uncertain. Wait for fresh attestation and run everycli reconcile again. No restart or key activation was repeated."}),
             );
         }
         let refresh = d["providerConfigured"] == true;
@@ -2194,6 +2213,11 @@ impl Miner<'_> {
         self.reconcile_locked()
     }
     pub(crate) fn reconcile_locked(&self) -> Result<Value> {
+        if self.state.read("deployment", true)?["phase"] != "activate_intent"
+            && let Some(recovered) = self.recover_updater_enrollment_locked()?
+        {
+            return Ok(recovered);
+        }
         let mut c = self.load(false)?;
         if c.deployment["phase"] == "provision_intent" && c.deployment["appId"].is_null() {
             return self.reconcile_preparation(&c);

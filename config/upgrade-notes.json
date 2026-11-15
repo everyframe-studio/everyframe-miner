@@ -1007,6 +1007,28 @@
           "when": "For Veo 3.1 negative-prompt jobs, update the compatible worker with everycli worker-update and explicitly offer the new contracts. If a manual update is unfinished, first continue it in the same profile. The dashboard fixes alone require only a CLI update and reopening the UI."
         }
       ]
+    },
+    {
+      "version": "v1.2.3",
+      "title": "Automatic worker-update enrollment recovery",
+      "changes": [
+        "Restore the previous accepting or paused state when automatic-update enrollment fails before a VM restart.",
+        "Verify signed server status after a lost enable or disable response, and preserve a recovery record when the outcome is uncertain.",
+        "Show specific coordinator rejection codes in the CLI and dashboard, and provide a Reconcile enrollment action for pending recovery."
+      ],
+      "workerUpdate": "not_required",
+      "actions": [
+        {
+          "kind": "restart-ui",
+          "requirement": "conditional",
+          "when": "Close and reopen a running everycli ui after updating the CLI."
+        },
+        {
+          "kind": "reconcile",
+          "requirement": "conditional",
+          "when": "If the CLI reports a saved automatic-update enrollment recovery, run everycli reconcile in that profile. The existing VM and restart journal are preserved."
+        }
+      ]
     }
   ]
 }

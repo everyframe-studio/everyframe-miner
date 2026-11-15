@@ -12,6 +12,51 @@ macro_rules! reasons {
 }
 reasons![
     (
+        "coordinator_busy",
+        "The coordinator is busy and could not complete this request.",
+        "Wait briefly, then read the current status before retrying any change. Keep the same profile."
+    ),
+    (
+        "updater_enrollment_restored",
+        "Automatic-update enrollment failed. The previous accepting/paused state and automatic-update policy were restored; no VM restart was submitted.",
+        "Check the reported cause, then retry everycli worker-auto-update --enable. Your offers and provider keys are unchanged."
+    ),
+    (
+        "updater_enrollment_recovery_pending",
+        "Automatic-update enrollment needs reconciliation. Its recovery record was saved; the CLI cannot yet confirm the previous state is restored.",
+        "Run everycli reconcile in this same profile, then check everycli worker-auto-update. If the coordinator is unavailable, wait for it to recover. Do not redeploy or delete the profile."
+    ),
+    (
+        "updater_enrollment_state_changed",
+        "The VM, credentials or updater enrollment changed during recovery.",
+        "The CLI preserved the recovery record and did not overwrite the changed state. Keep the profile and report the miner ID to support."
+    ),
+    (
+        "updater_policy_result_unknown",
+        "The coordinator did not confirm the automatic-update policy change.",
+        "Read everycli worker-auto-update before another change. The policy may already be saved; no request was blindly repeated."
+    ),
+    (
+        "updater_policy_not_confirmed",
+        "The coordinator response does not confirm the requested automatic-update policy.",
+        "Read everycli worker-auto-update and keep the profile for recovery."
+    ),
+    (
+        "invalid_auto_update_policy",
+        "The coordinator rejected the automatic-update policy parameters.",
+        "Update everycli and report this code if it persists."
+    ),
+    (
+        "hotkey_auth_required",
+        "This operation requires the miner's hotkey authorization.",
+        "Reconnect this profile using the same hotkey, then retry."
+    ),
+    (
+        "coordinator_request_failed",
+        "The coordinator could not finish the request.",
+        "Read the current status before retrying a mutation; the change may already have been applied."
+    ),
+    (
         "pika_billing_required",
         "Pika's API balance or account spending limit does not permit this job.",
         "Check the Pika API billing balance, membership and spending limits; a website subscription may use a different balance."

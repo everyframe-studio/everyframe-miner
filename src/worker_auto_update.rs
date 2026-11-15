@@ -21,21 +21,20 @@ impl Miner<'_> {
         let _lock = enabled.map(|_| self.state.lock()).transpose()?;
         let c = self.load(false)?;
         let status = self.api(&c, "worker-auto-update", json!({}))?;
+        let recovery = self.state.read("updater-enrollment", true)?;
+        let recovery_pending = !recovery.is_null() && recovery["stage"] != "complete";
         let result = if enabled == Some(false) {
+            need(!recovery_pending, "updater_enrollment_recovery_pending")?;
             confirm(
                 "Disable further automatic worker-update stages? Any in-progress operation remains journaled; the VM is not stopped or deleted. Hosting continues.",
             )?;
-            self.api(
-                &c,
-                "worker-auto-update-policy",
-                json!({"appId":status["appId"],"enabled":false}),
-            )?
+            self.set_updater_policy_observed(&c, json!({"appId":status["appId"],"enabled":false}))?
         } else {
             status
         };
         Ok(
-            json!({"ok":true,"automaticUpdates":result["automaticUpdates"],
-            "next":"The isolated updater runs inside the existing Phala VM, including while your computer is offline. Disabling does not stop VM/storage billing or clear a pending recovery journal."}),
+            json!({"ok":true,"automaticUpdates":result["automaticUpdates"],"recoveryPending":recovery_pending,
+            "next":if recovery_pending {"A saved updater enrollment needs recovery. Run everycli reconcile in this profile; do not restart or redeploy the VM."} else {"The isolated updater runs inside the existing Phala VM, including while your computer is offline. Disabling does not stop VM/storage billing or clear a pending recovery journal."}}),
         )
     }
 

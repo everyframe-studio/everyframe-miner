@@ -186,6 +186,7 @@ struct Rig {
     os_retired: RefCell<bool>,
     operation_status: RefCell<Value>,
     operation_history: RefCell<Value>,
+    live_heartbeat: Cell<bool>,
 }
 
 #[test]
@@ -1182,6 +1183,9 @@ impl Rig {
         r.state().write("deployment", &deployment).unwrap();
         r.status.borrow_mut()["draining"] = json!(false);
         r.status.borrow_mut()["sessionExpires"] = json!(now() + 60000);
+        // This fixture models a healthy running worker, including while a
+        // loaded CI host spends seconds fsyncing each recovery record.
+        r.live_heartbeat.set(true);
         r.calls.borrow_mut().clear();
         r.envs.borrow_mut().clear();
         r
@@ -1347,6 +1351,7 @@ impl Rig {
             os_retired: RefCell::default(),
             operation_status: RefCell::new(json!({"status":"idle","operation":null})),
             operation_history: RefCell::new(json!({"items":[]})),
+            live_heartbeat: Cell::new(false),
         };
         r.miner().init(&r.sign(&r.inv), &r.credentials).unwrap();
         r
@@ -1708,6 +1713,233 @@ fn updater_enrollment_preflight_and_declined_consent_never_pause_or_write_keys()
                 .any(|end| p.ends_with(end))
         }));
     }
+}
+
+// Faults can occur before a mutation or after it was committed. Reads always
+// remain signed by Rig, so recovery exercises the production verification path.
+struct EnrollmentFault<'a> {
+    rig: &'a Rig,
+    point: &'static str,
+    applied: bool,
+    lost_reads: std::cell::Cell<bool>,
+    fired: std::cell::Cell<bool>,
+}
+impl Http for EnrollmentFault<'_> {
+    fn bytes(&self, request: Request) -> Result<Vec<u8>> {
+        let policy = request.url.ends_with("/worker-auto-update-policy");
+        if self.lost_reads.get() && request.url.contains("/worker-auto-update?") {
+            return Err(Error("request_timeout"));
+        }
+        if !self.fired.get() && request.url.ends_with(self.point) {
+            self.fired.set(true);
+            if self.applied {
+                self.rig.bytes(request)?;
+            }
+            return Err(Error(if policy {
+                "coordinator_request_failed"
+            } else {
+                "request_timeout"
+            }));
+        }
+        self.rig.bytes(request)
+    }
+}
+fn fault_miner<'a>(r: &'a Rig, http: &'a dyn Http) -> Miner<'a> {
+    Miner {
+        state: r.state(),
+        trust: r.trust.clone(),
+        http,
+    }
+}
+
+#[test]
+fn rejected_updater_enrollment_restores_accepting_or_paused_and_existing_policy() {
+    for accepting in [false, true] {
+        for prior_policy in [false, true] {
+            let r = Rig::updater_enrollment_fixture();
+            r.status.borrow_mut()["draining"] = json!(!accepting);
+            let old = json!({"enabled":prior_policy,"capsuleId":"e".repeat(48),
+                "appId":r.info.borrow()["app_id"],"report":{"pending":false,"state":"current"}});
+            r.status.borrow_mut()["automaticUpdates"] = old.clone();
+            let before = r.state().read("credentials", false).unwrap();
+            let fault = EnrollmentFault {
+                rig: &r,
+                point: "/worker-auto-update-policy",
+                applied: false,
+                lost_reads: false.into(),
+                fired: false.into(),
+            };
+            let error = fault_miner(&r, &fault)
+                .enroll_updater(&|_| Ok(()))
+                .unwrap_err();
+            assert_eq!(error.0, "updater_enrollment_restored");
+            assert_eq!(r.status.borrow()["draining"], !accepting);
+            assert_eq!(
+                r.status.borrow()["automaticUpdates"]["enabled"],
+                prior_policy
+            );
+            assert_eq!(
+                r.status.borrow()["automaticUpdates"]["capsuleId"],
+                old["capsuleId"]
+            );
+            assert_eq!(r.state().read("credentials", false).unwrap(), before);
+            assert!(r.envs.borrow().is_empty());
+            assert_eq!(
+                r.state().read("updater-enrollment", false).unwrap()["stage"],
+                "complete"
+            );
+            let diagnostic = everyframe_miner::cli_errors::diagnostic(&error, None);
+            assert_eq!(diagnostic["cause"], "coordinator_request_failed");
+        }
+    }
+}
+
+#[test]
+fn committed_policy_with_lost_reply_continues_once_and_preserves_keys() {
+    let r = Rig::updater_enrollment_fixture();
+    let fault = EnrollmentFault {
+        rig: &r,
+        point: "/worker-auto-update-policy",
+        applied: true,
+        lost_reads: false.into(),
+        fired: false.into(),
+    };
+    let result = fault_miner(&r, &fault).enroll_updater(&|_| Ok(())).unwrap();
+    assert_eq!(result["state"], "enrolling");
+    assert_eq!(r.envs.borrow().len(), 1);
+    assert_eq!(
+        r.calls
+            .borrow()
+            .iter()
+            .filter(|(p, _)| p.ends_with("/worker-auto-update-policy"))
+            .count(),
+        1
+    );
+    assert_eq!(
+        r.state().read("updater-enrollment", false).unwrap()["stage"],
+        "complete"
+    );
+}
+
+#[test]
+fn failed_enable_with_unavailable_readback_is_recovered_on_next_command() {
+    let r = Rig::updater_enrollment_fixture();
+    let before = r.state().read("credentials", false).unwrap();
+    let fault = EnrollmentFault {
+        rig: &r,
+        point: "/worker-auto-update-policy",
+        applied: false,
+        lost_reads: true.into(),
+        fired: false.into(),
+    };
+    assert_eq!(
+        fault_miner(&r, &fault)
+            .enroll_updater(&|_| Ok(()))
+            .unwrap_err()
+            .0,
+        "updater_enrollment_recovery_pending"
+    );
+    assert!(r.envs.borrow().is_empty());
+    assert_eq!(r.status.borrow()["draining"], true);
+    let recovered = r.miner().reconcile().unwrap();
+    assert_eq!(recovered["state"], "recovered");
+    assert_eq!(r.status.borrow()["draining"], false);
+    assert_eq!(r.state().read("credentials", false).unwrap(), before);
+    assert!(r.envs.borrow().is_empty());
+}
+
+#[test]
+fn lost_disable_reply_is_reported_as_success_after_signed_readback() {
+    let r = Rig::updater_enrollment_fixture();
+    r.status.borrow_mut()["automaticUpdates"] =
+        json!({"enabled":true,"appId":r.info.borrow()["app_id"],"capsuleId":"e".repeat(48)});
+    let fault = EnrollmentFault {
+        rig: &r,
+        point: "/worker-auto-update-policy",
+        applied: true,
+        lost_reads: false.into(),
+        fired: false.into(),
+    };
+    let result = fault_miner(&r, &fault)
+        .worker_auto_settings(Some(false), &|_| Ok(()))
+        .unwrap();
+    assert_eq!(result["automaticUpdates"]["enabled"], false);
+    assert_eq!(r.status.borrow()["draining"], false);
+    assert!(r.envs.borrow().is_empty());
+}
+
+#[test]
+fn uncertain_enrollment_restart_is_never_replayed_or_resumed() {
+    let r = Rig::updater_enrollment_fixture();
+    let fault = EnrollmentFault {
+        rig: &r,
+        point: "/envs",
+        applied: true,
+        lost_reads: false.into(),
+        fired: false.into(),
+    };
+    assert_eq!(
+        fault_miner(&r, &fault)
+            .enroll_updater(&|_| Ok(()))
+            .unwrap_err()
+            .0,
+        "updater_enrollment_recovery_pending"
+    );
+    assert_eq!(r.envs.borrow().len(), 1);
+    assert_eq!(
+        r.state().read("updater-enrollment", false).unwrap()["stage"],
+        "cloud_pending"
+    );
+    let result = r.miner().reconcile().unwrap();
+    assert_eq!(result["resolved"], false);
+    assert_eq!(r.envs.borrow().len(), 1);
+    assert_eq!(r.status.borrow()["draining"], true);
+    assert_eq!(
+        r.miner().enroll_updater(&|_| Ok(())).unwrap_err().0,
+        "updater_enrollment_recovery_pending"
+    );
+    assert_eq!(r.envs.borrow().len(), 1);
+    // Provider keys alone do not prove the updater accepted its capsule.
+    let operation_at = r.state().read("deployment", false).unwrap()["operationAt"]
+        .as_i64()
+        .unwrap();
+    r.status.borrow_mut()["attestation"]["at"] = json!(operation_at + 1);
+    r.status.borrow_mut()["modelCatalog"] =
+        json!([{"model":"fixture/video","provider":"fal","workerAvailable":true}]);
+    assert_eq!(r.miner().reconcile().unwrap()["resolved"], false);
+    {
+        let mut status = r.status.borrow_mut();
+        status["automaticUpdates"]["report"] = json!({"state":"waiting","pending":false,
+            "composeHash":status["composeHash"],"at":operation_at+1});
+    }
+    assert_eq!(r.miner().reconcile().unwrap()["activation"], "confirmed");
+    assert_eq!(
+        r.state().read("updater-enrollment", false).unwrap()["stage"],
+        "complete"
+    );
+    assert_eq!(r.envs.borrow().len(), 1);
+}
+
+#[test]
+fn changed_target_cannot_be_resumed_by_enrollment_recovery() {
+    let r = Rig::updater_enrollment_fixture();
+    let fault = EnrollmentFault {
+        rig: &r,
+        point: "/worker-auto-update-policy",
+        applied: false,
+        lost_reads: true.into(),
+        fired: false.into(),
+    };
+    fault_miner(&r, &fault)
+        .enroll_updater(&|_| Ok(()))
+        .unwrap_err();
+    r.status.borrow_mut()["appId"] = json!("f".repeat(40));
+    assert_eq!(
+        r.miner().reconcile().unwrap_err().0,
+        "updater_enrollment_state_changed"
+    );
+    assert_eq!(r.status.borrow()["draining"], true);
+    assert!(r.envs.borrow().is_empty());
 }
 
 #[test]
@@ -2477,6 +2709,10 @@ impl Http for Rig {
                 body["nonce"].as_str().unwrap().into()
             };
             let mut status = self.status.borrow_mut();
+            if self.live_heartbeat.get() {
+                status["lastSeen"] = json!(now());
+                status["sessionExpires"] = json!(now() + 60000);
+            }
             if action == "worker-update-prepare" {
                 let mut back = self.inv.clone();
                 back["appId"] = status["appId"].clone();
@@ -2484,13 +2720,20 @@ impl Http for Rig {
                 status["rollback"] = self.sign(&back);
             }
             if action == "worker-auto-update-policy" {
+                let report = if body["appId"] == status["automaticUpdates"]["appId"]
+                    && (body["capsuleId"].is_null()
+                        || body["capsuleId"] == status["automaticUpdates"]["capsuleId"])
+                {
+                    status["automaticUpdates"]["report"].clone()
+                } else {
+                    Value::Null
+                };
                 let capsule = if body["capsuleId"].is_null() {
                     status["automaticUpdates"]["capsuleId"].clone()
                 } else {
                     body["capsuleId"].clone()
                 };
-                status["automaticUpdates"] =
-                    json!({"enabled":body["enabled"],"appId":body["appId"],"capsuleId":capsule});
+                status["automaticUpdates"] = json!({"enabled":body["enabled"],"appId":body["appId"],"capsuleId":capsule,"report":report});
             }
             if action == "worker-auto-update-report" {
                 status["automaticUpdates"]["report"] = json!({"state":body["state"],"pending":body["pending"],"composeHash":status["composeHash"]});
@@ -2514,6 +2757,9 @@ impl Http for Rig {
             }
             if ["drain", "resume", "worker-auto-drain", "worker-auto-resume"].contains(&action) {
                 status["draining"] = json!(action.ends_with("drain"))
+            }
+            if ["drain", "resume"].contains(&action) && status["automaticUpdates"].is_object() {
+                status["automaticUpdates"]["enabled"] = json!(false);
             }
             if action == "offer" {
                 assert_eq!(body["expectedRevision"], status["offers"][0]["revision"]);

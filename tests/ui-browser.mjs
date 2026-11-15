@@ -944,6 +944,15 @@ try {
   assert(await page.getByRole('button',{name:'Enable…',exact:true}).isDisabled());
   assert(await page.getByRole('button',{name:'Disable',exact:true}).isEnabled());
 
+  await page.evaluate(() => {
+    S.workerAuto={state:'done',result:{value:{recoveryPending:true,automaticUpdates:{enabled:true}}}};
+    document.querySelector('#worker-auto-status').replaceWith(workerAutoCard());
+  });
+  assert.match(await page.locator('#worker-auto-status').innerText(),/enrollment needs recovery/);
+  assert(await page.getByRole('button',{name:'Enable…',exact:true}).isDisabled());
+  assert(await page.getByRole('button',{name:'Disable',exact:true}).isDisabled());
+  assert(await page.getByRole('button',{name:'Reconcile enrollment',exact:true}).isEnabled());
+
   const workerUpdate=await page.evaluate(async()=>{
     const originals={run,refreshAll};const calls=[];
     try{

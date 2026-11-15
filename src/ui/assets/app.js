@@ -2113,12 +2113,16 @@ function automaticMode() {
 }
 function workerAutoCard() {
   const v = value(S.workerAuto), a = v?.automaticUpdates || v, enabled = automaticMode();
+  const recoveryPending = v?.recoveryPending === true;
   const labels = { idle: "Idle", updated: "Updated", current: "Up to date", needs_attention: "Needs attention", failed: "Needs attention", updating: "Updating", enrolling: "Enrolling" };
   const enable = button("Enable…", async () => { await run("worker-auto-enable"); await loadWorkerAuto(); await refreshAll(); }, "primary");
   const disable = button("Disable", async () => { await run("worker-auto-disable"); await loadWorkerAuto(); await refreshAll(); });
-  enable.disabled = enabled !== false || !workerControls().exists || savedWorkerUpdate() || S.pendingOperations.size > 0; disable.disabled = enabled !== true;
+  enable.disabled = recoveryPending || enabled !== false || !workerControls().exists || savedWorkerUpdate() || S.pendingOperations.size > 0; disable.disabled = recoveryPending || enabled !== true;
   const panel = card("Automatic worker updates", null,
     workerUpdateNotice(),
+    recoveryPending ? h("div", {class:"notice warn"}, h("b",null,"Automatic-update enrollment needs recovery"),
+      h("p",null,"Check the saved enrollment before changing automation. Your profile and restart record have been preserved."),
+      button("Reconcile enrollment", async () => { await run("reconcile"); await loadWorkerAuto(); await refreshAll(); }, "small")) : null,
     errorOf(S.workerAuto) ? errorView(errorOf(S.workerAuto)) : h("dl", { class: "kv" },
       h("dt", null, "Mode"), h("dd", null, enabled === null ? "Not checked" : enabled ? "Automatic (in VM)" : "Manual"),
       h("dt", null, "Last result"), h("dd", null, labels[a?.report?.state || a?.state] || a?.report?.state || "Not reported"),

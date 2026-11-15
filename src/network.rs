@@ -138,6 +138,11 @@ fn worker_update_error(status: u16, bytes: &[u8]) -> Error {
             (409, Some("worker_recovery_target_changed")) => "worker_recovery_target_changed",
             (409, Some("worker_update_target_changed")) => "worker_update_target_changed",
             (400, Some("invalid_updater_capsule")) => "invalid_updater_capsule",
+            (400, Some("invalid_auto_update_policy")) => "invalid_auto_update_policy",
+            (409, Some("deployment_app_mismatch")) => "deployment_app_mismatch",
+            (401, Some("hotkey_auth_required")) => "hotkey_auth_required",
+            (400 | 500 | 503, Some("request_failed")) => "coordinator_request_failed",
+            (503, Some("coordinator_busy")) => "coordinator_busy",
             _ => return crate::diagnostics::http_error(status),
         };
         return Error(code);
@@ -708,6 +713,26 @@ mod tests {
             super::worker_update_error(400, br#"{"error":"invalid_updater_capsule"}"#).0,
             "invalid_updater_capsule"
         );
+        for (status, code) in [
+            (400, "invalid_auto_update_policy"),
+            (409, "deployment_app_mismatch"),
+            (401, "hotkey_auth_required"),
+            (503, "coordinator_busy"),
+        ] {
+            let body =
+                serde_json::json!({"error":code,"message":"private remote detail"}).to_string();
+            assert_eq!(super::worker_update_error(status, body.as_bytes()).0, code);
+        }
+        for status in [400, 500, 503] {
+            assert_eq!(
+                super::worker_update_error(
+                    status,
+                    br#"{"error":"request_failed","message":"private"}"#
+                )
+                .0,
+                "coordinator_request_failed"
+            );
+        }
         for body in [
             b"secret".as_slice(),
             br#"{"error":"private-key"}"#,

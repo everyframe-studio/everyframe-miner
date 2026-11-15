@@ -68,6 +68,9 @@ pub fn permitted_credentials(c: &Value, inv: &Value) -> Value {
 impl Miner<'_> {
     pub fn enroll_updater(&self, confirm: &dyn Fn(&str) -> Result<()>) -> Result<Value> {
         let _lock = self.state.lock()?;
+        if let Some(recovered) = self.recover_updater_enrollment_locked()? {
+            return Ok(recovered);
+        }
         let current = self.load(false)?;
         let status = self.api(&current, "status", json!({}))?;
         let saved_seed: Value = serde_json::from_str(
@@ -86,10 +89,9 @@ impl Miner<'_> {
                 == permitted_credentials(&current.credentials, &current.invitation)
         {
             confirm(crate::worker_auto_update::CONSENT)?;
-            self.api(
+            self.set_updater_policy_observed(
                 &current,
-                "worker-auto-update-policy",
-                json!({"appId":status["appId"],"enabled":true}),
+                json!({"appId":status["appId"],"enabled":true,"capsuleId":saved_seed["settings"]["capsuleId"]}),
             )?;
             return Ok(
                 json!({"ok":true,"enabled":true,"state":"enabled","next":"Existing in-VM updater re-enabled. No credentials or journals were replaced."}),
@@ -153,16 +155,34 @@ impl Miner<'_> {
         confirm(crate::worker_auto_update::CONSENT)?;
         // Opt-in is scoped to this exact VM. The coordinator never receives
         // the management token or the credential capsule.
-        self.drain(&c)?;
-        self.api(
+        let mut journal = json!({"version":1,"stage":"preparing","startedAt":now(),
+            "appId":c.deployment["appId"],"composeHash":c.invitation["composeHash"],
+            "capsuleId":capsule_id,"restoreAccepting":status["draining"] == false,
+            "credentialHash":crate::updater_enrollment::credential_hash(&c.credentials)?,
+            "previousPolicy":status["automaticUpdates"],"previousSeed":c.credentials["UPDATER_SEED"],
+            "previousLocalSettings":self.state.read("worker-auto-update",true)?});
+        self.state.write("updater-enrollment", &journal)?;
+        if let Err(error) = self.drain(&c) {
+            return Err(self.failed_updater_enrollment(error));
+        }
+        if let Err(error) = self.set_updater_policy_observed(
             &c,
-            "worker-auto-update-policy",
             json!({"appId":c.deployment["appId"],"enabled":true,"capsuleId":capsule_id}),
-        )?;
+        ) {
+            return Err(self.failed_updater_enrollment(error));
+        }
         // Persist before PATCH so an ambiguous response is reconciled, not repeated.
-        self.state.write("credentials", &local)?;
-        self.state.write("worker-auto-update",&json!({"version":1,"enabled":true,"hosted":true,"capsuleId":capsule_id,"appId":c.deployment["appId"],"minerId":c.invitation["minerId"]}))?;
-        self.activate_keys_locked_mode(&|_| Ok(()), true, true)?;
+        journal["stage"] = json!("installing");
+        self.state.write("updater-enrollment", &journal)?;
+        let install = (|| {
+            self.state.write("credentials", &local)?;
+            self.state.write("worker-auto-update",&json!({"version":1,"enabled":true,"hosted":true,"capsuleId":capsule_id,"appId":c.deployment["appId"],"minerId":c.invitation["minerId"]}))?;
+            self.activate_keys_locked_mode(&|_| Ok(()), true, true)
+        })();
+        if let Err(error) = install {
+            return Err(self.failed_updater_enrollment(error));
+        }
+        self.finish_updater_enrollment_record()?;
         Ok(
             json!({"ok":true,"state":"enrolling","enabled":true,"hosted":true,
    "next":"The in-VM updater will wait for fresh post-restart attestation, restore the previous accepting/paused state, and then check for signed updates while your computer is offline. Check everycli worker-auto-update for remote status. Do not repeat enrollment after an uncertain cloud response; reconcile it."}),
