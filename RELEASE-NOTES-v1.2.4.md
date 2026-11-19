@@ -5,4 +5,4 @@
 - Lets BytePlus workers download results from the ModelArk Singapore output bucket when the signed media policy is unavailable or expired.
 - Verifies the signed manifest format for dstack 0.6 deployments. Shows the approved Phala OS in deployment confirmation and status and flags a VM on a different image.
 
-Run `everycli update` to install the CLI. BytePlus and Foundry miners can use `everycli worker-update` when their profile offers the compatible signed worker. Foundry miners also need to apply their Foundry credentials to the updated worker. Review the new contracts and place offers from the Models page when they are available there.
+Run `everycli update` to install the CLI. Azure Foundry and BytePlus routes become available when the coordinator offers the compatible signed worker. At that point, run `everycli worker-update`, apply the provider credentials, and review the new offers on the Models page. New dstack 0.6 deployments also require a coordinator-approved OS image and attestation policy.
