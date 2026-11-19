@@ -307,10 +307,7 @@ impl Router<'_> {
                 .map(|r| s(&r["url"]).map(str::to_owned))
                 .collect::<Result<Vec<_>>>()?;
             let body = crate::native_schema::body(spec, model, &urls)?;
-            need(
-                digest(&body)? == digest(&data["input"])?,
-                "provider_input_mismatch",
-            )?;
+            need(body == data["input"], "provider_input_mismatch")?;
             return Ok(data);
         }
         if model["provider"] == "runway" {
