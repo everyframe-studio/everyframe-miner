@@ -8,7 +8,34 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 jobs:
+  candidate:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 8
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      ready: ${{ steps.upload.outcome == 'success' }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          persist-credentials: false
+      - id: verify
+        name: Verify candidate provenance, native versions and checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/release-candidate.py
+      - id: upload
+        if: steps.verify.outputs.found == 'true'
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: reviewed-cli
+          path: reviewed/*
+          if-no-files-found: error
   build:
+    needs: candidate
+    if: ${{ !cancelled() && (needs.candidate.result != 'success' || needs.candidate.outputs.ready != 'true' || vars.EVERYCLI_CANDIDATE_MODE != 'promote') }}
     strategy:
       fail-fast: false
       matrix:
@@ -41,6 +68,7 @@ jobs:
       - name: Lint, test, and build
         env:
           EVERYCLI_RELEASE_BUILD: '1'
+          EVERYFRAME_WORKER_BUILD_ID: ${{ github.sha }}
         run: |
           python3 scripts/check-build-context.py
           cargo +1.97.1 fmt --check
@@ -97,7 +125,12 @@ jobs:
           test "$(docker inspect updater-smoke --format '{{.State.Running}}')" = true
           docker logs updater-smoke 2>&1 | grep -q '"state":"not_enrolled"'
   publish:
-    needs: [build, containers]
+    needs: [candidate, build, containers]
+    if: >-
+      ${{ !cancelled() && needs.containers.result == 'success' &&
+          (needs.build.result == 'success' ||
+           (needs.build.result == 'skipped' && needs.candidate.result == 'success' && needs.candidate.outputs.ready == 'true' &&
+            vars.EVERYCLI_CANDIDATE_MODE == 'promote')) }}
     runs-on: ubuntu-22.04
     timeout-minutes: 10
     # Configure required reviewers on this environment for publication approval.
@@ -110,9 +143,27 @@ jobs:
           persist-credentials: false
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          pattern: everycli-*
+          pattern: ${{ needs.build.result == 'skipped' && 'reviewed-cli' || 'everycli-*' }}
           path: dist
           merge-multiple: true
+      - name: Download reviewed binaries for side-by-side trial
+        if: needs.build.result == 'success' && needs.candidate.outputs.ready == 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: reviewed-cli
+          path: trial
+      - name: Compare the independent native builds
+        if: needs.build.result == 'success' && needs.candidate.outputs.ready == 'true'
+        run: |
+          for sum in trial/*.sha256; do
+            file=$(basename "$sum" .sha256)
+            if cmp -s "dist/$file" "trial/$file"; then
+              echo "$file: identical" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "::warning::$file differs; publishing the native tag build"
+              echo "$file: differs; keep comparison mode until investigated" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
       - name: Prepare version-pinned installer
         env:
           RELEASE_TAG: ${{ github.ref_name }}

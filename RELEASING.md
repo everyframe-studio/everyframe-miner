@@ -2,10 +2,24 @@
 
 ## Publishing prebuilt CLI downloads
 
-`.github/workflows/release.yml` builds and tests native Linux x86-64/ARM64 and
-macOS Intel/Apple Silicon binaries on matching GitHub-hosted runners. It uses
-Rust 1.97.1, validates the tag against Cargo.toml, and publishes only after every
-platform passes. This is separate from worker image admission.
+Push the final commit to `release/vX.Y.Z` and wait for the **Rust checks** push run
+to finish on all four native platforms. Tag that same commit as `vX.Y.Z`. A tag
+on a different merge commit takes the full native build path.
+
+The release workflow finds the successful branch run for that commit, downloads
+the four CLI archives by artifact ID, and verifies the archive digests, binary
+checksums, target, commit and version reported by the native CLI job. Each
+candidate was built with Rust 1.97.1. Missing, expired or invalid candidates
+fall back to the native tag build. Version tags trigger only the release workflow.
+
+With the repository Actions variable `EVERYCLI_CANDIDATE_MODE` unset or set to
+`compare`, the release builds all four binaries again, records byte comparisons
+in the publish job summary when a candidate exists, and publishes the tag
+binaries. After verifying the comparison on all platforms, set the variable to
+`promote` to publish matching candidates directly. Set it back to `compare` to
+restore full native builds. Tag validation, checksums, the release environment,
+and the container check apply in both modes.
+
 The release also gates on clean worker/supervisor Docker builds and a network-
 isolated idle supervisor smoke test. Container builds use the reviewed pinned
 Rust 1.98.0 image; native CLI builds use Rust 1.97.1. This job neither pushes images
