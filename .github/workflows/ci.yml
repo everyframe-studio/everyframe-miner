@@ -1,5 +1,9 @@
 name: Rust checks
-on: [push, pull_request]
+on:
+  push:
+    branches: ['**']
+    tags-ignore: ['v*']
+  pull_request:
 permissions:
   contents: read
 jobs:
@@ -25,6 +29,9 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Install release-matched toolchain
         run: rustup toolchain install 1.97.1 --profile minimal --component rustfmt --component clippy
+      - name: Test candidate artifact verification
+        if: matrix.runner == 'ubuntu-22.04'
+        run: python3 scripts/test-release-candidate.py
       - name: Check compiled container assets
         run: python3 scripts/check-build-context.py
       - run: cargo +1.97.1 fmt --check
@@ -58,6 +65,8 @@ jobs:
           rustc +1.97.1 -vV | grep -Fx "host: $EXPECTED_TARGET"
           mkdir -p dist
           cp target/release/everycli "dist/everycli-$EXPECTED_TARGET"
+          target/release/everycli --version --json | jq -e --arg sha "$GITHUB_SHA" --arg target "$EXPECTED_TARGET" \
+            '{version, implementation, sha: $sha, target: $target}' > dist/candidate.json
           cd dist
           shasum -a 256 "everycli-$EXPECTED_TARGET" > "everycli-$EXPECTED_TARGET.sha256"
       - name: Upload reviewed candidate artifacts
