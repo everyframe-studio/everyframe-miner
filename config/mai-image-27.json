@@ -1,0 +1,116 @@
+{
+  "direct/azure-foundry/mai-image-2.7": {
+    "provider": "azure-foundry",
+    "apiModel": "MAI-Image-2.7",
+    "name": "MAI Image 2.7",
+    "vendor": "Microsoft",
+    "family": "MAI Image 2.7",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "azure-foundry-mai",
+    "maiVariant": "standard",
+    "deadlineMs": 720000,
+    "maxPrompt": 32000,
+    "seed": false,
+    "params": {},
+    "nativeCapabilities": {
+      "maxPrompt": 32000,
+      "maxReferences": 5,
+      "count": [
+        1,
+        1
+      ],
+      "formats": [
+        "png"
+      ],
+      "referenceFormats": [
+        "image/png",
+        "image/jpeg"
+      ],
+      "generationMaxPixels": 4194304,
+      "generationMinSide": 768,
+      "editSize": "auto",
+      "transparent": true
+    },
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://learn.microsoft.com/en-us/azure/foundry/foundry-models/how-to/use-foundry-models-mai",
+    "mime": "image/png",
+    "duration": null,
+    "resolution": "1k",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "codecs": [
+      "png"
+    ],
+    "audio": false,
+    "referenceTransport": "multipart",
+    "pricingRule": {
+      "type": "mai-image",
+      "referenceMicrousd": 35000
+    }
+  },
+  "direct/azure-foundry/mai-image-2.7-flash": {
+    "provider": "azure-foundry",
+    "apiModel": "MAI-Image-2.7-Flash",
+    "name": "MAI Image 2.7 Flash",
+    "vendor": "Microsoft",
+    "family": "MAI Image 2.7 Flash",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "azure-foundry-mai",
+    "maiVariant": "flash",
+    "deadlineMs": 720000,
+    "maxPrompt": 32000,
+    "seed": false,
+    "params": {},
+    "nativeCapabilities": {
+      "maxPrompt": 32000,
+      "maxReferences": 5,
+      "count": [
+        1,
+        1
+      ],
+      "formats": [
+        "png"
+      ],
+      "referenceFormats": [
+        "image/png",
+        "image/jpeg"
+      ],
+      "generationMaxPixels": 4194304,
+      "generationMinSide": 768,
+      "editSize": "auto",
+      "transparent": false
+    },
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "documentation-reviewed",
+    "schemaUrl": "https://learn.microsoft.com/en-us/azure/foundry/foundry-models/how-to/use-foundry-models-mai",
+    "mime": "image/png",
+    "duration": null,
+    "resolution": "1k",
+    "aspect": "1:1",
+    "dimensions": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "codecs": [
+      "png"
+    ],
+    "audio": false,
+    "referenceTransport": "multipart",
+    "pricingRule": {
+      "type": "mai-image",
+      "referenceMicrousd": 10000
+    }
+  }
+}

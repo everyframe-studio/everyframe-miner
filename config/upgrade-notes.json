@@ -1032,9 +1032,10 @@
     },
     {
       "version": "v1.2.4",
-      "title": "BytePlus Seedance Flash and ModelArk downloads",
+      "title": "BytePlus Seedance Flash and Microsoft Foundry MAI Image",
       "changes": [
         "Add native worker support for BytePlus Seedance 2.5 Flash.",
+        "Add Microsoft Azure AI Foundry as a direct provider for MAI Image 2.7 and MAI Image 2.7 Flash.",
         "Allow the exact ModelArk Singapore result host when no fresh signed media policy is available.",
         "Verify the signed dstack 0.6 manifest, show the approved Phala OS before deployment, and flag a VM on a different image."
       ],
@@ -1043,7 +1044,7 @@
         {
           "kind": "worker-update",
           "requirement": "conditional",
-          "when": "If you serve BytePlus Seedance jobs, run everycli worker-update when your profile offers the compatible signed worker. Review and offer the Flash contract when it is available in Models."
+          "when": "To serve Seedance 2.5 Flash or Microsoft Foundry MAI Image jobs, run everycli worker-update when a compatible signed worker is available. For Foundry, configure your resource, API key and deployment names under API Keys, then apply the keys to the worker. Review offers in Models."
         }
       ]
     }

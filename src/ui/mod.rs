@@ -549,7 +549,12 @@ fn save_key(sh: &Shared, mut body: Value) -> Response {
 }
 
 fn rejected(provider: &str, reason: &str) -> Value {
-    let (message, next) = if reason == "key_not_admin" {
+    let (message, next) = if reason == "invalid_foundry_credentials" {
+        (
+            "The Microsoft Foundry credentials are incomplete or invalid.",
+            "Enter the resource name, API key, and at least one model deployment name.",
+        )
+    } else if reason == "key_not_admin" {
         (
             "fal accepted this key, but it is not an admin key, so it can't read your balance.",
             "Create an ADMIN key in the fal dashboard for balance checks. Your generation key stays as it is.",

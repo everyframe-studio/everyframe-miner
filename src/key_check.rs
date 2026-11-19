@@ -175,6 +175,12 @@ pub(crate) fn check_with_timeout(
     key: &str,
     timeout_seconds: u64,
 ) -> (Verdict, &'static str) {
+    if provider == "azure-foundry" {
+        return match crate::azure_foundry::configuration(key) {
+            Ok(_) => (Verdict::Unverified, "foundry_key_access_unverified"),
+            Err(_) => (Verdict::Rejected, "invalid_foundry_credentials"),
+        };
+    }
     let Some(p) = probe(provider, key) else {
         return (Verdict::Unverified, "key_check_unsupported");
     };

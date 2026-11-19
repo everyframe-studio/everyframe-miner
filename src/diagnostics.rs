@@ -12,6 +12,11 @@ macro_rules! reasons {
 }
 reasons![
     (
+        "invalid_foundry_credentials",
+        "The Microsoft Foundry credential JSON is invalid.",
+        "Use a resource name, API key, and deployments with a standard or flash deployment name. See AZURE-FOUNDRY.md."
+    ),
+    (
         "invalid_phala_os_manifest",
         "The signed deployment does not contain the manifest format required by its Phala OS.",
         "Reconnect after EveryFrame corrects the signed deployment. Keep the same profile and hotkey."

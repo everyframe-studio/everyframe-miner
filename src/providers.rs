@@ -145,6 +145,7 @@ impl<'a> Router<'a> {
         let mut h = match p {
             "fal" => vec![("authorization".into(), format!("Key {key}"))],
             "bfl" => vec![("x-key".into(), key.into())],
+            "azure-foundry" => return Err(Error("unsupported_provider")),
             "google" => vec![("x-goog-api-key".into(), key.into())],
             "elevenlabs" => vec![("xi-api-key".into(), key.into())],
             "pika" => vec![("X-API-Key".into(), key.into())],
@@ -850,6 +851,8 @@ impl Provider for Router<'_> {
                         || crate::invitation::valid_workspace(
                             &self.credentials[crate::invitation::ALIBABA_WORKSPACE_KEY],
                         ))
+                    && (m["adapter"] != "azure-foundry-mai"
+                        || crate::azure_foundry::deployment_configured(&self.credentials, m))
                     && PROVIDERS
                         .iter()
                         .any(|(p, k)| m["provider"] == *p && configured(&self.credentials[k]))

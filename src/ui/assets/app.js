@@ -461,6 +461,7 @@ function workerControls() {
 }
 
 const PROVIDERS = {
+  "azure-foundry": ["Microsoft Azure AI Foundry", "MAI Image 2.7 and Flash from your Microsoft Foundry deployments."],
   alibaba: ["Alibaba Cloud", "Wan 3.0 and Qwen Image 3.0 through Model Studio in Singapore. Use a matching regional DashScope API key."],
   byteplus: ["BytePlus", "Seedance 2.5 and Seedream 5.0 through ModelArk in Singapore. Use your BytePlus API key."],
   volcengine: ["Volcengine", "Seedance 2.5 and Seedream 5.0 through Ark in Beijing. Use your Volcengine Ark API key."],
@@ -486,7 +487,7 @@ const PROVIDERS = {
   "openrouter-billing": ["OpenRouter billing (optional)", "Used only on this computer to show your OpenRouter balance. Never sent to the worker."],
 };
 const providerName = (p) => (PROVIDERS[p] || [p])[0];
-const DIRECT_PROVIDERS = new Set(["ltx", "alibaba", "byteplus", "volcengine", "luma-agents", "openai", "google", "xai", "elevenlabs", "minimax", "bfl", "kling", "pika", "runway", "luma", "vivix"]);
+const DIRECT_PROVIDERS = new Set(["azure-foundry", "ltx", "alibaba", "byteplus", "volcengine", "luma-agents", "openai", "google", "xai", "elevenlabs", "minimax", "bfl", "kling", "pika", "runway", "luma", "vivix"]);
 const compareProviders = (a, b) => Number(!DIRECT_PROVIDERS.has(a)) - Number(!DIRECT_PROVIDERS.has(b))
   || String(providerName(a) || "").localeCompare(String(providerName(b) || ""));
 
@@ -1471,6 +1472,7 @@ const CHECK_REASONS = {
   key_check_permission: "this key does not permit the read-only account check; generation access is unverified",
   key_check_inconclusive: "the provider gave an unexpected answer",
   key_check_unsupported: "no free check is available for this provider",
+  foundry_key_access_unverified: "deployment access has not been checked",
 };
 function keyStatusView(provider) {
   const st = S.keyStatus[provider];
@@ -1489,6 +1491,11 @@ function checkMessage(provider, check, saving) {
 function keyForm(provider, after, stayOn, extra = null) {
   const saved = (S.overview?.keys || []).find((k) => k.provider === provider)?.saved;
   const workspace = provider === "alibaba" ? h("input", { type: "text", placeholder: "Singapore workspace ID", "aria-label": "Alibaba workspace ID", autocomplete: "off" }) : null;
+  const foundry = provider === "azure-foundry";
+  const field = (label, placeholder) => foundry ? h("input", { type: "text", autocomplete: "off", spellcheck: "false", placeholder, "aria-label": label }) : null;
+  const resource = field("Foundry resource name", "Resource name");
+  const standard = field("MAI Image 2.7 deployment name", "2.7 deployment");
+  const flash = field("MAI Image 2.7 Flash deployment name", "2.7 Flash deployment");
   const input = h("input", { type: "password", autocomplete: "off", spellcheck: "false", placeholder: saved ? "Paste to replace" : "Paste key", "aria-label": providerName(provider) + " key" });
   const finish = async () => {
     if (stayOn) S.openStep = stayOn;
@@ -1508,14 +1515,23 @@ function keyForm(provider, after, stayOn, extra = null) {
       S.keyStatus[provider] = { kind: "warn", text: "Check the pending worker operation before changing keys." };
       status.replaceChildren(keyStatusView(provider)); return;
     }
-    const key = input.value;
+    let key = input.value;
     if (!key.trim()) { S.keyStatus[provider] = { kind: "warn", text: "Paste a key first." }; return finish(); }
+    if (foundry) {
+      const deployments = Object.fromEntries([["standard", standard.value.trim()], ["flash", flash.value.trim()]].filter(([, name]) => name));
+      if (!resource.value.trim() || !Object.keys(deployments).length) {
+        S.keyStatus[provider] = { kind: "warn", text: "Enter your Foundry resource name and at least one deployment name." };
+        status.replaceChildren(keyStatusView(provider));
+        return;
+      }
+      key = JSON.stringify({ resource: resource.value.trim(), apiKey: key.trim(), deployments });
+    }
     input.value = "";
-    S.keyStatus[provider] = { kind: "muted", text: "Checking the key with " + providerName(provider) + "…" };
+    S.keyStatus[provider] = { kind: "muted", text: foundry ? "Checking deployment settings…" : "Checking the key with " + providerName(provider) + "…" };
     status.replaceChildren(keyStatusView(provider));
     const r = await api("/api/keys", { provider, key, ...(workspace?.value.trim() ? { workspace: workspace.value.trim() } : {}) });
     const err = r.data.error;
-    if (err?.error === "credential_rejected" && provider !== "fal-billing") err.message = providerName(provider) + " rejected this key, so it was not saved.";
+    if (err?.error === "credential_rejected" && provider !== "fal-billing" && !foundry) err.message = providerName(provider) + " rejected this key, so it was not saved.";
     S.keyStatus[provider] = r.ok ? checkMessage(provider, r.data.check, true) : { kind: "error", error: err };
     await finish();
   }, "primary small");
@@ -1529,7 +1545,7 @@ function keyForm(provider, after, stayOn, extra = null) {
   input.addEventListener("keydown", (e) => { if (e.key === "Enter") save.click(); });
   const status = h("div", { class: "key-status-wrap" }, keyStatusView(provider));
   const form = h("div", { class: "keyform" },
-    h("div", { class: "row" }, h("span", { class: "badge " + (saved ? "ok" : "") }, saved ? "SAVED" : "NOT SAVED"), workspace, input, save, test, extra),
+    h("div", { class: "row" }, h("span", { class: "badge " + (saved ? "ok" : "") }, saved ? "SAVED" : "NOT SAVED"), workspace, resource, standard, flash, input, save, test, extra),
     status);
   return form;
 }
@@ -1580,7 +1596,7 @@ function readiness(r) {
   if (b.includes("worker_release_required")) return ["Worker update required", "warn"];
   if (b.includes("worker_offline")) return ["Worker offline", "bad"];
   if (b.includes("worker_capabilities_unknown")) return ["Worker check required", "warn"];
-  if (b.includes("worker_provider_required")) return ["Add provider key to worker", "warn"];
+  if (b.includes("worker_provider_required")) return [r.provider === "azure-foundry" ? "Apply credentials for this deployment" : "Add provider key to worker", "warn"];
   if (worker?.status === "access_denied") return ["Provider access unavailable for worker key", "bad"];
   if (worker?.status === "temporarily_unavailable") return ["Worker provider check needs refreshing", "warn"];
   if (catalog?.status === "access_denied") return ["Provider catalog could not be read", "warn"];
@@ -1589,6 +1605,7 @@ function readiness(r) {
       ? "Provider catalog check is stale" : "Provider catalog check temporarily unavailable", "warn"];
   // An absent per-model probe is not an account failure. Keep the badge
   // neutral; explicit provider and readiness problems above retain their tone.
+  if (r.provider === "azure-foundry" && r.workerAvailable === true) return ["Deployment configured", ""];
   if (worker?.status === "unchecked" && r.offerable === true) return ["Available", ""];
   if (!S.overview?.initialized && r.catalogGroup === "supported") return ["Listed · setup required", ""];
   if (r.offerable === true) return ["Available", "ok"];

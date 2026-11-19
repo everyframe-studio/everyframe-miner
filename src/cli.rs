@@ -508,8 +508,13 @@ fn set_keys(args: &Args, state: &State) -> Result<Value> {
     onboarding::save_keys(state, &updates, None)
 }
 pub fn key_prompt(provider: &str, saved: bool) -> String {
+    let label = if provider == "azure-foundry" {
+        "azure-foundry credentials JSON (resource, apiKey, deployments)".into()
+    } else {
+        format!("{provider} API key")
+    };
     format!(
-        "{provider} API key (hidden; {}): ",
+        "{label} (hidden; {}): ",
         if saved {
             "Saved — Enter keeps existing"
         } else {

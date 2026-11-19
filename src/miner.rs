@@ -391,8 +391,13 @@ impl Miner<'_> {
                 ]
                 .contains(&payload["providerEnvironment"].as_str().unwrap_or(""))
             {
-                url.query_pairs_mut()
-                    .append_pair("providerEnvironment", s(&payload["providerEnvironment"])?);
+                let mode = s(&payload["providerEnvironment"])?;
+                let mut query = url.query_pairs_mut();
+                query.append_pair("providerEnvironment", mode);
+                if mode == "native-v4" {
+                    // Older coordinators still see the compatible native-v4 mode.
+                    query.append_pair("foundry", "1");
+                }
             }
             if action == "jobs" {
                 crate::job_history::validate_query(&payload)?;

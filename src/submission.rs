@@ -29,7 +29,9 @@ pub fn rejected(code: &str) -> Option<&'static str> {
         | "pika_capacity_limited"
         | "wavespeed_capacity_limited"
         | "minimax_capacity_limited" => Some("provider_capacity_limited"),
-        "provider_key_required" => Some("provider_key_required"),
+        "provider_key_required" | "foundry_deployment_required" | "invalid_foundry_credentials" => {
+            Some("provider_key_required")
+        }
         // Catalog refusal happens before any paid provider request.
         "provider_model_unavailable" => Some("provider_model_unavailable"),
         "vivix_content_rejected"
