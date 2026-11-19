@@ -117,6 +117,9 @@ struct Api {
     mode: &'static str,
     calls: RefCell<Vec<Request>>,
 }
+const MODELARK_OUTPUT: &str =
+    "https://ark-acg-ap-southeast-1.tos-ap-southeast-1.volces.com/output.mp4";
+
 impl Http for Api {
     fn bytes(&self, r: Request) -> Result<Vec<u8>> {
         let post = r.method == "POST";
@@ -144,7 +147,16 @@ impl Http for Api {
             }
             json!({"id":"premium_task_1"}).to_string().into_bytes()
         } else if is_api {
-            json!({"id":if self.mode=="wrong-id"{"other_task"}else{"premium_task_1"},"model":"dreamina-seedance-2-5-flash-261115","status":"succeeded","content":{"video_url":if self.mode=="evil"{"https://example.test/output.mp4"}else{"https://ark-content-generation-ap-southeast-1.tos-ap-southeast-1.volces.com/output.mp4"}}}).to_string().into_bytes()
+            json!({
+                "id": if self.mode == "wrong-id" { "other_task" } else { "premium_task_1" },
+                "model": "dreamina-seedance-2-5-flash-261115",
+                "status": "succeeded",
+                "content": {
+                    "video_url": if self.mode == "evil" { "https://example.test/output.mp4" } else { MODELARK_OUTPUT }
+                }
+            })
+            .to_string()
+            .into_bytes()
         } else {
             assert!(r.limit >= 64 * 1024 * 1024);
             b"offline generated video".to_vec()
@@ -171,14 +183,15 @@ fn asynchronous_transport_restart_poll_and_credential_free_mp4_delivery() {
         let result = restored.result(&reference, &s).unwrap();
         let bundle: Value = serde_json::from_slice(&result.media).unwrap();
         assert_eq!(bundle["parts"][0]["mime"], "video/mp4");
+        let calls = api.calls.borrow();
         assert_eq!(
-            api.calls
-                .borrow()
+            calls
                 .iter()
-                .filter(|r| r.method == "POST")
+                .filter(|request| request.url == MODELARK_OUTPUT)
                 .count(),
             1
         );
+        assert_eq!(calls.iter().filter(|r| r.method == "POST").count(), 1);
     }
 }
 #[test]

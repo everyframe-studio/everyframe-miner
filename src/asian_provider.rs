@@ -121,9 +121,12 @@ impl Router<'_> {
                 "*.bytepluses.com",
                 "*.bytepluscdn.com",
                 "*.ibytedtos.com",
-                // ModelArk's documented Singapore video result bucket. Do not
-                // authorize every volces.com host or forward API credentials.
+                // ModelArk's Singapore video result buckets: the documented one,
+                // and the one our ModelArk account's results actually come back
+                // on (seen 2026-11-17). Do not authorize every volces.com host
+                // or forward API credentials.
                 "ark-content-generation-ap-southeast-1.tos-ap-southeast-1.volces.com",
+                "ark-acg-ap-southeast-1.tos-ap-southeast-1.volces.com",
             ],
             "volcengine" => &["*.volces.com", "*.volccdn.com"],
             _ => return Err(Error("unsupported_provider")),
