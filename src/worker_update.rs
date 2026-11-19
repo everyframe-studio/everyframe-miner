@@ -519,7 +519,7 @@ impl Miner<'_> {
             }
             if c.invitation["composeHash"] == inv["composeHash"] {
                 need(
-                    self.target(&c, false)?["compose_hash"] == inv["composeHash"],
+                    self.approved_target(&c)?["compose_hash"] == inv["composeHash"],
                     "update_target_mismatch",
                 )?;
                 return Ok(
@@ -537,7 +537,7 @@ impl Miner<'_> {
                 "update_not_ready",
             )?;
             need(
-                self.target(&c, false)?["status"] == "running",
+                self.approved_target(&c)?["status"] == "running",
                 "worker_not_running",
             )?;
             let status = self.api(&c, "status", json!({}))?;
@@ -825,7 +825,7 @@ impl Miner<'_> {
                         && self.ensure_ready(&c, &status).is_ok()
                         && at > after
                         && status["sessionExpires"].as_i64().is_some_and(|t| t > now())
-                        && observe!(self.target(&c, false))["status"] == "running";
+                        && observe!(self.approved_target(&c))["status"] == "running";
                     if !admitted {
                         if wait(stage) {
                             continue;
@@ -907,7 +907,7 @@ impl Miner<'_> {
                         "post_restart_attestation_required",
                     ));
                     observe!(need(
-                        observe!(self.target(&c, false))["status"] == "running",
+                        observe!(self.approved_target(&c))["status"] == "running",
                         "worker_not_running",
                     ));
                     if flow["restoreAccepting"] == true {

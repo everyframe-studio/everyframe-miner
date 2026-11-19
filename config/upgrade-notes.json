@@ -1035,7 +1035,8 @@
       "title": "BytePlus Seedance Flash and ModelArk downloads",
       "changes": [
         "Add native worker support for BytePlus Seedance 2.5 Flash.",
-        "Allow the exact ModelArk Singapore result host when no fresh signed media policy is available."
+        "Allow the exact ModelArk Singapore result host when no fresh signed media policy is available.",
+        "Verify the signed dstack 0.6 manifest, show the approved Phala OS before deployment, and flag a VM on a different image."
       ],
       "workerUpdate": "conditional",
       "actions": [

@@ -220,6 +220,24 @@ pub fn validate(envelope: &Value, t: &Value, now: i64, allow_expired: bool) -> R
             && valid_environment(&c["allowed_envs"]),
         "unsafe_compose",
     )?;
+    let mut version = s(&r["image"])?
+        .trim_start_matches("dstack-")
+        .split('.')
+        .map(str::parse::<u32>);
+    let (Some(Ok(major)), Some(Ok(minor))) = (version.next(), version.next()) else {
+        return Err(Error("unsupported_deployment"));
+    };
+    if major > 0 || minor >= 6 {
+        // Phala hashes the v3 manifest, including its init script list. The
+        // coordinator must sign that exact manifest before we can provision.
+        need(
+            c["manifest_version"] == "3"
+                && c["init_script"]
+                    .as_array()
+                    .is_some_and(|scripts| scripts.iter().all(Value::is_string)),
+            "invalid_phala_os_manifest",
+        )?;
+    }
     let docker = s(&c["docker_compose_file"])?;
     if c["allowed_envs"]
         .as_array()

@@ -1215,7 +1215,8 @@ pub fn result_failed(command: &str, out: &Value) -> bool {
         || (command == "status"
             && (out["ok"] == false
                 || !out["coordinatorError"].is_null()
-                || !out["cloudError"].is_null()))
+                || !out["cloudError"].is_null()
+                || out["cloud"]["osMatchesSigned"] == false))
         || (command == "reconcile" && out["resolved"] == false)
         || (command == "balances" && balance_check_failed(out))
 }

@@ -842,13 +842,20 @@ fn reviewed_production_os_versions_are_not_hardcoded_but_dev_gpu_and_tampering_a
     let r = Rig::new();
     for (image, valid) in [
         ("dstack-0.5.12", true),
-        ("dstack-0.6.1", true),
+        ("dstack-0.6.5", true),
         ("dstack-dev-0.5.12", false),
         ("dstack-nvidia-0.5.12", false),
         ("https://evil.invalid/image", false),
     ] {
         let mut inv = r.inv.clone();
         inv["request"]["image"] = json!(image);
+        if image == "dstack-0.6.5" {
+            let result = invitation::validate(&r.sign(&inv), &r.trust, now(), false);
+            assert_eq!(result.unwrap_err().0, "invalid_phala_os_manifest");
+            let compose = &mut inv["request"]["compose_file"];
+            compose["manifest_version"] = json!("3");
+            compose["init_script"] = json!([]);
+        }
         assert_eq!(
             invitation::validate(&r.sign(&inv), &r.trust, now(), false).is_ok(),
             valid,
@@ -858,6 +865,75 @@ fn reviewed_production_os_versions_are_not_hardcoded_but_dev_gpu_and_tampering_a
         unsigned["value"]["request"]["image"] = json!(image);
         assert!(invitation::validate(&unsigned, &r.trust, now(), false).is_err());
     }
+}
+
+#[test]
+fn deploy_checks_and_displays_the_new_signed_phala_os() {
+    let mut r = Rig::new();
+    r.inv["request"]["image"] = json!("dstack-0.6.5");
+    r.inv["osImageHash"] = json!("f".repeat(64));
+    let compose = &mut r.inv["request"]["compose_file"];
+    compose["manifest_version"] = json!("3");
+    compose["init_script"] = json!([]);
+    r.inv["composeHash"] = json!(cloud::compose_hash(compose).unwrap());
+    let mut config = r.state().read("config", false).unwrap();
+    config["invitation"] = r.sign(&r.inv);
+    r.state().write("config", &config).unwrap();
+
+    let prompts = RefCell::new(Vec::new());
+    r.miner()
+        .deploy(0.06, &|prompt| {
+            prompts.borrow_mut().push(prompt.to_owned());
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(prompts.borrow().len(), 1);
+    assert!(prompts.borrow()[0].contains("on dstack-0.6.5"));
+    assert_eq!(
+        r.calls
+            .borrow()
+            .iter()
+            .filter(|(path, _)| path.starts_with("POST ") && path.ends_with("/cvms/provision"))
+            .count(),
+        1
+    );
+    let state = r.state().read("deployment", false).unwrap();
+    assert_eq!(
+        state["provisionResponse"]["os_image_hash"],
+        r.inv["osImageHash"]
+    );
+}
+
+#[test]
+fn externally_changed_os_is_visible_and_blocks_activation_but_allows_shutdown() {
+    let r = Rig::new();
+    r.deploy().unwrap();
+    r.info.borrow_mut()["os"] = json!({"os_image_hash":"f".repeat(64)});
+    let status = r.miner().status().unwrap();
+    assert_eq!(status["signedOsImage"], r.inv["request"]["image"]);
+    assert_eq!(status["cloud"]["status"], "running");
+    assert_eq!(status["cloud"]["osMatchesSigned"], false);
+    assert!(everyframe_miner::cli::result_failed("status", &status));
+    assert!(
+        everyframe_miner::display::render("status", &status)
+            .contains("Phala reports a different image")
+    );
+    let before = r.state().read("deployment", false).unwrap();
+    let error = r
+        .miner()
+        .activate(&|_| panic!("must check the OS before releasing keys"))
+        .unwrap_err();
+    assert_eq!(error.0, "unapproved_running_os");
+    assert_eq!(before, r.state().read("deployment", false).unwrap());
+    assert!(
+        r.calls
+            .borrow()
+            .iter()
+            .all(|(p, _)| !p.starts_with("PATCH "))
+    );
+
+    let stop = r.miner().stop(false, &|_| Ok(())).unwrap();
+    assert_eq!(stop["phase"], "stopping");
 }
 
 #[test]
@@ -2826,13 +2902,20 @@ impl Http for Rig {
                 json!({"items":[{"name":"dstack-0.5.12","is_dev":false,"requires_gpu":false,"os_image_hash":"e".repeat(64)},
                     {"name":"dstack-dev-0.5.9","is_dev":true,"requires_gpu":false,"os_image_hash":self.inv["osImageHash"]}]})
             } else {
-                json!({"items":[{"name":"dstack-0.5.9","is_dev":false,"requires_gpu":false,"os_image_hash":self.inv["osImageHash"]}]})
+                json!({"items":[{"name":self.inv["request"]["image"],"is_dev":false,"requires_gpu":false,"os_image_hash":self.inv["osImageHash"]}]})
             }
         } else if path.ends_with("/cvms/paginated") {
             json!({"items":self.cvms.borrow().clone()})
         } else if path.ends_with("/cvms/provision") {
             assert_eq!(self.phase(), "provision_intent");
-            json!({"app_id":self.info.borrow()["app_id"],"compose_hash":self.inv["composeHash"],"os_image_hash":self.recovered.borrow().as_ref().unwrap_or(&self.inv)["osImageHash"],"app_env_encrypt_pubkey":hex::encode(PublicKey::from(&StaticSecret::from([0x11;32])).as_bytes()),"kms_info":{"slug":"test-kms"}})
+            let recovered = self.recovered.borrow();
+            let signed = recovered.as_ref().unwrap_or(&self.inv);
+            assert_eq!(body["image"], signed["request"]["image"]);
+            if body["image"] == "dstack-0.6.5" {
+                assert_eq!(body["compose_file"]["manifest_version"], "3");
+                assert_eq!(body["compose_file"]["init_script"], json!([]));
+            }
+            json!({"app_id":self.info.borrow()["app_id"],"compose_hash":self.inv["composeHash"],"os_image_hash":signed["osImageHash"],"app_env_encrypt_pubkey":hex::encode(PublicKey::from(&StaticSecret::from([0x11;32])).as_bytes()),"kms_info":{"slug":"test-kms"}})
         } else if path.contains("/pubkey/") {
             json!({"public_key":hex::encode(PublicKey::from(&StaticSecret::from([0x11;32])).as_bytes())})
         } else if path.ends_with("/compose_file/provision") {
