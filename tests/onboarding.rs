@@ -206,12 +206,17 @@ fn key_management_is_atomic_private_and_preserves_auth_and_other_providers() {
         .unwrap();
     for (provider, key) in invitation::PROVIDERS {
         assert_eq!(onboarding::credential_key(provider).unwrap(), key);
-        let out = onboarding::save_keys(
-            &state,
-            &json!({key:format!("synthetic-{provider}-key")}),
-            None,
-        )
-        .unwrap();
+        let credential = if provider == "azure-foundry" {
+            json!({
+                "resource": "miner-fixture",
+                "apiKey": "synthetic-foundry-key",
+                "deployments": {"standard": "miner-standard", "flash": "miner-flash"}
+            })
+            .to_string()
+        } else {
+            format!("synthetic-{provider}-key")
+        };
+        let out = onboarding::save_keys(&state, &json!({key:credential}), None).unwrap();
         assert!(!out.to_string().contains("synthetic"));
         assert_eq!(out["workerChanged"], false);
     }
