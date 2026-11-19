@@ -40,6 +40,31 @@ fn media_spec(model: &str, parameters: Value) -> Value {
     json!({"model":model,"input":{"prompt":prompt,"seed":42,"duration":parameters.get("duration").or_else(||parameters.get("seconds_total")).or_else(||parameters.get("duration_seconds")).cloned().unwrap_or(json!(5)),"resolution":if audio{"audio"}else{"480p"},"aspect":if audio{"none"}else{"16:9"},"references":[],"promptExpansion":"balanced","parameters":parameters}})
 }
 #[test]
+fn kling_image_v4_uses_2k_and_preserves_reference_order() {
+    let mut spec = fixtures()[0]["spec"].clone();
+    spec["model"] = json!("studio/media/fal/kling/v4/text-to-image");
+    spec["input"]["aspect"] = json!("21:9");
+    spec["input"]["parameters"] = json!({
+        "negative":"text", "quality":"medium", "editPrecision":"none", "maskIndex":-1
+    });
+    spec["input"]["references"] = json!([]);
+    let (path, generated) = studio_media::body(&spec, &[]).unwrap();
+    assert_eq!(path, "/kling/v4/text-to-image");
+    assert_eq!(generated["resolution"], "2K");
+    assert_eq!(generated["aspect_ratio"], "21:9");
+    assert_eq!(generated["result_type"], "single");
+    assert_eq!(generated["num_images"], 1);
+    assert!(generated.get("seed").is_none());
+    assert!(generated.get("image_urls").is_none());
+    spec["input"]["references"] = fixtures()[1]["spec"]["input"]["references"].clone();
+    let (path, edited) = studio_media::body(&spec, &["cast".into(), "location".into()]).unwrap();
+    assert_eq!(path, "/kling/v4/image-to-image");
+    assert_eq!(edited["image_urls"], json!(["cast", "location"]));
+    assert_eq!(edited["prompt"], generated["prompt"]);
+    spec["input"]["prompt"] = json!("a".repeat(21000));
+    assert!(models::check(&spec).is_err());
+}
+#[test]
 fn audio_native_options_are_preserved() {
     for (model, params) in [
         (

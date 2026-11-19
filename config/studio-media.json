@@ -525,5 +525,37 @@
       }
     },
     "outputMime": "image/jpeg"
+  },
+  "studio/media/fal/kling/v4/text-to-image": {
+    "provider": "fal",
+    "apiModel": "kling/v4/text-to-image",
+    "name": "Kling Image 4.0",
+    "kind": "image",
+    "maxReferences": 10,
+    "path": "kling/v4/text-to-image",
+    "deadlineMs": 480000,
+    "maxPrompt": 21000,
+    "klingImage": true,
+    "parameters": {
+      "negative": {
+        "type": "string",
+        "max": 21000
+      },
+      "quality": {
+        "enum": [
+          "medium"
+        ]
+      },
+      "editPrecision": {
+        "enum": [
+          "none"
+        ]
+      },
+      "maskIndex": {
+        "enum": [
+          -1
+        ]
+      }
+    }
   }
 }

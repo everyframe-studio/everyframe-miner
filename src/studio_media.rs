@@ -265,6 +265,19 @@ pub fn check_with(spec: &Value, p: &Value) -> Result<()> {
             refs.iter().all(|a| a["role"] == "image"),
             "invalid_reference_role",
         )?;
+        if p["klingImage"] == true {
+            let negative = s(&v["parameters"]["negative"])?.trim();
+            let prompt_length = prompt.trim().chars().count()
+                + if negative.is_empty() {
+                    0
+                } else {
+                    negative.chars().count() + 10
+                };
+            need(
+                prompt_length as i64 <= n(&p["maxPrompt"])?,
+                "invalid_media_prompt",
+            )?;
+        }
         if p["outputMime"] == "image/svg+xml" {
             need(
                 ["16:9", "9:16", "1:1", "4:5", "4:3", "3:4"].contains(&s(&v["aspect"])?),
@@ -462,6 +475,17 @@ pub fn body_with(spec: &Value, p: &Value, urls: &[String]) -> Result<(String, Va
     let mut b = json!({"prompt":prompt});
     let path = s(&p["path"])?;
     let edit = !images.is_empty();
+    if p["klingImage"] == true {
+        b["resolution"] = json!("2K");
+        b["result_type"] = json!("single");
+        b["num_images"] = json!(1);
+        b["aspect_ratio"] = json!(if aspect == "4:5" { "3:4" } else { aspect });
+        if edit {
+            b["image_urls"] = json!(images);
+            return Ok(("/kling/v4/image-to-image".into(), b));
+        }
+        return Ok((format!("/{path}"), b));
+    }
     if model == "ideogram/vector/text-to-vector" {
         b["quality"] = par["quality"].clone();
         b["num_images"] = json!(1);

@@ -1776,6 +1776,10 @@
     {
       "model": "studio/native/stability/stable-audio-2.5",
       "hash": "204144dd847ac53b788f3d0fda2db5fde84917b128d320e3c4e6b842a4c0ae3c"
+    },
+    {
+      "model": "studio/media/fal/kling/v4/text-to-image",
+      "hash": "85d496364c222b18ceba23afb120d65ca770d1b1bca715c6bca1c6b2a3884ffb"
     }
   ],
   "numeric": {
