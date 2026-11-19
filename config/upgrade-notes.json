@@ -1029,6 +1029,22 @@
           "when": "If the CLI reports a saved automatic-update enrollment recovery, run everycli reconcile in that profile. The existing VM and restart journal are preserved."
         }
       ]
+    },
+    {
+      "version": "v1.2.4",
+      "title": "BytePlus Seedance Flash and ModelArk downloads",
+      "changes": [
+        "Add native worker support for BytePlus Seedance 2.5 Flash.",
+        "Allow the exact ModelArk Singapore result host when no fresh signed media policy is available."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "If you serve BytePlus Seedance jobs, run everycli worker-update when your profile offers the compatible signed worker. Review and offer the Flash contract when it is available in Models."
+        }
+      ]
     }
   ]
 }
