@@ -1,0 +1,3883 @@
+{
+  "direct/replicate/wan-3.0": {
+    "provider": "replicate",
+    "apiModel": "alibaba/wan-3",
+    "name": "Wan 3.0 (Replicate)",
+    "vendor": "Alibaba",
+    "family": "Wan 3.0",
+    "kind": "video",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/alibaba/wan-3/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "image": {
+          "type": "string"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "duration": {
+          "type": "integer",
+          "maximum": 30,
+          "minimum": 2
+        },
+        "resolution": {
+          "enum": [
+            "480p",
+            "720p",
+            "1080p"
+          ],
+          "type": "string"
+        },
+        "aspect_ratio": {
+          "enum": [
+            "adaptive",
+            "16:9",
+            "9:16",
+            "1:1",
+            "4:3",
+            "3:4"
+          ],
+          "type": "string"
+        },
+        "negative_prompt": {
+          "type": "string"
+        },
+        "enable_prompt_expansion": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 1
+    },
+    "params": {
+      "duration": 5,
+      "resolution": "720p",
+      "aspect_ratio": "adaptive",
+      "negative_prompt": "",
+      "enable_prompt_expansion": true
+    },
+    "maxPrompt": 4000,
+    "deadlineMs": 900000,
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "adaptive",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc",
+      "av1"
+    ],
+    "audio": true,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [
+      "/image"
+    ],
+    "replicateReferences": {
+      "image": {
+        "role": "first",
+        "maxBytes": 10485760
+      }
+    },
+    "replicateMode": "wan",
+    "replicateOutput": {},
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [
+        "resolution"
+      ],
+      "tiers": {
+        "480p": {
+          "video_output_duration_seconds": 35000
+        },
+        "720p": {
+          "video_output_duration_seconds": 70000
+        },
+        "1080p": {
+          "video_output_duration_seconds": 140000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/alibaba/wan-3/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Wan 3.0 through Replicate."
+  },
+  "direct/replicate/wan-3.0-prime": {
+    "provider": "replicate",
+    "apiModel": "alibaba/wan-3-prime",
+    "name": "Wan 3.0 Prime (Replicate)",
+    "vendor": "Alibaba",
+    "family": "Wan 3.0 Prime",
+    "kind": "video",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/alibaba/wan-3-prime/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "image": {
+          "type": "string"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "duration": {
+          "type": "integer",
+          "maximum": 30,
+          "minimum": 2
+        },
+        "resolution": {
+          "enum": [
+            "480p",
+            "720p",
+            "1080p"
+          ],
+          "type": "string"
+        },
+        "aspect_ratio": {
+          "enum": [
+            "adaptive",
+            "16:9",
+            "9:16",
+            "1:1",
+            "4:3",
+            "3:4"
+          ],
+          "type": "string"
+        },
+        "negative_prompt": {
+          "type": "string"
+        },
+        "enable_prompt_expansion": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 1
+    },
+    "params": {
+      "duration": 5,
+      "resolution": "720p",
+      "aspect_ratio": "adaptive",
+      "negative_prompt": "",
+      "enable_prompt_expansion": true
+    },
+    "maxPrompt": 4000,
+    "deadlineMs": 900000,
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "adaptive",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc",
+      "av1"
+    ],
+    "audio": true,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [
+      "/image"
+    ],
+    "replicateReferences": {
+      "image": {
+        "role": "first",
+        "maxBytes": 10485760
+      }
+    },
+    "replicateMode": "wan",
+    "replicateOutput": {},
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [
+        "resolution"
+      ],
+      "tiers": {
+        "480p": {
+          "video_output_duration_seconds": 68000
+        },
+        "720p": {
+          "video_output_duration_seconds": 140000
+        },
+        "1080p": {
+          "video_output_duration_seconds": 280000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/alibaba/wan-3-prime/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Wan 3.0 Prime through Replicate."
+  },
+  "direct/replicate/kling-4.0": {
+    "provider": "replicate",
+    "apiModel": "kwaivgi/kling-v4.0",
+    "name": "Kling 4.0 (Replicate)",
+    "vendor": "Kuaishou",
+    "family": "Kling 4.0",
+    "kind": "video",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/kwaivgi/kling-v4.0/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 11000
+        },
+        "start_image": {
+          "type": "string"
+        },
+        "reference_images": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10
+        },
+        "base_video": {
+          "type": "string"
+        },
+        "reference_videos": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 5
+        },
+        "end_image": {
+          "type": "string"
+        },
+        "middle_images": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 8
+        },
+        "duration": {
+          "type": "integer",
+          "maximum": 30,
+          "minimum": 3
+        },
+        "aspect_ratio": {
+          "enum": [
+            "16:9",
+            "9:16",
+            "1:1",
+            "21:9"
+          ],
+          "type": "string"
+        },
+        "resolution": {
+          "enum": [
+            "720p",
+            "1080p"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 26
+    },
+    "params": {
+      "duration": 5,
+      "resolution": "720p",
+      "aspect_ratio": "16:9"
+    },
+    "maxPrompt": 11000,
+    "deadlineMs": 900000,
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc",
+      "av1"
+    ],
+    "audio": true,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [
+      "/start_image",
+      "/reference_images/*",
+      "/base_video",
+      "/reference_videos/*",
+      "/end_image",
+      "/middle_images/*"
+    ],
+    "replicateReferences": {
+      "start_image": {
+        "role": "first",
+        "maxBytes": 31457280
+      },
+      "reference_images": {
+        "role": "image",
+        "maxBytes": 31457280
+      },
+      "base_video": {
+        "role": "video",
+        "maxBytes": 134217728,
+        "minMs": 3000,
+        "maxMs": 30000,
+        "minSide": 700,
+        "maxSide": 4553
+      },
+      "reference_videos": {
+        "role": "video",
+        "maxBytes": 134217728,
+        "minMs": 3000,
+        "maxMs": 30000,
+        "minSide": 700,
+        "maxSide": 4553
+      },
+      "end_image": {
+        "role": "last",
+        "maxBytes": 31457280
+      },
+      "middle_images": {
+        "role": "keyframe",
+        "maxBytes": 31457280
+      }
+    },
+    "replicateMode": "kling",
+    "replicateOutput": {
+      "durationMode": "base-video"
+    },
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [
+        "kling-video",
+        "resolution"
+      ],
+      "tiers": {
+        "no-video-input|720p": {
+          "video_output_duration_seconds": 157000
+        },
+        "no-video-input|1080p": {
+          "video_output_duration_seconds": 235000
+        },
+        "video-input|720p": {
+          "video_output_duration_seconds": 94000
+        },
+        "video-input|1080p": {
+          "video_output_duration_seconds": 141000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/kwaivgi/kling-v4.0/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Kling 4.0 through Replicate.",
+    "replicateMaxInputMs": 30000
+  },
+  "direct/replicate/kling-4.0-flash": {
+    "provider": "replicate",
+    "apiModel": "kwaivgi/kling-v4-flash",
+    "name": "Kling 4.0 Flash (Replicate)",
+    "vendor": "Kuaishou",
+    "family": "Kling 4.0 Flash",
+    "kind": "video",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/kwaivgi/kling-v4-flash/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 11000
+        },
+        "start_image": {
+          "type": "string"
+        },
+        "reference_images": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10
+        },
+        "base_video": {
+          "type": "string"
+        },
+        "reference_videos": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 5
+        },
+        "duration": {
+          "type": "integer",
+          "maximum": 20,
+          "minimum": 3
+        },
+        "aspect_ratio": {
+          "enum": [
+            "16:9",
+            "9:16",
+            "1:1",
+            "21:9"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 17
+    },
+    "params": {
+      "duration": 5,
+      "aspect_ratio": "16:9"
+    },
+    "maxPrompt": 11000,
+    "deadlineMs": 900000,
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc",
+      "av1"
+    ],
+    "audio": true,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [
+      "/start_image",
+      "/reference_images/*",
+      "/base_video",
+      "/reference_videos/*"
+    ],
+    "replicateReferences": {
+      "start_image": {
+        "role": "first",
+        "maxBytes": 31457280
+      },
+      "reference_images": {
+        "role": "image",
+        "maxBytes": 31457280
+      },
+      "base_video": {
+        "role": "video",
+        "maxBytes": 134217728,
+        "minMs": 3000,
+        "maxMs": 20000,
+        "minSide": 700,
+        "maxSide": 4553
+      },
+      "reference_videos": {
+        "role": "video",
+        "maxBytes": 134217728,
+        "minMs": 3000,
+        "maxMs": 20000,
+        "minSide": 700,
+        "maxSide": 4553
+      }
+    },
+    "replicateMode": "kling",
+    "replicateOutput": {
+      "durationMode": "base-video"
+    },
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [
+        "kling-video",
+        "resolution"
+      ],
+      "tiers": {
+        "no-video-input|720p": {
+          "video_output_duration_seconds": 94000
+        },
+        "video-input|720p": {
+          "video_output_duration_seconds": 63000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/kwaivgi/kling-v4-flash/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Kling 4.0 Flash through Replicate.",
+    "replicateMaxInputMs": 20000
+  },
+  "direct/replicate/dreamactor-m2.0": {
+    "provider": "replicate",
+    "apiModel": "bytedance/dreamactor-m2.0",
+    "name": "DreamActor M2.0 (Replicate)",
+    "vendor": "ByteDance",
+    "family": "DreamActor M2.0",
+    "kind": "video",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/bytedance/dreamactor-m2.0/predictions",
+    "apiPrompt": "",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "image": {
+          "type": "string"
+        },
+        "video": {
+          "type": "string"
+        },
+        "cut_first_second": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "image",
+        "video"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 2
+    },
+    "params": {
+      "cut_first_second": true,
+      "image": "@reference:0",
+      "video": "@reference:1"
+    },
+    "maxPrompt": 4000,
+    "deadlineMs": 900000,
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": null,
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc",
+      "av1"
+    ],
+    "audio": false,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [
+      "/image",
+      "/video"
+    ],
+    "replicateReferences": {
+      "image": {
+        "role": "image",
+        "maxBytes": 4928307,
+        "minSide": 480,
+        "maxSide": 1920,
+        "mimes": [
+          "image/png",
+          "image/jpeg"
+        ]
+      },
+      "video": {
+        "role": "video",
+        "maxBytes": 104857600,
+        "minMs": 2000,
+        "maxMs": 30000,
+        "minSide": 200,
+        "maxSide": 2048
+      }
+    },
+    "replicateMode": "",
+    "replicateOutput": {
+      "durationMode": "cut-source"
+    },
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [],
+      "tiers": {
+        "": {
+          "video_output_duration_seconds": 50000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/bytedance/dreamactor-m2.0/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "DreamActor M2.0 through Replicate.",
+    "exampleReferences": [
+      {
+        "url": "https://api.everyframe.studio/v1/attachment/att_replicate_image?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "bytes": 3000,
+        "mime": "image/jpeg",
+        "role": "image",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "url": "https://api.everyframe.studio/v1/attachment/att_replicate_video?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "bytes": 3000,
+        "mime": "video/mp4",
+        "role": "video",
+        "width": 1280,
+        "height": 720,
+        "durationMs": 5000
+      }
+    ]
+  },
+  "direct/replicate/kling-3.0-motion-control": {
+    "provider": "replicate",
+    "apiModel": "kwaivgi/kling-v3-motion-control",
+    "name": "Kling 3.0 Motion Control (Replicate)",
+    "vendor": "Kuaishou",
+    "family": "Kling 3.0 Motion Control",
+    "kind": "video",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/kwaivgi/kling-v3-motion-control/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "image": {
+          "type": "string"
+        },
+        "video": {
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "std",
+            "pro"
+          ],
+          "type": "string"
+        },
+        "character_orientation": {
+          "enum": [
+            "image",
+            "video"
+          ],
+          "type": "string"
+        },
+        "keep_original_sound": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "image",
+        "video",
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 2
+    },
+    "params": {
+      "mode": "pro",
+      "keep_original_sound": true,
+      "character_orientation": "image",
+      "image": "@reference:0",
+      "video": "@reference:1"
+    },
+    "maxPrompt": 4000,
+    "deadlineMs": 900000,
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": null,
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc",
+      "av1"
+    ],
+    "audio": false,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [
+      "/image",
+      "/video"
+    ],
+    "replicateReferences": {
+      "image": {
+        "role": "image",
+        "maxBytes": 10485760,
+        "minSide": 340,
+        "maxSide": 3850,
+        "mimes": [
+          "image/png",
+          "image/jpeg"
+        ]
+      },
+      "video": {
+        "role": "video",
+        "maxBytes": 104857600,
+        "minMs": 3000,
+        "maxMs": 30000
+      }
+    },
+    "replicateMode": "motion",
+    "replicateOutput": {
+      "durationMode": "source"
+    },
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [
+        "mode"
+      ],
+      "tiers": {
+        "std": {
+          "video_output_duration_seconds": 70000
+        },
+        "pro": {
+          "video_output_duration_seconds": 120000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/kwaivgi/kling-v3-motion-control/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Kling 3.0 Motion Control through Replicate.",
+    "exampleReferences": [
+      {
+        "url": "https://api.everyframe.studio/v1/attachment/att_replicate_image?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "bytes": 3000,
+        "mime": "image/jpeg",
+        "role": "image",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "url": "https://api.everyframe.studio/v1/attachment/att_replicate_video?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "bytes": 3000,
+        "mime": "video/mp4",
+        "role": "video",
+        "width": 1280,
+        "height": 720,
+        "durationMs": 5000
+      }
+    ]
+  },
+  "direct/replicate/seedance-2.0": {
+    "provider": "replicate",
+    "apiModel": "bytedance/seedance-2.0",
+    "name": "Seedance 2.0 (Replicate)",
+    "vendor": "ByteDance",
+    "family": "Seedance 2.0",
+    "kind": "video",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/bytedance/seedance-2.0/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "maxLength": 8000,
+          "minLength": 1
+        },
+        "image": {
+          "type": "string"
+        },
+        "last_frame_image": {
+          "type": "string"
+        },
+        "reference_images": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 9
+        },
+        "reference_videos": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 3
+        },
+        "reference_audios": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 3
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "duration": {
+          "type": "integer",
+          "minimum": 4,
+          "maximum": 15
+        },
+        "resolution": {
+          "enum": [
+            "480p",
+            "720p",
+            "1080p",
+            "4k"
+          ],
+          "type": "string"
+        },
+        "aspect_ratio": {
+          "enum": [
+            "16:9",
+            "4:3",
+            "1:1",
+            "3:4",
+            "9:16",
+            "21:9",
+            "9:21",
+            "adaptive"
+          ],
+          "type": "string"
+        },
+        "generate_audio": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 17
+    },
+    "params": {
+      "duration": 5,
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "generate_audio": true
+    },
+    "maxPrompt": 8000,
+    "deadlineMs": 900000,
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc",
+      "av1"
+    ],
+    "audio": true,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [
+      "/image",
+      "/last_frame_image",
+      "/reference_images/*",
+      "/reference_videos/*",
+      "/reference_audios/*"
+    ],
+    "replicateReferences": {
+      "image": {
+        "role": "first",
+        "maxBytes": 16777216
+      },
+      "last_frame_image": {
+        "role": "last",
+        "maxBytes": 16777216
+      },
+      "reference_images": {
+        "role": "image",
+        "maxBytes": 16777216
+      },
+      "reference_videos": {
+        "role": "video",
+        "maxBytes": 104857600,
+        "minMs": 2000,
+        "maxMs": 15000
+      },
+      "reference_audios": {
+        "role": "audio",
+        "maxBytes": 20971520,
+        "minMs": 2000,
+        "maxMs": 15000
+      }
+    },
+    "replicateMode": "seedance",
+    "replicateOutput": {},
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [
+        "seedance-video",
+        "resolution"
+      ],
+      "tiers": {
+        "video_in|480p": {
+          "video_output_duration_seconds": 100000
+        },
+        "non_video_in|480p": {
+          "video_output_duration_seconds": 80000
+        },
+        "video_in|720p": {
+          "video_output_duration_seconds": 220000
+        },
+        "non_video_in|720p": {
+          "video_output_duration_seconds": 180000
+        },
+        "video_in|1080p": {
+          "video_output_duration_seconds": 550000
+        },
+        "non_video_in|1080p": {
+          "video_output_duration_seconds": 450000
+        },
+        "video_in|4k": {
+          "video_output_duration_seconds": 1250000
+        },
+        "non_video_in|4k": {
+          "video_output_duration_seconds": 1000000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/bytedance/seedance-2.0/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Seedance 2.0 through Replicate.",
+    "replicateMaxInputMs": 15000
+  },
+  "direct/replicate/seedance-2.0-fast": {
+    "provider": "replicate",
+    "apiModel": "bytedance/seedance-2.0-fast",
+    "name": "Seedance 2.0 Fast (Replicate)",
+    "vendor": "ByteDance",
+    "family": "Seedance 2.0 Fast",
+    "kind": "video",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/bytedance/seedance-2.0-fast/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "maxLength": 8000,
+          "minLength": 1
+        },
+        "image": {
+          "type": "string"
+        },
+        "last_frame_image": {
+          "type": "string"
+        },
+        "reference_images": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 9
+        },
+        "reference_videos": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 3
+        },
+        "reference_audios": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 3
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "duration": {
+          "type": "integer",
+          "minimum": 4,
+          "maximum": 15
+        },
+        "resolution": {
+          "enum": [
+            "480p",
+            "720p"
+          ],
+          "type": "string"
+        },
+        "aspect_ratio": {
+          "enum": [
+            "16:9",
+            "4:3",
+            "1:1",
+            "3:4",
+            "9:16",
+            "21:9",
+            "9:21",
+            "adaptive"
+          ],
+          "type": "string"
+        },
+        "generate_audio": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 17
+    },
+    "params": {
+      "duration": 5,
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "generate_audio": true
+    },
+    "maxPrompt": 8000,
+    "deadlineMs": 900000,
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc",
+      "av1"
+    ],
+    "audio": true,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [
+      "/image",
+      "/last_frame_image",
+      "/reference_images/*",
+      "/reference_videos/*",
+      "/reference_audios/*"
+    ],
+    "replicateReferences": {
+      "image": {
+        "role": "first",
+        "maxBytes": 16777216
+      },
+      "last_frame_image": {
+        "role": "last",
+        "maxBytes": 16777216
+      },
+      "reference_images": {
+        "role": "image",
+        "maxBytes": 16777216
+      },
+      "reference_videos": {
+        "role": "video",
+        "maxBytes": 104857600,
+        "minMs": 2000,
+        "maxMs": 15000
+      },
+      "reference_audios": {
+        "role": "audio",
+        "maxBytes": 20971520,
+        "minMs": 2000,
+        "maxMs": 15000
+      }
+    },
+    "replicateMode": "seedance",
+    "replicateOutput": {},
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [
+        "seedance-video",
+        "resolution"
+      ],
+      "tiers": {
+        "video_in|480p": {
+          "video_output_duration_seconds": 80000
+        },
+        "non_video_in|480p": {
+          "video_output_duration_seconds": 70000
+        },
+        "video_in|720p": {
+          "video_output_duration_seconds": 170000
+        },
+        "non_video_in|720p": {
+          "video_output_duration_seconds": 150000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/bytedance/seedance-2.0-fast/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Seedance 2.0 Fast through Replicate.",
+    "replicateMaxInputMs": 15000
+  },
+  "direct/replicate/seedance-2.5": {
+    "provider": "replicate",
+    "apiModel": "bytedance/seedance-2.5",
+    "name": "Seedance 2.5 (Replicate)",
+    "vendor": "ByteDance",
+    "family": "Seedance 2.5",
+    "kind": "video",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/bytedance/seedance-2.5/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8000
+        },
+        "image": {
+          "type": "string"
+        },
+        "last_frame_image": {
+          "type": "string"
+        },
+        "reference_images": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 30
+        },
+        "reference_videos": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10
+        },
+        "reference_audios": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "duration": {
+          "type": "integer",
+          "minimum": 4,
+          "maximum": 30
+        },
+        "resolution": {
+          "enum": [
+            "480p",
+            "720p"
+          ],
+          "type": "string"
+        },
+        "aspect_ratio": {
+          "enum": [
+            "16:9",
+            "4:3",
+            "1:1",
+            "3:4",
+            "9:16",
+            "21:9",
+            "adaptive"
+          ],
+          "type": "string"
+        },
+        "generate_audio": {
+          "type": "boolean"
+        },
+        "output_format": {
+          "type": "string",
+          "const": "mp4"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 52
+    },
+    "params": {
+      "duration": 5,
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "output_format": "mp4",
+      "generate_audio": true
+    },
+    "maxPrompt": 8000,
+    "deadlineMs": 900000,
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc",
+      "av1"
+    ],
+    "audio": true,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [
+      "/image",
+      "/last_frame_image",
+      "/reference_images/*",
+      "/reference_videos/*",
+      "/reference_audios/*"
+    ],
+    "replicateReferences": {
+      "image": {
+        "role": "first",
+        "maxBytes": 16777216
+      },
+      "last_frame_image": {
+        "role": "last",
+        "maxBytes": 16777216
+      },
+      "reference_images": {
+        "role": "image",
+        "maxBytes": 16777216
+      },
+      "reference_videos": {
+        "role": "video",
+        "maxBytes": 104857600,
+        "minMs": 2000,
+        "maxMs": 30000
+      },
+      "reference_audios": {
+        "role": "audio",
+        "maxBytes": 20971520,
+        "minMs": 2000,
+        "maxMs": 30000
+      }
+    },
+    "replicateMode": "seedance",
+    "replicateOutput": {},
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [
+        "seedance-video",
+        "resolution"
+      ],
+      "tiers": {
+        "non_video_in|480p": {
+          "video_output_duration_seconds": 102800
+        },
+        "video_in|480p": {
+          "video_output_duration_seconds": 430400
+        },
+        "non_video_in|720p": {
+          "video_output_duration_seconds": 231200
+        },
+        "video_in|720p": {
+          "video_output_duration_seconds": 967600
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/bytedance/seedance-2.5/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Seedance 2.5 through Replicate.",
+    "replicateMaxInputMs": 30000
+  },
+  "direct/replicate/gemini-omni-1.2-flash": {
+    "provider": "replicate",
+    "apiModel": "google/gemini-omni-1.2-flash",
+    "name": "Gemini Omni 1.2 Flash (Replicate)",
+    "vendor": "Google",
+    "family": "Gemini Omni 1.2 Flash",
+    "kind": "video",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/google/gemini-omni-1.2-flash/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "image": {
+          "type": "string"
+        },
+        "last_frame": {
+          "type": "string"
+        },
+        "reference_images": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 6
+        },
+        "video": {
+          "type": "string"
+        },
+        "duration": {
+          "type": "integer",
+          "maximum": 15,
+          "minimum": 3
+        },
+        "resolution": {
+          "enum": [
+            "360p",
+            "720p",
+            "1080p",
+            "4k"
+          ],
+          "type": "string"
+        },
+        "aspect_ratio": {
+          "enum": [
+            "16:9",
+            "9:16"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 9
+    },
+    "params": {
+      "duration": 10,
+      "resolution": "720p",
+      "aspect_ratio": "16:9"
+    },
+    "maxPrompt": 4000,
+    "deadlineMs": 900000,
+    "mime": "video/mp4",
+    "duration": 10,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc",
+      "av1"
+    ],
+    "audio": true,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [
+      "/image",
+      "/last_frame",
+      "/reference_images/*",
+      "/video"
+    ],
+    "replicateReferences": {
+      "image": {
+        "role": "first",
+        "maxBytes": 10485760
+      },
+      "last_frame": {
+        "role": "last",
+        "maxBytes": 10485760
+      },
+      "reference_images": {
+        "role": "image",
+        "maxBytes": 10485760
+      },
+      "video": {
+        "role": "video",
+        "maxBytes": 104857600,
+        "minMs": 2000,
+        "maxMs": 15000
+      }
+    },
+    "replicateMode": "gemini",
+    "replicateOutput": {
+      "durationMode": "source-optional"
+    },
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [
+        "resolution"
+      ],
+      "tiers": {
+        "360p": {
+          "video_output_duration_seconds": 35000
+        },
+        "720p": {
+          "video_output_duration_seconds": 105000
+        },
+        "1080p": {
+          "video_output_duration_seconds": 155000
+        },
+        "4k": {
+          "video_output_duration_seconds": 310000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/google/gemini-omni-1.2-flash/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Gemini Omni 1.2 Flash through Replicate."
+  },
+  "direct/replicate/runway-gen-4.5": {
+    "provider": "replicate",
+    "apiModel": "runwayml/gen-4.5",
+    "name": "Runway Gen-4.5 (Replicate)",
+    "vendor": "Runway",
+    "family": "Runway Gen-4.5",
+    "kind": "video",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/runwayml/gen-4.5/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "image": {
+          "type": "string"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "duration": {
+          "enum": [
+            5,
+            10
+          ],
+          "type": "integer"
+        },
+        "aspect_ratio": {
+          "enum": [
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "1:1",
+            "21:9"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 1
+    },
+    "params": {
+      "duration": 5,
+      "aspect_ratio": "16:9"
+    },
+    "maxPrompt": 4000,
+    "deadlineMs": 900000,
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc",
+      "av1"
+    ],
+    "audio": false,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [
+      "/image"
+    ],
+    "replicateReferences": {
+      "image": {
+        "role": "first",
+        "maxBytes": 10485760
+      }
+    },
+    "replicateMode": "",
+    "replicateOutput": {},
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [],
+      "tiers": {
+        "": {
+          "video_output_duration_seconds": 120000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/runwayml/gen-4.5/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Runway Gen-4.5 through Replicate."
+  },
+  "direct/replicate/veo-3.1-fast": {
+    "provider": "replicate",
+    "apiModel": "google/veo-3.1-fast",
+    "name": "Veo 3.1 Fast (Replicate)",
+    "vendor": "Google",
+    "family": "Veo 3.1 Fast",
+    "kind": "video",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/google/veo-3.1-fast/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "image": {
+          "type": "string"
+        },
+        "last_frame": {
+          "type": "string"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "duration": {
+          "enum": [
+            4,
+            6,
+            8
+          ],
+          "type": "integer"
+        },
+        "resolution": {
+          "enum": [
+            "720p",
+            "1080p"
+          ],
+          "type": "string"
+        },
+        "aspect_ratio": {
+          "enum": [
+            "16:9",
+            "9:16"
+          ],
+          "type": "string"
+        },
+        "generate_audio": {
+          "type": "boolean"
+        },
+        "negative_prompt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 2
+    },
+    "params": {
+      "duration": 8,
+      "resolution": "1080p",
+      "aspect_ratio": "16:9",
+      "generate_audio": true
+    },
+    "maxPrompt": 4000,
+    "deadlineMs": 900000,
+    "mime": "video/mp4",
+    "duration": 8,
+    "resolution": "1080p",
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc",
+      "av1"
+    ],
+    "audio": true,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [
+      "/image",
+      "/last_frame"
+    ],
+    "replicateReferences": {
+      "image": {
+        "role": "first",
+        "maxBytes": 10485760
+      },
+      "last_frame": {
+        "role": "last",
+        "maxBytes": 10485760
+      }
+    },
+    "replicateMode": "veo",
+    "replicateOutput": {},
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [
+        "with-audio"
+      ],
+      "tiers": {
+        "with_audio": {
+          "video_output_duration_seconds": 150000
+        },
+        "without_audio": {
+          "video_output_duration_seconds": 100000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/google/veo-3.1-fast/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Veo 3.1 Fast through Replicate."
+  },
+  "direct/replicate/wan-2.7-image": {
+    "provider": "replicate",
+    "apiModel": "wan-video/wan-2.7-image",
+    "name": "Wan 2.7 Image (Replicate)",
+    "vendor": "Alibaba",
+    "family": "Wan 2.7 Image",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/wan-video/wan-2.7-image/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 5000
+        },
+        "images": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 9
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "size": {
+          "enum": [
+            "1K",
+            "2K",
+            "1024*1024",
+            "2048*2048",
+            "1280*720",
+            "720*1280",
+            "2048*1152",
+            "1152*2048",
+            "1024*768",
+            "768*1024",
+            "2048*1536",
+            "1536*2048"
+          ],
+          "type": "string"
+        },
+        "num_outputs": {
+          "type": "integer",
+          "maximum": 4,
+          "minimum": 1
+        },
+        "thinking_mode": {
+          "type": "boolean"
+        },
+        "image_set_mode": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 9
+    },
+    "params": {
+      "size": "2K",
+      "num_outputs": 1,
+      "thinking_mode": true,
+      "image_set_mode": false
+    },
+    "maxPrompt": 5000,
+    "deadlineMs": 480000,
+    "mime": "image/png",
+    "duration": null,
+    "resolution": null,
+    "aspect": "1:1",
+    "dimensions": [],
+    "codecs": [],
+    "audio": false,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [
+      "/images/*"
+    ],
+    "replicateReferences": {
+      "images": {
+        "role": "image",
+        "maxBytes": 15728640
+      }
+    },
+    "replicateMode": "wan-image",
+    "replicateOutput": {
+      "countField": "num_outputs",
+      "variableCountField": "image_set_mode",
+      "variableCountValue": true
+    },
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [],
+      "tiers": {
+        "": {
+          "image_output_count": 30000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/wan-video/wan-2.7-image/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Wan 2.7 Image through Replicate."
+  },
+  "direct/replicate/wan-2.7-image-pro": {
+    "provider": "replicate",
+    "apiModel": "wan-video/wan-2.7-image-pro",
+    "name": "Wan 2.7 Image Pro (Replicate)",
+    "vendor": "Alibaba",
+    "family": "Wan 2.7 Image Pro",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/wan-video/wan-2.7-image-pro/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 5000
+        },
+        "images": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 9
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "size": {
+          "enum": [
+            "1K",
+            "2K",
+            "4K",
+            "1024*1024",
+            "2048*2048",
+            "4096*4096",
+            "1280*720",
+            "720*1280",
+            "2048*1152",
+            "1152*2048",
+            "4096*2304",
+            "2304*4096",
+            "1024*768",
+            "768*1024",
+            "2048*1536",
+            "1536*2048",
+            "4096*3072",
+            "3072*4096"
+          ],
+          "type": "string"
+        },
+        "num_outputs": {
+          "type": "integer",
+          "maximum": 4,
+          "minimum": 1
+        },
+        "thinking_mode": {
+          "type": "boolean"
+        },
+        "image_set_mode": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 9
+    },
+    "params": {
+      "size": "2K",
+      "num_outputs": 1,
+      "thinking_mode": true,
+      "image_set_mode": false
+    },
+    "maxPrompt": 5000,
+    "deadlineMs": 480000,
+    "mime": "image/png",
+    "duration": null,
+    "resolution": null,
+    "aspect": "1:1",
+    "dimensions": [],
+    "codecs": [],
+    "audio": false,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [
+      "/images/*"
+    ],
+    "replicateReferences": {
+      "images": {
+        "role": "image",
+        "maxBytes": 15728640
+      }
+    },
+    "replicateMode": "wan-image",
+    "replicateOutput": {
+      "countField": "num_outputs",
+      "variableCountField": "image_set_mode",
+      "variableCountValue": true
+    },
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [],
+      "tiers": {
+        "": {
+          "image_output_count": 30000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/wan-video/wan-2.7-image-pro/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Wan 2.7 Image Pro through Replicate."
+  },
+  "direct/replicate/qwen-image-3.0": {
+    "provider": "replicate",
+    "apiModel": "alibaba/qwen-image-3",
+    "name": "Qwen Image 3.0 (Replicate)",
+    "vendor": "Alibaba",
+    "family": "Qwen Image 3.0",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/alibaba/qwen-image-3/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "image": {
+          "type": "string"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "aspect_ratio": {
+          "enum": [
+            "1:1",
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "2:1",
+            "1:2"
+          ],
+          "type": "string"
+        },
+        "negative_prompt": {
+          "type": "string"
+        },
+        "match_input_image": {
+          "type": "boolean"
+        },
+        "enable_prompt_expansion": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 1
+    },
+    "params": {
+      "aspect_ratio": "1:1",
+      "negative_prompt": "",
+      "match_input_image": false,
+      "enable_prompt_expansion": true
+    },
+    "maxPrompt": 4000,
+    "deadlineMs": 480000,
+    "mime": null,
+    "duration": null,
+    "resolution": null,
+    "aspect": "1:1",
+    "dimensions": [],
+    "codecs": [],
+    "audio": false,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [
+      "/image"
+    ],
+    "replicateReferences": {
+      "image": {
+        "role": "image",
+        "maxBytes": 10485760
+      }
+    },
+    "replicateMode": "",
+    "replicateOutput": {},
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [],
+      "tiers": {
+        "": {
+          "image_output_count": 30000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/alibaba/qwen-image-3/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Qwen Image 3.0 through Replicate."
+  },
+  "direct/replicate/qwen-image-3.0-pro": {
+    "provider": "replicate",
+    "apiModel": "alibaba/qwen-image-3-pro",
+    "name": "Qwen Image 3.0 Pro (Replicate)",
+    "vendor": "Alibaba",
+    "family": "Qwen Image 3.0 Pro",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/alibaba/qwen-image-3-pro/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "image": {
+          "type": "string"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "aspect_ratio": {
+          "enum": [
+            "1:1",
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "2:1",
+            "1:2"
+          ],
+          "type": "string"
+        },
+        "negative_prompt": {
+          "type": "string"
+        },
+        "match_input_image": {
+          "type": "boolean"
+        },
+        "enable_prompt_expansion": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 1
+    },
+    "params": {
+      "aspect_ratio": "1:1",
+      "negative_prompt": "",
+      "match_input_image": false,
+      "enable_prompt_expansion": true
+    },
+    "maxPrompt": 4000,
+    "deadlineMs": 480000,
+    "mime": null,
+    "duration": null,
+    "resolution": null,
+    "aspect": "1:1",
+    "dimensions": [],
+    "codecs": [],
+    "audio": false,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [
+      "/image"
+    ],
+    "replicateReferences": {
+      "image": {
+        "role": "image",
+        "maxBytes": 10485760
+      }
+    },
+    "replicateMode": "",
+    "replicateOutput": {},
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [],
+      "tiers": {
+        "": {
+          "image_output_count": 40000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/alibaba/qwen-image-3-pro/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Qwen Image 3.0 Pro through Replicate."
+  },
+  "direct/replicate/krea-2-medium": {
+    "provider": "replicate",
+    "apiModel": "krea/krea-2-medium",
+    "name": "Krea 2 Medium (Replicate)",
+    "vendor": "Krea",
+    "family": "Krea 2 Medium",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/krea/krea-2-medium/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "style_reference_images": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "aspect_ratio": {
+          "enum": [
+            "1:1",
+            "4:3",
+            "3:2",
+            "16:9",
+            "2.35:1",
+            "4:5",
+            "2:3",
+            "9:16"
+          ],
+          "type": "string"
+        },
+        "creativity": {
+          "enum": [
+            "raw",
+            "low",
+            "medium",
+            "high"
+          ],
+          "type": "string"
+        },
+        "style_reference_strength": {
+          "type": "number",
+          "maximum": 1,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 10
+    },
+    "params": {
+      "creativity": "medium",
+      "aspect_ratio": "1:1",
+      "style_reference_strength": 0.5
+    },
+    "maxPrompt": 4000,
+    "deadlineMs": 480000,
+    "mime": null,
+    "duration": null,
+    "resolution": null,
+    "aspect": "1:1",
+    "dimensions": [],
+    "codecs": [],
+    "audio": false,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [
+      "/style_reference_images/*"
+    ],
+    "replicateReferences": {
+      "style_reference_images": {
+        "role": "image",
+        "maxBytes": 10485760
+      }
+    },
+    "replicateMode": "",
+    "replicateOutput": {},
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [
+        "style-refs"
+      ],
+      "tiers": {
+        "text_to_image": {
+          "image_output_count": 30000
+        },
+        "style_references": {
+          "image_output_count": 35000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/krea/krea-2-medium/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Krea 2 Medium through Replicate."
+  },
+  "direct/replicate/krea-2-large": {
+    "provider": "replicate",
+    "apiModel": "krea/krea-2-large",
+    "name": "Krea 2 Large (Replicate)",
+    "vendor": "Krea",
+    "family": "Krea 2 Large",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/krea/krea-2-large/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "style_reference_images": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "aspect_ratio": {
+          "enum": [
+            "1:1",
+            "4:3",
+            "3:2",
+            "16:9",
+            "2.35:1",
+            "4:5",
+            "2:3",
+            "9:16"
+          ],
+          "type": "string"
+        },
+        "creativity": {
+          "enum": [
+            "raw",
+            "low",
+            "medium",
+            "high"
+          ],
+          "type": "string"
+        },
+        "style_reference_strength": {
+          "type": "number",
+          "maximum": 1,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 10
+    },
+    "params": {
+      "creativity": "medium",
+      "aspect_ratio": "1:1",
+      "style_reference_strength": 0.5
+    },
+    "maxPrompt": 4000,
+    "deadlineMs": 480000,
+    "mime": null,
+    "duration": null,
+    "resolution": null,
+    "aspect": "1:1",
+    "dimensions": [],
+    "codecs": [],
+    "audio": false,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [
+      "/style_reference_images/*"
+    ],
+    "replicateReferences": {
+      "style_reference_images": {
+        "role": "image",
+        "maxBytes": 10485760
+      }
+    },
+    "replicateMode": "",
+    "replicateOutput": {},
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [
+        "style-refs"
+      ],
+      "tiers": {
+        "text_to_image": {
+          "image_output_count": 60000
+        },
+        "style_references": {
+          "image_output_count": 65000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/krea/krea-2-large/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Krea 2 Large through Replicate."
+  },
+  "direct/replicate/krea-3": {
+    "provider": "replicate",
+    "apiModel": "krea/krea-3",
+    "name": "Krea 3 (Replicate)",
+    "vendor": "Krea",
+    "family": "Krea 3",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/krea/krea-3/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "images": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 8
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "resolution": {
+          "enum": [
+            "1k",
+            "2k"
+          ],
+          "type": "string"
+        },
+        "aspect_ratio": {
+          "enum": [
+            "auto",
+            "1:1",
+            "4:5",
+            "3:4",
+            "2:3",
+            "9:16",
+            "5:4",
+            "4:3",
+            "3:2",
+            "16:9",
+            "21:9"
+          ],
+          "type": "string"
+        },
+        "thinking_mode": {
+          "enum": [
+            "fast",
+            "high"
+          ],
+          "type": "string"
+        },
+        "regional_edit": {
+          "type": "boolean"
+        },
+        "negative_prompt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 8
+    },
+    "params": {
+      "resolution": "2k",
+      "aspect_ratio": "auto",
+      "regional_edit": false,
+      "thinking_mode": "fast"
+    },
+    "maxPrompt": 4000,
+    "deadlineMs": 480000,
+    "mime": null,
+    "duration": null,
+    "resolution": "2k",
+    "aspect": "auto",
+    "dimensions": [],
+    "codecs": [],
+    "audio": false,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [
+      "/images/*"
+    ],
+    "replicateReferences": {
+      "images": {
+        "role": "image",
+        "maxBytes": 10485760
+      }
+    },
+    "replicateMode": "krea-edit",
+    "replicateOutput": {},
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [
+        "thinking_mode",
+        "resolution"
+      ],
+      "tiers": {
+        "fast|1k": {
+          "image_output_count": 30000,
+          "image_input_megapixel_count": 20000
+        },
+        "high|1k": {
+          "image_output_count": 50000,
+          "image_input_megapixel_count": 20000
+        },
+        "fast|2k": {
+          "image_output_count": 60000,
+          "image_input_megapixel_count": 20000
+        },
+        "high|2k": {
+          "image_output_count": 80000,
+          "image_input_megapixel_count": 20000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/krea/krea-3/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Krea 3 through Replicate."
+  },
+  "direct/replicate/recraft-v4-svg": {
+    "provider": "replicate",
+    "apiModel": "recraft-ai/recraft-v4-svg",
+    "name": "Recraft V4 SVG (Replicate)",
+    "vendor": "Recraft",
+    "family": "Recraft V4 SVG",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/recraft-ai/recraft-v4-svg/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "size": {
+          "enum": [
+            "1024x1024",
+            "1536x768",
+            "768x1536",
+            "1280x832",
+            "832x1280",
+            "1216x896",
+            "896x1216",
+            "1152x896",
+            "896x1152",
+            "832x1344",
+            "1280x896",
+            "896x1280",
+            "1344x768",
+            "768x1344"
+          ],
+          "type": "string"
+        },
+        "aspect_ratio": {
+          "enum": [
+            "Not set",
+            "1:1",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "16:9",
+            "9:16",
+            "1:2",
+            "2:1",
+            "14:10",
+            "10:14",
+            "4:5",
+            "5:4",
+            "6:10"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 0
+    },
+    "params": {
+      "size": "1024x1024",
+      "aspect_ratio": "Not set"
+    },
+    "maxPrompt": 4000,
+    "deadlineMs": 480000,
+    "mime": "image/svg+xml",
+    "duration": null,
+    "resolution": null,
+    "aspect": "Not set",
+    "dimensions": [],
+    "codecs": [],
+    "audio": false,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [],
+    "replicateReferences": {},
+    "replicateMode": "",
+    "replicateOutput": {},
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [],
+      "tiers": {
+        "": {
+          "image_output_count": 80000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/recraft-ai/recraft-v4-svg/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Recraft V4 SVG through Replicate."
+  },
+  "direct/replicate/recraft-v4-pro-svg": {
+    "provider": "replicate",
+    "apiModel": "recraft-ai/recraft-v4-pro-svg",
+    "name": "Recraft V4 Pro SVG (Replicate)",
+    "vendor": "Recraft",
+    "family": "Recraft V4 Pro SVG",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/recraft-ai/recraft-v4-pro-svg/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "size": {
+          "enum": [
+            "2048x2048",
+            "3072x1536",
+            "1536x3072",
+            "2560x1664",
+            "1664x2560",
+            "2432x1792",
+            "1792x2432",
+            "2304x1792",
+            "1792x2304",
+            "1664x2688",
+            "2560x1792",
+            "1792x2560",
+            "2688x1536",
+            "1536x2688"
+          ],
+          "type": "string"
+        },
+        "aspect_ratio": {
+          "enum": [
+            "Not set",
+            "1:1",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "16:9",
+            "9:16",
+            "1:2",
+            "2:1",
+            "4:5",
+            "5:4",
+            "6:10",
+            "14:10",
+            "10:14"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 0
+    },
+    "params": {
+      "size": "2048x2048",
+      "aspect_ratio": "Not set"
+    },
+    "maxPrompt": 4000,
+    "deadlineMs": 480000,
+    "mime": "image/svg+xml",
+    "duration": null,
+    "resolution": null,
+    "aspect": "Not set",
+    "dimensions": [],
+    "codecs": [],
+    "audio": false,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [],
+    "replicateReferences": {},
+    "replicateMode": "",
+    "replicateOutput": {},
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [],
+      "tiers": {
+        "": {
+          "image_output_count": 300000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/recraft-ai/recraft-v4-pro-svg/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Recraft V4 Pro SVG through Replicate."
+  },
+  "direct/replicate/nano-banana-2": {
+    "provider": "replicate",
+    "apiModel": "google/nano-banana-2",
+    "name": "Nano Banana 2 (Replicate)",
+    "vendor": "Google",
+    "family": "Nano Banana 2",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/google/nano-banana-2/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "image_input": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 14
+        },
+        "resolution": {
+          "enum": [
+            "1K",
+            "2K",
+            "4K"
+          ],
+          "type": "string"
+        },
+        "aspect_ratio": {
+          "enum": [
+            "match_input_image",
+            "1:1",
+            "1:4",
+            "1:8",
+            "2:3",
+            "3:2",
+            "3:4",
+            "4:1",
+            "4:3",
+            "4:5",
+            "5:4",
+            "8:1",
+            "9:16",
+            "16:9",
+            "21:9"
+          ],
+          "type": "string"
+        },
+        "output_format": {
+          "enum": [
+            "jpg",
+            "png"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 14
+    },
+    "params": {
+      "resolution": "1K",
+      "aspect_ratio": "match_input_image",
+      "output_format": "png"
+    },
+    "maxPrompt": 4000,
+    "deadlineMs": 480000,
+    "mime": null,
+    "duration": null,
+    "resolution": "1K",
+    "aspect": "match_input_image",
+    "dimensions": [],
+    "codecs": [],
+    "audio": false,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [
+      "/image_input/*"
+    ],
+    "replicateReferences": {
+      "image_input": {
+        "role": "image",
+        "maxBytes": 10485760
+      }
+    },
+    "replicateMode": "",
+    "replicateOutput": {
+      "formatField": "output_format"
+    },
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [
+        "resolution"
+      ],
+      "tiers": {
+        "1K": {
+          "image_output_count": 67000
+        },
+        "2K": {
+          "image_output_count": 101000
+        },
+        "4K": {
+          "image_output_count": 151000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/google/nano-banana-2/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Nano Banana 2 through Replicate."
+  },
+  "direct/replicate/nano-banana-pro": {
+    "provider": "replicate",
+    "apiModel": "google/nano-banana-pro",
+    "name": "Nano Banana Pro (Replicate)",
+    "vendor": "Google",
+    "family": "Nano Banana Pro",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/google/nano-banana-pro/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "image_input": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 14
+        },
+        "resolution": {
+          "enum": [
+            "1K",
+            "2K",
+            "4K"
+          ],
+          "type": "string"
+        },
+        "aspect_ratio": {
+          "enum": [
+            "match_input_image",
+            "1:1",
+            "2:3",
+            "3:2",
+            "3:4",
+            "4:3",
+            "4:5",
+            "5:4",
+            "9:16",
+            "16:9",
+            "21:9"
+          ],
+          "type": "string"
+        },
+        "output_format": {
+          "enum": [
+            "jpg",
+            "png"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 14
+    },
+    "params": {
+      "resolution": "2K",
+      "aspect_ratio": "match_input_image",
+      "output_format": "png"
+    },
+    "maxPrompt": 4000,
+    "deadlineMs": 480000,
+    "mime": null,
+    "duration": null,
+    "resolution": "2K",
+    "aspect": "match_input_image",
+    "dimensions": [],
+    "codecs": [],
+    "audio": false,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [
+      "/image_input/*"
+    ],
+    "replicateReferences": {
+      "image_input": {
+        "role": "image",
+        "maxBytes": 10485760
+      }
+    },
+    "replicateMode": "",
+    "replicateOutput": {
+      "formatField": "output_format"
+    },
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [
+        "resolution"
+      ],
+      "tiers": {
+        "1K": {
+          "image_output_count": 150000
+        },
+        "2K": {
+          "image_output_count": 150000
+        },
+        "4K": {
+          "image_output_count": 300000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/google/nano-banana-pro/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Nano Banana Pro through Replicate."
+  },
+  "direct/replicate/gpt-image-2.6-sunburst": {
+    "provider": "replicate",
+    "apiModel": "openai/gpt-image-2.6-sunburst",
+    "name": "GPT Image 2.6 Sunburst (Replicate)",
+    "vendor": "OpenAI",
+    "family": "GPT Image 2.6 Sunburst",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/openai/gpt-image-2.6-sunburst/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32000
+        },
+        "input_images": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 16
+        },
+        "quality": {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max",
+            "auto"
+          ],
+          "type": "string"
+        },
+        "complexity": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "type": "string"
+        },
+        "aspect_ratio": {
+          "enum": [
+            "1:1",
+            "3:2",
+            "2:3",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "auto",
+            "1024x1024",
+            "1536x1024",
+            "1024x1536",
+            "1536x1152",
+            "1152x1536",
+            "2048x2048",
+            "2048x1152",
+            "1152x2048",
+            "3840x2160",
+            "2160x3840"
+          ],
+          "type": "string"
+        },
+        "background": {
+          "enum": [
+            "auto",
+            "transparent",
+            "opaque"
+          ],
+          "type": "string"
+        },
+        "number_of_images": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4
+        },
+        "output_format": {
+          "type": "string",
+          "const": "png"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 16
+    },
+    "params": {
+      "quality": "medium",
+      "background": "auto",
+      "complexity": "high",
+      "aspect_ratio": "1:1",
+      "output_format": "png",
+      "number_of_images": 1
+    },
+    "maxPrompt": 32000,
+    "deadlineMs": 480000,
+    "mime": null,
+    "duration": null,
+    "resolution": null,
+    "aspect": "1:1",
+    "dimensions": [],
+    "codecs": [],
+    "audio": false,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [
+      "/input_images/*"
+    ],
+    "replicateReferences": {
+      "input_images": {
+        "role": "image",
+        "maxBytes": 20971520
+      }
+    },
+    "replicateMode": "",
+    "replicateOutput": {
+      "countField": "number_of_images",
+      "formatField": "output_format"
+    },
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [
+        "quality"
+      ],
+      "tiers": {
+        "auto": {
+          "image_output_count": 250000
+        },
+        "low": {
+          "image_output_count": 50000
+        },
+        "medium": {
+          "image_output_count": 90000
+        },
+        "high": {
+          "image_output_count": 128000
+        },
+        "xhigh": {
+          "image_output_count": 250000
+        },
+        "max": {
+          "image_output_count": 500000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/openai/gpt-image-2.6-sunburst/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "GPT Image 2.6 Sunburst through Replicate."
+  },
+  "direct/replicate/gpt-image-2.6-flare": {
+    "provider": "replicate",
+    "apiModel": "openai/gpt-image-2.6-flare",
+    "name": "GPT Image 2.6 Flare (Replicate)",
+    "vendor": "OpenAI",
+    "family": "GPT Image 2.6 Flare",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/openai/gpt-image-2.6-flare/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32000
+        },
+        "input_images": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 16
+        },
+        "quality": {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max",
+            "auto"
+          ],
+          "type": "string"
+        },
+        "complexity": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "type": "string"
+        },
+        "aspect_ratio": {
+          "enum": [
+            "1:1",
+            "3:2",
+            "2:3",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "auto",
+            "1024x1024",
+            "1536x1024",
+            "1024x1536",
+            "1536x1152",
+            "1152x1536",
+            "2048x2048",
+            "2048x1152",
+            "1152x2048",
+            "3840x2160",
+            "2160x3840"
+          ],
+          "type": "string"
+        },
+        "background": {
+          "enum": [
+            "auto",
+            "transparent",
+            "opaque"
+          ],
+          "type": "string"
+        },
+        "number_of_images": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4
+        },
+        "output_format": {
+          "type": "string",
+          "const": "png"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 16
+    },
+    "params": {
+      "quality": "medium",
+      "background": "auto",
+      "complexity": "high",
+      "aspect_ratio": "1:1",
+      "output_format": "png",
+      "number_of_images": 1
+    },
+    "maxPrompt": 32000,
+    "deadlineMs": 480000,
+    "mime": null,
+    "duration": null,
+    "resolution": null,
+    "aspect": "1:1",
+    "dimensions": [],
+    "codecs": [],
+    "audio": false,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [
+      "/input_images/*"
+    ],
+    "replicateReferences": {
+      "input_images": {
+        "role": "image",
+        "maxBytes": 20971520
+      }
+    },
+    "replicateMode": "",
+    "replicateOutput": {
+      "countField": "number_of_images",
+      "formatField": "output_format"
+    },
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [
+        "quality"
+      ],
+      "tiers": {
+        "auto": {
+          "image_output_count": 250000
+        },
+        "low": {
+          "image_output_count": 50000
+        },
+        "medium": {
+          "image_output_count": 90000
+        },
+        "high": {
+          "image_output_count": 128000
+        },
+        "xhigh": {
+          "image_output_count": 250000
+        },
+        "max": {
+          "image_output_count": 500000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/openai/gpt-image-2.6-flare/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "GPT Image 2.6 Flare through Replicate."
+  },
+  "direct/replicate/seedream-5-lite": {
+    "provider": "replicate",
+    "apiModel": "bytedance/seedream-5-lite",
+    "name": "Seedream 5 Lite (Replicate)",
+    "vendor": "ByteDance",
+    "family": "Seedream 5 Lite",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/bytedance/seedream-5-lite/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "maxLength": 4000,
+          "minLength": 1
+        },
+        "image_input": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 14
+        },
+        "size": {
+          "enum": [
+            "2K",
+            "3K"
+          ],
+          "type": "string"
+        },
+        "aspect_ratio": {
+          "enum": [
+            "match_input_image",
+            "1:1",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "3:2",
+            "2:3",
+            "21:9"
+          ],
+          "type": "string"
+        },
+        "max_images": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "sequential_image_generation": {
+          "enum": [
+            "disabled",
+            "auto"
+          ],
+          "type": "string"
+        },
+        "output_format": {
+          "enum": [
+            "png",
+            "jpeg"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 14
+    },
+    "params": {
+      "size": "2K",
+      "max_images": 1,
+      "aspect_ratio": "match_input_image",
+      "output_format": "png",
+      "sequential_image_generation": "disabled"
+    },
+    "maxPrompt": 4000,
+    "deadlineMs": 480000,
+    "mime": null,
+    "duration": null,
+    "resolution": null,
+    "aspect": "match_input_image",
+    "dimensions": [],
+    "codecs": [],
+    "audio": false,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [
+      "/image_input/*"
+    ],
+    "replicateReferences": {
+      "image_input": {
+        "role": "image",
+        "maxBytes": 10485760
+      }
+    },
+    "replicateMode": "seedream",
+    "replicateOutput": {
+      "countField": "max_images",
+      "variableCountField": "sequential_image_generation",
+      "variableCountValue": "auto",
+      "formatField": "output_format"
+    },
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [],
+      "tiers": {
+        "": {
+          "image_output_count": 35000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/bytedance/seedream-5-lite/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Seedream 5 Lite through Replicate."
+  },
+  "direct/replicate/grok-imagine-image": {
+    "provider": "replicate",
+    "apiModel": "xai/grok-imagine-image",
+    "name": "Grok Imagine Image (Replicate)",
+    "vendor": "xAI",
+    "family": "Grok Imagine Image",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/xai/grok-imagine-image/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "image": {
+          "type": "string"
+        },
+        "aspect_ratio": {
+          "enum": [
+            "1:1",
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "2:1",
+            "1:2",
+            "19.5:9",
+            "9:19.5",
+            "20:9",
+            "9:20",
+            "auto"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 1
+    },
+    "params": {
+      "aspect_ratio": "1:1"
+    },
+    "maxPrompt": 4000,
+    "deadlineMs": 480000,
+    "mime": null,
+    "duration": null,
+    "resolution": null,
+    "aspect": "1:1",
+    "dimensions": [],
+    "codecs": [],
+    "audio": false,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [
+      "/image"
+    ],
+    "replicateReferences": {
+      "image": {
+        "role": "image",
+        "maxBytes": 10485760
+      }
+    },
+    "replicateMode": "",
+    "replicateOutput": {},
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [],
+      "tiers": {
+        "": {
+          "image_output_count": 20000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/xai/grok-imagine-image/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Grok Imagine Image through Replicate."
+  },
+  "direct/replicate/lyria-3.5": {
+    "provider": "replicate",
+    "apiModel": "google/lyria-3.5",
+    "name": "Lyria 3.5 (Replicate)",
+    "vendor": "Google",
+    "family": "Lyria 3.5",
+    "kind": "audio",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/google/lyria-3.5/predictions",
+    "apiPrompt": "/prompt",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "images": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "output_format": {
+          "enum": [
+            "mp3",
+            "wav"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 10
+    },
+    "params": {
+      "output_format": "mp3"
+    },
+    "maxPrompt": 4000,
+    "deadlineMs": 480000,
+    "mime": null,
+    "duration": null,
+    "resolution": null,
+    "aspect": "1:1",
+    "dimensions": [],
+    "codecs": [],
+    "audio": true,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [
+      "/images/*"
+    ],
+    "replicateReferences": {
+      "images": {
+        "role": "image",
+        "maxBytes": 10485760
+      }
+    },
+    "replicateMode": "",
+    "replicateOutput": {
+      "formatField": "output_format"
+    },
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [],
+      "tiers": {
+        "": {
+          "audio_output_count": 80000
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/google/lyria-3.5/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Lyria 3.5 through Replicate."
+  },
+  "direct/replicate/inworld-tts-2": {
+    "provider": "replicate",
+    "apiModel": "inworld/realtime-tts-2",
+    "name": "Inworld Realtime TTS 2 (Replicate)",
+    "vendor": "Inworld",
+    "family": "Inworld Realtime TTS 2",
+    "kind": "audio",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/inworld/realtime-tts-2/predictions",
+    "apiPrompt": "/text",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "language": {
+          "enum": [
+            "auto",
+            "en",
+            "zh",
+            "ja",
+            "ko",
+            "ru",
+            "it",
+            "es",
+            "pt",
+            "fr",
+            "de",
+            "pl",
+            "nl",
+            "hi",
+            "he",
+            "ar"
+          ],
+          "type": "string"
+        },
+        "voice_id": {
+          "type": "string",
+          "enum": [
+            "Ashley",
+            "Dennis",
+            "Alex",
+            "Darlene"
+          ]
+        },
+        "sample_rate": {
+          "enum": [
+            8000,
+            16000,
+            22050,
+            24000,
+            32000,
+            44100,
+            48000
+          ],
+          "type": "integer"
+        },
+        "temperature": {
+          "type": "number",
+          "maximum": 2,
+          "minimum": 0
+        },
+        "audio_format": {
+          "type": "string",
+          "enum": [
+            "mp3",
+            "wav",
+            "flac"
+          ]
+        },
+        "speaking_rate": {
+          "type": "number",
+          "maximum": 1.5,
+          "minimum": 0
+        },
+        "text_normalization": {
+          "enum": [
+            "auto",
+            "on",
+            "off"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 0
+    },
+    "params": {
+      "language": "auto",
+      "voice_id": "Ashley",
+      "sample_rate": 48000,
+      "temperature": 0,
+      "audio_format": "mp3",
+      "speaking_rate": 0,
+      "text_normalization": "auto"
+    },
+    "maxPrompt": 2000,
+    "deadlineMs": 480000,
+    "mime": null,
+    "duration": null,
+    "resolution": null,
+    "aspect": "1:1",
+    "dimensions": [],
+    "codecs": [],
+    "audio": true,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [],
+    "replicateReferences": {},
+    "replicateMode": "",
+    "replicateOutput": {
+      "formatField": "audio_format"
+    },
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [],
+      "tiers": {
+        "": {
+          "character_input_count": 25
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/inworld/realtime-tts-2/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Inworld Realtime TTS 2 through Replicate."
+  },
+  "direct/replicate/grok-tts": {
+    "provider": "replicate",
+    "apiModel": "xai/grok-text-to-speech",
+    "name": "Grok Text-to-Speech (Replicate)",
+    "vendor": "xAI",
+    "family": "Grok Text-to-Speech",
+    "kind": "audio",
+    "nativeMedia": true,
+    "adapter": "schema-replicate",
+    "referenceTransport": "owned-url",
+    "apiPath": "/v1/models/xai/grok-text-to-speech/predictions",
+    "apiPrompt": "/text",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 15000
+        },
+        "voice": {
+          "enum": [
+            "eve",
+            "ara",
+            "rex",
+            "sal",
+            "leo"
+          ],
+          "type": "string"
+        },
+        "language": {
+          "enum": [
+            "auto",
+            "en",
+            "ar-EG",
+            "ar-SA",
+            "ar-AE",
+            "bn",
+            "zh",
+            "fr",
+            "de",
+            "hi",
+            "id",
+            "it",
+            "ja",
+            "ko",
+            "pt-BR",
+            "pt-PT",
+            "ru",
+            "es-MX",
+            "es-ES",
+            "tr",
+            "vi"
+          ],
+          "type": "string"
+        },
+        "sample_rate": {
+          "enum": [
+            8000,
+            16000,
+            22050,
+            24000,
+            44100,
+            48000
+          ],
+          "type": "integer"
+        },
+        "bit_rate": {
+          "enum": [
+            32000,
+            64000,
+            96000,
+            128000,
+            192000
+          ],
+          "type": "integer"
+        },
+        "output_format": {
+          "type": "string",
+          "enum": [
+            "mp3",
+            "wav"
+          ]
+        },
+        "text_normalization": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "nativeCapabilities": {
+      "maxReferences": 0
+    },
+    "params": {
+      "voice": "eve",
+      "bit_rate": 128000,
+      "language": "auto",
+      "sample_rate": 24000,
+      "output_format": "mp3",
+      "text_normalization": false
+    },
+    "maxPrompt": 15000,
+    "deadlineMs": 480000,
+    "mime": null,
+    "duration": null,
+    "resolution": null,
+    "aspect": "1:1",
+    "dimensions": [],
+    "codecs": [],
+    "audio": true,
+    "feeMultiplier": 1,
+    "seed": false,
+    "referencePaths": [],
+    "replicateReferences": {},
+    "replicateMode": "",
+    "replicateOutput": {
+      "formatField": "output_format"
+    },
+    "pricingRule": {
+      "type": "replicate",
+      "selectors": [],
+      "tiers": {
+        "": {
+          "character_input_count": 15
+        }
+      }
+    },
+    "schemaUrl": "https://replicate.com/xai/grok-text-to-speech/api/schema",
+    "schemaCheckedAt": "2026-11-19",
+    "documentationCheckedAt": "2026-11-19",
+    "validationStatus": "schema-checked",
+    "description": "Grok Text-to-Speech through Replicate."
+  }
+}

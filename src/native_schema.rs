@@ -505,7 +505,126 @@ fn minimax_policy(raw: &Value, spec: &Value, model: &Value) -> Result<()> {
     Ok(())
 }
 
+fn replicate_policy(raw: &Value, spec: &Value, model: &Value) -> Result<()> {
+    let refs = spec["input"]["references"].as_array().unwrap();
+    for (field, rule) in model["replicateReferences"].as_object().unwrap() {
+        let Some(value) = raw.get(field) else {
+            continue;
+        };
+        let items = value
+            .as_array()
+            .map(Vec::as_slice)
+            .unwrap_or_else(|| std::slice::from_ref(value));
+        for marker in items {
+            let index = marker
+                .as_str()
+                .and_then(|v| v.strip_prefix("@reference:"))
+                .and_then(|v| v.parse::<usize>().ok())
+                .ok_or(Error("invalid_native_reference_slot"))?;
+            let r = refs
+                .get(index)
+                .ok_or(Error("invalid_native_reference_slot"))?;
+            need(r["role"] == rule["role"], "invalid_reference_role")?;
+            let size = r["bytes"].as_u64().ok_or(Error("invalid_reference_size"))?;
+            need(
+                size <= rule["maxBytes"].as_u64().unwrap(),
+                "invalid_reference_size",
+            )?;
+            if let Some(mimes) = rule["mimes"].as_array() {
+                need(mimes.contains(&r["mime"]), "invalid_reference_type")?;
+            }
+            let duration = r["durationMs"].as_u64();
+            if let Some(max) = rule["maxMs"].as_u64() {
+                need(
+                    duration
+                        .is_some_and(|ms| ms >= rule["minMs"].as_u64().unwrap_or(1) && ms <= max),
+                    "invalid_reference_duration",
+                )?;
+            }
+            if !["audio"].contains(&rule["role"].as_str().unwrap()) {
+                let (w, h) = (
+                    r["width"].as_u64().unwrap_or(0),
+                    r["height"].as_u64().unwrap_or(0),
+                );
+                let min = rule["minSide"].as_u64().unwrap_or(1);
+                let max = rule["maxSide"].as_u64().unwrap_or(16384);
+                need(
+                    (min..=max).contains(&w) && (min..=max).contains(&h),
+                    "invalid_reference_dimensions",
+                )?;
+            }
+        }
+    }
+    let has = |key: &str| {
+        raw.get(key)
+            .is_some_and(|v| !v.is_null() && !v.as_array().is_some_and(Vec::is_empty))
+    };
+    let count = |role: &str| refs.iter().filter(|r| r["role"] == role).count();
+    let sum_ms = |role: &str| {
+        refs.iter()
+            .filter(|r| r["role"] == role)
+            .map(|r| r["durationMs"].as_u64().unwrap_or(0))
+            .sum::<u64>()
+    };
+    let mode = model["replicateMode"].as_str().unwrap_or("");
+    let ok = match mode {
+        "wan" => !has("image") || raw["aspect_ratio"] == "adaptive",
+        "seedance" => {
+            (!has("last_frame_image") || has("image"))
+                && (!has("image")
+                    || (raw["aspect_ratio"] == "adaptive"
+                        && count("image") + count("video") + count("audio") == 0))
+                && (count("audio") == 0 || count("image") + count("video") > 0)
+                && sum_ms("video") <= model["replicateMaxInputMs"].as_u64().unwrap()
+                && sum_ms("audio") <= model["replicateMaxInputMs"].as_u64().unwrap()
+        }
+        "kling" => {
+            count("image") + count("first") + count("last") + count("keyframe") <= 10
+                && count("video") <= 5
+                && sum_ms("video") <= model["replicateMaxInputMs"].as_u64().unwrap()
+                && (!(has("end_image") || has("middle_images")) || has("start_image"))
+                && (!has("base_video") || count("first") + count("last") + count("keyframe") == 0)
+        }
+        "gemini" => {
+            (!has("last_frame")
+                || (has("image") && raw["duration"].as_i64().is_some_and(|d| d <= 10)))
+                && (!has("image") || !has("reference_images"))
+                && (!has("video") || count("image") + count("first") + count("last") == 0)
+        }
+        "wan-image" => {
+            !raw["size"].as_str().is_some_and(|sz| {
+                [
+                    "4K",
+                    "4096*4096",
+                    "4096*2304",
+                    "2304*4096",
+                    "4096*3072",
+                    "3072*4096",
+                ]
+                .contains(&sz)
+            }) || (!has("images") && raw["image_set_mode"] == false && raw["num_outputs"] == 1)
+        }
+        "krea-edit" => raw["regional_edit"] != true || has("images"),
+        "veo" => !has("last_frame") || has("image"),
+        "motion" => raw["character_orientation"] == "video" || sum_ms("video") <= 10000,
+        "seedream" => raw["max_images"].as_u64().is_some_and(|n| {
+            n <= 15
+                && n + count("image") as u64 <= 15
+                && (raw["sequential_image_generation"] == "auto" || n == 1)
+        }),
+        "music" => {
+            has("song_file") != (has("voice_file") && has("instrumental_file"))
+                && (has("song_file") || has("voice_file") == has("instrumental_file"))
+        }
+        _ => true,
+    };
+    need(ok, "invalid_replicate_media_settings")
+}
+
 fn extra_policy(raw: &Value, spec: &Value, model: &Value) -> Result<()> {
+    if model["provider"] == "replicate" {
+        return replicate_policy(raw, spec, model);
+    }
     if model["provider"] == "wavespeed" {
         return crate::wavespeed::reference_policy(raw, spec, model);
     }

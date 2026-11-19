@@ -1780,6 +1780,126 @@
     {
       "model": "studio/media/fal/kling/v4/text-to-image",
       "hash": "85d496364c222b18ceba23afb120d65ca770d1b1bca715c6bca1c6b2a3884ffb"
+    },
+    {
+      "model": "direct/replicate/wan-3.0",
+      "hash": "a1aa7ea7281fb433194ddf31b2e0fd207a12a4391373b53979f70a619a21202b"
+    },
+    {
+      "model": "direct/replicate/wan-3.0-prime",
+      "hash": "bcfceb658502ec2d7b000e55a6a22d1088407a1a1a777b81cc79aee7baf48b68"
+    },
+    {
+      "model": "direct/replicate/kling-4.0",
+      "hash": "de4dddf1c6a78aca11f5a322b99598766559b2625b8e4ad641ec2dcaf3388461"
+    },
+    {
+      "model": "direct/replicate/kling-4.0-flash",
+      "hash": "87b9fba7f03959d6826178da9d0bc051244500a9c3874e0fd47bcf151b789907"
+    },
+    {
+      "model": "direct/replicate/dreamactor-m2.0",
+      "hash": "a001a5481b0bd9bf1c839d557d875dc7ed4240e4e0566ae30ab62e24afd1b9d6"
+    },
+    {
+      "model": "direct/replicate/kling-3.0-motion-control",
+      "hash": "618765a192d5b7db9f5f3b16223219732c27fd380c404651926ca4cd47acf4f7"
+    },
+    {
+      "model": "direct/replicate/seedance-2.0",
+      "hash": "76850dd5b4244c8e9dbdbe4c1b162c0413472ad706fee6f578fc48a2e8fcdac2"
+    },
+    {
+      "model": "direct/replicate/seedance-2.0-fast",
+      "hash": "d4c8b8eff152f4f400b1f54176f577c8d75c542466a2e99fcfd61233fa2ad052"
+    },
+    {
+      "model": "direct/replicate/seedance-2.5",
+      "hash": "f0268b8469789a993be2ec4a5d28d21d0b82c4c6e0910c1c918f24c8859ae0f5"
+    },
+    {
+      "model": "direct/replicate/gemini-omni-1.2-flash",
+      "hash": "1b681243e5a196c39383f285054ed587b81e47518e60f7c51c35fc6ceb6e5d2f"
+    },
+    {
+      "model": "direct/replicate/runway-gen-4.5",
+      "hash": "9275ec6d571666b71615f9b55b1790652c6b2f2956d824250cf6462f8428ed57"
+    },
+    {
+      "model": "direct/replicate/veo-3.1-fast",
+      "hash": "fa8c245b72689634d3a2f9af454d6c32846d7b245d0a345897f654408c7ad5ae"
+    },
+    {
+      "model": "direct/replicate/wan-2.7-image",
+      "hash": "e17aef35ae7d5cf842061c58bf5c6e843b132977db4537e60a6203af3783a9fd"
+    },
+    {
+      "model": "direct/replicate/wan-2.7-image-pro",
+      "hash": "73d90c770e7f66949e6f8dc3f84fd8473a4c77fb1e367966e912d332a330f5a7"
+    },
+    {
+      "model": "direct/replicate/qwen-image-3.0",
+      "hash": "70f8d33c13ff9be8c1e7f0deefa9f764a4ea8a1d78db934bad503fe522a53078"
+    },
+    {
+      "model": "direct/replicate/qwen-image-3.0-pro",
+      "hash": "df8b63ae82f32e222c420b3a98c7abbd24362511c2adecb527d28dadc2b03880"
+    },
+    {
+      "model": "direct/replicate/krea-2-medium",
+      "hash": "b5f187d36d360a25d2a117c8663842a275e7ee9ed83605ee32bbfd7c2f193e20"
+    },
+    {
+      "model": "direct/replicate/krea-2-large",
+      "hash": "c549029c2af7f9028de767040603a70d70168e3be151df3d964275eecc008363"
+    },
+    {
+      "model": "direct/replicate/krea-3",
+      "hash": "3c52a68d89cc4aa9b2155445e3298c53a8da4eea6e414a459045636a2d8f115a"
+    },
+    {
+      "model": "direct/replicate/recraft-v4-svg",
+      "hash": "255682e6ef9bf48eecb490f2eb0e41ef5a9bda54824628a649e219ba24d01002"
+    },
+    {
+      "model": "direct/replicate/recraft-v4-pro-svg",
+      "hash": "5c762a4744f277c7df7e33c71092696a36faec5215764368925e9d9ed3cf361b"
+    },
+    {
+      "model": "direct/replicate/nano-banana-2",
+      "hash": "46fdae25cc2b56bc2715fbf0072988252c293d573253323ed158cb56fc976829"
+    },
+    {
+      "model": "direct/replicate/nano-banana-pro",
+      "hash": "16ef34ec4a1fd3d628d166f0ccacdce4f67841173207eefcc4c39d49e0165803"
+    },
+    {
+      "model": "direct/replicate/gpt-image-2.6-sunburst",
+      "hash": "3b7a09176e8ccd164efd0b6f28b130f731fcc812f3ba685552b6332246cc9170"
+    },
+    {
+      "model": "direct/replicate/gpt-image-2.6-flare",
+      "hash": "873add5207085b76d28971bc8fed1d99ae21bd046da71242b9231242c0fdb347"
+    },
+    {
+      "model": "direct/replicate/seedream-5-lite",
+      "hash": "fe6d094a6f15f6cac40303544915d185d508ad4f566d110afae6cc0652766416"
+    },
+    {
+      "model": "direct/replicate/grok-imagine-image",
+      "hash": "c28865b5eeb365d082ca534da027c478d5ef609c41b4bf8ef56338d3d9c7e2c6"
+    },
+    {
+      "model": "direct/replicate/lyria-3.5",
+      "hash": "50b069b294b9f9bb907c944750eb12b26644f45a174d91dac30590b416d2871c"
+    },
+    {
+      "model": "direct/replicate/inworld-tts-2",
+      "hash": "f2b4682ef2fb7db05d9ea69c5bb5ea2518bb55d96077e2d9ef17cc37a1b654c4"
+    },
+    {
+      "model": "direct/replicate/grok-tts",
+      "hash": "e4efda51df249974aecf5c75e0c630f8c8ff32bff2e969fe9716abaaa74b7ad3"
     }
   ],
   "numeric": {

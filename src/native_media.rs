@@ -65,6 +65,12 @@ pub static MODELS: LazyLock<Value> = LazyLock::new(|| {
         assert!(models.get(id).is_none());
         models[id] = model.clone();
     }
+    let replicate: Value = serde_json::from_str(include_str!("../config/replicate-models.json"))
+        .expect("reviewed Replicate models");
+    for (id, model) in replicate.as_object().unwrap() {
+        assert!(models.get(id).is_none());
+        models[id] = model.clone();
+    }
     models
 });
 
@@ -290,6 +296,7 @@ pub fn check_with(value: &Value, policy: &Value) -> Result<()> {
                     mime == "video/mp4"
                         || (policy["adapter"] == "schema-minimax-video"
                             || policy["provider"] == "kling"
+                            || policy["provider"] == "replicate"
                             || policy["seedance25Premium"] == true
                             || policy["seedance25Flash"] == true)
                             && mime == "video/quicktime"

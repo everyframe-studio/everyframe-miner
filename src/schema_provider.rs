@@ -9,6 +9,79 @@ use crate::{
 };
 use serde_json::{Value, json};
 impl Router<'_> {
+    fn replicate_result(
+        &self,
+        reference: &str,
+        spec: &Value,
+        model: &Value,
+        data: &Value,
+    ) -> Result<Output> {
+        need(data["status"] == "succeeded", "provider_not_complete")?;
+        let kind = s(&model["kind"])?;
+        let policy = &model["replicateOutput"];
+        let parameters = &spec["input"]["parameters"];
+        let expected = policy["countField"]
+            .as_str()
+            .and_then(|key| parameters[key].as_u64())
+            .unwrap_or(1) as usize;
+        let urls = if let Some(values) = data["output"].as_array() {
+            values.iter().map(s).collect::<Result<Vec<_>>>()?
+        } else {
+            vec![s(&data["output"])?]
+        };
+        let variable = policy["variableCountField"]
+            .as_str()
+            .is_some_and(|key| parameters[key] == policy["variableCountValue"]);
+        need(
+            (1..=10).contains(&urls.len())
+                && if variable {
+                    urls.len() <= expected
+                } else {
+                    urls.len() == expected
+                },
+            "provider_no_media",
+        )?;
+        let format = policy["formatField"]
+            .as_str()
+            .and_then(|key| parameters[key].as_str());
+        let mut remaining = 95 * 1024 * 1024;
+        let mut parts = Vec::with_capacity(urls.len());
+        for url in urls {
+            let limit = match kind {
+                "image" if model["mime"] == "image/svg+xml" => 4 * 1024 * 1024,
+                "image" => 64 * 1024 * 1024,
+                _ => remaining,
+            };
+            need(remaining > 0, "invalid_media_size")?;
+            let bytes = self.download_bounded(
+                "replicate",
+                url,
+                &["replicate.delivery", "*.replicate.delivery"],
+                None,
+                &[],
+                remaining.min(limit),
+            )?;
+            remaining -= bytes.len();
+            let mime = match (kind, format) {
+                ("image", _) if model["mime"] == "image/svg+xml" => "image/svg+xml",
+                ("image", _) => native_provider::mime(&bytes)?,
+                ("video", _) => "video/mp4",
+                ("audio", Some("wav")) => "audio/wav",
+                ("audio", Some("flac")) => "audio/flac",
+                ("audio", _) => "audio/mpeg",
+                _ => return Err(Error("invalid_provider_media")),
+            };
+            parts.push(native_provider::part(kind, mime, &bytes)?);
+        }
+        let media = native_provider::bundle(parts, vec![], Value::Null)?;
+        let response_hash = digest(
+            &json!({"inputHash":digest(spec)?,"outputHash":sha(&media),"reference":reference}),
+        )?;
+        Ok(Output {
+            media,
+            response_hash,
+        })
+    }
     pub(crate) fn schema_submit(
         &mut self,
         spec: &Value,
@@ -23,6 +96,15 @@ impl Router<'_> {
             Some("vidu") => return self.vidu_submit(spec, model, body),
             Some("stability") => return self.stability_submit(spec, model, body),
             _ => {}
+        }
+        if model["provider"] == "replicate" {
+            let body = json!({"input":body});
+            let data = self.http.json(self.native_request(
+                model,
+                s(&model["apiPath"])?,
+                Some(&body),
+            )?)?;
+            return native_media::reference(spec, s(&data["id"])?);
         }
         if model["provider"] == "runway" {
             let data =
@@ -207,6 +289,30 @@ impl Router<'_> {
         native_media::reference(spec, &crate::bfl::submission_reference(&data)?)
     }
     fn schema_read(&self, reference: &str, spec: &Value, model: &Value) -> Result<Value> {
+        if model["provider"] == "replicate" {
+            let id = native_media::reference_id(spec, reference)?;
+            let data = self.http.json(self.native_request(
+                model,
+                &format!("/v1/predictions/{id}"),
+                None,
+            )?)?;
+            need(
+                data["id"] == id && data["model"] == model["apiModel"],
+                "provider_id_mismatch",
+            )?;
+            let urls = spec["input"]["references"]
+                .as_array()
+                .ok_or(Error("invalid_native_media_references"))?
+                .iter()
+                .map(|r| s(&r["url"]).map(str::to_owned))
+                .collect::<Result<Vec<_>>>()?;
+            let body = crate::native_schema::body(spec, model, &urls)?;
+            need(
+                digest(&body)? == digest(&data["input"])?,
+                "provider_input_mismatch",
+            )?;
+            return Ok(data);
+        }
         if model["provider"] == "runway" {
             let id = native_media::reference_id(spec, reference)?;
             let data =
@@ -322,6 +428,16 @@ impl Router<'_> {
             return Ok("COMPLETED".into());
         }
         let d = self.schema_read(reference, spec, model)?;
+        if model["provider"] == "replicate" {
+            return match d["status"].as_str() {
+                Some("starting" | "processing") => Ok("IN_PROGRESS".into()),
+                Some("succeeded") => Ok("COMPLETED".into()),
+                Some("failed" | "canceled" | "aborted") => {
+                    Err(self.provider_failure(Error("provider_generation_failed"), "replicate", &d))
+                }
+                _ => Err(Error("invalid_provider_status")),
+            };
+        }
         if model["provider"] == "runway" {
             return match d["status"].as_str() {
                 Some("PENDING" | "THROTTLED" | "RUNNING") => Ok("IN_PROGRESS".into()),
@@ -405,6 +521,9 @@ impl Router<'_> {
             });
         }
         let d = self.schema_read(reference, spec, model)?;
+        if model["provider"] == "replicate" {
+            return self.replicate_result(reference, spec, model, &d);
+        }
         if model["provider"] == "runway" {
             need(d["status"] == "SUCCEEDED", "provider_not_complete")?;
             let rows = d["output"].as_array().ok_or(Error("provider_no_media"))?;
