@@ -1,0 +1,25 @@
+[
+  {
+    "model": "direct/byteplus/seedance-2.5-flash",
+    "provider": "byteplus",
+    "request": {
+      "model": "direct/byteplus/seedance-2.5-flash",
+      "prompt": "A quiet lake"
+    },
+    "spec": {
+      "model": "direct/byteplus/seedance-2.5-flash",
+      "input": {
+        "prompt": "A quiet lake",
+        "parameters": {
+          "duration": 5,
+          "resolution": "720p",
+          "aspect_ratio": "16:9",
+          "generate_audio": true,
+          "omni_reference_task_type": "reference"
+        },
+        "references": []
+      }
+    },
+    "hash": "a1938288060276730e0bfdef53be39347035d59edab18a0a741f5f03e2fe8086"
+  }
+]
