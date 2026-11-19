@@ -9,6 +9,7 @@ config/*
 !config/models.json
 !config/provider-expansion.json
 !config/native-media.json
+!config/mai-image-27.json
 !config/ltx25-models.json
 !config/h3-image.json
 !config/asian-providers.json

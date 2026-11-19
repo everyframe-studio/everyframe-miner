@@ -1,0 +1,36 @@
+[
+  {
+    "model": "direct/azure-foundry/mai-image-2.7",
+    "provider": "azure-foundry",
+    "request": {
+      "model": "direct/azure-foundry/mai-image-2.7",
+      "prompt": "A blue origami crane"
+    },
+    "spec": {
+      "model": "direct/azure-foundry/mai-image-2.7",
+      "input": {
+        "prompt": "A blue origami crane",
+        "parameters": {},
+        "references": []
+      }
+    },
+    "hash": "9e2f8031853442ecdbbd2c8758a8d6dfabbf9159935d76e8e220ad4361314640"
+  },
+  {
+    "model": "direct/azure-foundry/mai-image-2.7-flash",
+    "provider": "azure-foundry",
+    "request": {
+      "model": "direct/azure-foundry/mai-image-2.7-flash",
+      "prompt": "A blue origami crane"
+    },
+    "spec": {
+      "model": "direct/azure-foundry/mai-image-2.7-flash",
+      "input": {
+        "prompt": "A blue origami crane",
+        "parameters": {},
+        "references": []
+      }
+    },
+    "hash": "906fd1d9911d636efc9dcc2a072108fa9dbc54cc289235fc579416f11fb6ff09"
+  }
+]

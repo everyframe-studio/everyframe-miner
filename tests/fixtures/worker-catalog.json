@@ -1712,6 +1712,14 @@
     {
       "model": "direct/byteplus/seedance-2.5-flash",
       "hash": "7706e6dd57493296d46e1d773fde12f3d5d8b9a520aca51f1f3c1d8258a2f347"
+    },
+    {
+      "model": "direct/azure-foundry/mai-image-2.7",
+      "hash": "86a3f5fff00b2972d6b4ddc4fd2913f9c6dfddfd49c32e6139b62bc666c6436e"
+    },
+    {
+      "model": "direct/azure-foundry/mai-image-2.7-flash",
+      "hash": "e2352fa527cc698a58fd189f8e9ed31b551add23fc22c03b4deb80b6e2515dea"
     }
   ],
   "numeric": {
