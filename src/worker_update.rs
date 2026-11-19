@@ -48,20 +48,24 @@ impl Drop for InterruptGuard {
     }
 }
 
+fn same_update_identity(c: &Context, inv: &Value) -> bool {
+    [
+        "minerId",
+        "hotkey",
+        "tokenHash",
+        "authMode",
+        "keyVersion",
+        "osImageHash",
+    ]
+    .iter()
+    .all(|k| inv[k] == c.invitation[k])
+        && inv["appId"] == c.deployment["appId"]
+        && inv["request"]["name"] == c.invitation["request"]["name"]
+}
+
 pub(crate) fn compatible(c: &Context, inv: &Value, from: &Value) -> Result<()> {
     need(
-        [
-            "minerId",
-            "hotkey",
-            "tokenHash",
-            "authMode",
-            "keyVersion",
-            "osImageHash",
-        ]
-        .iter()
-        .all(|k| inv[k] == c.invitation[k])
-            && inv["appId"] == c.deployment["appId"]
-            && inv["request"]["name"] == c.invitation["request"]["name"]
+        same_update_identity(c, inv)
             && inv["previousComposeHash"] == *from
             && inv["composeHash"] != *from
             && (c.invitation["composeHash"] == *from
@@ -127,6 +131,88 @@ fn unsettled(phase: &str) -> bool {
 }
 
 impl Miner<'_> {
+    /// Repair only a stale local ticket for the workload already running on
+    /// this profile's VM. The signed configuration, fresh signed binding and
+    /// cloud observation must agree before the single local write. No cloud
+    /// operation, key release, authorization rotation or routing change occurs.
+    fn refresh_worker_update_profile(&self, c: &mut Context) -> Result<bool> {
+        if c.invitation["authMode"] != "hotkey-v1" || c.invitation["publicOnboarding"] != true {
+            return Ok(false);
+        }
+        need(
+            [
+                "running",
+                "drained",
+                "awaiting_attestation",
+                "awaiting_readmission",
+            ]
+            .contains(&c.deployment["phase"].as_str().unwrap_or(""))
+                && c.deployment["pendingInvitation"].is_null()
+                && c.deployment["abandonedInvitation"].is_null(),
+            "reconciliation_required",
+        )?;
+        let response = self.api(c, "configuration", json!({}))?;
+        let fresh = self.validate(&response["configuration"], false)?;
+        if fresh["composeHash"] == c.invitation["composeHash"] {
+            return Ok(false);
+        }
+        need(
+            [
+                "minerId",
+                "hotkey",
+                "network",
+                "netuid",
+                "genesis",
+                "coordinatorUrl",
+                "tokenHash",
+                "authMode",
+                "keyVersion",
+                "osImageHash",
+                "publicOnboarding",
+            ]
+            .iter()
+            .all(|key| fresh[key] == c.invitation[key])
+                && (fresh["appId"] == c.deployment["appId"] || fresh["appId"].is_null()),
+            "worker_update_profile_changed",
+        )?;
+        let mut before = c.invitation["request"].clone();
+        let mut after = fresh["request"].clone();
+        before
+            .as_object_mut()
+            .ok_or(Error("worker_update_profile_changed"))?
+            .remove("compose_file");
+        after
+            .as_object_mut()
+            .ok_or(Error("worker_update_profile_changed"))?
+            .remove("compose_file");
+        need(before == after, "worker_update_profile_changed")?;
+        need(
+            cloud::compose_hash(&fresh["request"]["compose_file"])? == fresh["composeHash"],
+            "compose_hash_mismatch",
+        )?;
+        let status = self.api(c, "status", json!({}))?;
+        need(
+            status["appId"] == c.deployment["appId"]
+                && status["composeHash"] == fresh["composeHash"],
+            "worker_update_profile_changed",
+        )?;
+        let info = self.cloud(c)?.info(s(&c.deployment["appId"])?)?;
+        need(
+            info["app_id"] == c.deployment["appId"]
+                && info["name"] == fresh["request"]["name"]
+                && info["compose_hash"] == fresh["composeHash"]
+                && info["status"] == "running",
+            "worker_update_profile_changed",
+        )?;
+        let mut config = c.config.clone();
+        config["invitation"] = response["configuration"].clone();
+        config["workerUpdateProfileRefreshedAt"] = json!(now());
+        self.state.write("config", &config)?;
+        c.config = config;
+        c.invitation = fresh;
+        Ok(true)
+    }
+
     /// Adopt only a freshly signed replacement for a pending update whose
     /// environment allow-list was reordered by Phala. No cloud mutation or
     /// credential release occurs here, and no unsigned hash is accepted.
@@ -474,15 +560,18 @@ impl Miner<'_> {
             progress("Checking for a compatible signed worker update…");
             // Older offline controllers keep a compatible environment. A
             // reviewed manual update can add provider keys and migrate its controller.
-            let discovery = self.api(
-                &c,
-                "worker-update",
-                if automatic {
-                    json!({})
-                } else {
-                    json!({"providerEnvironment":"native-v4"})
-                },
-            )?;
+            let discover = |context: &Context| {
+                self.api(
+                    context,
+                    "worker-update",
+                    if automatic {
+                        json!({})
+                    } else {
+                        json!({"providerEnvironment":"native-v4"})
+                    },
+                )
+            };
+            let mut discovery = discover(&c)?;
             let update = &discovery["update"];
             if update["state"] == "unavailable" {
                 return Ok(
@@ -493,8 +582,37 @@ impl Miner<'_> {
                 ["available", "current"].contains(&update["state"].as_str().unwrap_or("")),
                 "invalid_coordinator_response",
             )?;
-            let inv = self.validate(&update["release"], false)?;
-            compatible(&c, &inv, &inv["previousComposeHash"])?;
+            let mut inv = self.validate(&update["release"], false)?;
+            if let Err(error) = compatible(&c, &inv, &inv["previousComposeHash"]) {
+                // A prior controller/repair may have advanced this same VM
+                // without refreshing the management profile. Only a manual
+                // update may repair that profile, once, before any confirmation
+                // or mutation. A check and unattended controller stay read-only.
+                if error.0 != "update_target_mismatch"
+                    || check
+                    || automatic
+                    || !same_update_identity(&c, &inv)
+                    || inv["composeHash"] == inv["previousComposeHash"]
+                {
+                    return Err(error);
+                }
+                progress("Checking whether this profile is behind its existing VM…");
+                if !self.refresh_worker_update_profile(&mut c)? {
+                    return Err(error);
+                }
+                progress(
+                    "Refreshed the local profile from its verified running configuration. Checking the signed update again…",
+                );
+                discovery = discover(&c)?;
+                need(
+                    ["available", "current"]
+                        .contains(&discovery["update"]["state"].as_str().unwrap_or("")),
+                    "invalid_coordinator_response",
+                )?;
+                inv = self.validate(&discovery["update"]["release"], false)?;
+                compatible(&c, &inv, &inv["previousComposeHash"])?;
+            }
+            let update = &discovery["update"];
             if automatic {
                 need(
                     settings["blockedComposeHash"] != inv["composeHash"],
