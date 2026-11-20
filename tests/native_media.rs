@@ -19,7 +19,7 @@ fn every_native_model_has_a_valid_default_and_locked_provider_endpoint() {
             .values()
             .filter(|m| !m["nativeSchema"].is_object() && m["asianMedia"] != true)
             .count(),
-        22
+        24
     );
     for (model, contract) in MODELS
         .as_object()
@@ -28,6 +28,13 @@ fn every_native_model_has_a_valid_default_and_locked_provider_endpoint() {
         .filter(|(_, m)| !m["nativeSchema"].is_object() && m["asianMedia"] != true)
     {
         let value = spec(model, json!({}), json!([]));
+        assert!(native_media::spec(&json!({"model":model,"prompt":"hi","parameters":{"endpoint":"https://evil.example"}})).is_err());
+        if contract["adapter"] == "azure-foundry-mai" {
+            // Foundry's request body depends on the assigned deployment name.
+            // The full authenticated request is checked in native_transport.
+            native_media::check(&value).unwrap();
+            continue;
+        }
         let (path, body) = native_media::body(&value, &[]).unwrap();
         assert!(
             path.starts_with("/v1/")
@@ -39,7 +46,6 @@ fn every_native_model_has_a_valid_default_and_locked_provider_endpoint() {
         if contract["adapter"] != "xai-tts" && contract["provider"] != "fal" {
             assert_eq!(body["model"], contract["apiModel"]);
         }
-        assert!(native_media::spec(&json!({"model":model,"prompt":"hi","parameters":{"endpoint":"https://evil.example"}})).is_err());
     }
 }
 

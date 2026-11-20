@@ -1029,6 +1029,24 @@
           "when": "If the CLI reports a saved automatic-update enrollment recovery, run everycli reconcile in that profile. The existing VM and restart journal are preserved."
         }
       ]
+    },
+    {
+      "version": "v1.2.4",
+      "title": "BytePlus Seedance Flash and Microsoft Foundry MAI Image",
+      "changes": [
+        "Add native worker support for BytePlus Seedance 2.5 Flash.",
+        "Add Microsoft Azure AI Foundry as a direct provider for MAI Image 2.7 and MAI Image 2.7 Flash.",
+        "Allow the exact ModelArk Singapore result host when no fresh signed media policy is available.",
+        "Verify the signed dstack 0.6 manifest, show the approved Phala OS before deployment, and flag a VM on a different image."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "To serve Seedance 2.5 Flash or Microsoft Foundry MAI Image jobs, run everycli worker-update when a compatible signed worker is available. For Foundry, configure your resource, API key and deployment names under API Keys, then apply the keys to the worker. Review offers in Models."
+        }
+      ]
     }
   ]
 }

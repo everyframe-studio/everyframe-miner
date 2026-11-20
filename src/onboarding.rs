@@ -297,6 +297,9 @@ pub fn save_keys(state: &State, updates: &Value, remove: Option<&str>) -> Result
             "invalid_credential",
         )?;
     }
+    if let Some(value) = entries.get(crate::azure_foundry::CREDENTIAL_KEY) {
+        crate::azure_foundry::configuration(s(value)?)?;
+    }
     let remove_key = remove.map(credential_key).transpose()?;
     let _lock = state.lock()?;
     let deployment = state.read("deployment", true)?;

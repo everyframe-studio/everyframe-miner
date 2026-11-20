@@ -112,7 +112,7 @@ fn spec(id: &str) -> Value {
 }
 #[test]
 fn all_regional_models_submit_once_and_return_hash_bound_outputs() {
-    assert_eq!(ids().len(), 12);
+    assert_eq!(ids().len(), 13);
     for id in ids() {
         let m = models::info(&id).unwrap();
         let p = m["provider"].as_str().unwrap();

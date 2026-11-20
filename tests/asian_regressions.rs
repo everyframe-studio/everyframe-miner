@@ -9,6 +9,8 @@ use std::cell::RefCell;
 
 const BYTEPLUS_OUTPUT: &str =
     "https://ark-content-generation-ap-southeast-1.tos-ap-southeast-1.volces.com/output.mp4";
+const BYTEPLUS_ACG_OUTPUT: &str =
+    "https://ark-acg-ap-southeast-1.tos-ap-southeast-1.volces.com/output.mp4";
 
 fn invitation() -> Value {
     json!({"minerId":"fixture-miner","request":{"compose_file":{
@@ -123,11 +125,33 @@ fn documented_byteplus_output_host_is_downloadable_after_restart() {
     assert_eq!(calls.iter().filter(|r| r.url == BYTEPLUS_OUTPUT).count(), 1);
 }
 #[test]
+fn modelark_acg_output_host_is_downloadable_without_a_coordinator_policy() {
+    // The built-in list is what applies when the signed policy is missing or expired.
+    let api = api("byteplus", None, BYTEPLUS_ACG_OUTPUT);
+    let spec =
+        models::spec(&json!({"model":"direct/byteplus/seedance-2.5","prompt":"A boat"})).unwrap();
+    let mut router = Router::new(&api, credentials());
+    let task = router.submit(&spec).unwrap();
+    assert_eq!(router.poll(&task, &spec).unwrap(), "COMPLETED");
+    router.result(&task, &spec).unwrap();
+    let calls = api.calls.borrow();
+    assert_eq!(
+        calls
+            .iter()
+            .filter(|r| r.url == BYTEPLUS_ACG_OUTPUT)
+            .count(),
+        1
+    );
+}
+#[test]
 fn byteplus_output_permission_does_not_allow_unreviewed_hosts() {
     for url in [
         "https://other-bucket.tos-ap-southeast-1.volces.com/output.mp4",
         "https://ark-content-generation-ap-southeast-1.tos-ap-southeast-1.volces.com.attacker.example/output.mp4",
         "http://ark-content-generation-ap-southeast-1.tos-ap-southeast-1.volces.com/output.mp4",
+        "https://ark-acg-ap-southeast-1.tos-ap-southeast-1.volces.com.attacker.example/output.mp4",
+        "https://x.ark-acg-ap-southeast-1.tos-ap-southeast-1.volces.com/output.mp4",
+        "http://ark-acg-ap-southeast-1.tos-ap-southeast-1.volces.com/output.mp4",
     ] {
         let api = api("byteplus", None, url);
         let spec = models::spec(&json!({"model":"direct/byteplus/seedance-2.5","prompt":"A boat"}))

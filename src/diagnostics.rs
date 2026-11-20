@@ -12,6 +12,21 @@ macro_rules! reasons {
 }
 reasons![
     (
+        "invalid_foundry_credentials",
+        "The Microsoft Foundry credential JSON is invalid.",
+        "Use a resource name, API key, and deployments with a standard or flash deployment name. See AZURE-FOUNDRY.md."
+    ),
+    (
+        "invalid_phala_os_manifest",
+        "The signed deployment does not contain the manifest format required by its Phala OS.",
+        "Reconnect after EveryFrame corrects the signed deployment. Keep the same profile and hotkey."
+    ),
+    (
+        "unapproved_running_os",
+        "Phala reports an OS image hash different from the signed deployment.",
+        "Check the VM's OS in Phala and contact EveryFrame for a reviewed deployment. Keep the same profile and hotkey."
+    ),
+    (
         "coordinator_busy",
         "The coordinator is busy and could not complete this request.",
         "Wait briefly, then read the current status before retrying any change. Keep the same profile."

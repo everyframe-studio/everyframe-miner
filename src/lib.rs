@@ -2,6 +2,7 @@ pub mod asian_media;
 mod asian_provider;
 pub mod auto_update;
 pub mod automatic_offers;
+mod azure_foundry;
 pub mod balances;
 pub mod bfl;
 pub mod catalog_adapters;

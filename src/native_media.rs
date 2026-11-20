@@ -53,6 +53,12 @@ pub static MODELS: LazyLock<Value> = LazyLock::new(|| {
         assert!(models.get(id).is_none());
         models[id] = m.clone();
     }
+    let mai: Value = serde_json::from_str(include_str!("../config/mai-image-27.json"))
+        .expect("reviewed Microsoft MAI models");
+    for (id, model) in mai.as_object().unwrap() {
+        assert!(models.get(id).is_none());
+        models[id] = model.clone();
+    }
     models
 });
 
@@ -254,7 +260,7 @@ pub fn check_with(value: &Value, policy: &Value) -> Result<()> {
         need(
             bytes > 0
                 && bytes
-                    <= if policy["seedance25Premium"] == true {
+                    <= if policy["seedance25Premium"] == true || policy["seedance25Flash"] == true {
                         200 * 1024 * 1024
                     } else if policy["provider"] == "kling" {
                         300 * 1024 * 1024
@@ -278,7 +284,8 @@ pub fn check_with(value: &Value, policy: &Value) -> Result<()> {
                     mime == "video/mp4"
                         || (policy["adapter"] == "schema-minimax-video"
                             || policy["provider"] == "kling"
-                            || policy["seedance25Premium"] == true)
+                            || policy["seedance25Premium"] == true
+                            || policy["seedance25Flash"] == true)
                             && mime == "video/quicktime"
                 }
                 _ => {
@@ -292,6 +299,9 @@ pub fn check_with(value: &Value, policy: &Value) -> Result<()> {
         *counts.entry(role).or_default() += 1;
     }
     let count = |role| *counts.get(role).unwrap_or(&0);
+    if policy["adapter"] == "azure-foundry-mai" {
+        return crate::azure_foundry::check(p, policy, references);
+    }
     if policy["h3Image"] == true {
         return crate::h3_image::check(p, policy, references);
     }

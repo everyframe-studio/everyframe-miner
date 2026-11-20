@@ -7,6 +7,9 @@ use everyframe_miner::{
 use serde_json::{Value, json};
 use std::cell::RefCell;
 const PNG: &[u8] = b"\x89PNG\r\n\x1a\nsynthetic-png";
+const FOUNDRY_PNG: &[u8] =
+    b"\x89PNG\r\n\x1a\n\0\0\0\x0dIHDR\0\0\x04\0\0\0\x04\0\x08\x06\0\0\0\0\0\0\0";
+const FOUNDRY_KEY: &str = "foundry-fixture-secret";
 struct Api {
     model: Value,
     calls: RefCell<Vec<Request>>,
@@ -41,18 +44,19 @@ impl Http for Api {
                 "xai" => "api.x.ai",
                 "openrouter" => "openrouter.ai",
                 "fal" => "queue.fal.run",
+                "azure-foundry" => "miner-fixture.services.ai.azure.com",
                 other => panic!("Add a transport fixture for {other}"),
             })
         );
+        let (header, value) = match self.model["provider"].as_str().unwrap() {
+            "fal" => ("authorization", "Key fixture-secret"),
+            "azure-foundry" => ("api-key", FOUNDRY_KEY),
+            _ => ("authorization", "Bearer fixture-secret"),
+        };
         assert!(
             req.headers
                 .iter()
-                .any(|(k, v)| k.eq_ignore_ascii_case("authorization")
-                    && v == if self.model["provider"] == "fal" {
-                        "Key fixture-secret"
-                    } else {
-                        "Bearer fixture-secret"
-                    })
+                .any(|(k, v)| k.eq_ignore_ascii_case(header) && v == value)
         );
         let response = if post {
             let body: Value = serde_json::from_slice(req.body.as_ref().unwrap()).unwrap();
@@ -61,6 +65,21 @@ impl Http for Api {
                 return Err(Error("network_timeout"));
             }
             match adapter {
+                "azure-foundry-mai" => {
+                    assert_eq!(url.path(), "/mai/v1/images/generations");
+                    assert!(req.redirect_hosts.is_empty());
+                    assert_eq!(
+                        body["model"],
+                        if self.model["maiVariant"] == "flash" {
+                            "miner-flash"
+                        } else {
+                            "miner-standard"
+                        }
+                    );
+                    assert_eq!(body["width"], 1024);
+                    assert_eq!(body["height"], 1024);
+                    json!({"data":[{"b64_json":b64(FOUNDRY_PNG)}]})
+                }
                 "gpt-image-26" if self.model["provider"] == "fal" => {
                     assert_eq!(body["num_images"], 1);
                     assert_eq!(body["reasoning_effort"], "high");
@@ -119,7 +138,18 @@ fn api(id: &str, mode: &'static str) -> Api {
     }
 }
 fn credentials() -> Value {
-    json!({"OPENAI_API_KEY":"fixture-secret","XAI_API_KEY":"fixture-secret","OPENROUTER_API_KEY":"fixture-secret","FAL_KEY":"fixture-secret"})
+    let foundry = json!({
+        "resource": "miner-fixture",
+        "apiKey": FOUNDRY_KEY,
+        "deployments": {"standard": "miner-standard", "flash": "miner-flash"}
+    });
+    json!({
+        "OPENAI_API_KEY": "fixture-secret",
+        "XAI_API_KEY": "fixture-secret",
+        "OPENROUTER_API_KEY": "fixture-secret",
+        "FAL_KEY": "fixture-secret",
+        "AZURE_FOUNDRY_CREDENTIALS": foundry.to_string(),
+    })
 }
 fn spec(id: &str) -> Value {
     models::spec(&json!({"model":id,"prompt":"A quiet lake"})).unwrap()

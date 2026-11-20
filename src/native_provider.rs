@@ -101,32 +101,37 @@ impl Router<'_> {
         }
         Ok(request)
     }
+    pub(crate) fn native_reference_bytes(&self, reference: &Value) -> Result<Vec<u8>> {
+        let mut request = Request::get(
+            s(&reference["url"])?,
+            &["api.everyframe.studio", "app.everyframe.studio"],
+        );
+        let length = reference["bytes"]
+            .as_u64()
+            .ok_or(Error("invalid_reference_size"))?;
+        request.limit = length as usize;
+        request.timeout = 180;
+        let bytes = self.http.bytes(request)?;
+        need(
+            bytes.len() as u64 == length && sha(&bytes) == s(&reference["sha256"])?,
+            "reference_integrity_mismatch",
+        )?;
+        let claimed = s(&reference["mime"])?;
+        if ["image/heic", "image/heif"].contains(&claimed) {
+            need(
+                bytes.get(4..8) == Some(b"ftyp"),
+                "reference_integrity_mismatch",
+            )?;
+        } else if claimed.starts_with("image/") {
+            need(mime(&bytes)? == claimed, "reference_integrity_mismatch")?;
+        }
+        Ok(bytes)
+    }
     pub(crate) fn native_references(&self, spec: &Value) -> Result<Vec<String>> {
         let mut urls = vec![];
         for reference in spec["input"]["references"].as_array().unwrap() {
-            let mut request = Request::get(
-                s(&reference["url"])?,
-                &["api.everyframe.studio", "app.everyframe.studio"],
-            );
-            request.limit = reference["bytes"]
-                .as_u64()
-                .ok_or(Error("invalid_reference_size"))? as usize;
-            request.timeout = 180;
-            let bytes = self.http.bytes(request)?;
-            need(
-                bytes.len() as u64 == reference["bytes"].as_u64().unwrap()
-                    && sha(&bytes) == s(&reference["sha256"])?,
-                "reference_integrity_mismatch",
-            )?;
+            let bytes = self.native_reference_bytes(reference)?;
             let claimed = s(&reference["mime"])?;
-            if ["image/heic", "image/heif"].contains(&claimed) {
-                need(
-                    bytes.get(4..8) == Some(b"ftyp"),
-                    "reference_integrity_mismatch",
-                )?;
-            } else if claimed.starts_with("image/") {
-                need(mime(&bytes)? == claimed, "reference_integrity_mismatch")?;
-            }
             // Forward exactly the content-addressed bytes, never a mutable URL
             // or caller-supplied provider file ID.
             let model = native_media::info(s(&spec["model"])?)?;
@@ -139,6 +144,9 @@ impl Router<'_> {
         Ok(urls)
     }
     pub(crate) fn native_submit(&mut self, spec: &Value, model: &Value) -> Result<String> {
+        if model["adapter"] == "azure-foundry-mai" {
+            return self.foundry_submit(spec, model);
+        }
         if model["asianMedia"] == true {
             return self.asian_submit(spec, model);
         }
@@ -264,7 +272,14 @@ impl Router<'_> {
             return self.schema_poll(reference, spec, model);
         }
         let id = native_media::reference_id(spec, reference)?;
-        if ["openai-images", "openai-audio", "xai-tts"].contains(&s(&model["adapter"])?) {
+        if [
+            "openai-images",
+            "openai-audio",
+            "xai-tts",
+            "azure-foundry-mai",
+        ]
+        .contains(&s(&model["adapter"])?)
+        {
             need(
                 id.starts_with("sync_")
                     && self.speech.as_ref().is_some_and(|(r, h, _, _)| {
@@ -303,7 +318,14 @@ impl Router<'_> {
         if model["nativeSchema"].is_object() {
             return self.schema_result(reference, spec, model);
         }
-        if ["openai-images", "openai-audio", "xai-tts"].contains(&s(&model["adapter"])?) {
+        if [
+            "openai-images",
+            "openai-audio",
+            "xai-tts",
+            "azure-foundry-mai",
+        ]
+        .contains(&s(&model["adapter"])?)
+        {
             self.native_poll(reference, spec, model)?;
             let (_, _, media, hash) = self.speech.as_ref().unwrap();
             return Ok(Output {

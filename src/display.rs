@@ -469,6 +469,22 @@ fn status_table(value: &Value) -> String {
         "detail":if let Some(state) = cloud_state {format!("Cloud state: {state}")} else if !value["cloudError"].is_null() {
             format!("Cloud check failed: {}. Run everycli doctor.", text(&value["cloudError"]["code"]))
         } else {"Not checked from this profile. Use the original management profile; do not redeploy.".into()}}));
+    if let Some(image) = value["signedOsImage"].as_str() {
+        let (state, detail) = match value["cloud"]["osMatchesSigned"].as_bool() {
+            Some(true) => ("PASS", format!("{image} matches the signed deployment.")),
+            Some(false) => (
+                "FAIL",
+                format!(
+                    "Phala reports a different image from the signed {image} deployment. Contact EveryFrame for a reviewed release."
+                ),
+            ),
+            None => (
+                "WARN",
+                format!("Signed OS: {image}. The running OS was not verified by the cloud check."),
+            ),
+        };
+        checks.push(serde_json::json!({"name":"Phala OS","state":state,"detail":detail}));
+    }
     if let Some(list) = value["cloudWorkloads"].as_array().filter(|l| !l.is_empty()) {
         for w in list {
             checks.push(serde_json::json!({"name":"Workload not managed here","state":"WARN",
