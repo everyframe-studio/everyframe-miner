@@ -1215,6 +1215,8 @@ pub fn main_entry() -> i32 {
 /// A completed command whose result still needs attention (exit code 2).
 pub fn result_failed(command: &str, out: &Value) -> bool {
     out["ok"] == false
+        || (["activate", "apply-api-keys"].contains(&command)
+            && (out["ok"] != true || out["phase"] != "awaiting_readmission"))
         || (command == "register-hotkey" && out["registered"] != true)
         || (["doctor", "health"].contains(&command) && out["ok"] != true)
         || (command == "status"

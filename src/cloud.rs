@@ -1,5 +1,5 @@
 use crate::{
-    Error, Result,
+    Error, ErrorContext, Result,
     invitation::{
         DISABLED, PUBLIC_SCRIPT, configured, invited_keys, registry_required, valid_environment,
     },
@@ -235,6 +235,60 @@ impl<'a> Cloud<'a> {
         Self::app_path(id)?;
         need(matches("[A-Za-z0-9_-]{1,200}", &json!(kms)), "invalid_kms")?;
         self.request(&format!("/kms/{kms}/pubkey/{id}"), "GET", None, true, false)
+    }
+    pub(crate) fn deployment_encryption_key(
+        &self,
+        info: &Value,
+        deployment: &Value,
+    ) -> Result<String> {
+        need(
+            info["app_id"] == deployment["appId"],
+            "deployment_binding_mismatch",
+        )?;
+        let pinned = s(&deployment["encryptionKey"])?;
+        let bound_key = if info["kms_info"]["chain_id"].is_null() {
+            info["kms_info"]
+                .get("encrypted_env_pubkey")
+                .filter(|key| !key.is_null())
+                .or_else(|| {
+                    info.get("encrypted_env_pubkey")
+                        .filter(|key| !key.is_null())
+                })
+        } else {
+            None
+        };
+        // Centralized KMS reports the app's key as part of its authenticated
+        // CVM record. A saved node slug may no longer identify the app's KMS.
+        let key = if let Some(value) = bound_key {
+            s(value)?.to_owned()
+        } else {
+            let app_id = s(&deployment["appId"])?;
+            let saved_kms = s(&deployment["kms"])?;
+            let response = match self.encryption_key(app_id, saved_kms) {
+                Err(error)
+                    if saved_kms != "phala"
+                        && info["kms_type"] == "phala"
+                        && info["kms_info"]["chain_id"].is_null()
+                        && error.0 == "phala_http_409"
+                        && matches!(&error.1, Some(ErrorContext::Phala(detail))
+                            if detail.code.as_deref() == Some("ERR-12-005")) =>
+                {
+                    self.encryption_key(app_id, "phala")?
+                }
+                result => result?,
+            };
+            s(&response["public_key"])?.to_owned()
+        };
+        let key = key.strip_prefix("0x").unwrap_or(&key);
+        need(
+            matches("[0-9a-fA-F]{64}", &json!(key)),
+            "invalid_encryption_key",
+        )?;
+        need(
+            key.eq_ignore_ascii_case(pinned.strip_prefix("0x").unwrap_or(pinned)),
+            "encryption_key_changed",
+        )?;
+        Ok(key.to_owned())
     }
     pub fn catalog(&self, path: &str) -> Result<Value> {
         let mut items = vec![];

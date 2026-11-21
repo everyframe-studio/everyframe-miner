@@ -2917,6 +2917,14 @@ impl Http for Rig {
             }
             json!({"app_id":self.info.borrow()["app_id"],"compose_hash":self.inv["composeHash"],"os_image_hash":signed["osImageHash"],"app_env_encrypt_pubkey":hex::encode(PublicKey::from(&StaticSecret::from([0x11;32])).as_bytes()),"kms_info":{"slug":"test-kms"}})
         } else if path.contains("/pubkey/") {
+            if path.contains("/kms/phala-prod9/") {
+                return Err(everyframe_miner::phala_error::failure(
+                    409,
+                    br#"{"code":"ERR-12-005","message":"This app is bound to KMS 'phala'"}"#,
+                    None,
+                    &r,
+                ));
+            }
             json!({"public_key":hex::encode(PublicKey::from(&StaticSecret::from([0x11;32])).as_bytes())})
         } else if path.ends_with("/compose_file/provision") {
             assert_eq!(self.phase(), "update_provision_intent");
@@ -3373,6 +3381,82 @@ fn managed_keys_survive_init_and_only_apply_after_confirmation_and_idle_drain() 
     assert!(r.miner().resume(&|_| Ok(())).is_err());
     r.status.borrow_mut()["attestation"]["at"] = json!(now() + 1000);
     assert!(r.miner().resume(&|_| Ok(())).is_ok());
+}
+
+#[test]
+fn apply_api_keys_uses_the_original_app_key_after_phala_rotates_its_kms_slug() {
+    for metadata in ["current", "legacy", "key_endpoint"] {
+        let r = Rig::new();
+        r.staged_update(true, true);
+        let mut deployment = r.state().read("deployment", false).unwrap();
+        deployment["kms"] = json!("phala-prod9");
+        r.state().write("deployment", &deployment).unwrap();
+        r.info.borrow_mut()["kms_type"] = json!("phala");
+        match metadata {
+            "current" => {
+                r.info.borrow_mut()["kms_info"] =
+                    json!({"encrypted_env_pubkey":deployment["encryptionKey"]});
+            }
+            "legacy" => {
+                r.info.borrow_mut()["encrypted_env_pubkey"] = deployment["encryptionKey"].clone();
+            }
+            _ => {}
+        }
+        everyframe_miner::onboarding::save_keys(
+            &r.state(),
+            &json!({"FAL_KEY":"new-provider-key-after-os-migration"}),
+            None,
+        )
+        .unwrap();
+        let installed = r.miner().apply_api_keys(&|_| Ok(())).unwrap();
+        assert_eq!(installed["phase"], "awaiting_readmission");
+        assert!(!everyframe_miner::cli::result_failed(
+            "apply-api-keys",
+            &installed
+        ));
+        assert_eq!(r.envs.borrow().len(), 1);
+        assert!(
+            r.envs.borrow()[0]
+                .to_string()
+                .contains("new-provider-key-after-os-migration")
+        );
+        let calls = r.calls.borrow();
+        let lookups = calls
+            .iter()
+            .filter(|(path, _)| path.contains("/pubkey/"))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            lookups.len(),
+            if metadata == "key_endpoint" { 2 } else { 0 }
+        );
+        if metadata == "key_endpoint" {
+            assert!(lookups[0].0.contains("/kms/phala-prod9/"));
+            assert!(lookups[1].0.contains("/kms/phala/"));
+        }
+        drop(calls);
+        assert!(r.miner().resume(&|_| panic!()).is_err());
+    }
+}
+
+#[test]
+fn changed_app_encryption_key_blocks_key_apply_and_worker_update_before_draining() {
+    let r = Rig::new();
+    r.staged_update(true, true);
+    r.info.borrow_mut()["kms_info"] = json!({"encrypted_env_pubkey":"2a".repeat(32)});
+    let miner = r.miner();
+    let expect_preflight_error = |error: Error| assert_eq!(error.0, "encryption_key_changed");
+    expect_preflight_error(miner.apply_api_keys(&|_| panic!()).unwrap_err());
+    for check in [true, false] {
+        expect_preflight_error(
+            miner
+                .worker_update_with_wait(check, &|_| panic!(), &|_| {}, &|_| panic!())
+                .unwrap_err(),
+        );
+    }
+    assert!(r.mutations().is_empty());
+    assert_eq!(r.phase(), "running");
+    assert_eq!(r.status.borrow()["draining"], false);
+    assert!(r.state().read("worker-update", true).unwrap().is_null());
 }
 #[test]
 fn ambiguous_cloud_mutations_keep_durable_intents() {

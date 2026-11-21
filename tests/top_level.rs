@@ -122,6 +122,30 @@ fn help_and_runtime_dispatch_use_direct_commands() {
 }
 
 #[test]
+fn api_key_application_requires_explicit_acceptance_to_report_success() {
+    use everyframe_miner::cli::result_failed;
+    use serde_json::json;
+
+    assert!(result_failed("apply-api-keys", &json!({"phase":"running"})));
+    assert!(result_failed("apply-api-keys", &json!({"ok":true})));
+    assert!(!result_failed(
+        "apply-api-keys",
+        &json!({"ok":true,"phase":"awaiting_readmission"})
+    ));
+    let dir = common::tempdir();
+    for json_mode in [false, true] {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_everycli"));
+        command
+            .args(["apply-api-keys", "--yes", "--state-dir"])
+            .arg(dir.path().join("fresh"));
+        if json_mode {
+            command.arg("--json");
+        }
+        assert_eq!(command.output().unwrap().status.code(), Some(2));
+    }
+}
+
+#[test]
 fn profile_diagnostics_distinguish_setup_from_broken_or_unsafe_files() {
     use everyframe_miner::state::State;
     use serde_json::json;

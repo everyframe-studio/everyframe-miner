@@ -1430,17 +1430,11 @@ impl Miner<'_> {
             "activation_not_ready",
         )?;
         self.ensure_ready(&c, &self.api(&c, "status", json!({}))?)?;
-        need(
-            self.approved_target(&c)?["status"] == "running",
-            "worker_not_running",
-        )?;
+        let info = self.approved_target(&c)?;
+        need(info["status"] == "running", "worker_not_running")?;
         let cloud = self.cloud(&c)?;
-        let key = cloud.encryption_key(s(&c.deployment["appId"])?, s(&c.deployment["kms"])?)?;
-        need(
-            key["public_key"] == c.deployment["encryptionKey"],
-            "encryption_key_changed",
-        )?;
-        let body = encrypt(&c.invitation, &c.credentials, s(&key["public_key"])?, true)?;
+        let key = cloud.deployment_encryption_key(&info, &c.deployment)?;
+        let body = encrypt(&c.invitation, &c.credentials, &key, true)?;
         confirm(
             "Release provider keys into this verified workload and restart it? Work remains paused until fresh attestation and everycli resume.",
         )?;
@@ -1473,7 +1467,7 @@ impl Miner<'_> {
         state["providerConfigured"] = json!(true);
         self.state.write("deployment", &state)?;
         Ok(
-            json!({"phase":state["phase"],"next":"Wait for fresh post-restart TEE admission, then everycli resume. No generation submitted."}),
+            json!({"ok":true,"phase":state["phase"],"next":"Wait for fresh post-restart TEE admission, then everycli resume. No generation submitted."}),
         )
     }
     pub fn resume(&self, confirm: &dyn Fn(&str) -> Result<()>) -> Result<Value> {
@@ -1908,17 +1902,11 @@ impl Miner<'_> {
             compose_hash(&inv["request"]["compose_file"])? == inv["composeHash"],
             "compose_hash_mismatch",
         )?;
-        need(
-            self.approved_target(&c)?["status"] == "running",
-            "worker_not_running",
-        )?;
+        let info = self.approved_target(&c)?;
+        need(info["status"] == "running", "worker_not_running")?;
         let cloud = self.cloud(&c)?;
-        let key = cloud.encryption_key(s(&d["appId"])?, s(&d["kms"])?)?;
-        need(
-            key["public_key"] == d["encryptionKey"],
-            "encryption_key_changed",
-        )?;
-        let mut body = encrypt(&inv, &c.credentials, s(&key["public_key"])?, false)?;
+        let key = cloud.deployment_encryption_key(&info, d)?;
+        let mut body = encrypt(&inv, &c.credentials, &key, false)?;
         confirm(
             "Install this signed app-specific release? Drains new work; provider keys disabled until fresh admission/activation.",
         )?;

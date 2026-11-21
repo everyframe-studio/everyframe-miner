@@ -536,10 +536,10 @@ impl Miner<'_> {
                 .contains(&c.deployment["phase"].as_str().unwrap_or("")),
                 "update_not_ready",
             )?;
-            need(
-                self.approved_target(&c)?["status"] == "running",
-                "worker_not_running",
-            )?;
+            let info = self.approved_target(&c)?;
+            need(info["status"] == "running", "worker_not_running")?;
+            self.cloud(&c)?
+                .deployment_encryption_key(&info, &c.deployment)?;
             let status = self.api(&c, "status", json!({}))?;
             need(
                 status["appId"] == c.deployment["appId"]
