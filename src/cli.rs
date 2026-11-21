@@ -180,6 +180,7 @@ pub fn parse(args: &[String]) -> Result<Args> {
             "--check",
             "--stdin",
             "--publish",
+            "--refresh-encryption-key",
             "--continue",
             "--enable",
             "--disable",
@@ -310,7 +311,12 @@ pub fn parse(args: &[String]) -> Result<Args> {
             "--provider",
             "--max-hourly-usd",
         ],
-        "reconnect" => vec!["--hotkey-file", "--wallet", "--hotkey"],
+        "reconnect" => vec![
+            "--hotkey-file",
+            "--wallet",
+            "--hotkey",
+            "--refresh-encryption-key",
+        ],
         "terms" => vec![
             "--accept-terms",
             "--terms-hotkey",
@@ -379,6 +385,11 @@ pub fn parse(args: &[String]) -> Result<Args> {
             "invalid_option",
         )
         .map_err(|e| e.option(option))?
+    }
+    if out.command == "reconnect" && out.flag("--refresh-encryption-key") {
+        for option in ["--hotkey-file", "--wallet", "--hotkey"] {
+            need(out.get(option).is_none(), "invalid_option").map_err(|e| e.option(option))?;
+        }
     }
     need(
         !(out.flag("--withdraw") && out.get("--discount-pct").is_some()),
@@ -919,6 +930,9 @@ pub fn run_with(
                 )?;
             }
             crate::terms::view(&miner.state, network, address.as_deref())
+        }
+        "reconnect" if args.flag("--refresh-encryption-key") => {
+            miner.refresh_phala_encryption_key(confirm)
         }
         "reconnect" => miner.reconnect(local_hotkey(args)?.as_deref(), confirm),
         "register-hotkey" => {

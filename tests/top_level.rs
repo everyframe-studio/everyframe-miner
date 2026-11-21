@@ -122,6 +122,42 @@ fn help_and_runtime_dispatch_use_direct_commands() {
 }
 
 #[test]
+fn phala_key_refresh_is_explicit_and_stays_in_the_current_profile() {
+    let args = parse(&[
+        "reconnect",
+        "--refresh-encryption-key",
+        "--state-dir",
+        "/tmp/profile",
+    ])
+    .unwrap();
+    assert_eq!(args.command, "reconnect");
+    assert!(args.flag("--refresh-encryption-key"));
+    for args in [
+        vec![
+            "reconnect",
+            "--refresh-encryption-key",
+            "--wallet",
+            "another",
+        ],
+        vec![
+            "reconnect",
+            "--refresh-encryption-key",
+            "--hotkey-file",
+            "/tmp/hotkey",
+        ],
+        vec![
+            "reconnect",
+            "--refresh-encryption-key",
+            "--hotkey",
+            "another",
+        ],
+        vec!["apply-api-keys", "--refresh-encryption-key"],
+    ] {
+        assert!(parse(&args).is_err(), "{args:?}");
+    }
+}
+
+#[test]
 fn api_key_application_requires_explicit_acceptance_to_report_success() {
     use everyframe_miner::cli::result_failed;
     use serde_json::json;

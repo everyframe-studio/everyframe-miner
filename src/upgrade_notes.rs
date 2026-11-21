@@ -28,6 +28,7 @@ pub fn command(kind: &str) -> Option<&'static str> {
     Some(match kind {
         "worker-update" => "everycli worker-update",
         "reconnect" => "everycli reconnect",
+        "refresh-encryption-key" => "everycli reconnect --refresh-encryption-key",
         "apply-api-keys" => "everycli apply-api-keys",
         "reconcile" => "everycli reconcile",
         "review-offers" => "everycli offers",

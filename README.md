@@ -36,6 +36,8 @@ every model in the registry is necessarily available for mining.
 
 ## What's new
 
+v1.2.6 adds a verified encryption key refresh for existing Phala dstack 0.5.15 workers. Update the CLI, then use `everycli reconnect --refresh-encryption-key` if the worker reports `encryption_key_changed`.
+
 v1.2.5 restores provider key changes and worker updates on existing Phala VMs whose KMS reference changed during an OS migration. Run `everycli update`. If you have saved provider keys awaiting application, run `everycli apply-api-keys` from the same profile, then resume after fresh attestation.
 
 v1.2.4 adds native BytePlus Seedance 2.5 Flash worker support and a fallback for ModelArk Singapore result downloads. Run `everycli update` to update the CLI. BytePlus miners can install the compatible signed worker with `everycli worker-update` when it is offered.
@@ -115,6 +117,11 @@ Reconnect asks before retiring an old binding, needs a proof from the same local
 hotkey and keeps your API keys, offers, discounts and history. It never creates,
 deletes, starts or updates a VM. Afterwards, use **Deploy worker** if the old VM is
 gone. A 401 is separate from a Phala API-token error; check your computer's clock first.
+
+If an attested dstack 0.5.15 worker reports `encryption_key_changed`, run
+`everycli reconnect --refresh-encryption-key` from the existing profile.
+Review the refresh, then apply saved provider keys when you are ready for the VM
+to restart. The refresh verifies the app’s signed Phala key and updates the local pin.
 
 ## Worker failure diagnostics and safe failover
 

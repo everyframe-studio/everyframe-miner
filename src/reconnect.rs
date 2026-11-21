@@ -2,16 +2,120 @@
 use crate::{
     Error, Result,
     cloud::Cloud,
-    hotkey,
-    miner::{Context, Miner},
+    hotkey, matches,
+    miner::{Context, Miner, workload_os_matches},
     need, now, onboarding, s,
 };
+use k256::ecdsa::{RecoveryId, Signature, VerifyingKey};
 use serde_json::{Value, json};
+use sha3::{Digest, Keccak256};
 use std::path::{Path, PathBuf};
 
 const QUESTION: &str = "Reconnect this local profile using the same hotkey? This refreshes signed authorization and keeps API keys, the worker label and deployment history. No VM will be created, deleted, started or updated, and no work will be resumed.";
 
+// The production Phala KMS 2026-11 signer published alongside the CA pinned
+// by the coordinator's reviewed dstack 0.5.15 admission policy.
+const PHALA_KMS_SIGNER: &str = "0221797a507c4240f318dede4829d0a2f84d01331e82f3f43c8f5746451c9d5e20";
+const PHALA_OS_HASH: &str = "4597735f1a38ad8ec9f781356b88737fc052062deb7c9aaa4be89bf1b35643ca";
+
+fn proof_signer(app: &str, key: &str, signature: &str) -> Result<VerifyingKey> {
+    let invalid = || Error("invalid_phala_encryption_key_proof");
+    need(
+        app.len() == 40 && key.len() == 64 && signature.len() == 130,
+        "invalid_phala_encryption_key_proof",
+    )?;
+    let app: [u8; 20] = hex::decode(app)
+        .map_err(|_| invalid())?
+        .try_into()
+        .map_err(|_| invalid())?;
+    let key: [u8; 32] = hex::decode(key)
+        .map_err(|_| invalid())?
+        .try_into()
+        .map_err(|_| invalid())?;
+    let signature: [u8; 65] = hex::decode(signature)
+        .map_err(|_| invalid())?
+        .try_into()
+        .map_err(|_| invalid())?;
+    let id = RecoveryId::from_byte(signature[64]).ok_or_else(invalid)?;
+    let signature = Signature::from_slice(&signature[..64]).map_err(|_| invalid())?;
+    let mut message = Keccak256::new();
+    message.update(b"dstack-env-encrypt-pubkey:");
+    message.update(app);
+    message.update(key);
+    VerifyingKey::recover_from_digest(message, &signature, id).map_err(|_| invalid())
+}
+
 impl Miner<'_> {
+    pub fn refresh_phala_encryption_key(
+        &self,
+        confirm: &dyn Fn(&str) -> Result<()>,
+    ) -> Result<Value> {
+        let _lock = self.state.lock()?;
+        let mut c = self.load(false)?;
+        need(
+            crate::n(&c.invitation["expiresAt"])? > now(),
+            "invitation_expired",
+        )?;
+        let flow = self.state.read("worker-update", true)?;
+        need(
+            (flow.is_null() || flow["stage"] == "complete")
+                && [
+                    "running",
+                    "drained",
+                    "awaiting_attestation",
+                    "awaiting_readmission",
+                ]
+                .contains(&c.deployment["phase"].as_str().unwrap_or("")),
+            "reconciliation_required",
+        )?;
+        need(
+            c.invitation["publicOnboarding"] == true
+                && c.invitation["request"]["image"] == "dstack-0.5.15"
+                && c.invitation["osImageHash"] == PHALA_OS_HASH,
+            "phala_key_refresh_not_supported",
+        )?;
+        self.ensure_ready(&c, &self.api(&c, "status", json!({}))?)?;
+        let info = self.approved_target(&c)?;
+        need(
+            info["status"] == "running"
+                && info["in_progress"] == false
+                && workload_os_matches(&info, &c.invitation) == Some(true)
+                && info["kms_type"] == "phala"
+                && info["kms_info"]["chain_id"].is_null(),
+            "phala_key_refresh_not_supported",
+        )?;
+        let app = s(&c.deployment["appId"])?;
+        let cloud = self.cloud(&c)?;
+        let proof = cloud.encryption_key(app, "phala")?;
+        let key = s(&proof["public_key"])?.trim_start_matches("0x");
+        let metadata = s(&info["kms_info"]["encrypted_env_pubkey"])?.trim_start_matches("0x");
+        need(
+            matches("[0-9a-fA-F]{64}", &json!(key)) && key.eq_ignore_ascii_case(metadata),
+            "invalid_phala_encryption_key_proof",
+        )?;
+        let signature = s(&proof["signature"])?.trim_start_matches("0x");
+        let signer = proof_signer(app, key, signature)?;
+        need(
+            hex::encode(signer.to_encoded_point(true).as_bytes()) == PHALA_KMS_SIGNER,
+            "invalid_phala_encryption_key_proof",
+        )?;
+        let pinned = s(&c.deployment["encryptionKey"])?.trim_start_matches("0x");
+        if key.eq_ignore_ascii_case(pinned) {
+            return Ok(
+                json!({"ok":true,"state":"current","refreshed":false,"workerChanged":false}),
+            );
+        }
+        confirm(
+            "Save the verified Phala encryption key for this existing VM? This updates the local profile. Apply saved provider keys separately when you are ready to restart the worker.",
+        )?;
+        c.deployment["encryptionKey"] = json!(key.to_ascii_lowercase());
+        self.state.write("deployment", &c.deployment)?;
+        Ok(
+            json!({"ok":true,"state":"refreshed","refreshed":true,"workerChanged":false,
+            "next":"Run everycli apply-api-keys when ready to apply the saved keys, then resume after fresh attestation."}),
+        )
+    }
+
     pub fn reconnect(
         &self,
         path: Option<&Path>,
@@ -310,5 +414,42 @@ impl Miner<'_> {
             json!({"state":"reconnected","minerId":inv["minerId"],"hotkey":inv["hotkey"],"uid":journal["after"]["registration"]["uid"],"workerChanged":false,"bindingRetired":journal["bindingRetired"]==true,"generationSubmitted":false,
             "next":if journal["deployment"]["phase"] == "deleted" || journal["bindingRetired"]==true {"Profile reconnected. Run everycli doctor, then review a new deployment with everycli deploy --max-hourly-usd <limit>. Nothing was deployed automatically."} else {"Profile reconnected. Run everycli doctor. A running worker was not changed; review everycli apply-api-keys separately if its authorization also needs refreshing."}}),
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use k256::ecdsa::SigningKey;
+
+    #[test]
+    fn phala_key_proof_is_bound_to_the_app_and_encryption_key() {
+        let signer = SigningKey::from_slice(&[7; 32]).unwrap();
+        let app = [11; 20];
+        let key = [12; 32];
+        let mut message = Keccak256::new();
+        message.update(b"dstack-env-encrypt-pubkey:");
+        message.update(app);
+        message.update(key);
+        let (signature, id) = signer.sign_digest_recoverable(message).unwrap();
+        let mut signature = signature.to_bytes().to_vec();
+        signature.push(id.to_byte());
+        let signature = hex::encode(signature);
+        let app = hex::encode(app);
+        let key = hex::encode(key);
+        assert_eq!(
+            proof_signer(&app, &key, &signature).unwrap(),
+            *signer.verifying_key()
+        );
+        for (app, key) in [
+            ("ff".repeat(20), key.clone()),
+            (app.clone(), "ff".repeat(32)),
+        ] {
+            assert_ne!(
+                proof_signer(&app, &key, &signature).ok().as_ref(),
+                Some(signer.verifying_key())
+            );
+        }
+        assert!(proof_signer(&app, &key, &signature[..128]).is_err());
     }
 }

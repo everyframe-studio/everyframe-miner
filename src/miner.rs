@@ -2401,7 +2401,7 @@ pub(crate) fn os_listed(images: &Value, inv: &Value) -> bool {
     })
 }
 
-fn workload_os_matches(info: &Value, invitation: &Value) -> Option<bool> {
+pub(crate) fn workload_os_matches(info: &Value, invitation: &Value) -> Option<bool> {
     // Some older API responses omit the hash. Report that as unknown and
     // leave the existing TEE admission checks in charge for those responses.
     info.pointer("/os/os_image_hash")

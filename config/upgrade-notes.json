@@ -1064,6 +1064,27 @@
           "when": "Close and reopen a running everycli ui after updating the CLI."
         }
       ]
+    },
+    {
+      "version": "v1.2.6",
+      "title": "Verified Phala encryption key refresh",
+      "changes": [
+        "Refresh the saved encryption key for the same attested Phala dstack 0.5.15 VM.",
+        "Verify the app-specific KMS signature and the approved workload before saving the new pin."
+      ],
+      "workerUpdate": "not_required",
+      "actions": [
+        {
+          "kind": "restart-ui",
+          "requirement": "conditional",
+          "when": "Close and reopen a running everycli ui after updating the CLI."
+        },
+        {
+          "kind": "refresh-encryption-key",
+          "requirement": "conditional",
+          "when": "Run from the existing profile if the CLI reports encryption_key_changed for an attested Phala dstack 0.5.15 worker."
+        }
+      ]
     }
   ]
 }

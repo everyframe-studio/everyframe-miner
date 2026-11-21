@@ -69,7 +69,7 @@ pub fn render(command: &str) -> String {
         ),
         "reconnect" => (
             "Refresh a saved profile with proof from the same local hotkey. Keeps API keys, label and deployment records. Requires confirmation. Never creates, deletes, starts or updates a VM, changes bids or resumes work.",
-            "  --wallet NAME --hotkey NAME | --hotkey-file FILE\n  The saved registration can supply the signer. Rerun to finish an interrupted reconnect.",
+            "  --wallet NAME --hotkey NAME | --hotkey-file FILE\n  --refresh-encryption-key  Verify and refresh the pin for an attested Phala 0.5.15 app\n  The saved registration can supply the signer. Rerun to finish an interrupted reconnect.",
             "reconnect --wallet my-wallet --hotkey default",
         ),
         "init" => (
