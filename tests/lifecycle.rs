@@ -2956,6 +2956,11 @@ impl Http for Rig {
                 json!({"status":"in_progress","allowed_envs_changed":false})
             } else if path.ends_with("/compose_file") {
                 assert_eq!(self.phase(), "update_commit_intent");
+                let signed = &self.state().read("deployment", false).unwrap()["pendingInvitation"];
+                assert_eq!(
+                    body["env_keys"], signed["value"]["request"]["compose_file"]["allowed_envs"],
+                    "Phala must commit the environment in the signed order"
+                );
                 json!({})
             } else {
                 assert_eq!(self.phase(), "commit_intent");

@@ -1907,6 +1907,9 @@ impl Miner<'_> {
         let cloud = self.cloud(&c)?;
         let key = cloud.deployment_encryption_key(&info, d)?;
         let mut body = encrypt(&inv, &c.credentials, &key, false)?;
+        // Phala uses env_keys when committing the compose. Preserve the
+        // signed allowlist order so provisioning and boot hash the same file.
+        body["env_keys"] = inv["request"]["compose_file"]["allowed_envs"].clone();
         confirm(
             "Install this signed app-specific release? Drains new work; provider keys disabled until fresh admission/activation.",
         )?;

@@ -1053,7 +1053,8 @@
       "title": "Phala KMS compatibility for existing miners",
       "changes": [
         "Use the running Phala app's verified encryption key for provider key changes and worker updates after an OS migration.",
-        "Check the saved encryption key before draining and report failed key updates with a nonzero exit status."
+        "Check the saved encryption key before draining and report failed key updates with a nonzero exit status.",
+        "Keep environment variable names in the signed order when committing the worker compose."
       ],
       "workerUpdate": "not_required",
       "actions": [
