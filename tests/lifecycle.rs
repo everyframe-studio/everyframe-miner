@@ -2650,6 +2650,11 @@ impl Http for Rig {
         if self.fail.borrow().as_str() == "batch404" && path.ends_with("/v1/miner/offer-batch") {
             return Err(Error("http_404"));
         }
+        if self.fail.borrow().as_str() == "discovery503"
+            && path.ends_with("/v1/miner/worker-update")
+        {
+            return Err(Error("http_503"));
+        }
         if u.host_str() == Some("entrypoint-finney.opentensor.ai") {
             let result = match body["method"].as_str().unwrap() {
                 "chain_getBlockHash" => self.trust["genesis"].clone(),
@@ -4736,6 +4741,31 @@ fn reordered_update() -> (Rig, Value) {
     r.status.borrow_mut()["update"] = json!({"state":"available","release":corrected});
     r.calls.borrow_mut().clear();
     (r, corrected)
+}
+
+#[test]
+fn unavailable_worker_update_discovery_leaves_the_running_worker_untouched() {
+    let r = Rig::new();
+    r.staged_update(true, true);
+    *r.fail.borrow_mut() = "discovery503".into();
+    for check in [true, false] {
+        assert_eq!(
+            r.miner()
+                .worker_update_with_wait(check, &|_| panic!(), &|_| {}, &|_| panic!())
+                .unwrap_err()
+                .0,
+            "http_503"
+        );
+    }
+    assert!(
+        r.calls
+            .borrow()
+            .iter()
+            .all(|(path, _)| path.starts_with("GET "))
+    );
+    assert!(r.state().read("worker-update", true).unwrap().is_null());
+    assert_eq!(r.status.borrow()["draining"], false);
+    assert_eq!(r.phase(), "running");
 }
 
 #[test]

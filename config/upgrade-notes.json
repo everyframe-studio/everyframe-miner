@@ -1047,6 +1047,22 @@
           "when": "To serve Seedance 2.5 Flash or Microsoft Foundry MAI Image jobs, run everycli worker-update when a compatible signed worker is available. For Foundry, configure your resource, API key and deployment names under API Keys, then apply the keys to the worker. Review offers in Models."
         }
       ]
+    },
+    {
+      "version": "v1.2.5",
+      "title": "Phala KMS compatibility for existing miners",
+      "changes": [
+        "Use the running Phala app's verified encryption key for provider key changes and worker updates after an OS migration.",
+        "Check the saved encryption key before draining and report failed key updates with a nonzero exit status."
+      ],
+      "workerUpdate": "not_required",
+      "actions": [
+        {
+          "kind": "restart-ui",
+          "requirement": "conditional",
+          "when": "Close and reopen a running everycli ui after updating the CLI."
+        }
+      ]
     }
   ]
 }

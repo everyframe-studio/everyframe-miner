@@ -36,6 +36,8 @@ every model in the registry is necessarily available for mining.
 
 ## What's new
 
+v1.2.5 restores provider key changes and worker updates on existing Phala VMs whose KMS reference changed during an OS migration. Run `everycli update`. If you have saved provider keys awaiting application, run `everycli apply-api-keys` from the same profile, then resume after fresh attestation.
+
 v1.2.4 adds native BytePlus Seedance 2.5 Flash worker support and a fallback for ModelArk Singapore result downloads. Run `everycli update` to update the CLI. BytePlus miners can install the compatible signed worker with `everycli worker-update` when it is offered.
 
 v1.2.2 fixes dashboard polling that could block worker updates while the UI is open. Saved updates keep their Continue/Cancel controls after failed checks, and actions blocked before submission show **Not started**. Run `everycli update`, then reopen `everycli ui`. If an update is unfinished, choose **Worker → Continue worker update**. These dashboard fixes do not require a new worker deployment. v1.2.2 also adds [Veo 3.1 negative prompts](docs/veo-negative-prompts.md) through OpenRouter and Fal; update the compatible worker and explicitly offer the new contracts to serve those jobs.
