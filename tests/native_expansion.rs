@@ -123,6 +123,7 @@ fn native_expansion_submits_once_and_binds_recovery_to_the_input() {
                 "schema-wavespeed",
                 "schema-vidu",
                 "schema-stability",
+                "schema-replicate",
             ]
             .contains(&m["adapter"].as_str().unwrap())
         {

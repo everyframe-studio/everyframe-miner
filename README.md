@@ -36,6 +36,8 @@ every model in the registry is necessarily available for mining.
 
 ## What's new
 
+v1.2.7 adds direct Vidu and Stability AI routes and expands the WaveSpeedAI catalog. Run `everycli update`. To serve Vidu or Stability AI jobs, install the compatible signed worker when it is offered, add the provider credentials, and review the new routes in Models.
+
 v1.2.6 adds a verified encryption key refresh for existing Phala dstack 0.5.15 workers. Update the CLI, then use `everycli reconnect --refresh-encryption-key` if the worker reports `encryption_key_changed`.
 
 v1.2.5 restores provider key changes and worker updates on existing Phala VMs whose KMS reference changed during an OS migration. Run `everycli update`. If you have saved provider keys awaiting application, run `everycli apply-api-keys` from the same profile, then resume after fresh attestation.

@@ -1,0 +1,765 @@
+[
+  {
+    "model": "direct/replicate/wan-3.0",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/wan-3.0",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/wan-3.0",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "duration": 5,
+          "resolution": "720p",
+          "aspect_ratio": "adaptive",
+          "negative_prompt": "",
+          "enable_prompt_expansion": true
+        },
+        "references": []
+      }
+    },
+    "hash": "b47b43801c3c6fa64a44526a8a62fc244c4efdabe01293ac9dcc6051a2b8832b"
+  },
+  {
+    "model": "direct/replicate/wan-3.0-prime",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/wan-3.0-prime",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/wan-3.0-prime",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "duration": 5,
+          "resolution": "720p",
+          "aspect_ratio": "adaptive",
+          "negative_prompt": "",
+          "enable_prompt_expansion": true
+        },
+        "references": []
+      }
+    },
+    "hash": "02f9f374161f8f2ceb07b11fcf26e4cc999ca21853a3246217cb74061576b1d5"
+  },
+  {
+    "model": "direct/replicate/kling-4.0",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/kling-4.0",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/kling-4.0",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "duration": 5,
+          "resolution": "720p",
+          "aspect_ratio": "16:9"
+        },
+        "references": []
+      }
+    },
+    "hash": "c2f72bfd008b87ac67d4e79913b1f85d5344bae57c2b73f6fdf65c490c3b13c4"
+  },
+  {
+    "model": "direct/replicate/kling-4.0-flash",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/kling-4.0-flash",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/kling-4.0-flash",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "duration": 5,
+          "aspect_ratio": "16:9"
+        },
+        "references": []
+      }
+    },
+    "hash": "50811c40244430f9a2b284443689560a19f5f9284b0037dbcec9d195e014f1bc"
+  },
+  {
+    "model": "direct/replicate/dreamactor-m2.0",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/dreamactor-m2.0",
+      "prompt": "A lighthouse at dawn",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_replicate_image?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "bytes": 3000,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_replicate_video?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "bytes": 3000,
+          "mime": "video/mp4",
+          "role": "video",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 5000
+        }
+      ]
+    },
+    "spec": {
+      "model": "direct/replicate/dreamactor-m2.0",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "cut_first_second": true,
+          "image": "@reference:0",
+          "video": "@reference:1"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_replicate_image?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "bytes": 3000,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_replicate_video?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "bytes": 3000,
+            "mime": "video/mp4",
+            "role": "video",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 5000
+          }
+        ]
+      }
+    },
+    "hash": "6304971a482a43ac0a10f40f475ce2d165b32418820afcccc7fada544b6c2c44"
+  },
+  {
+    "model": "direct/replicate/kling-3.0-motion-control",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/kling-3.0-motion-control",
+      "prompt": "A lighthouse at dawn",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_replicate_image?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "bytes": 3000,
+          "mime": "image/jpeg",
+          "role": "image",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_replicate_video?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "bytes": 3000,
+          "mime": "video/mp4",
+          "role": "video",
+          "width": 1280,
+          "height": 720,
+          "durationMs": 5000
+        }
+      ]
+    },
+    "spec": {
+      "model": "direct/replicate/kling-3.0-motion-control",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "mode": "pro",
+          "keep_original_sound": true,
+          "character_orientation": "image",
+          "image": "@reference:0",
+          "video": "@reference:1"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_replicate_image?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "bytes": 3000,
+            "mime": "image/jpeg",
+            "role": "image",
+            "width": 1280,
+            "height": 720
+          },
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_replicate_video?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "bytes": 3000,
+            "mime": "video/mp4",
+            "role": "video",
+            "width": 1280,
+            "height": 720,
+            "durationMs": 5000
+          }
+        ]
+      }
+    },
+    "hash": "d2e9dcb4a66dc4da0abefab1f2c5ffbdc523722b77703174edfe3a7dd812d6a9"
+  },
+  {
+    "model": "direct/replicate/seedance-2.0",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/seedance-2.0",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/seedance-2.0",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "duration": 5,
+          "resolution": "720p",
+          "aspect_ratio": "16:9",
+          "generate_audio": true
+        },
+        "references": []
+      }
+    },
+    "hash": "511fb1ed1384954029fb90e016109f305dccd31df29844681e8bbd3a78cb19ee"
+  },
+  {
+    "model": "direct/replicate/seedance-2.0-fast",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/seedance-2.0-fast",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/seedance-2.0-fast",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "duration": 5,
+          "resolution": "720p",
+          "aspect_ratio": "16:9",
+          "generate_audio": true
+        },
+        "references": []
+      }
+    },
+    "hash": "0b1968609656aa0f22e25b35c3e77c03ed711386347d30e3ba3888cbba7d0260"
+  },
+  {
+    "model": "direct/replicate/seedance-2.5",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/seedance-2.5",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/seedance-2.5",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "duration": 5,
+          "resolution": "720p",
+          "aspect_ratio": "16:9",
+          "output_format": "mp4",
+          "generate_audio": true
+        },
+        "references": []
+      }
+    },
+    "hash": "5dc8eee5f7ecd8102d0400766509fc453adff5058130682c03795da1ba17d61c"
+  },
+  {
+    "model": "direct/replicate/gemini-omni-1.2-flash",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/gemini-omni-1.2-flash",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/gemini-omni-1.2-flash",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "duration": 10,
+          "resolution": "720p",
+          "aspect_ratio": "16:9"
+        },
+        "references": []
+      }
+    },
+    "hash": "889268d00a489a2c72a3ee86bb32b745891fb2f710df3512e63eca05364159fe"
+  },
+  {
+    "model": "direct/replicate/runway-gen-4.5",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/runway-gen-4.5",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/runway-gen-4.5",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "duration": 5,
+          "aspect_ratio": "16:9"
+        },
+        "references": []
+      }
+    },
+    "hash": "e3c4022095ac424a31ded38ec98855be1f3dd51e5d01ff901255e508a1723776"
+  },
+  {
+    "model": "direct/replicate/veo-3.1-fast",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/veo-3.1-fast",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/veo-3.1-fast",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "duration": 8,
+          "resolution": "1080p",
+          "aspect_ratio": "16:9",
+          "generate_audio": true
+        },
+        "references": []
+      }
+    },
+    "hash": "85c1a0b36cadebf13e305cdccae897740ad6504f3058a3002e64ef17ef85e218"
+  },
+  {
+    "model": "direct/replicate/wan-2.7-image",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/wan-2.7-image",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/wan-2.7-image",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "size": "2K",
+          "num_outputs": 1,
+          "thinking_mode": true,
+          "image_set_mode": false
+        },
+        "references": []
+      }
+    },
+    "hash": "0cb40f7f3e2d2b02827fff0c03eda13ae63b32f26caa08cdce132dc42a64460c"
+  },
+  {
+    "model": "direct/replicate/wan-2.7-image-pro",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/wan-2.7-image-pro",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/wan-2.7-image-pro",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "size": "2K",
+          "num_outputs": 1,
+          "thinking_mode": true,
+          "image_set_mode": false
+        },
+        "references": []
+      }
+    },
+    "hash": "ce57cf4bb0cfe36c83ef6d15b2233296ada8abe0ae26fcfe728a324886c2c56a"
+  },
+  {
+    "model": "direct/replicate/qwen-image-3.0",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/qwen-image-3.0",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/qwen-image-3.0",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "aspect_ratio": "1:1",
+          "negative_prompt": "",
+          "match_input_image": false,
+          "enable_prompt_expansion": true
+        },
+        "references": []
+      }
+    },
+    "hash": "8d2bf71ea4502d4fd78fb8ec8386c43df0b4ce3bea24e00cf2f754bcf91942a1"
+  },
+  {
+    "model": "direct/replicate/qwen-image-3.0-pro",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/qwen-image-3.0-pro",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/qwen-image-3.0-pro",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "aspect_ratio": "1:1",
+          "negative_prompt": "",
+          "match_input_image": false,
+          "enable_prompt_expansion": true
+        },
+        "references": []
+      }
+    },
+    "hash": "85a4244881eb3f311f0da42039798971dc401e3e10e9e3c79c4784296c80f0cd"
+  },
+  {
+    "model": "direct/replicate/krea-2-medium",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/krea-2-medium",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/krea-2-medium",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "creativity": "medium",
+          "aspect_ratio": "1:1",
+          "style_reference_strength": "0.5"
+        },
+        "references": []
+      }
+    },
+    "hash": "3ea9ce837b5624b0cbc5699f34b3f343bab368e958013f6911dafee5e8644f93"
+  },
+  {
+    "model": "direct/replicate/krea-2-large",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/krea-2-large",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/krea-2-large",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "creativity": "medium",
+          "aspect_ratio": "1:1",
+          "style_reference_strength": "0.5"
+        },
+        "references": []
+      }
+    },
+    "hash": "1af74b3467d5bf5e5fe120f2b6263a72f8784d0ddb7a7c96060a7c677a110d01"
+  },
+  {
+    "model": "direct/replicate/krea-3",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/krea-3",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/krea-3",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "resolution": "2k",
+          "aspect_ratio": "auto",
+          "regional_edit": false,
+          "thinking_mode": "fast"
+        },
+        "references": []
+      }
+    },
+    "hash": "0bad4f7827c0346e5ae2b9c31bcd913f9ba8338b0cb9af7148dfd838abc7db61"
+  },
+  {
+    "model": "direct/replicate/recraft-v4-svg",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/recraft-v4-svg",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/recraft-v4-svg",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "size": "1024x1024",
+          "aspect_ratio": "Not set"
+        },
+        "references": []
+      }
+    },
+    "hash": "93ed59e89420764f0e24a7a783afa021cb082374d9e60202abe87f77efc0e62a"
+  },
+  {
+    "model": "direct/replicate/recraft-v4-pro-svg",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/recraft-v4-pro-svg",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/recraft-v4-pro-svg",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "size": "2048x2048",
+          "aspect_ratio": "Not set"
+        },
+        "references": []
+      }
+    },
+    "hash": "962fdb044c41667e77847611c9f3fabc6eff33a07239be2aeb0ab4490feb493b"
+  },
+  {
+    "model": "direct/replicate/nano-banana-2",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/nano-banana-2",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/nano-banana-2",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "resolution": "1K",
+          "aspect_ratio": "match_input_image",
+          "output_format": "png"
+        },
+        "references": []
+      }
+    },
+    "hash": "d6094baa5511c3bf259d98c35a5ac30f150464f9ed1351dff0ba09110a431da6"
+  },
+  {
+    "model": "direct/replicate/nano-banana-pro",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/nano-banana-pro",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/nano-banana-pro",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "resolution": "2K",
+          "aspect_ratio": "match_input_image",
+          "output_format": "png"
+        },
+        "references": []
+      }
+    },
+    "hash": "1f0a5dd7ab1efc09c44a9254583f9310f5898f177b731d6a95d91e9afc004693"
+  },
+  {
+    "model": "direct/replicate/gpt-image-2.6-sunburst",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/gpt-image-2.6-sunburst",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/gpt-image-2.6-sunburst",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "quality": "medium",
+          "background": "auto",
+          "complexity": "high",
+          "aspect_ratio": "1:1",
+          "output_format": "png",
+          "number_of_images": 1
+        },
+        "references": []
+      }
+    },
+    "hash": "e854da41e9acaacca7148f401f6db68faba2cecc40d31a6897d8afa76af951e8"
+  },
+  {
+    "model": "direct/replicate/gpt-image-2.6-flare",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/gpt-image-2.6-flare",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/gpt-image-2.6-flare",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "quality": "medium",
+          "background": "auto",
+          "complexity": "high",
+          "aspect_ratio": "1:1",
+          "output_format": "png",
+          "number_of_images": 1
+        },
+        "references": []
+      }
+    },
+    "hash": "522be190bd1472b4e89ae5ceec359db072a715391365b528ed7866d2bcdefe36"
+  },
+  {
+    "model": "direct/replicate/seedream-5-lite",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/seedream-5-lite",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/seedream-5-lite",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "size": "2K",
+          "max_images": 1,
+          "aspect_ratio": "match_input_image",
+          "output_format": "png",
+          "sequential_image_generation": "disabled"
+        },
+        "references": []
+      }
+    },
+    "hash": "3f9ebee0b6b69f37b51401fa9dc91b24d2ceeff83cdf6a8d74bb81c689a3b987"
+  },
+  {
+    "model": "direct/replicate/grok-imagine-image",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/grok-imagine-image",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/grok-imagine-image",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "aspect_ratio": "1:1"
+        },
+        "references": []
+      }
+    },
+    "hash": "faecda939634a82267a3eb79541382d11dd423caac5cd1b7ed762c7b550e4ff7"
+  },
+  {
+    "model": "direct/replicate/lyria-3.5",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/lyria-3.5",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/lyria-3.5",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "output_format": "mp3"
+        },
+        "references": []
+      }
+    },
+    "hash": "f60566da0c766ee8683d8ec934dfddc46af436224a6cba21e23630436578e654"
+  },
+  {
+    "model": "direct/replicate/inworld-tts-2",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/inworld-tts-2",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/inworld-tts-2",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "language": "auto",
+          "voice_id": "Ashley",
+          "sample_rate": 48000,
+          "temperature": 0,
+          "audio_format": "mp3",
+          "speaking_rate": 0,
+          "text_normalization": "auto"
+        },
+        "references": []
+      }
+    },
+    "hash": "2283fde217d682a18ab0993923f8d19422bde303b32b454aba10ca070c61d65a"
+  },
+  {
+    "model": "direct/replicate/grok-tts",
+    "provider": "replicate",
+    "request": {
+      "model": "direct/replicate/grok-tts",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "direct/replicate/grok-tts",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "voice": "eve",
+          "bit_rate": 128000,
+          "language": "auto",
+          "sample_rate": 24000,
+          "output_format": "mp3",
+          "text_normalization": false
+        },
+        "references": []
+      }
+    },
+    "hash": "a5d67fab10b394e5d7aca800a00d5d8fb334f7de7b2ee128331be298e0326fd7"
+  }
+]

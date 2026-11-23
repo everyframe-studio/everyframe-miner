@@ -1085,6 +1085,28 @@
           "when": "Run from the existing profile if the CLI reports encryption_key_changed for an attested Phala dstack 0.5.15 worker."
         }
       ]
+    },
+    {
+      "version": "v1.2.7",
+      "title": "Vidu and Stability AI direct providers",
+      "changes": [
+        "Add Vidu Q3 Turbo text, image and first/last-frame video, and Vidu Q4 Preview image-to-video through 4K.",
+        "Add Stability AI Stable Image Core, Stable Image Ultra and Stable Audio 2.5.",
+        "Add seven WaveSpeedAI routes for Ideogram 4.6, MiniMax H3 Singularity and Seedance 2.5 Flash."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "For Vidu or Stability AI, install the compatible signed worker when offered, then apply the provider keys and review offers. Compatible WaveSpeedAI workers receive the new routes through the signed catalog."
+        },
+        {
+          "kind": "restart-ui",
+          "requirement": "conditional",
+          "when": "Close and reopen a running everycli ui after updating the CLI."
+        }
+      ]
     }
   ]
 }
