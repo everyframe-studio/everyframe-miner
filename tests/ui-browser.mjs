@@ -252,27 +252,50 @@ try {
   assert.match(heroChecks, /Model offers[\s\S]*2 active/);
   await page.evaluate(() => { run = window.healthTestOriginalRun; delete window.healthTestOriginalRun; S.boot = null; render(); });
 
-  // Each failing or warning readiness check says how to fix it and links to the place that does.
+  // Review several affected offers at once while setup and worker failures keep their own actions.
   await page.evaluate(() => {
-    window.fixTestHealth = S.health;
+    window.fixTest = { health: S.health, offers: S.offers };
     S.health = { state: 'done', result: { value: { checks: [
       { name: 'Accepting new work', ok: false, detail: 'Miner is draining or paused. Review everycli health before choosing to resume provider-billed work.' },
       { name: 'Model: fal/example/video', ok: false, state: 'WARN', detail: 'Coordinator did not report model capability evidence.' },
+      { name: 'Model: example/blocked', ok: false, state: 'FAIL', detail: 'This active model is not confirmed ready.' },
+      { name: 'Model: example/ready', ok: true, detail: 'Worker advertises support.' },
       { name: 'Phala credential', ok: false, detail: 'Your Phala account pays hosting.' },
       { name: 'Rust runtime', ok: true, detail: 'Native executable.' }] } } };
+    const offer = {offered:true, pricingCurrent:true, offerable:true, authorized:true, pricingAvailable:true, workerAvailable:true};
+    S.offers = { offers: [
+      {...offer, model:'fal/example/video', name:'Needs verification', provider:'fal'},
+      {...offer, model:'example/blocked', name:'Blocked video', provider:'openrouter', offerable:false, workerAvailable:false,
+        blockers:['worker_provider_required'], workerAvailability:{status:'access_denied'}},
+      {...offer, model:'example/ready', name:'Ready video', provider:'fal'},
+      {...offer, model:'example/not-offered', name:'Inactive video', provider:'fal', offered:false, offerable:false, workerAvailable:false},
+    ] };
     history.replaceState(null, '', '#/overview'); render();
   });
   const fixes = page.locator('#overview-health .fix');
-  assert.equal(await fixes.count(), 3);
+  assert.equal(await fixes.count(), 2);
   assert.match(await fixes.nth(0).innerText(), /How to fix: Your worker is paused/);
   assert.equal(await fixes.nth(0).getByRole('button', { name: 'Start accepting work', exact: true }).count(), 1);
-  assert.equal(await fixes.nth(1).getByRole('button', { name: 'Withdraw offer', exact: true }).count(), 1);
-  assert.equal(await fixes.nth(2).getByRole('link', { name: 'Add Phala token', exact: true }).getAttribute('href'), '#/keys');
-  await fixes.nth(1).getByRole('link', { name: 'Open in Models', exact: true }).click();
-  await page.waitForFunction(() => location.hash.startsWith('#/models'));
-  assert.equal(await page.evaluate(() => S.modelQuery), 'fal/example/video');
-  assert.equal(await page.evaluate(() => S.offerFilter), 'active');
-  await page.evaluate(() => { S.health = window.fixTestHealth; delete window.fixTestHealth; S.modelQuery = ''; S.offerFilter = 'ready'; history.replaceState(null, '', '#/overview'); render(); });
+  assert.equal(await fixes.nth(1).getByRole('link', { name: 'Add Phala token', exact: true }).getAttribute('href'), '#/keys');
+  const affected = page.getByRole('region', { name: '2 models need attention' });
+  assert.deepEqual(await affected.locator('.name').allTextContents(), ['Needs verification', 'Blocked video']);
+  await affected.getByRole('link', { name: 'Review affected models', exact: true }).click();
+  assert.equal(await page.evaluate(() => location.hash), '#/models?filter=attention');
+  assert.equal(await page.getByRole('button', { name: 'Needs attention', exact: true }).getAttribute('aria-pressed'), 'true');
+  const affectedRows = page.locator('#offers-table tr[data-model]');
+  assert.deepEqual(await affectedRows.evaluateAll(rows => rows.map(row => row.dataset.model)), ['fal/example/video', 'example/blocked']);
+  assert.match(await affectedRows.nth(1).locator('[data-label="Readiness"]').innerText(), /Provider access unavailable/);
+  await page.setViewportSize({ width: 320, height: 650 });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'the readiness list fits narrow monitors');
+  if (process.env.EVERYCLI_QA_DIR) await page.screenshot({path:join(process.env.EVERYCLI_QA_DIR,'readiness-320.png'),fullPage:true});
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.getByRole('checkbox', { name: 'Select all editable models in this tab' }).check();
+  assert.equal(await page.getByLabel('Select Ready video', { exact: true }).count(), 0);
+  assert.match(await page.locator('#offers-table').innerText(), /2 selected/);
+  await page.evaluate(() => {
+    S.health = window.fixTest.health; S.offers = window.fixTest.offers; delete window.fixTest;
+    S.selectedOffers.clear(); S.modelQuery = ''; S.offerFilter = 'ready'; history.replaceState(null, '', '#/overview'); render();
+  });
 
   const summary = page.getByLabel('Miner overview summary', { exact: true });
   assert.deepEqual(await summary.locator('.label').allTextContents(), ['Worker', 'Status', 'Active offers', 'Jobs']);
@@ -337,11 +360,35 @@ try {
 
   await page.evaluate(() => { window.confirmResult = null; confirmDialog('Test question only', 'Test').then(v => window.confirmResult = v); });
   assert.equal(await page.locator('#app').evaluate(e => e.inert), true);
+  const confirmation = page.getByRole('dialog', { name: 'Test', exact: true });
+  assert.equal(await confirmation.locator('input').count(), 0);
+  assert.equal(await page.evaluate(() => document.activeElement.textContent), 'Cancel');
   for (let i = 0; i < 6; i++) await page.keyboard.press('Tab');
   assert.equal(await page.evaluate(() => !!document.activeElement.closest('#modal')), true);
   await page.keyboard.press('Escape');
   assert.equal(await page.evaluate(() => window.confirmResult), false);
   assert.equal(await page.locator('#app').evaluate(e => e.inert), false);
+
+  await page.setViewportSize({ width: 320, height: 460 });
+  const batchReview = Array.from({ length: 40 }, (_, i) => 'studio/example/' + 'long-model-segment'.repeat(10) + '/' + i + ' • 0.125 USD').join('\n');
+  await page.evaluate(question => {
+    window.confirmResult = null;
+    confirmDialog(question, 'Review batch model offers').then(result => window.confirmResult = result);
+  }, batchReview);
+  const batchDialog = page.getByRole('dialog', { name: 'Review batch model offers' });
+  await batchDialog.waitFor();
+  assert.equal(await batchDialog.getByRole('region', { name: 'Review details' }).textContent(), batchReview);
+  assert.equal(await batchDialog.evaluate(dialog => {
+    const panel = dialog.querySelector('.question'), actions = dialog.querySelector('.modal-actions');
+    const dialogRect = dialog.getBoundingClientRect();
+    return panel.scrollHeight > panel.clientHeight && panel.scrollWidth <= panel.clientWidth
+      && panel.getBoundingClientRect().bottom <= actions.getBoundingClientRect().top
+      && dialogRect.x >= 0 && dialogRect.right <= innerWidth && dialogRect.bottom <= innerHeight;
+  }), true, 'long quotes wrap and scroll without covering the controls');
+  if (process.env.EVERYCLI_QA_DIR) await page.screenshot({path:join(process.env.EVERYCLI_QA_DIR,'batch-confirm-320.png')});
+  await batchDialog.getByRole('button', { name: 'Confirm', exact: true }).click();
+  assert.equal(await page.evaluate(() => window.confirmResult), true);
+  await page.setViewportSize({ width: 1440, height: 1000 });
 
   // Failed deletion checks must never become a successful replacement.
   const deletion = await page.evaluate(async () => {

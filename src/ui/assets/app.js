@@ -281,32 +281,37 @@ function errorView(err) {
 
 // ---------- confirm dialog ----------
 function confirmDialog(question, title) {
+  const wrap = $("#modal");
+  if (!wrap.hidden) return Promise.resolve(false);
   return new Promise((resolve) => {
-    const wrap = $("#modal");
     const previousFocus = document.activeElement;
-    const input = h("input", { type: "text", placeholder: "yes", autocomplete: "off", "aria-label": "Type yes to continue" });
-    const ok = h("button", { class: "btn primary", disabled: true }, "Continue");
-    const done = (v) => { wrap.hidden = true; wrap.replaceChildren(); $("#app").inert = false; $("#activity").inert = false; document.removeEventListener("keydown", esc); previousFocus?.focus(); resolve(v); };
+    const panel = h("div", { class: "question", role: "region", "aria-label": "Review details", tabindex: "0" }, question);
+    const cancel = h("button", { type: "button", class: "btn", onclick: () => done(false) }, "Cancel");
+    const ok = h("button", { type: "button", class: "btn primary", onclick: () => done(true) }, "Confirm");
+    const controls = [panel, cancel, ok];
+    const done = (approved) => {
+      wrap.hidden = true;
+      wrap.replaceChildren();
+      $("#app").inert = false;
+      $("#activity").inert = false;
+      document.removeEventListener("keydown", esc);
+      (previousFocus?.isConnected ? previousFocus : $("#main")).focus();
+      resolve(approved);
+    };
     const esc = (e) => {
-      if (e.key === "Escape") done(false);
+      if (e.key === "Escape") { e.preventDefault(); done(false); }
       if (e.key === "Tab") {
-        const controls = [...wrap.querySelectorAll("button:not(:disabled), input")];
         const next = controls[(controls.indexOf(document.activeElement) + (e.shiftKey ? -1 : 1) + controls.length) % controls.length];
-        e.preventDefault(); next?.focus();
+        e.preventDefault(); next.focus();
       }
     };
-    input.addEventListener("input", () => { ok.disabled = input.value.trim().toLowerCase() !== "yes"; });
-    input.addEventListener("keydown", (e) => { if (e.key === "Enter" && !ok.disabled) done(true); });
-    ok.addEventListener("click", () => done(true));
-    wrap.replaceChildren(h("div", { class: "modal", role: "dialog", "aria-modal": "true", "aria-label": "Confirm" },
-      h("h2", null, "Please confirm: " + title),
-      h("div", { class: "question" }, question),
-      h("div", { class: "field" }, h("label", null, "Type yes to continue (same as the terminal)"), input),
-      h("div", { class: "row end", style: null }, h("button", { class: "btn", onclick: () => done(false) }, "Cancel"), ok)));
+    wrap.replaceChildren(h("div", { class: "modal", role: "dialog", "aria-modal": "true", "aria-labelledby": "confirmation-title" },
+      h("h2", { id: "confirmation-title" }, title),
+      panel, h("div", { class: "row end modal-actions" }, cancel, ok)));
     wrap.hidden = false;
     $("#app").inert = true; $("#activity").inert = true;
     document.addEventListener("keydown", esc);
-    input.focus();
+    cancel.focus();
   });
 }
 
@@ -334,10 +339,31 @@ function checksList(checks, withFix = false) {
   }));
 }
 function healthList(checks) {
-  const problems = checks.filter((c) => checkState(c) !== "PASS"), passed = checks.filter((c) => checkState(c) === "PASS");
+  const failedModels = modelHealthProblems(checks);
+  const problems = checks.filter(c => !c.name?.startsWith("Model: ") && checkState(c) !== "PASS");
+  const passed = checks.filter(c => checkState(c) === "PASS");
   return h("div", null,
-    problems.length ? checksList(problems, true) : notice("ok", "All checks pass", null),
+    failedModels.size ? modelHealthSummary(failedModels) : null,
+    problems.length ? checksList(problems, true) : !failedModels.size ? notice("ok", "All checks pass", null) : null,
     passed.length ? h("details", null, h("summary", null, passed.length + " checks passed"), checksList(passed)) : null);
+}
+function modelHealthProblems(checks = value(S.health)?.checks || []) {
+  return new Map(checks.filter(c => c.name?.startsWith("Model: ") && checkState(c) !== "PASS")
+    .map(c => [c.name.slice(7), c]));
+}
+function modelHealthSummary(failures) {
+  const offers = new Map((S.offers?.offers || []).map(row => [row.model, row]));
+  return h("section", { class: "model-health", "aria-labelledby": "model-health-title" },
+    h("div", { class: "row model-health-head" },
+      h("h3", { id: "model-health-title" }, failures.size + (failures.size === 1 ? " model needs attention" : " models need attention")),
+      modelViewLink("Review affected models", "attention", "", { class: "btn small" })),
+    h("ul", { class: "checks" }, [...failures].map(([id, check]) => {
+      const row = offers.get(id);
+      const issue = row ? offerReadinessIssue(row) : null;
+      return h("li", null, h("span", { class: "badge " + checkState(check) }, checkState(check)),
+        h("div", null, h("div", { class: "name", title: id }, row?.name || id),
+          h("div", { class: "detail" }, issue?.[0] || check.message || check.detail)));
+    })));
 }
 // ---------- how to fix a readiness problem ----------
 // Opens the page that fixes a check and briefly highlights the control to use there.
@@ -701,7 +727,7 @@ function modelDiscoveryNotice(includeExisting = false) {
 }
 function modelTabs() {
   const availableCount = notOfferedModels().length, newCount = newAvailableModels().length;
-  return h("div", { class: "seg model-tabs", "data-discovery-counts": availableCount + ":" + newCount }, OFFER_FILTERS.map(([f, label]) => h("button", { "data-offer-filter": f, disabled: S.batchBusy, class: S.offerFilter === f ? "on" : "", onclick: () => openModels(f, S.modelProvider, false) }, label,
+  return h("div", { class: "seg model-tabs", "data-discovery-counts": availableCount + ":" + newCount }, OFFER_FILTERS.map(([f, label]) => h("button", { "data-offer-filter": f, "aria-pressed": String(S.offerFilter === f), disabled: S.batchBusy, class: S.offerFilter === f ? "on" : "", onclick: () => openModels(f, S.modelProvider, false) }, label,
     f === "not-offered" ? h("span", { class: "badge neutral", "aria-label": availableCount + " models available to offer" }, availableCount) : null,
     f === "not-offered" && newCount ? h("span", { class: "badge info", "aria-label": newCount + " newly available models" }, newCount + " new") : null)));
 }
@@ -711,7 +737,7 @@ function patchModelDiscovery() {
   if (!table) return;
   const tabs = $(".model-tabs");
   if (tabs?.dataset.discoveryCounts === notOfferedModels().length + ":" + newAvailableModels().length) return;
-  const previous = $("[data-model-discovery]"), next = modelDiscoveryNotice();
+  const previous = $("[data-model-discovery]"), next = S.offerFilter === "attention" ? null : modelDiscoveryNotice();
   if (previous) { if (next) previous.replaceWith(next); else previous.remove(); }
   else if (next) $("#main .lede").after(next);
   const intro = $("[data-not-offered-intro]");
@@ -727,7 +753,7 @@ function patchModelDiscovery() {
 // ---------- shell ----------
 const ROUTES = [["overview", "Overview"], ["setup", "Setup guide"], ["models", "Models"], ["jobs", "Job history"], ["earnings", "Earnings"], ["keys", "API keys"], ["worker", "Worker"], ["help", "Help"]];
 const NAV_GROUPS = [["Operate", ["overview", "models", "jobs", "earnings"]], ["Configure", ["setup", "keys", "worker"]], ["Support", ["help"]]];
-const OFFER_FILTERS = [["ready", "Ready for my keys"], ["active", "My active offers"], ["not-offered", "Not offered"], ["all", "All models"], ["candidate", "Unavailable"]];
+const OFFER_FILTERS = [["ready", "Ready for my keys"], ["active", "My active offers"], ["attention", "Needs attention"], ["not-offered", "Not offered"], ["all", "All models"], ["candidate", "Unavailable"]];
 function route() { const m = location.hash.match(/^#\/(\w+)/); return m && ROUTES.some(([r]) => r === m[1]) ? m[1] : null; }
 function currentRoute() { return route() || (S.overview?.initialized ? "overview" : "setup"); }
 function go(r) { location.hash = "#/" + r; }
@@ -748,6 +774,7 @@ function readModelsRoute() {
   }
 }
 function openModels(filter, provider = "", resetSearch = true, newOnly = false) {
+  const alreadyOnModels = currentRoute() === "models";
   S.offerFilter = filter; S.modelProvider = provider; S.modelNewOnly = filter === "not-offered" && newOnly; S.selectedOffers.clear(); clearBatchReport();
   if (resetSearch) { S.modelQuery = ""; S.modelKind = ""; }
   const href = modelsHref(filter, provider, S.modelNewOnly);
@@ -756,6 +783,7 @@ function openModels(filter, provider = "", resetSearch = true, newOnly = false) 
     S.openStep = null; S.renaming = false;
   }
   render();
+  if (!alreadyOnModels) window.scrollTo(0, 0);
 }
 function modelViewLink(label, filter, provider = "", attrs = {}, newOnly = false) {
   return h("a", { ...attrs, href: modelsHref(filter, provider, newOnly), onclick: e => { e.preventDefault(); openModels(filter, provider, true, newOnly); } }, label);
@@ -1598,9 +1626,9 @@ function readiness(r) {
   if (b.includes("worker_release_required")) return ["Worker update required", "warn"];
   if (b.includes("worker_offline")) return ["Worker offline", "bad"];
   if (b.includes("worker_capabilities_unknown")) return ["Worker check required", "warn"];
-  if (b.includes("worker_provider_required")) return [r.provider === "azure-foundry" ? "Apply credentials for this deployment" : "Add provider key to worker", "warn"];
   if (worker?.status === "access_denied") return ["Provider access unavailable for worker key", "bad"];
   if (worker?.status === "temporarily_unavailable") return ["Worker provider check needs refreshing", "warn"];
+  if (b.includes("worker_provider_required")) return [r.provider === "azure-foundry" ? "Apply credentials for this deployment" : "Add provider key to worker", "warn"];
   if (catalog?.status === "access_denied") return ["Provider catalog could not be read", "warn"];
   if (catalog?.status === "temporarily_unavailable") return [
     typeof catalog.checkedAt === "number" && Date.now() - catalog.checkedAt > 3600000
@@ -1613,10 +1641,21 @@ function readiness(r) {
   if (r.offerable === true) return ["Available", "ok"];
   return ["Not reported", ""];
 }
+function offerReadinessIssue(row, check) {
+  if (!row.offered) return null;
+  if (row.pricingCurrent === false) return ["Offer pricing needs renewal", "warn"];
+  const status = readiness(row);
+  if (status[1] === "bad" || status[1] === "warn") return status;
+  if (check || row.workerAvailable === false || row.offerable === false) {
+    return ["Worker readiness unconfirmed", check && checkState(check) === "FAIL" ? "bad" : "warn"];
+  }
+  return null;
+}
 function pageModels() {
   const root = h("div", null, h("h1", null, "Models"),
-    h("p", { class: "lede" }, "Models the network can route to you, and your offer for each. The discount is taken off the base miner reward, not your provider's price; your provider still bills its normal rate."));
-  const refresh = button("Refresh", async () => { await loadOffers(false); render(); });
+    h("p", { class: "lede" }, S.offerFilter === "attention" ? "Review active offers with a readiness issue. Select several to withdraw them together."
+      : "Models the network can route to you, and your offer for each. The discount is taken off the base miner reward, not your provider's price; your provider still bills its normal rate."));
+  const refresh = button("Refresh", async () => { await loadOffers(false); if (S.offerFilter === "attention") await loadHealth(); render(); });
   if (!S.offers && !S.offersError) { root.append(card("Offers", [refresh], h("p", { class: "muted" }, "Loading…"))); loadOffers().then(render); return root; }
   if (S.offersError) { root.append(card("Offers", [refresh], errorView(S.offersError))); return root; }
   const newCount = newAvailableModels().length, seg = modelTabs();
@@ -1627,8 +1666,10 @@ function pageModels() {
   const kind = h("select", { "aria-label": "Filter model type", disabled: S.batchBusy, onchange: e => { S.modelKind = e.target.value; patchModels(); } },
     h("option", { value: "" }, "All types"), ["video", "image", "audio"].map(v => h("option", { value: v }, v[0].toUpperCase() + v.slice(1)))); kind.value = S.modelKind;
   const discovery = modelDiscoveryNotice();
-  if (discovery) root.append(discovery);
-  if (S.overview?.initialized) root.append(providerOffersCard(), automaticOffersCard());
+  if (S.offerFilter !== "attention") {
+    if (discovery) root.append(discovery);
+    if (S.overview?.initialized) root.append(providerOffersCard(), automaticOffersCard());
+  }
   if (S.offerFilter === "not-offered") {
     const intro = notice("", "Available models without an active offer", "Models you can offer with your saved keys and current worker authorization. New offers start at 0% discount; nothing is enabled automatically.");
     intro.dataset.notOfferedIntro = ""; intro.hidden = !!discovery; root.append(intro);
@@ -1642,9 +1683,10 @@ function pageModels() {
   fillModels(body);
   return root;
 }
-function visibleOffers() {
+function visibleOffers(failedModels = modelHealthProblems()) {
   let rows = (S.offers?.offers || []).filter(integratedModel);
   if (S.overview?.initialized && S.offerFilter === "active") rows = rows.filter(r => r.offered);
+  if (S.offerFilter === "attention") rows = rows.filter(r => offerReadinessIssue(r, failedModels.get(r.model)));
   if (S.offerFilter === "not-offered") rows = rows.filter(r => notOfferedModel(r) && (!S.modelNewOnly || S.newModels.has(r.model)));
   if (S.overview?.initialized && S.offerFilter === "ready") rows = rows.filter(r => canApplyOffer(r) && readiness(r)[0].startsWith("Available") && r.localKeyConfigured !== false);
   if (S.offerFilter === "all" || (!S.overview?.initialized && S.offerFilter === "ready")) rows = rows.filter(r => r.catalogGroup !== "candidate" && r.providerAvailability?.status !== "removed");
@@ -1655,13 +1697,15 @@ function visibleOffers() {
     .sort((a,b) => compareProviders(a.provider,b.provider));
 }
 function fillModels(body) {
-  const rows = visibleOffers();
+  const failedModels = modelHealthProblems(), rows = visibleOffers(failedModels);
   body.replaceChildren(h("p", { class: "small muted" }, rows.length + (rows.length === 1 ? " model shown" : " models shown")),
     S.overview?.initialized ? batchToolbar(rows) : h("span"),
     S.batchReport ? batchReportView() : h("span"),
     rows.length ? h("div", { class: "table-wrap" }, h("table", { class: "cards-sm" },
       h("thead", null, h("tr", null, ["Model", "Provider", "Readiness", "Your offer", "Base reward", "Change"].map(t => h("th", null, t)))),
-      h("tbody", null, rows.map(offerRow)))) : h("p", { class: "empty" }, "No models match these filters. Try All models or clear the search."),
+      h("tbody", null, rows.map(row => offerRow(row, S.offerFilter === "attention" ? failedModels.get(row.model) : null)))))
+      : h("p", { class: "empty" }, S.offerFilter === "attention" && !S.modelQuery && !S.modelProvider && !S.modelKind
+        ? "No active offers currently need attention." : "No models match these filters. Try All models or clear the search."),
     h("p", { class: "small muted" }, "Base reward is a reference value per job; actual jobs are repriced for their settings. Offers do not guarantee traffic or profit."));
   if (S.batchBusy) body.querySelectorAll("button, input").forEach(el => { el.disabled = true; });
 }
@@ -1816,6 +1860,7 @@ async function batchOffers(rows, withdraw) {
   } finally {
     showBatchReport(report, epoch); S.batchBusy = false;
     await loadOffers();
+    if (S.offerFilter === "attention") await loadHealth();
     if (epoch === S.navigationEpoch && currentRoute() === "models") render(); else renderNav();
   }
 }
@@ -1854,8 +1899,8 @@ function googleCapabilityDetails(r) {
   if (c.search) parts.push("Google Search grounding supported");
   return h("div", { class: "small muted" }, ...parts.map(v => h("div", null, v)));
 }
-function offerRow(r) {
-  const [ready, tone] = readiness(r);
+function offerRow(r, check) {
+  const [ready, tone] = (S.offerFilter === "attention" ? offerReadinessIssue(r, check) : null) || readiness(r);
   const disc = h("input", { type: "number", min: "0", max: "99.9", step: "0.01", value: S.offerDrafts.get(r.model) ?? (r.discountBp != null ? String(r.discountBp / 100) : "0"), oninput: e => S.offerDrafts.set(r.model, e.target.value), class: "tiny", "aria-label": "Discount percent for " + (r.name || r.model) });
   const baseMicrousd = r.baseMinerRewardMicrousd ?? r.pricing?.minerRewardMicrousd;
   const base = typeof baseMicrousd === "number" ? baseMicrousd / 1e6 : null;
@@ -1867,7 +1912,9 @@ function offerRow(r) {
   return h("tr", { "data-model": r.model },
     h("td", { "data-label": "Model" }, h("label", { class: "row" }, S.overview?.initialized ? h("input", { type: "checkbox", checked: S.selectedOffers.has(r.model), disabled: S.batchBusy || !selectableOffer(r), "aria-label": "Select " + (r.name || r.model), onchange: e => { if (e.target.checked) S.selectedOffers.add(r.model); else S.selectedOffers.delete(r.model); patchModels(); } }) : null, h("b", null, r.name || r.model), notOfferedModel(r) && S.newModels.has(r.model) ? h("span", { class: "badge info", "aria-label": "Newly available model" }, "New") : null), h("details", { class: "model-details" }, h("summary", null, "Model details"), h("span", { class: "id" }, "EveryFrame contract: " + r.model), h("span", { class: "id" }, "Provider API ID: " + (r.providerApiId || "Not reported")), googleCapabilityDetails(r), nativeCapabilityDetails(r))),
     h("td", { "data-label": "Provider" }, providerName(r.provider || ""), r.localKeyConfigured === false ? h("div", { class: "small muted" }, "No key saved") : null),
-    h("td", { "data-label": "Readiness" }, h("span", { class: "badge " + tone }, ready)),
+    h("td", { "data-label": "Readiness" }, h("div", { class: "readiness-cell" },
+      h("span", { class: "badge readiness-badge " + tone }, ready),
+      check && ready === "Worker readiness unconfirmed" ? h("div", { class: "small muted" }, check.message || check.detail) : null)),
     h("td", { "data-label": "Your offer" }, yours),
     h("td", { "data-label": "Base reward" }, base != null ? fmtUsd(base, base < 1 ? 3 : 2) : "—"),
     h("td", { "data-label": "Change" }, !S.overview?.initialized ? h("a", { href: "#/setup" }, "Set up to offer") : h("div", { class: "row nowrap" }, disc, h("span", { class: "small muted" }, "% off"),
