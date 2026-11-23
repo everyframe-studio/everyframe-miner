@@ -123,7 +123,19 @@ fn all_reviewed_routes_deliver_the_expected_media_without_credential_leaks() {
             assert_eq!(router.poll(&reference, &spec).unwrap(), "IN_PROGRESS");
             api.mode.set("");
             router = Router::new(&api, credentials()); // Recover by GET after restart.
+        } else {
+            let mut fresh = Router::new(&api, credentials());
+            assert_eq!(
+                fresh.poll(&reference, &spec).unwrap_err().0,
+                "synchronous_result_unavailable"
+            );
         }
+        let mut wrong = spec.clone();
+        wrong["input"]["prompt"] = json!("A different lighthouse");
+        assert_eq!(
+            router.poll(&reference, &wrong).unwrap_err().0,
+            "provider_ref_namespace"
+        );
         assert_eq!(router.poll(&reference, &spec).unwrap(), "COMPLETED");
         let result = router.result(&reference, &spec).unwrap();
         let bundle: Value = serde_json::from_slice(&result.media).unwrap();

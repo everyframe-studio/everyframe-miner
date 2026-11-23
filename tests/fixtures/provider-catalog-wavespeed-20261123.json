@@ -1,0 +1,239 @@
+[
+  {
+    "model": "studio/wavespeed/ideogram-ai/ideogram-v4.6",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/ideogram-ai/ideogram-v4.6",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/ideogram-ai/ideogram-v4.6",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "aspect_ratio": "1:1",
+          "background": "opaque",
+          "enable_prompt_expansion": false,
+          "quality": "medium",
+          "resolution": "1k"
+        },
+        "references": []
+      }
+    },
+    "hash": "525fa167b0306b686266a5a6f342b5a22d86c8655969e20c5bc805ca6c8a3ffd"
+  },
+  {
+    "model": "studio/wavespeed/ideogram-ai/ideogram-v4.6/edit",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/ideogram-ai/ideogram-v4.6/edit",
+      "prompt": "A lighthouse at dawn",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "image",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/ideogram-ai/ideogram-v4.6/edit",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "edit_precision": "regular",
+          "quality": "medium",
+          "resolution": "1k",
+          "image": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "image",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "e1112575e51a053569e8891a54653990d3616fb50475c0125162be09068ee831"
+  },
+  {
+    "model": "studio/wavespeed/wavespeed-ai/minimax-h3-singularity/image-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/wavespeed-ai/minimax-h3-singularity/image-to-video",
+      "prompt": "A lighthouse at dawn",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/wavespeed-ai/minimax-h3-singularity/image-to-video",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "duration": 5,
+          "enable_prompt_expansion": true,
+          "resolution": "768p",
+          "image": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "395eb43b26020e43c0bf1c9a0562e2b5c9772f0927f52cadc9cb43458b0ae0fc"
+  },
+  {
+    "model": "studio/wavespeed/wavespeed-ai/minimax-h3-singularity/reference-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/wavespeed-ai/minimax-h3-singularity/reference-to-video",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/wavespeed-ai/minimax-h3-singularity/reference-to-video",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 5,
+          "enable_prompt_expansion": true,
+          "resolution": "768p"
+        },
+        "references": []
+      }
+    },
+    "hash": "b4b8784f4608ecacb892f4f014b9e97e2a454916c79cab324a99deddfc774513"
+  },
+  {
+    "model": "studio/wavespeed/bytedance/seedance-2.5-flash/text-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/bytedance/seedance-2.5-flash/text-to-video",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/bytedance/seedance-2.5-flash/text-to-video",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 5,
+          "generate_audio": true,
+          "output_format": "mp4",
+          "resolution": "720p"
+        },
+        "references": []
+      }
+    },
+    "hash": "1683f6254afbc1caa31e10155ebb17b9a15ab5588a2dd89db640d5f9e2fe7301"
+  },
+  {
+    "model": "studio/wavespeed/bytedance/seedance-2.5-flash/image-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/bytedance/seedance-2.5-flash/image-to-video",
+      "prompt": "A lighthouse at dawn",
+      "references": [
+        {
+          "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bytes": 123,
+          "mime": "image/png",
+          "role": "first",
+          "width": 1024,
+          "height": 1024,
+          "durationMs": null,
+          "frameCount": null
+        }
+      ]
+    },
+    "spec": {
+      "model": "studio/wavespeed/bytedance/seedance-2.5-flash/image-to-video",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "duration": 5,
+          "generate_audio": true,
+          "output_format": "mp4",
+          "resolution": "720p",
+          "image": "@reference:0"
+        },
+        "references": [
+          {
+            "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 123,
+            "mime": "image/png",
+            "role": "first",
+            "width": 1024,
+            "height": 1024,
+            "durationMs": null,
+            "frameCount": null
+          }
+        ]
+      }
+    },
+    "hash": "376023a985178e8a6abf4a2900a3a2f8985f13caaa084eddabd85d8b6888b058"
+  },
+  {
+    "model": "studio/wavespeed/bytedance/seedance-2.5-flash/reference-to-video",
+    "provider": "wavespeed",
+    "request": {
+      "model": "studio/wavespeed/bytedance/seedance-2.5-flash/reference-to-video",
+      "prompt": "A lighthouse at dawn",
+      "references": []
+    },
+    "spec": {
+      "model": "studio/wavespeed/bytedance/seedance-2.5-flash/reference-to-video",
+      "input": {
+        "prompt": "A lighthouse at dawn",
+        "parameters": {
+          "aspect_ratio": "16:9",
+          "duration": 5,
+          "generate_audio": true,
+          "output_format": "mp4",
+          "resolution": "720p"
+        },
+        "references": []
+      }
+    },
+    "hash": "8dcebd3b2cb9c34a27109277d550c5453a6b43e60ffd7d3094f045811bd3cc06"
+  }
+]

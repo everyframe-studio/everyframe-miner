@@ -114,11 +114,17 @@ impl Http for Api {
 fn native_expansion_submits_once_and_binds_recovery_to_the_input() {
     let mut n = 0;
     for (id, m) in native_media::MODELS.as_object().unwrap() {
-        // LTX transports have their own per-endpoint fixtures in ltx25.rs.
+        // These transports have dedicated fixtures for their provider wire formats.
         if m["ltx25"] == true
             || !m["nativeSchema"].is_object()
-            || ["schema-bfl", "schema-minimax-video", "schema-wavespeed"]
-                .contains(&m["adapter"].as_str().unwrap())
+            || [
+                "schema-bfl",
+                "schema-minimax-video",
+                "schema-wavespeed",
+                "schema-vidu",
+                "schema-stability",
+            ]
+            .contains(&m["adapter"].as_str().unwrap())
         {
             continue;
         }
