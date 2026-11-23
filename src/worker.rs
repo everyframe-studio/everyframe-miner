@@ -9,12 +9,11 @@ use serde_json::{Value, json};
 use std::{
     io::Read,
     os::unix::fs::FileTypeExt,
-    sync::{
-        Arc,
-        atomic::{AtomicBool, Ordering},
-    },
+    sync::{Arc, atomic::AtomicBool},
     time::Duration,
 };
+mod worker_pool;
+
 pub trait Runtime {
     fn post(&self, path: &str, body: &Value) -> Result<Value>;
     fn quote(&self, data: &[u8]) -> Result<Value>;
@@ -125,14 +124,23 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
         Ok((response["result"].clone(), nonce))
     }
     pub fn claim(&mut self) -> Result<Value> {
-        // Refresh before enrollment/claim, never during a paid generation.
+        self.claim_slots(None)
+    }
+    fn needs_enrollment(&self) -> Result<bool> {
+        Ok(self.session.is_null()
+            || n(&self.session["expires"])? < self.runtime.now() + models::max_job_ms() + 20000)
+    }
+    fn claim_slots(&mut self, slots: Option<&[usize]>) -> Result<Value> {
+        // The dispatcher refreshes the advertised capabilities before claiming.
         let mut availability = self.provider.refresh_availability(self.runtime.now());
-        if self.session.is_null()
-            || n(&self.session["expires"])? < self.runtime.now() + models::max_job_ms() + 20000
-        {
+        // A renewed session would revoke receipts from occupied slots. While
+        // they finish, keep collecting offers whose deadlines fit this session.
+        if self.needs_enrollment()? && slots.is_none_or(|free| free.len() == worker_pool::LIMIT) {
             self.enroll()?
         };
-        if self.session["modelCatalogPolicy"] == 1 {
+        if self.session["modelCatalogPolicy"] == 1
+            && slots.is_none_or(|free| free.len() == worker_pool::LIMIT)
+        {
             match crate::worker_catalog::refresh(self) {
                 Ok(true) => {
                     self.provider.catalog_updated();
@@ -178,6 +186,11 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
             })
             .collect();
         let mut capabilities = json!({"models":models,"durationPolicy":1});
+        if let Some(slots) = slots
+            && self.session["maxConcurrentJobs"] == worker_pool::LIMIT
+        {
+            capabilities["freeSlots"] = json!(slots);
+        }
         if let Some(rows) = availability {
             capabilities["modelAvailability"] = rows;
         }
@@ -239,6 +252,13 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
     }
     pub fn step(&mut self) -> Result<Value> {
         let work = self.claim()?;
+        self.execute_work(work, None)
+    }
+    fn execute_work(
+        &mut self,
+        work: Value,
+        delivery: Option<&std::sync::Mutex<()>>,
+    ) -> Result<Value> {
         if work.is_null() {
             return Ok(json!({"state":"idle"}));
         };
@@ -438,6 +458,25 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                     .provider
                     .set_media_policy(policy, &self.chain, self.runtime.now());
             }
+            // A single large delivery already holds raw media, base64, signed
+            // JSON and transport buffers. Bound that peak per VM while other
+            // slots continue submitting, polling and heartbeating.
+            let _delivery = if let Some(lock) = delivery {
+                loop {
+                    if self.runtime.now() >= deadline {
+                        return Ok(json!({"state":"deadline_exceeded"}));
+                    }
+                    match lock.try_lock() {
+                        Ok(guard) => break Some(guard),
+                        Err(std::sync::TryLockError::Poisoned(error)) => {
+                            break Some(error.into_inner());
+                        }
+                        Err(std::sync::TryLockError::WouldBlock) => self.runtime.sleep(100),
+                    }
+                }
+            } else {
+                None
+            };
             progress.emit("retrieving_output", json!({}), self.runtime.now());
             crate::execution_diagnostics::phase("output_retrieval");
             let output = match self.provider.result(s(&reference)?, &work["spec"]) {
@@ -640,6 +679,7 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
         Ok(json!({"state":"reconcile","reason":reason}))
     }
 }
+#[derive(Clone)]
 pub struct LiveRuntime {
     pub base: String,
     pub token: String,
@@ -977,31 +1017,7 @@ pub fn run_live() -> Result<()> {
         },
         provider: crate::providers::Router::new(&http, credentials),
     };
-    let mut last_log = String::new();
-    let mut last_log_at = 0;
-    while !stop.load(Ordering::Relaxed) {
-        match w.step() {
-            Ok(v) => {
-                let signature = v.to_string();
-                if signature != last_log || crate::now() - last_log_at >= 60000 {
-                    println!("{}", json!({"event":"worker_cycle","result":v}));
-                    last_log = signature;
-                    last_log_at = crate::now();
-                }
-            }
-            Err(e) => {
-                if last_log != e.0 || crate::now() - last_log_at >= 60000 {
-                    eprintln!("{}", json!({"event":"worker_cycle_failed","reason":e.0}));
-                    last_log = e.0.into();
-                    last_log_at = crate::now();
-                }
-            }
-        };
-        if !stop.load(Ordering::Relaxed) {
-            std::thread::sleep(Duration::from_secs(2))
-        }
-    }
-    Ok(())
+    worker_pool::run(&mut w, &http, &stop)
 }
 
 /// Maps an internal failure code to a category the coordinator accepts.

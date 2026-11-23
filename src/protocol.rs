@@ -80,6 +80,7 @@ pub fn public(raw: &str, ed: bool) -> Result<[u8; 32]> {
     )?;
     b[12..].try_into().map_err(|_| Error("invalid_key"))
 }
+#[derive(Clone)]
 pub struct Keys {
     pub signing: SigningKey,
     pub encryption: StaticSecret,

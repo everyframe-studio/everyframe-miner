@@ -12,7 +12,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub const SCHEMA: &str = "everyframe.provider-media-policy.v1";
 pub const MAX_TTL_MS: i64 = 3_600_000;
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct Cache {
     revision: i64,
     fingerprint: String,

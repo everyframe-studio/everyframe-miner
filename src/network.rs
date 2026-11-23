@@ -64,6 +64,7 @@ pub trait Http {
             .collect()
     }
 }
+#[derive(Clone, Copy)]
 pub struct PublicHttp;
 
 fn parallel_reads(

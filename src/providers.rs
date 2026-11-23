@@ -40,8 +40,8 @@ pub struct Router<'a> {
     pub(crate) media_policy: crate::media_policy::Cache,
     pub(crate) speech: Option<(String, String, Vec<u8>, String)>,
     submission_deadline: Option<i64>,
-    budget: std::cell::RefCell<crate::provider_budget::Cache>,
-    catalog: crate::model_availability::CatalogCache,
+    pub(crate) budget: std::sync::Arc<std::sync::Mutex<crate::provider_budget::Cache>>,
+    pub(crate) catalog: crate::model_availability::CatalogCache,
     pub(crate) ltx25_cache: std::cell::RefCell<Option<(String, i64, Value)>>,
     pub(crate) wavespeed_cache: std::cell::RefCell<Option<crate::wavespeed::Cached>>,
 }
@@ -123,6 +123,11 @@ impl<'a> Router<'a> {
             wavespeed_cache: std::cell::RefCell::default(),
         }
     }
+    fn budget_cache(&self) -> std::sync::MutexGuard<'_, crate::provider_budget::Cache> {
+        self.budget
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
+    }
     fn context(&self, spec: &Value) -> Result<(&'static Value, String)> {
         models::check(spec)?;
         let m = models::info(s(&spec["model"])?)?;
@@ -168,10 +173,10 @@ impl<'a> Router<'a> {
                     // A fresh budget check can stop subsequent work, but cannot
                     // prove what caused an ambiguous earlier 403. Preserve that
                     // job's non-retryable classification, including moderation.
-                    self.budget.borrow_mut().recheck(self.http, key, now);
+                    self.budget_cache().recheck(self.http, key, now);
                 }
                 if error.0 == crate::provider_budget::EXHAUSTED {
-                    self.budget.borrow_mut().reject(key, now);
+                    self.budget_cache().reject(key, now);
                 }
             }
         })
@@ -772,14 +777,14 @@ impl Provider for Router<'_> {
     fn refresh_availability(&mut self, now: i64) -> Option<Value> {
         let mut rows = self.catalog.refresh(self.http, &self.credentials, now);
         if configured(&self.credentials["OPENROUTER_API_KEY"]) {
-            self.budget.borrow_mut().refresh(
+            self.budget_cache().refresh(
                 self.http,
                 self.credentials["OPENROUTER_API_KEY"]
                     .as_str()
                     .unwrap_or(""),
                 now,
             );
-            if !self.budget.borrow().allows(now) {
+            if !self.budget_cache().allows(now) {
                 for row in rows.as_array_mut().into_iter().flatten() {
                     if models::info(row["model"].as_str().unwrap_or(""))
                         .is_ok_and(|m| m["provider"] == "openrouter")
@@ -793,7 +798,7 @@ impl Provider for Router<'_> {
         Some(rows)
     }
     fn provider_budget(&self) -> Option<Value> {
-        self.budget.borrow().proof()
+        self.budget_cache().proof()
     }
     fn set_retirements(&mut self, retired: &Value) {
         self.catalog.set_server_retirements(retired);
@@ -806,7 +811,7 @@ impl Provider for Router<'_> {
                 "provider_model_unavailable",
             )?;
             need(crate::now() < deadline, "submission_deadline_elapsed")?;
-            self.budget.borrow_mut().guard(
+            self.budget_cache().guard(
                 self.http,
                 s(&self.credentials["OPENROUTER_API_KEY"])?,
                 crate::now(),
@@ -829,25 +834,22 @@ impl Provider for Router<'_> {
                 .as_ref()
                 .is_err_and(|e| e.0 == crate::provider_budget::EXHAUSTED)
         {
-            self.budget
-                .borrow_mut()
+            self.budget_cache()
                 .reject(s(&self.credentials["OPENROUTER_API_KEY"])?, crate::now());
         }
         result
     }
     fn models(&self) -> Vec<String> {
+        let openrouter_ready = self
+            .budget_cache()
+            .proof()
+            .is_none_or(|v| v["state"] == "ready");
         models::all()
             .into_iter()
             .filter(|(id, m)| {
                 crate::worker_catalog::visible(id)
                     && self.catalog.allows(id)
-                    && (m["provider"] != "openrouter"
-                        || self.budget.borrow().proof().is_none()
-                        || self
-                            .budget
-                            .borrow()
-                            .proof()
-                            .is_some_and(|v| v["state"] == "ready"))
+                    && (m["provider"] != "openrouter" || openrouter_ready)
                     && (m["provider"] != "alibaba"
                         || crate::invitation::valid_workspace(
                             &self.credentials[crate::invitation::ALIBABA_WORKSPACE_KEY],

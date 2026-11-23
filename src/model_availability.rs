@@ -35,12 +35,13 @@ pub fn label(status: &str) -> &'static str {
 /// Most provider entries a coordinator retirement list may name.
 const MAX_SERVER_RETIREMENTS: usize = 512;
 const FAL_KEY_CHECK_INTERVAL_MS: i64 = 15 * 60 * 1000;
+#[derive(Clone)]
 struct FalKeyCheck {
     fingerprint: String,
     checked_at: i64,
     rejected: bool,
 }
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct CatalogCache {
     next_check: i64,
     rows: Vec<Value>,
