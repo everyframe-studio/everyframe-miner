@@ -1113,7 +1113,8 @@
       "title": "Concurrent generation jobs",
       "changes": [
         "A compatible worker can process up to five jobs at once when parallel scheduling is enabled for the miner.",
-        "Provider account limits determine how many jobs can use each provider at the same time."
+        "Provider account limits determine how many jobs can use each provider at the same time.",
+        "Review models that need attention together in the UI and scroll long confirmation details while the action buttons stay visible."
       ],
       "workerUpdate": "conditional",
       "actions": [
