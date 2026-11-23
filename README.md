@@ -36,6 +36,8 @@ every model in the registry is necessarily available for mining.
 
 ## What's new
 
+v1.3.0 lets a compatible signed worker handle up to five jobs at once when the coordinator enables parallel scheduling. Each provider account has its own concurrency limit. Run `everycli update`, then `everycli worker-update --check` to check availability for your miner.
+
 v1.2.7 adds direct Vidu and Stability AI routes and expands the WaveSpeedAI catalog. Run `everycli update`. To serve Vidu or Stability AI jobs, install the compatible signed worker when it is offered, add the provider credentials, and review the new routes in Models.
 
 v1.2.6 adds a verified encryption key refresh for existing Phala dstack 0.5.15 workers. Update the CLI, then use `everycli reconnect --refresh-encryption-key` if the worker reports `encryption_key_changed`.

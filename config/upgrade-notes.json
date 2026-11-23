@@ -1107,6 +1107,27 @@
           "when": "Close and reopen a running everycli ui after updating the CLI."
         }
       ]
+    },
+    {
+      "version": "v1.3.0",
+      "title": "Concurrent generation jobs",
+      "changes": [
+        "A compatible worker can process up to five jobs at once when parallel scheduling is enabled for the miner.",
+        "Provider account limits determine how many jobs can use each provider at the same time."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "To serve concurrent jobs, install the compatible signed worker when offered."
+        },
+        {
+          "kind": "restart-ui",
+          "requirement": "conditional",
+          "when": "Close and reopen a running everycli ui after updating the CLI."
+        }
+      ]
     }
   ]
 }
