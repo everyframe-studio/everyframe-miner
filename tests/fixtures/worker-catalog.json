@@ -1720,6 +1720,34 @@
     {
       "model": "direct/azure-foundry/mai-image-2.7-flash",
       "hash": "e2352fa527cc698a58fd189f8e9ed31b551add23fc22c03b4deb80b6e2515dea"
+    },
+    {
+      "model": "studio/wavespeed/ideogram-ai/ideogram-v4.6",
+      "hash": "cc66c1b29aa937eedb2c08e3830f8d5e58a1748b9378258be2b94384d743544c"
+    },
+    {
+      "model": "studio/wavespeed/ideogram-ai/ideogram-v4.6/edit",
+      "hash": "834ac73134a4a29ab368050490b61ebfc69149916eb325226f2455686d6fc392"
+    },
+    {
+      "model": "studio/wavespeed/wavespeed-ai/minimax-h3-singularity/image-to-video",
+      "hash": "f1763a6a807412a6f6cff25ae3a2eb8b5e321049fa25acfac996da6361e2b9dc"
+    },
+    {
+      "model": "studio/wavespeed/wavespeed-ai/minimax-h3-singularity/reference-to-video",
+      "hash": "f5fead33bf22d3bc84c3a9aea2cc7ecff9a4204c617e8bb066e14dd4b46e7469"
+    },
+    {
+      "model": "studio/wavespeed/bytedance/seedance-2.5-flash/text-to-video",
+      "hash": "d5d118025078a75385de4238656c66672d4f02a31d33159a29b5470945e7d470"
+    },
+    {
+      "model": "studio/wavespeed/bytedance/seedance-2.5-flash/image-to-video",
+      "hash": "8025ee7bddaaa680fa72609fbceae235b22ee333046a3f8eb8a5112fed69ab17"
+    },
+    {
+      "model": "studio/wavespeed/bytedance/seedance-2.5-flash/reference-to-video",
+      "hash": "d71ca10d1f7e8ffc3a89eabeb829b9675b7f0d5a8db21bfe18fcb59db2853474"
     }
   ],
   "numeric": {

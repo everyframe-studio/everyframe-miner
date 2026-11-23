@@ -204,7 +204,7 @@ fn all_reviewed_wavespeed_endpoints_submit_once_and_recover_by_id() {
         }
         count += 1;
     }
-    assert_eq!(count, 87); // Base catalog plus the two LTX 2.5 routes.
+    assert_eq!(count, 94); // Includes LTX 2.5 and seven November 23 routes.
 }
 #[test]
 fn uncertainty_and_refusals_never_trigger_resubmission() {

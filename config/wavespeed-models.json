@@ -20658,5 +20658,2204 @@
       ]
     },
     "sourceSha256": "9d4d3f478e27244212154c2bdca037e5ed2e2c6540ceff2c484feab71d6ac0ff"
+  },
+  "studio/wavespeed/ideogram-ai/ideogram-v4.6": {
+    "provider": "wavespeed",
+    "apiModel": "ideogram-ai/ideogram-v4.6",
+    "name": "Ideogram 4.6 (WaveSpeedAI)",
+    "vendor": "Ideogram",
+    "family": "Ideogram 4.6",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "schema-wavespeed",
+    "nativeSchema": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "aspect_ratio": {
+                  "default": "1:1",
+                  "enum": [
+                    "1:1",
+                    "4:3",
+                    "3:4",
+                    "3:2",
+                    "2:3",
+                    "16:9",
+                    "9:16"
+                  ],
+                  "type": "string"
+                },
+                "background": {
+                  "default": "opaque",
+                  "enum": [
+                    "opaque",
+                    "transparent"
+                  ],
+                  "type": "string"
+                },
+                "enable_prompt_expansion": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "prompt": {
+                  "maxLength": 10000,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "quality": {
+                  "default": "medium",
+                  "enum": [
+                    "very_low",
+                    "low",
+                    "medium",
+                    "high"
+                  ],
+                  "type": "string"
+                },
+                "resolution": {
+                  "default": "1k",
+                  "enum": [
+                    "1k",
+                    "2k"
+                  ],
+                  "type": "string"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "properties": {
+                "aspect_ratio": {
+                  "default": "1:1",
+                  "enum": [
+                    "1:1",
+                    "4:3",
+                    "3:4",
+                    "3:2",
+                    "2:3",
+                    "16:9",
+                    "9:16"
+                  ],
+                  "type": "string"
+                },
+                "background": {
+                  "default": "opaque",
+                  "enum": [
+                    "opaque",
+                    "transparent"
+                  ],
+                  "type": "string"
+                },
+                "enable_prompt_expansion": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "prompt": {
+                  "maxLength": 10000,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "quality": {
+                  "default": "medium",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high"
+                  ],
+                  "type": "string"
+                },
+                "resolution": {
+                  "default": "1k",
+                  "enum": [
+                    "1k",
+                    "2k",
+                    "4k"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "aspect_ratio": {
+          "default": "1:1",
+          "enum": [
+            "1:1",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "16:9",
+            "9:16"
+          ],
+          "type": "string"
+        },
+        "background": {
+          "default": "opaque",
+          "enum": [
+            "opaque",
+            "transparent"
+          ],
+          "type": "string"
+        },
+        "enable_prompt_expansion": {
+          "default": false,
+          "type": "boolean"
+        },
+        "prompt": {
+          "maxLength": 10000,
+          "minLength": 1,
+          "type": "string"
+        },
+        "quality": {
+          "default": "medium",
+          "enum": [
+            "very_low",
+            "low",
+            "medium",
+            "high"
+          ],
+          "type": "string"
+        },
+        "resolution": {
+          "default": "1k",
+          "enum": [
+            "1k",
+            "2k",
+            "4k"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "type": "object"
+    },
+    "apiPath": "/api/v3/ideogram-ai/ideogram-v4.6",
+    "apiPrompt": "/prompt",
+    "apiModelField": null,
+    "params": {
+      "aspect_ratio": "1:1",
+      "background": "opaque",
+      "enable_prompt_expansion": false,
+      "quality": "medium",
+      "resolution": "1k"
+    },
+    "exampleReferences": [],
+    "referencePaths": [],
+    "referenceRoles": {},
+    "referenceTransport": "owned-url",
+    "pricingRule": {
+      "type": "wavespeed",
+      "baseMicrousd": 60000,
+      "formula": "{\"total_price\": ((quality = \"very_low\" ? 8000 : quality = \"low\" ? (resolution = \"4k\" ? 60000 : 30000) : quality = \"medium\" ? (resolution = \"4k\" ? 120000 : 60000) : (resolution = \"4k\" ? 200000 : 100000)))}",
+      "ast": [
+        "if",
+        [
+          "binary",
+          "=",
+          [
+            "get",
+            "quality"
+          ],
+          [
+            "literal",
+            "very_low"
+          ]
+        ],
+        [
+          "literal",
+          8000
+        ],
+        [
+          "if",
+          [
+            "binary",
+            "=",
+            [
+              "get",
+              "quality"
+            ],
+            [
+              "literal",
+              "low"
+            ]
+          ],
+          [
+            "if",
+            [
+              "binary",
+              "=",
+              [
+                "get",
+                "resolution"
+              ],
+              [
+                "literal",
+                "4k"
+              ]
+            ],
+            [
+              "literal",
+              60000
+            ],
+            [
+              "literal",
+              30000
+            ]
+          ],
+          [
+            "if",
+            [
+              "binary",
+              "=",
+              [
+                "get",
+                "quality"
+              ],
+              [
+                "literal",
+                "medium"
+              ]
+            ],
+            [
+              "if",
+              [
+                "binary",
+                "=",
+                [
+                  "get",
+                  "resolution"
+                ],
+                [
+                  "literal",
+                  "4k"
+                ]
+              ],
+              [
+                "literal",
+                120000
+              ],
+              [
+                "literal",
+                60000
+              ]
+            ],
+            [
+              "if",
+              [
+                "binary",
+                "=",
+                [
+                  "get",
+                  "resolution"
+                ],
+                [
+                  "literal",
+                  "4k"
+                ]
+              ],
+              [
+                "literal",
+                200000
+              ],
+              [
+                "literal",
+                100000
+              ]
+            ]
+          ]
+        ]
+      ]
+    },
+    "mime": "image/png",
+    "duration": null,
+    "resolution": "1k",
+    "aspect": "1:1",
+    "dimensions": [],
+    "codecs": [
+      "mjpeg",
+      "png",
+      "webp"
+    ],
+    "audio": false,
+    "seed": false,
+    "maxPrompt": 10000,
+    "deadlineMs": 1200000,
+    "feeMultiplier": 1,
+    "schemaUrl": "https://wavespeed.ai/docs/docs-api/ideogram-ai/ideogram-v4.6",
+    "schemaCheckedAt": "2026-11-23",
+    "validationStatus": "documentation-reviewed",
+    "nativeCapabilities": {
+      "fields": [
+        "aspect_ratio",
+        "background",
+        "enable_prompt_expansion",
+        "prompt",
+        "quality",
+        "resolution"
+      ],
+      "maxReferences": 0,
+      "resolutions": [
+        "1k",
+        "2k",
+        "4k"
+      ],
+      "aspects": [
+        "1:1",
+        "4:3",
+        "3:4",
+        "3:2",
+        "2:3",
+        "16:9",
+        "9:16"
+      ],
+      "qualities": [
+        "very_low",
+        "low",
+        "medium",
+        "high"
+      ],
+      "formats": []
+    },
+    "sourceSha256": "d3bff3b288d35fc7c7fe25a30ff931b3f808018e670ffc7094ca936bcb97e989"
+  },
+  "studio/wavespeed/ideogram-ai/ideogram-v4.6/edit": {
+    "provider": "wavespeed",
+    "apiModel": "ideogram-ai/ideogram-v4.6/edit",
+    "name": "Ideogram 4.6 Edit (WaveSpeedAI)",
+    "vendor": "Ideogram",
+    "family": "Ideogram 4.6",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "schema-wavespeed",
+    "nativeSchema": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "aspect_ratio": {
+                  "enum": [
+                    "1:1",
+                    "4:3",
+                    "3:4",
+                    "3:2",
+                    "2:3",
+                    "16:9",
+                    "9:16"
+                  ],
+                  "type": "string"
+                },
+                "edit_precision": {
+                  "default": "regular",
+                  "enum": [
+                    "regular",
+                    "high"
+                  ],
+                  "type": "string"
+                },
+                "image": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "mask_url": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "prompt": {
+                  "maxLength": 10000,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "quality": {
+                  "default": "medium",
+                  "enum": [
+                    "very_low",
+                    "low",
+                    "medium",
+                    "high"
+                  ],
+                  "type": "string"
+                },
+                "reference_images": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "maxItems": 4,
+                  "type": "array"
+                },
+                "resolution": {
+                  "default": "1k",
+                  "enum": [
+                    "1k",
+                    "2k"
+                  ],
+                  "type": "string"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "properties": {
+                "aspect_ratio": {
+                  "enum": [
+                    "1:1",
+                    "4:3",
+                    "3:4",
+                    "3:2",
+                    "2:3",
+                    "16:9",
+                    "9:16"
+                  ],
+                  "type": "string"
+                },
+                "edit_precision": {
+                  "default": "regular",
+                  "enum": [
+                    "regular",
+                    "high"
+                  ],
+                  "type": "string"
+                },
+                "image": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "mask_url": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "prompt": {
+                  "maxLength": 10000,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "quality": {
+                  "default": "medium",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high"
+                  ],
+                  "type": "string"
+                },
+                "reference_images": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "maxItems": 4,
+                  "type": "array"
+                },
+                "resolution": {
+                  "default": "1k",
+                  "enum": [
+                    "1k",
+                    "2k",
+                    "4k"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "aspect_ratio": {
+                  "enum": [
+                    "1:1",
+                    "4:3",
+                    "3:4",
+                    "3:2",
+                    "2:3",
+                    "16:9",
+                    "9:16"
+                  ],
+                  "type": "string"
+                },
+                "edit_precision": {
+                  "default": "regular",
+                  "enum": [
+                    "regular",
+                    "high"
+                  ],
+                  "type": "string"
+                },
+                "image": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "mask_url": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "prompt": {
+                  "maxLength": 10000,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "quality": {
+                  "default": "medium",
+                  "enum": [
+                    "very_low",
+                    "low",
+                    "medium",
+                    "high"
+                  ],
+                  "type": "string"
+                },
+                "reference_images": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "maxItems": 3,
+                  "type": "array"
+                },
+                "resolution": {
+                  "default": "1k",
+                  "enum": [
+                    "1k",
+                    "2k",
+                    "4k"
+                  ],
+                  "type": "string"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "properties": {
+                "aspect_ratio": {
+                  "enum": [
+                    "1:1",
+                    "4:3",
+                    "3:4",
+                    "3:2",
+                    "2:3",
+                    "16:9",
+                    "9:16"
+                  ],
+                  "type": "string"
+                },
+                "edit_precision": {
+                  "default": "regular",
+                  "enum": [
+                    "regular",
+                    "high"
+                  ],
+                  "type": "string"
+                },
+                "image": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "prompt": {
+                  "maxLength": 10000,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "quality": {
+                  "default": "medium",
+                  "enum": [
+                    "very_low",
+                    "low",
+                    "medium",
+                    "high"
+                  ],
+                  "type": "string"
+                },
+                "reference_images": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "maxItems": 4,
+                  "type": "array"
+                },
+                "resolution": {
+                  "default": "1k",
+                  "enum": [
+                    "1k",
+                    "2k",
+                    "4k"
+                  ],
+                  "type": "string"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "aspect_ratio": {
+          "enum": [
+            "1:1",
+            "4:3",
+            "3:4",
+            "3:2",
+            "2:3",
+            "16:9",
+            "9:16"
+          ],
+          "type": "string"
+        },
+        "edit_precision": {
+          "default": "regular",
+          "enum": [
+            "regular",
+            "high"
+          ],
+          "type": "string"
+        },
+        "image": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "mask_url": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "prompt": {
+          "maxLength": 10000,
+          "minLength": 1,
+          "type": "string"
+        },
+        "quality": {
+          "default": "medium",
+          "enum": [
+            "very_low",
+            "low",
+            "medium",
+            "high"
+          ],
+          "type": "string"
+        },
+        "reference_images": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 4,
+          "type": "array"
+        },
+        "resolution": {
+          "default": "1k",
+          "enum": [
+            "1k",
+            "2k",
+            "4k"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "image",
+        "prompt"
+      ],
+      "type": "object"
+    },
+    "apiPath": "/api/v3/ideogram-ai/ideogram-v4.6/edit",
+    "apiPrompt": "/prompt",
+    "apiModelField": null,
+    "params": {
+      "edit_precision": "regular",
+      "quality": "medium",
+      "resolution": "1k",
+      "image": "@reference:0"
+    },
+    "exampleReferences": [
+      {
+        "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bytes": 123,
+        "mime": "image/png",
+        "role": "image",
+        "width": 1024,
+        "height": 1024,
+        "durationMs": null,
+        "frameCount": null
+      }
+    ],
+    "referencePaths": [
+      "/image",
+      "/reference_images/*",
+      "/mask_url"
+    ],
+    "referenceRoles": {
+      "/image": "image",
+      "/reference_images/*": "image",
+      "/mask_url": "mask"
+    },
+    "referenceTransport": "owned-url",
+    "pricingRule": {
+      "type": "wavespeed",
+      "baseMicrousd": 60000,
+      "formula": "{\"total_price\": ((quality = \"very_low\" ? 8000 : quality = \"low\" ? (resolution = \"4k\" ? 60000 : 30000) : quality = \"medium\" ? (resolution = \"4k\" ? 200000 : 60000) : (resolution = \"4k\" ? 600000 : 220000)))}",
+      "ast": [
+        "if",
+        [
+          "binary",
+          "=",
+          [
+            "get",
+            "quality"
+          ],
+          [
+            "literal",
+            "very_low"
+          ]
+        ],
+        [
+          "literal",
+          8000
+        ],
+        [
+          "if",
+          [
+            "binary",
+            "=",
+            [
+              "get",
+              "quality"
+            ],
+            [
+              "literal",
+              "low"
+            ]
+          ],
+          [
+            "if",
+            [
+              "binary",
+              "=",
+              [
+                "get",
+                "resolution"
+              ],
+              [
+                "literal",
+                "4k"
+              ]
+            ],
+            [
+              "literal",
+              60000
+            ],
+            [
+              "literal",
+              30000
+            ]
+          ],
+          [
+            "if",
+            [
+              "binary",
+              "=",
+              [
+                "get",
+                "quality"
+              ],
+              [
+                "literal",
+                "medium"
+              ]
+            ],
+            [
+              "if",
+              [
+                "binary",
+                "=",
+                [
+                  "get",
+                  "resolution"
+                ],
+                [
+                  "literal",
+                  "4k"
+                ]
+              ],
+              [
+                "literal",
+                200000
+              ],
+              [
+                "literal",
+                60000
+              ]
+            ],
+            [
+              "if",
+              [
+                "binary",
+                "=",
+                [
+                  "get",
+                  "resolution"
+                ],
+                [
+                  "literal",
+                  "4k"
+                ]
+              ],
+              [
+                "literal",
+                600000
+              ],
+              [
+                "literal",
+                220000
+              ]
+            ]
+          ]
+        ]
+      ]
+    },
+    "mime": "image/png",
+    "duration": null,
+    "resolution": "1k",
+    "aspect": "source",
+    "dimensions": [],
+    "codecs": [
+      "mjpeg",
+      "png",
+      "webp"
+    ],
+    "audio": false,
+    "seed": false,
+    "maxPrompt": 10000,
+    "deadlineMs": 1200000,
+    "feeMultiplier": 1,
+    "schemaUrl": "https://wavespeed.ai/docs/docs-api/ideogram-ai/ideogram-v4.6/edit",
+    "schemaCheckedAt": "2026-11-23",
+    "validationStatus": "documentation-reviewed",
+    "nativeCapabilities": {
+      "fields": [
+        "aspect_ratio",
+        "edit_precision",
+        "image",
+        "mask_url",
+        "prompt",
+        "quality",
+        "reference_images",
+        "resolution"
+      ],
+      "maxReferences": 6,
+      "resolutions": [
+        "1k",
+        "2k",
+        "4k"
+      ],
+      "aspects": [
+        "1:1",
+        "4:3",
+        "3:4",
+        "3:2",
+        "2:3",
+        "16:9",
+        "9:16"
+      ],
+      "qualities": [
+        "very_low",
+        "low",
+        "medium",
+        "high"
+      ],
+      "formats": []
+    },
+    "sourceSha256": "db1500641adda2140d37fc45b69694f3b7a451dc411bb93233cf5a08f58ca2ef"
+  },
+  "studio/wavespeed/wavespeed-ai/minimax-h3-singularity/image-to-video": {
+    "provider": "wavespeed",
+    "apiModel": "wavespeed-ai/minimax-h3-singularity/image-to-video",
+    "name": "MiniMax H3 Singularity · Image to video (WaveSpeedAI)",
+    "vendor": "MiniMax",
+    "family": "H3 Singularity",
+    "kind": "video",
+    "nativeMedia": true,
+    "adapter": "schema-wavespeed",
+    "nativeSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "duration": {
+          "default": 5,
+          "enum": [
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "type": "integer"
+        },
+        "enable_prompt_expansion": {
+          "default": true,
+          "type": "boolean"
+        },
+        "image": {
+          "type": "string"
+        },
+        "last_image": {
+          "type": "string"
+        },
+        "prompt": {
+          "type": "string",
+          "maxLength": 1000000
+        },
+        "resolution": {
+          "default": "768p",
+          "enum": [
+            "480p",
+            "540p",
+            "768p",
+            "1080p"
+          ],
+          "type": "string"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": -1,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "prompt",
+        "image"
+      ],
+      "type": "object"
+    },
+    "apiPath": "/api/v3/wavespeed-ai/minimax-h3-singularity/image-to-video",
+    "apiPrompt": "/prompt",
+    "apiModelField": null,
+    "params": {
+      "duration": 5,
+      "enable_prompt_expansion": true,
+      "resolution": "768p",
+      "image": "@reference:0"
+    },
+    "exampleReferences": [
+      {
+        "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bytes": 123,
+        "mime": "image/png",
+        "role": "first",
+        "width": 1024,
+        "height": 1024,
+        "durationMs": null,
+        "frameCount": null
+      }
+    ],
+    "referencePaths": [
+      "/image",
+      "/last_image"
+    ],
+    "referenceRoles": {
+      "/image": "first",
+      "/last_image": "last"
+    },
+    "referenceTransport": "owned-url",
+    "pricingRule": {
+      "type": "wavespeed",
+      "baseMicrousd": 100000,
+      "formula": "{\"total_price\": ((resolution = \"480p\" ? 50000 : resolution = \"540p\" ? 75000 : resolution = \"768p\" ? 100000 : 200000) * duration)}",
+      "ast": [
+        "binary",
+        "*",
+        [
+          "if",
+          [
+            "binary",
+            "=",
+            [
+              "get",
+              "resolution"
+            ],
+            [
+              "literal",
+              "480p"
+            ]
+          ],
+          [
+            "literal",
+            50000
+          ],
+          [
+            "if",
+            [
+              "binary",
+              "=",
+              [
+                "get",
+                "resolution"
+              ],
+              [
+                "literal",
+                "540p"
+              ]
+            ],
+            [
+              "literal",
+              75000
+            ],
+            [
+              "if",
+              [
+                "binary",
+                "=",
+                [
+                  "get",
+                  "resolution"
+                ],
+                [
+                  "literal",
+                  "768p"
+                ]
+              ],
+              [
+                "literal",
+                100000
+              ],
+              [
+                "literal",
+                200000
+              ]
+            ]
+          ]
+        ],
+        [
+          "get",
+          "duration"
+        ]
+      ]
+    },
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "768p",
+    "aspect": "source",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "audio": true,
+    "seed": false,
+    "maxPrompt": 1000000,
+    "deadlineMs": 1200000,
+    "feeMultiplier": 1,
+    "schemaUrl": "https://wavespeed.ai/docs/docs-api/wavespeed-ai/minimax-h3-singularity/image-to-video",
+    "schemaCheckedAt": "2026-11-23",
+    "validationStatus": "documentation-reviewed",
+    "nativeCapabilities": {
+      "fields": [
+        "duration",
+        "enable_prompt_expansion",
+        "image",
+        "last_image",
+        "prompt",
+        "resolution",
+        "seed"
+      ],
+      "maxReferences": 2,
+      "resolutions": [
+        "480p",
+        "540p",
+        "768p",
+        "1080p"
+      ],
+      "aspects": [],
+      "qualities": [],
+      "formats": []
+    },
+    "sourceSha256": "33f9e161f2a8291f88813b0a38583710e5a4b4dee8707acbee60ec0f9bea357f"
+  },
+  "studio/wavespeed/wavespeed-ai/minimax-h3-singularity/reference-to-video": {
+    "provider": "wavespeed",
+    "apiModel": "wavespeed-ai/minimax-h3-singularity/reference-to-video",
+    "name": "MiniMax H3 Singularity · Reference to video (WaveSpeedAI)",
+    "vendor": "MiniMax",
+    "family": "H3 Singularity",
+    "kind": "video",
+    "nativeMedia": true,
+    "adapter": "schema-wavespeed",
+    "nativeSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "aspect_ratio": {
+          "default": "16:9",
+          "enum": [
+            "16:9",
+            "9:16",
+            "1:1",
+            "4:3",
+            "3:4",
+            "21:9",
+            "9:21"
+          ],
+          "type": "string"
+        },
+        "duration": {
+          "default": 5,
+          "enum": [
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "type": "integer"
+        },
+        "enable_prompt_expansion": {
+          "default": true,
+          "type": "boolean"
+        },
+        "prompt": {
+          "type": "string",
+          "maxLength": 1000000
+        },
+        "reference_audios": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 3,
+          "type": "array"
+        },
+        "reference_images": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 9,
+          "type": "array"
+        },
+        "reference_videos": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 3,
+          "type": "array"
+        },
+        "resolution": {
+          "default": "768p",
+          "enum": [
+            "480p",
+            "540p",
+            "768p",
+            "1080p"
+          ],
+          "type": "string"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": -1,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "type": "object"
+    },
+    "apiPath": "/api/v3/wavespeed-ai/minimax-h3-singularity/reference-to-video",
+    "apiPrompt": "/prompt",
+    "apiModelField": null,
+    "params": {
+      "aspect_ratio": "16:9",
+      "duration": 5,
+      "enable_prompt_expansion": true,
+      "resolution": "768p"
+    },
+    "exampleReferences": [],
+    "referencePaths": [
+      "/reference_images/*",
+      "/reference_videos/*",
+      "/reference_audios/*"
+    ],
+    "referenceRoles": {
+      "/reference_images/*": "image",
+      "/reference_videos/*": "video",
+      "/reference_audios/*": "audio"
+    },
+    "referenceTransport": "owned-url",
+    "pricingRule": {
+      "type": "wavespeed",
+      "baseMicrousd": 300000,
+      "formula": "{\"total_price\": ((resolution = \"480p\" ? 50000 : resolution = \"540p\" ? 75000 : resolution = \"768p\" ? 100000 : 200000) * (duration + $ceil($min([get_duration(reference_videos), 15]))) + 20000 * ($count(reference_images) + $count(reference_audios)))}",
+      "ast": [
+        "binary",
+        "+",
+        [
+          "binary",
+          "*",
+          [
+            "if",
+            [
+              "binary",
+              "=",
+              [
+                "get",
+                "resolution"
+              ],
+              [
+                "literal",
+                "480p"
+              ]
+            ],
+            [
+              "literal",
+              50000
+            ],
+            [
+              "if",
+              [
+                "binary",
+                "=",
+                [
+                  "get",
+                  "resolution"
+                ],
+                [
+                  "literal",
+                  "540p"
+                ]
+              ],
+              [
+                "literal",
+                75000
+              ],
+              [
+                "if",
+                [
+                  "binary",
+                  "=",
+                  [
+                    "get",
+                    "resolution"
+                  ],
+                  [
+                    "literal",
+                    "768p"
+                  ]
+                ],
+                [
+                  "literal",
+                  100000
+                ],
+                [
+                  "literal",
+                  200000
+                ]
+              ]
+            ]
+          ],
+          [
+            "binary",
+            "+",
+            [
+              "get",
+              "duration"
+            ],
+            [
+              "call",
+              "$ceil",
+              [
+                [
+                  "call",
+                  "$min",
+                  [
+                    [
+                      "array",
+                      [
+                        [
+                          "call",
+                          "get_duration",
+                          [
+                            [
+                              "get",
+                              "reference_videos"
+                            ]
+                          ],
+                          {}
+                        ],
+                        [
+                          "literal",
+                          15
+                        ]
+                      ]
+                    ]
+                  ],
+                  {}
+                ]
+              ],
+              {}
+            ]
+          ]
+        ],
+        [
+          "binary",
+          "*",
+          [
+            "literal",
+            20000
+          ],
+          [
+            "binary",
+            "+",
+            [
+              "call",
+              "$count",
+              [
+                [
+                  "get",
+                  "reference_images"
+                ]
+              ],
+              {}
+            ],
+            [
+              "call",
+              "$count",
+              [
+                [
+                  "get",
+                  "reference_audios"
+                ]
+              ],
+              {}
+            ]
+          ]
+        ]
+      ]
+    },
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "768p",
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "audio": true,
+    "seed": false,
+    "maxPrompt": 1000000,
+    "deadlineMs": 1200000,
+    "feeMultiplier": 1,
+    "schemaUrl": "https://wavespeed.ai/docs/docs-api/wavespeed-ai/minimax-h3-singularity/reference-to-video",
+    "schemaCheckedAt": "2026-11-23",
+    "validationStatus": "documentation-reviewed",
+    "nativeCapabilities": {
+      "fields": [
+        "aspect_ratio",
+        "duration",
+        "enable_prompt_expansion",
+        "prompt",
+        "reference_audios",
+        "reference_images",
+        "reference_videos",
+        "resolution",
+        "seed"
+      ],
+      "maxReferences": 15,
+      "resolutions": [
+        "480p",
+        "540p",
+        "768p",
+        "1080p"
+      ],
+      "aspects": [
+        "16:9",
+        "9:16",
+        "1:1",
+        "4:3",
+        "3:4",
+        "21:9",
+        "9:21"
+      ],
+      "qualities": [],
+      "formats": []
+    },
+    "sourceSha256": "1198a90ef098e5765f0e5f39e70a4a07755c6dbc12ffee90dc7080621a25d2ab"
+  },
+  "studio/wavespeed/bytedance/seedance-2.5-flash/text-to-video": {
+    "provider": "wavespeed",
+    "apiModel": "bytedance/seedance-2.5-flash/text-to-video",
+    "name": "Seedance 2.5 Flash · Text to video (WaveSpeedAI)",
+    "vendor": "ByteDance",
+    "family": "Seedance 2.5 Flash",
+    "kind": "video",
+    "nativeMedia": true,
+    "adapter": "schema-wavespeed",
+    "nativeSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "aspect_ratio": {
+          "default": "16:9",
+          "enum": [
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "1:1",
+            "21:9"
+          ],
+          "type": "string"
+        },
+        "duration": {
+          "default": 5,
+          "maximum": 30,
+          "minimum": 4,
+          "type": "integer"
+        },
+        "generate_audio": {
+          "default": true,
+          "type": "boolean"
+        },
+        "output_format": {
+          "default": "mp4",
+          "enum": [
+            "mp4"
+          ],
+          "type": "string"
+        },
+        "prompt": {
+          "type": "string",
+          "maxLength": 1000000
+        },
+        "reference_audios": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 5,
+          "type": "array"
+        },
+        "reference_images": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10,
+          "type": "array"
+        },
+        "reference_videos": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 5,
+          "type": "array"
+        },
+        "resolution": {
+          "default": "720p",
+          "enum": [
+            "480p",
+            "720p",
+            "1080p",
+            "4k"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "type": "object"
+    },
+    "apiPath": "/api/v3/bytedance/seedance-2.5-flash/text-to-video",
+    "apiPrompt": "/prompt",
+    "apiModelField": null,
+    "params": {
+      "aspect_ratio": "16:9",
+      "duration": 5,
+      "generate_audio": true,
+      "output_format": "mp4",
+      "resolution": "720p"
+    },
+    "exampleReferences": [],
+    "referencePaths": [
+      "/reference_images/*",
+      "/reference_videos/*",
+      "/reference_audios/*"
+    ],
+    "referenceRoles": {
+      "/reference_images/*": "image",
+      "/reference_videos/*": "video",
+      "/reference_audios/*": "audio"
+    },
+    "referenceTransport": "owned-url",
+    "pricingRule": {
+      "type": "wavespeed",
+      "baseMicrousd": 240000,
+      "formula": "{\"total_price\": ((resolution = \"480p\" ? 120000 : resolution = \"720p\" ? 240000 : resolution = \"1080p\" ? 600000 : 1200000) * (duration + $ceil($min([get_duration(reference_videos, floor=2), 30]))))}",
+      "ast": [
+        "binary",
+        "*",
+        [
+          "if",
+          [
+            "binary",
+            "=",
+            [
+              "get",
+              "resolution"
+            ],
+            [
+              "literal",
+              "480p"
+            ]
+          ],
+          [
+            "literal",
+            120000
+          ],
+          [
+            "if",
+            [
+              "binary",
+              "=",
+              [
+                "get",
+                "resolution"
+              ],
+              [
+                "literal",
+                "720p"
+              ]
+            ],
+            [
+              "literal",
+              240000
+            ],
+            [
+              "if",
+              [
+                "binary",
+                "=",
+                [
+                  "get",
+                  "resolution"
+                ],
+                [
+                  "literal",
+                  "1080p"
+                ]
+              ],
+              [
+                "literal",
+                600000
+              ],
+              [
+                "literal",
+                1200000
+              ]
+            ]
+          ]
+        ],
+        [
+          "binary",
+          "+",
+          [
+            "get",
+            "duration"
+          ],
+          [
+            "call",
+            "$ceil",
+            [
+              [
+                "call",
+                "$min",
+                [
+                  [
+                    "array",
+                    [
+                      [
+                        "call",
+                        "get_duration",
+                        [
+                          [
+                            "get",
+                            "reference_videos"
+                          ]
+                        ],
+                        {
+                          "floor": [
+                            "literal",
+                            2
+                          ]
+                        }
+                      ],
+                      [
+                        "literal",
+                        30
+                      ]
+                    ]
+                  ]
+                ],
+                {}
+              ]
+            ],
+            {}
+          ]
+        ]
+      ]
+    },
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "audio": true,
+    "seed": false,
+    "maxPrompt": 1000000,
+    "deadlineMs": 1200000,
+    "feeMultiplier": 1,
+    "schemaUrl": "https://wavespeed.ai/docs/docs-api/bytedance/seedance-2.5-flash/text-to-video",
+    "schemaCheckedAt": "2026-11-23",
+    "validationStatus": "documentation-reviewed",
+    "nativeCapabilities": {
+      "fields": [
+        "aspect_ratio",
+        "duration",
+        "generate_audio",
+        "output_format",
+        "prompt",
+        "reference_audios",
+        "reference_images",
+        "reference_videos",
+        "resolution"
+      ],
+      "maxReferences": 20,
+      "resolutions": [
+        "480p",
+        "720p",
+        "1080p",
+        "4k"
+      ],
+      "aspects": [
+        "16:9",
+        "9:16",
+        "4:3",
+        "3:4",
+        "1:1",
+        "21:9"
+      ],
+      "qualities": [],
+      "formats": [
+        "mp4"
+      ]
+    },
+    "sourceSha256": "3ddc6d810f312d13429675675ce8961f8e51399dd8b2811669dc08900cabf4a6",
+    "description": "480p and 720p generation. WaveSpeed upscales its 1080p and 4K outputs from 720p."
+  },
+  "studio/wavespeed/bytedance/seedance-2.5-flash/image-to-video": {
+    "provider": "wavespeed",
+    "apiModel": "bytedance/seedance-2.5-flash/image-to-video",
+    "name": "Seedance 2.5 Flash · Image to video (WaveSpeedAI)",
+    "vendor": "ByteDance",
+    "family": "Seedance 2.5 Flash",
+    "kind": "video",
+    "nativeMedia": true,
+    "adapter": "schema-wavespeed",
+    "nativeSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "duration": {
+          "default": 5,
+          "maximum": 30,
+          "minimum": 4,
+          "type": "integer"
+        },
+        "generate_audio": {
+          "default": true,
+          "type": "boolean"
+        },
+        "image": {
+          "type": "string"
+        },
+        "last_image": {
+          "type": "string"
+        },
+        "output_format": {
+          "default": "mp4",
+          "enum": [
+            "mp4"
+          ],
+          "type": "string"
+        },
+        "prompt": {
+          "type": "string",
+          "maxLength": 1000000
+        },
+        "resolution": {
+          "default": "720p",
+          "enum": [
+            "480p",
+            "720p",
+            "1080p",
+            "4k"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt",
+        "image"
+      ],
+      "type": "object"
+    },
+    "apiPath": "/api/v3/bytedance/seedance-2.5-flash/image-to-video",
+    "apiPrompt": "/prompt",
+    "apiModelField": null,
+    "params": {
+      "duration": 5,
+      "generate_audio": true,
+      "output_format": "mp4",
+      "resolution": "720p",
+      "image": "@reference:0"
+    },
+    "exampleReferences": [
+      {
+        "url": "https://api.everyframe.studio/v1/attachment/att_example?t=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bytes": 123,
+        "mime": "image/png",
+        "role": "first",
+        "width": 1024,
+        "height": 1024,
+        "durationMs": null,
+        "frameCount": null
+      }
+    ],
+    "referencePaths": [
+      "/image",
+      "/last_image"
+    ],
+    "referenceRoles": {
+      "/image": "first",
+      "/last_image": "last"
+    },
+    "referenceTransport": "owned-url",
+    "pricingRule": {
+      "type": "wavespeed",
+      "baseMicrousd": 240000,
+      "formula": "{\"total_price\": ((resolution = \"480p\" ? 120000 : resolution = \"720p\" ? 240000 : resolution = \"1080p\" ? 600000 : 1200000) * duration)}",
+      "ast": [
+        "binary",
+        "*",
+        [
+          "if",
+          [
+            "binary",
+            "=",
+            [
+              "get",
+              "resolution"
+            ],
+            [
+              "literal",
+              "480p"
+            ]
+          ],
+          [
+            "literal",
+            120000
+          ],
+          [
+            "if",
+            [
+              "binary",
+              "=",
+              [
+                "get",
+                "resolution"
+              ],
+              [
+                "literal",
+                "720p"
+              ]
+            ],
+            [
+              "literal",
+              240000
+            ],
+            [
+              "if",
+              [
+                "binary",
+                "=",
+                [
+                  "get",
+                  "resolution"
+                ],
+                [
+                  "literal",
+                  "1080p"
+                ]
+              ],
+              [
+                "literal",
+                600000
+              ],
+              [
+                "literal",
+                1200000
+              ]
+            ]
+          ]
+        ],
+        [
+          "get",
+          "duration"
+        ]
+      ]
+    },
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "source",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "audio": true,
+    "seed": false,
+    "maxPrompt": 1000000,
+    "deadlineMs": 1200000,
+    "feeMultiplier": 1,
+    "schemaUrl": "https://wavespeed.ai/docs/docs-api/bytedance/seedance-2.5-flash/image-to-video",
+    "schemaCheckedAt": "2026-11-23",
+    "validationStatus": "documentation-reviewed",
+    "nativeCapabilities": {
+      "fields": [
+        "duration",
+        "generate_audio",
+        "image",
+        "last_image",
+        "output_format",
+        "prompt",
+        "resolution"
+      ],
+      "maxReferences": 2,
+      "resolutions": [
+        "480p",
+        "720p",
+        "1080p",
+        "4k"
+      ],
+      "aspects": [],
+      "qualities": [],
+      "formats": [
+        "mp4"
+      ]
+    },
+    "sourceSha256": "354bf8438b1956e61af08f50b09f5249013f44f62575b89e73b6dea149f897f8",
+    "description": "480p and 720p generation. WaveSpeed upscales its 1080p and 4K outputs from 720p."
+  },
+  "studio/wavespeed/bytedance/seedance-2.5-flash/reference-to-video": {
+    "provider": "wavespeed",
+    "apiModel": "bytedance/seedance-2.5-flash/reference-to-video",
+    "name": "Seedance 2.5 Flash · Reference to video (WaveSpeedAI)",
+    "vendor": "ByteDance",
+    "family": "Seedance 2.5 Flash",
+    "kind": "video",
+    "nativeMedia": true,
+    "adapter": "schema-wavespeed",
+    "nativeSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "aspect_ratio": {
+          "default": "16:9",
+          "enum": [
+            "16:9",
+            "9:16",
+            "4:3",
+            "3:4",
+            "1:1",
+            "21:9"
+          ],
+          "type": "string"
+        },
+        "duration": {
+          "default": 5,
+          "maximum": 30,
+          "minimum": 4,
+          "type": "integer"
+        },
+        "generate_audio": {
+          "default": true,
+          "type": "boolean"
+        },
+        "output_format": {
+          "default": "mp4",
+          "enum": [
+            "mp4"
+          ],
+          "type": "string"
+        },
+        "prompt": {
+          "type": "string",
+          "maxLength": 1000000
+        },
+        "reference_audios": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 5,
+          "type": "array"
+        },
+        "reference_images": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10,
+          "type": "array"
+        },
+        "reference_videos": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 5,
+          "type": "array"
+        },
+        "resolution": {
+          "default": "720p",
+          "enum": [
+            "480p",
+            "720p",
+            "1080p",
+            "4k"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "type": "object"
+    },
+    "apiPath": "/api/v3/bytedance/seedance-2.5-flash/reference-to-video",
+    "apiPrompt": "/prompt",
+    "apiModelField": null,
+    "params": {
+      "aspect_ratio": "16:9",
+      "duration": 5,
+      "generate_audio": true,
+      "output_format": "mp4",
+      "resolution": "720p"
+    },
+    "exampleReferences": [],
+    "referencePaths": [
+      "/reference_images/*",
+      "/reference_videos/*",
+      "/reference_audios/*"
+    ],
+    "referenceRoles": {
+      "/reference_images/*": "image",
+      "/reference_videos/*": "video",
+      "/reference_audios/*": "audio"
+    },
+    "referenceTransport": "owned-url",
+    "pricingRule": {
+      "type": "wavespeed",
+      "baseMicrousd": 240000,
+      "formula": "{\"total_price\": ((resolution = \"480p\" ? 120000 : resolution = \"720p\" ? 240000 : resolution = \"1080p\" ? 600000 : 1200000) * (duration + $ceil($min([get_duration(reference_videos, floor=2), 30]))))}",
+      "ast": [
+        "binary",
+        "*",
+        [
+          "if",
+          [
+            "binary",
+            "=",
+            [
+              "get",
+              "resolution"
+            ],
+            [
+              "literal",
+              "480p"
+            ]
+          ],
+          [
+            "literal",
+            120000
+          ],
+          [
+            "if",
+            [
+              "binary",
+              "=",
+              [
+                "get",
+                "resolution"
+              ],
+              [
+                "literal",
+                "720p"
+              ]
+            ],
+            [
+              "literal",
+              240000
+            ],
+            [
+              "if",
+              [
+                "binary",
+                "=",
+                [
+                  "get",
+                  "resolution"
+                ],
+                [
+                  "literal",
+                  "1080p"
+                ]
+              ],
+              [
+                "literal",
+                600000
+              ],
+              [
+                "literal",
+                1200000
+              ]
+            ]
+          ]
+        ],
+        [
+          "binary",
+          "+",
+          [
+            "get",
+            "duration"
+          ],
+          [
+            "call",
+            "$ceil",
+            [
+              [
+                "call",
+                "$min",
+                [
+                  [
+                    "array",
+                    [
+                      [
+                        "call",
+                        "get_duration",
+                        [
+                          [
+                            "get",
+                            "reference_videos"
+                          ]
+                        ],
+                        {
+                          "floor": [
+                            "literal",
+                            2
+                          ]
+                        }
+                      ],
+                      [
+                        "literal",
+                        30
+                      ]
+                    ]
+                  ]
+                ],
+                {}
+              ]
+            ],
+            {}
+          ]
+        ]
+      ]
+    },
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "audio": true,
+    "seed": false,
+    "maxPrompt": 1000000,
+    "deadlineMs": 1200000,
+    "feeMultiplier": 1,
+    "schemaUrl": "https://wavespeed.ai/docs/docs-api/bytedance/seedance-2.5-flash/reference-to-video",
+    "schemaCheckedAt": "2026-11-23",
+    "validationStatus": "documentation-reviewed",
+    "nativeCapabilities": {
+      "fields": [
+        "aspect_ratio",
+        "duration",
+        "generate_audio",
+        "output_format",
+        "prompt",
+        "reference_audios",
+        "reference_images",
+        "reference_videos",
+        "resolution"
+      ],
+      "maxReferences": 20,
+      "resolutions": [
+        "480p",
+        "720p",
+        "1080p",
+        "4k"
+      ],
+      "aspects": [
+        "16:9",
+        "9:16",
+        "4:3",
+        "3:4",
+        "1:1",
+        "21:9"
+      ],
+      "qualities": [],
+      "formats": [
+        "mp4"
+      ]
+    },
+    "sourceSha256": "daf04ca3821a8acb4f92046f8ff38aeadb5d797765d9c6062a786d87ecaee955",
+    "description": "480p and 720p generation. WaveSpeed upscales its 1080p and 4K outputs from 720p."
   }
 }

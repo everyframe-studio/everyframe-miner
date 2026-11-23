@@ -60,3 +60,27 @@ The catalog was reviewed on 2026-11-10. Each entry carries its public model-page
 URL and source hash. `scripts/import-wavespeed-catalog.py` imports a saved,
 reviewed public catalog; it does not run fetched pricing code. Schema or pricing
 updates require a new review and the cross-language fixture tests.
+
+## November 23 model additions
+
+The signed catalog adds seven routes for the existing WaveSpeedAI key.
+
+- Ideogram 4.6 text-to-image and edit support 1K, 2K, and 4K. The edit
+  endpoint takes a source image, up to four reference images, and an
+  optional source-sized mask. With a mask, use at most three references.
+  The very-low quality tier supports 1K and 2K.
+- MiniMax H3 Singularity adds image-to-video and reference-to-video with
+  synchronized audio, 3 to 15 seconds, and 480p, 540p, 768p, or 1080p.
+- Seedance 2.5 Flash adds text-to-video, image-to-video, and
+  reference-to-video with optional audio and 4 to 30 seconds. The initial
+  catalog uses MP4. WaveSpeed generates the 1080p and 4K tiers at 720p and
+  upscales the result.
+
+The new work-value quotes use published undiscounted rates. For Seedance
+Flash, WaveSpeed's reference pricing examples and rate text differ. Quotes
+reserve the full documented output rate for billed reference-video seconds,
+including the two-second minimum per clip. Account charges can differ.
+
+Workers with compatible WaveSpeed templates can fetch these definitions
+from the signed coordinator catalog. Miners can offer the new models once
+their coordinator authorizes them.
