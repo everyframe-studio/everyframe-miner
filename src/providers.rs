@@ -144,6 +144,7 @@ impl<'a> Router<'a> {
         let key = s(&self.credentials[key])?;
         let mut h = match p {
             "fal" => vec![("authorization".into(), format!("Key {key}"))],
+            "vidu" => vec![("authorization".into(), format!("Token {key}"))],
             "bfl" => vec![("x-key".into(), key.into())],
             "azure-foundry" => return Err(Error("unsupported_provider")),
             "google" => vec![("x-goog-api-key".into(), key.into())],

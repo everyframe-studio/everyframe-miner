@@ -25,6 +25,16 @@ struct Probe {
 fn probe(provider: &str, key: &str) -> Option<Probe> {
     let bearer = || vec![("Authorization".into(), format!("Bearer {key}"))];
     let (url, host, headers): (String, &str, Vec<(String, String)>) = match provider {
+        "vidu" => (
+            "https://api.vidu.com/ent/v2/credits".into(),
+            "api.vidu.com",
+            vec![("Authorization".into(), format!("Token {key}"))],
+        ),
+        "stability" => (
+            "https://api.stability.ai/v1/user/balance".into(),
+            "api.stability.ai",
+            bearer(),
+        ),
         "byteplus" => (
             "https://ark.ap-southeast.bytepluses.com/api/v3/models".into(),
             "ark.ap-southeast.bytepluses.com",
@@ -219,6 +229,8 @@ pub(crate) fn check_with_timeout(
                 };
             }
             let recognized = match provider {
+                "vidu" => v["remains"].is_array() || v["remaining_credits"].is_array(),
+                "stability" => v["credits"].as_f64().is_some_and(|n| n >= 0.0),
                 "wavespeed" => v["code"] == 200 && v["data"]["balance"].is_number(),
                 "pika" => crate::balances::pika_remaining(&v).is_ok(),
                 "vivix" => v["code"] == 0 && v["data"]["balances"].is_array(),

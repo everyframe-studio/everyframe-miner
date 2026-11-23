@@ -461,6 +461,8 @@ function workerControls() {
 }
 
 const PROVIDERS = {
+  vidu: ["Vidu", "Direct Vidu Q3 Turbo and Q4 Preview video generation."],
+  stability: ["Stability AI", "Direct Stable Image and Stable Audio generation."],
   "azure-foundry": ["Microsoft Azure AI Foundry", "MAI Image 2.7 and Flash from your Microsoft Foundry deployments."],
   alibaba: ["Alibaba Cloud", "Wan 3.0 and Qwen Image 3.0 through Model Studio in Singapore. Use a matching regional DashScope API key."],
   byteplus: ["BytePlus", "Seedance 2.5 and Seedream 5.0 through ModelArk in Singapore. Use your BytePlus API key."],
@@ -487,7 +489,7 @@ const PROVIDERS = {
   "openrouter-billing": ["OpenRouter billing (optional)", "Used only on this computer to show your OpenRouter balance. Never sent to the worker."],
 };
 const providerName = (p) => (PROVIDERS[p] || [p])[0];
-const DIRECT_PROVIDERS = new Set(["azure-foundry", "ltx", "alibaba", "byteplus", "volcengine", "luma-agents", "openai", "google", "xai", "elevenlabs", "minimax", "bfl", "kling", "pika", "runway", "luma", "vivix"]);
+const DIRECT_PROVIDERS = new Set(["vidu", "stability", "azure-foundry", "ltx", "alibaba", "byteplus", "volcengine", "luma-agents", "openai", "google", "xai", "elevenlabs", "minimax", "bfl", "kling", "pika", "runway", "luma", "vivix"]);
 const compareProviders = (a, b) => Number(!DIRECT_PROVIDERS.has(a)) - Number(!DIRECT_PROVIDERS.has(b))
   || String(providerName(a) || "").localeCompare(String(providerName(b) || ""));
 

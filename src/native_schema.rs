@@ -317,6 +317,9 @@ pub fn body(spec: &Value, model: &Value, urls: &[String]) -> Result<Value> {
     extra_policy(&raw, spec, model)?;
     luma_policy(&raw, spec, model)?;
     runway_policy(&raw, spec, model)?;
+    if model["provider"] == "vidu" {
+        crate::vidu_stability::check_vidu_references(spec, model)?;
+    }
     let mut used = Vec::new();
     let text_fields = format!(
         "{prompt}|/negative_prompt|/contents/*/text|/request/inputs/*/text|/request/previous_text|/request/next_text|/request/future_text|/request/lyrics_text|/request/composition_plan/**|/request/music_prompt/**"

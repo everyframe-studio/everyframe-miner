@@ -53,6 +53,7 @@ pub mod update;
 mod updater_enrollment;
 pub mod updater_vm;
 pub mod upgrade_notes;
+mod vidu_stability;
 pub mod wavespeed;
 pub mod worker;
 pub mod worker_auto_update;

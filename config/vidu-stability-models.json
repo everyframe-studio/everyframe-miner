@@ -1,0 +1,863 @@
+{
+  "studio/native/vidu/viduq3-turbo/text-to-video": {
+    "provider": "vidu",
+    "apiModel": "viduq3-turbo",
+    "name": "Vidu Q3 Turbo · Text to Video",
+    "vendor": "Vidu",
+    "family": "viduq3-turbo",
+    "kind": "video",
+    "nativeMedia": true,
+    "adapter": "schema-vidu",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 5000
+        },
+        "duration": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "resolution": {
+          "type": "string",
+          "enum": [
+            "540p",
+            "720p",
+            "1080p"
+          ]
+        },
+        "audio": {
+          "type": "boolean"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "aspect_ratio": {
+          "type": "string",
+          "enum": [
+            "16:9",
+            "9:16",
+            "3:4",
+            "4:3",
+            "1:1"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "const": "viduq3-turbo"
+        }
+      },
+      "required": [
+        "prompt",
+        "duration",
+        "resolution",
+        "audio",
+        "aspect_ratio",
+        "model"
+      ],
+      "additionalProperties": false
+    },
+    "apiPath": "/ent/v2/text2video",
+    "apiPrompt": "/prompt",
+    "referencePaths": [],
+    "params": {
+      "duration": 5,
+      "resolution": "720p",
+      "audio": true,
+      "aspect_ratio": "16:9"
+    },
+    "exampleReferences": [],
+    "pricingRule": {
+      "type": "vidu",
+      "secondMicrousd": {
+        "540p": 35000,
+        "720p": 55000,
+        "1080p": 65000
+      }
+    },
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "audio": true,
+    "seed": true,
+    "maxPrompt": 5000,
+    "deadlineMs": 900000,
+    "feeMultiplier": 1,
+    "schemaUrl": "https://platform.vidu.com/docs/api-reference/video-models/vidu-q3/text-to-video",
+    "schemaCheckedAt": "2026-11-23",
+    "validationStatus": "documentation-reviewed",
+    "nativeCapabilities": {
+      "fields": [
+        "prompt",
+        "duration",
+        "resolution",
+        "audio",
+        "seed",
+        "aspect_ratio",
+        "model"
+      ],
+      "maxReferences": 0,
+      "aspects": [
+        "16:9",
+        "9:16",
+        "3:4",
+        "4:3",
+        "1:1"
+      ],
+      "formats": []
+    },
+    "apiModelField": "/model"
+  },
+  "studio/native/vidu/viduq3-turbo/image-to-video": {
+    "provider": "vidu",
+    "apiModel": "viduq3-turbo",
+    "name": "Vidu Q3 Turbo · Image to Video",
+    "vendor": "Vidu",
+    "family": "viduq3-turbo",
+    "kind": "video",
+    "nativeMedia": true,
+    "adapter": "schema-vidu",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20000
+        },
+        "duration": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "resolution": {
+          "type": "string",
+          "enum": [
+            "540p",
+            "720p",
+            "1080p"
+          ]
+        },
+        "audio": {
+          "type": "boolean"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "images": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "is_rec": {
+          "type": "boolean",
+          "const": false
+        },
+        "model": {
+          "type": "string",
+          "const": "viduq3-turbo"
+        }
+      },
+      "required": [
+        "prompt",
+        "duration",
+        "resolution",
+        "audio",
+        "images",
+        "is_rec",
+        "model"
+      ],
+      "additionalProperties": false
+    },
+    "apiPath": "/ent/v2/img2video",
+    "apiPrompt": "/prompt",
+    "referencePaths": [
+      "/images/*"
+    ],
+    "params": {
+      "duration": 5,
+      "resolution": "720p",
+      "audio": true,
+      "images": [
+        "@reference:0"
+      ],
+      "is_rec": false
+    },
+    "exampleReferences": [
+      {
+        "url": "https://api.everyframe.studio/v1/attachment/att_fixture0?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "bytes": 1024,
+        "mime": "image/png",
+        "role": "first",
+        "width": 1280,
+        "height": 720
+      }
+    ],
+    "pricingRule": {
+      "type": "vidu",
+      "secondMicrousd": {
+        "540p": 35000,
+        "720p": 55000,
+        "1080p": 65000
+      }
+    },
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "source",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "audio": true,
+    "seed": true,
+    "maxPrompt": 20000,
+    "deadlineMs": 900000,
+    "feeMultiplier": 1,
+    "schemaUrl": "https://platform.vidu.com/docs/api-reference/video-models/vidu-q3/image-to-video",
+    "schemaCheckedAt": "2026-11-23",
+    "validationStatus": "documentation-reviewed",
+    "nativeCapabilities": {
+      "fields": [
+        "prompt",
+        "duration",
+        "resolution",
+        "audio",
+        "seed",
+        "images",
+        "is_rec",
+        "model"
+      ],
+      "maxReferences": 1,
+      "aspects": [],
+      "formats": []
+    },
+    "apiModelField": "/model",
+    "referenceRoles": [
+      "first"
+    ],
+    "referenceTransport": "owned-url"
+  },
+  "studio/native/vidu/viduq3-turbo/start-end-to-video": {
+    "provider": "vidu",
+    "apiModel": "viduq3-turbo",
+    "name": "Vidu Q3 Turbo · First & Last Frame",
+    "vendor": "Vidu",
+    "family": "viduq3-turbo",
+    "kind": "video",
+    "nativeMedia": true,
+    "adapter": "schema-vidu",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20000
+        },
+        "duration": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "resolution": {
+          "type": "string",
+          "enum": [
+            "540p",
+            "720p",
+            "1080p"
+          ]
+        },
+        "audio": {
+          "type": "boolean"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "images": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "string"
+          }
+        },
+        "model": {
+          "type": "string",
+          "const": "viduq3-turbo"
+        }
+      },
+      "required": [
+        "prompt",
+        "duration",
+        "resolution",
+        "audio",
+        "images",
+        "model"
+      ],
+      "additionalProperties": false
+    },
+    "apiPath": "/ent/v2/start-end2video",
+    "apiPrompt": "/prompt",
+    "referencePaths": [
+      "/images/*"
+    ],
+    "params": {
+      "duration": 5,
+      "resolution": "720p",
+      "audio": true,
+      "images": [
+        "@reference:0",
+        "@reference:1"
+      ]
+    },
+    "exampleReferences": [
+      {
+        "url": "https://api.everyframe.studio/v1/attachment/att_fixture0?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "bytes": 1024,
+        "mime": "image/png",
+        "role": "first",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "url": "https://api.everyframe.studio/v1/attachment/att_fixture1?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "bytes": 1024,
+        "mime": "image/png",
+        "role": "last",
+        "width": 1280,
+        "height": 720
+      }
+    ],
+    "pricingRule": {
+      "type": "vidu",
+      "secondMicrousd": {
+        "540p": 35000,
+        "720p": 55000,
+        "1080p": 65000
+      }
+    },
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "source",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "audio": true,
+    "seed": true,
+    "maxPrompt": 20000,
+    "deadlineMs": 900000,
+    "feeMultiplier": 1,
+    "schemaUrl": "https://platform.vidu.com/docs/api-reference/video-models/vidu-q3/start-end-to-video",
+    "schemaCheckedAt": "2026-11-23",
+    "validationStatus": "documentation-reviewed",
+    "nativeCapabilities": {
+      "fields": [
+        "prompt",
+        "duration",
+        "resolution",
+        "audio",
+        "seed",
+        "images",
+        "model"
+      ],
+      "maxReferences": 2,
+      "aspects": [],
+      "formats": []
+    },
+    "apiModelField": "/model",
+    "referenceRoles": [
+      "first",
+      "last"
+    ],
+    "referenceTransport": "owned-url"
+  },
+  "studio/native/vidu/viduq4-preview/image-to-video": {
+    "provider": "vidu",
+    "apiModel": "viduq4-preview",
+    "name": "Vidu Q4 Preview · Image to Video",
+    "vendor": "Vidu",
+    "family": "viduq4-preview",
+    "kind": "video",
+    "nativeMedia": true,
+    "adapter": "schema-vidu",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20000
+        },
+        "duration": {
+          "type": "integer",
+          "minimum": 3,
+          "maximum": 16
+        },
+        "resolution": {
+          "type": "string",
+          "enum": [
+            "540p",
+            "720p",
+            "1080p",
+            "2K",
+            "4K"
+          ]
+        },
+        "audio": {
+          "type": "boolean"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "images": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "is_rec": {
+          "type": "boolean",
+          "const": false
+        },
+        "model": {
+          "type": "string",
+          "const": "viduq4-preview"
+        }
+      },
+      "required": [
+        "prompt",
+        "duration",
+        "resolution",
+        "audio",
+        "images",
+        "is_rec",
+        "model"
+      ],
+      "additionalProperties": false
+    },
+    "apiPath": "/ent/v2/img2video",
+    "apiPrompt": "/prompt",
+    "referencePaths": [
+      "/images/*"
+    ],
+    "params": {
+      "duration": 5,
+      "resolution": "720p",
+      "audio": true,
+      "images": [
+        "@reference:0"
+      ],
+      "is_rec": false
+    },
+    "exampleReferences": [
+      {
+        "url": "https://api.everyframe.studio/v1/attachment/att_fixture0?t=aaaaaaaaaaaaaaaaaaaaaaaa",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "bytes": 1024,
+        "mime": "image/png",
+        "role": "first",
+        "width": 1280,
+        "height": 720
+      }
+    ],
+    "pricingRule": {
+      "type": "vidu",
+      "secondMicrousd": {
+        "540p": 45000,
+        "720p": 95000,
+        "1080p": 120000,
+        "2K": 190000,
+        "4K": 390000
+      }
+    },
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "source",
+    "dimensions": [],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "audio": true,
+    "seed": true,
+    "maxPrompt": 20000,
+    "deadlineMs": 900000,
+    "feeMultiplier": 1,
+    "schemaUrl": "https://platform.vidu.com/docs/api-reference/video-models/vidu-q4-preview/image-to-video",
+    "schemaCheckedAt": "2026-11-23",
+    "validationStatus": "documentation-reviewed",
+    "nativeCapabilities": {
+      "fields": [
+        "prompt",
+        "duration",
+        "resolution",
+        "audio",
+        "seed",
+        "images",
+        "is_rec",
+        "model"
+      ],
+      "maxReferences": 1,
+      "aspects": [],
+      "formats": []
+    },
+    "apiModelField": "/model",
+    "referenceRoles": [
+      "first"
+    ],
+    "referenceTransport": "owned-url"
+  },
+  "studio/native/stability/stable-image-core": {
+    "provider": "stability",
+    "apiModel": "stable-image-core",
+    "name": "Stable Image Core",
+    "vendor": "Stability AI",
+    "family": "stable-image-core",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "schema-stability",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10000
+        },
+        "aspect_ratio": {
+          "type": "string",
+          "enum": [
+            "16:9",
+            "1:1",
+            "21:9",
+            "2:3",
+            "3:2",
+            "4:5",
+            "5:4",
+            "9:16",
+            "9:21"
+          ]
+        },
+        "output_format": {
+          "type": "string",
+          "enum": [
+            "png",
+            "jpeg",
+            "webp"
+          ]
+        },
+        "negative_prompt": {
+          "type": "string",
+          "maxLength": 10000
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967294
+        }
+      },
+      "required": [
+        "prompt",
+        "aspect_ratio",
+        "output_format"
+      ],
+      "additionalProperties": false
+    },
+    "apiPath": "/v2beta/stable-image/generate/core",
+    "apiPrompt": "/prompt",
+    "referencePaths": [],
+    "params": {
+      "aspect_ratio": "1:1",
+      "output_format": "png"
+    },
+    "exampleReferences": [],
+    "pricingRule": {
+      "type": "stability",
+      "feeMicrousd": 30000
+    },
+    "mime": "image/png",
+    "duration": 1,
+    "resolution": "1k",
+    "aspect": "1:1",
+    "dimensions": [],
+    "codecs": [],
+    "audio": false,
+    "seed": true,
+    "maxPrompt": 10000,
+    "deadlineMs": 600000,
+    "feeMultiplier": 1,
+    "schemaUrl": "https://platform.stability.ai/docs/api-reference/",
+    "schemaCheckedAt": "2026-11-23",
+    "validationStatus": "documentation-reviewed",
+    "nativeCapabilities": {
+      "fields": [
+        "prompt",
+        "aspect_ratio",
+        "output_format",
+        "negative_prompt",
+        "seed"
+      ],
+      "maxReferences": 0,
+      "aspects": [
+        "16:9",
+        "1:1",
+        "21:9",
+        "2:3",
+        "3:2",
+        "4:5",
+        "5:4",
+        "9:16",
+        "9:21"
+      ],
+      "formats": [
+        "png",
+        "jpeg",
+        "webp"
+      ]
+    }
+  },
+  "studio/native/stability/stable-image-ultra": {
+    "provider": "stability",
+    "apiModel": "stable-image-ultra",
+    "name": "Stable Image Ultra",
+    "vendor": "Stability AI",
+    "family": "stable-image-ultra",
+    "kind": "image",
+    "nativeMedia": true,
+    "adapter": "schema-stability",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10000
+        },
+        "aspect_ratio": {
+          "type": "string",
+          "enum": [
+            "16:9",
+            "1:1",
+            "21:9",
+            "2:3",
+            "3:2",
+            "4:5",
+            "5:4",
+            "9:16",
+            "9:21"
+          ]
+        },
+        "output_format": {
+          "type": "string",
+          "enum": [
+            "png",
+            "jpeg",
+            "webp"
+          ]
+        },
+        "negative_prompt": {
+          "type": "string",
+          "maxLength": 10000
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967294
+        }
+      },
+      "required": [
+        "prompt",
+        "aspect_ratio",
+        "output_format"
+      ],
+      "additionalProperties": false
+    },
+    "apiPath": "/v2beta/stable-image/generate/ultra",
+    "apiPrompt": "/prompt",
+    "referencePaths": [],
+    "params": {
+      "aspect_ratio": "1:1",
+      "output_format": "png"
+    },
+    "exampleReferences": [],
+    "pricingRule": {
+      "type": "stability",
+      "feeMicrousd": 80000
+    },
+    "mime": "image/png",
+    "duration": 1,
+    "resolution": "1k",
+    "aspect": "1:1",
+    "dimensions": [],
+    "codecs": [],
+    "audio": false,
+    "seed": true,
+    "maxPrompt": 10000,
+    "deadlineMs": 600000,
+    "feeMultiplier": 1,
+    "schemaUrl": "https://platform.stability.ai/docs/api-reference/",
+    "schemaCheckedAt": "2026-11-23",
+    "validationStatus": "documentation-reviewed",
+    "nativeCapabilities": {
+      "fields": [
+        "prompt",
+        "aspect_ratio",
+        "output_format",
+        "negative_prompt",
+        "seed"
+      ],
+      "maxReferences": 0,
+      "aspects": [
+        "16:9",
+        "1:1",
+        "21:9",
+        "2:3",
+        "3:2",
+        "4:5",
+        "5:4",
+        "9:16",
+        "9:21"
+      ],
+      "formats": [
+        "png",
+        "jpeg",
+        "webp"
+      ]
+    }
+  },
+  "studio/native/stability/stable-audio-2.5": {
+    "provider": "stability",
+    "apiModel": "stable-audio-2.5",
+    "name": "Stable Audio 2.5",
+    "vendor": "Stability AI",
+    "family": "stable-audio-2.5",
+    "kind": "audio",
+    "nativeMedia": true,
+    "adapter": "schema-stability",
+    "nativeSchema": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "duration": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 180
+        },
+        "output_format": {
+          "type": "string",
+          "enum": [
+            "mp3",
+            "wav"
+          ]
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967294
+        },
+        "model": {
+          "type": "string",
+          "const": "stable-audio-2.5"
+        },
+        "steps": {
+          "type": "integer",
+          "const": 8
+        },
+        "cfg_scale": {
+          "type": "integer",
+          "const": 1
+        }
+      },
+      "required": [
+        "prompt",
+        "duration",
+        "output_format",
+        "model",
+        "steps",
+        "cfg_scale"
+      ],
+      "additionalProperties": false
+    },
+    "apiPath": "/v2beta/audio/stable-audio-2/text-to-audio",
+    "apiPrompt": "/prompt",
+    "referencePaths": [],
+    "params": {
+      "duration": 30,
+      "output_format": "mp3",
+      "steps": 8,
+      "cfg_scale": 1
+    },
+    "exampleReferences": [],
+    "pricingRule": {
+      "type": "stability",
+      "feeMicrousd": 200000
+    },
+    "mime": "audio/mpeg",
+    "duration": 30,
+    "resolution": "audio",
+    "aspect": "none",
+    "dimensions": [],
+    "codecs": [],
+    "audio": true,
+    "seed": true,
+    "maxPrompt": 1000,
+    "deadlineMs": 600000,
+    "feeMultiplier": 1,
+    "schemaUrl": "https://github.com/Stability-AI/stability-sdk/blob/main/nbs/Stable_Audio_API.ipynb",
+    "schemaCheckedAt": "2026-11-23",
+    "validationStatus": "documentation-reviewed",
+    "nativeCapabilities": {
+      "fields": [
+        "prompt",
+        "duration",
+        "output_format",
+        "seed",
+        "model",
+        "steps",
+        "cfg_scale"
+      ],
+      "maxReferences": 0,
+      "aspects": [],
+      "formats": [
+        "mp3",
+        "wav"
+      ]
+    },
+    "apiModelField": "/model"
+  }
+}

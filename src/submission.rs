@@ -120,6 +120,8 @@ pub fn pika_http_error(status: u16, bytes: &[u8]) -> crate::Error {
 /// Hosts whose 4xx error bodies are read for a refusal code. The failure code
 /// itself still comes from the status (or the provider-specific parsers above).
 pub const PROVIDER_ERROR_HOSTS: &[&str] = &[
+    "api.vidu.com",
+    "api.stability.ai",
     "api.wavespeed.ai",
     "openrouter.ai",
     "api.openai.com",

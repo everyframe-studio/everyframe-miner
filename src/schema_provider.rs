@@ -18,8 +18,11 @@ impl Router<'_> {
         if model["ltx25"] == true && model["provider"] != "wavespeed" {
             return self.ltx25_submit(spec, model, body);
         }
-        if model["provider"] == "wavespeed" {
-            return self.wavespeed_submit(spec, model, body);
+        match model["provider"].as_str() {
+            Some("wavespeed") => return self.wavespeed_submit(spec, model, body),
+            Some("vidu") => return self.vidu_submit(spec, model, body),
+            Some("stability") => return self.stability_submit(spec, model, body),
+            _ => {}
         }
         if model["provider"] == "runway" {
             let data =
@@ -299,12 +302,14 @@ impl Router<'_> {
         if model["ltx25"] == true && model["provider"] != "wavespeed" {
             return self.ltx25_poll(reference, spec, model);
         }
-        if model["provider"] == "wavespeed" {
-            return self.wavespeed_poll(reference, spec, model);
+        match model["provider"].as_str() {
+            Some("wavespeed") => return self.wavespeed_poll(reference, spec, model),
+            Some("vidu") => return self.vidu_poll(reference, spec, model),
+            _ => {}
         }
         if model["adapter"] == "schema-minimax-tts"
             || model["adapter"] == "schema-minimax-image"
-            || model["provider"] == "elevenlabs"
+            || matches!(model["provider"].as_str(), Some("elevenlabs" | "stability"))
         {
             let id = native_media::reference_id(spec, reference)?;
             need(
@@ -383,12 +388,14 @@ impl Router<'_> {
         if model["ltx25"] == true && model["provider"] != "wavespeed" {
             return self.ltx25_result(reference, spec, model);
         }
-        if model["provider"] == "wavespeed" {
-            return self.wavespeed_result(reference, spec, model);
+        match model["provider"].as_str() {
+            Some("wavespeed") => return self.wavespeed_result(reference, spec, model),
+            Some("vidu") => return self.vidu_result(reference, spec, model),
+            _ => {}
         }
         if model["adapter"] == "schema-minimax-tts"
             || model["adapter"] == "schema-minimax-image"
-            || model["provider"] == "elevenlabs"
+            || matches!(model["provider"].as_str(), Some("elevenlabs" | "stability"))
         {
             self.schema_poll(reference, spec, model)?;
             let (_, _, media, hash) = self.speech.as_ref().unwrap();

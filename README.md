@@ -853,6 +853,8 @@ separate steps. The CLI does not initiate payouts.
 | Volcengine Ark (Beijing) | `volcengine` | `VOLCENGINE_API_KEY` |
 | Vivix (direct API) | `vivix` | `VIVIX_API_KEY` |
 | Kling (direct API) | `kling` | `KLING_API_KEY` |
+| Vidu (direct API) | `vidu` | `VIDU_API_KEY` |
+| Stability AI (direct API) | `stability` | `STABILITY_API_KEY` |
 | Fal | `fal` | `FAL_KEY` |
 | OpenRouter | `openrouter` | `OPENROUTER_API_KEY` |
 | Replicate | `replicate` | `REPLICATE_API_TOKEN` |

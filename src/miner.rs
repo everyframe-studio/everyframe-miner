@@ -395,8 +395,11 @@ impl Miner<'_> {
                 let mut query = url.query_pairs_mut();
                 query.append_pair("providerEnvironment", mode);
                 if mode == "native-v4" {
-                    // Older coordinators still see the compatible native-v4 mode.
+                    // Older coordinators still see the compatible native-v4/Foundry mode.
                     query.append_pair("foundry", "1");
+                    if payload["mediaProviders"] == true {
+                        query.append_pair("mediaProviders", "1");
+                    }
                 }
             }
             if action == "jobs" {

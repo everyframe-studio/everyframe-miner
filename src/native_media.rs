@@ -59,6 +59,12 @@ pub static MODELS: LazyLock<Value> = LazyLock::new(|| {
         assert!(models.get(id).is_none());
         models[id] = model.clone();
     }
+    let media: Value = serde_json::from_str(include_str!("../config/vidu-stability-models.json"))
+        .expect("reviewed Vidu and Stability AI models");
+    for (id, model) in media.as_object().unwrap() {
+        assert!(models.get(id).is_none());
+        models[id] = model.clone();
+    }
     models
 });
 

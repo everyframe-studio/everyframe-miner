@@ -1748,6 +1748,34 @@
     {
       "model": "studio/wavespeed/bytedance/seedance-2.5-flash/reference-to-video",
       "hash": "d71ca10d1f7e8ffc3a89eabeb829b9675b7f0d5a8db21bfe18fcb59db2853474"
+    },
+    {
+      "model": "studio/native/vidu/viduq3-turbo/text-to-video",
+      "hash": "ae9683ee4cd19ebfb4d34f1ddd59cd0f89341075864d19248e4a828e27566e71"
+    },
+    {
+      "model": "studio/native/vidu/viduq3-turbo/image-to-video",
+      "hash": "37b63b67408a18f85b8ead8241df37b8735c57d4317d91f5598008dd7eddfccc"
+    },
+    {
+      "model": "studio/native/vidu/viduq3-turbo/start-end-to-video",
+      "hash": "b9ecc63cc74f368aced0f284f3dca0e268c506ff36b7871a54c1329dbee3eee6"
+    },
+    {
+      "model": "studio/native/vidu/viduq4-preview/image-to-video",
+      "hash": "985fae31acbb78da3396455524005cd2336083790c68ced4603f3145709abae7"
+    },
+    {
+      "model": "studio/native/stability/stable-image-core",
+      "hash": "f1e036023aeb4e56fea1afd0854d47eecdee256e58d15a946a7ddadfd0fb789b"
+    },
+    {
+      "model": "studio/native/stability/stable-image-ultra",
+      "hash": "e2e398a994babcfbfb440ebdfdd54fd73f90e05b214c9abab6943fbbd5741e93"
+    },
+    {
+      "model": "studio/native/stability/stable-audio-2.5",
+      "hash": "204144dd847ac53b788f3d0fda2db5fde84917b128d320e3c4e6b842a4c0ae3c"
     }
   ],
   "numeric": {

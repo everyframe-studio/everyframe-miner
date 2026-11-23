@@ -161,6 +161,12 @@ fn balance_request(provider: &str, key: &str) -> Result<Request> {
             "X-API-Key",
             key.into(),
         ),
+        "stability" => (
+            "https://api.stability.ai/v1/user/balance",
+            "api.stability.ai",
+            "Authorization",
+            format!("Bearer {key}"),
+        ),
         "wavespeed" => (
             "https://api.wavespeed.ai/api/v3/balance",
             "api.wavespeed.ai",
@@ -216,6 +222,10 @@ fn balance_request(provider: &str, key: &str) -> Result<Request> {
 
 fn parse_usd_balance(provider: &str, v: &Value) -> Result<f64> {
     let n = match provider {
+        "stability" => {
+            crate::need(v["credits"].is_number(), "invalid_balance")?;
+            number(&v["credits"])? / 100.0
+        }
         "wavespeed" => {
             crate::need(
                 v["code"] == 200 && v["data"]["balance"].is_number(),

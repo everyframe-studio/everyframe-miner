@@ -154,10 +154,16 @@ impl Miner<'_> {
                 && info["status"] == "running",
             "unapproved_running_compose",
         )?;
+        let media_providers = pending["request"]["compose_file"]["allowed_envs"]
+            .as_array()
+            .is_some_and(|keys| {
+                keys.iter()
+                    .any(|key| key == "VIDU_API_KEY" || key == "STABILITY_API_KEY")
+            });
         let response = self.api(
             c,
             "worker-update",
-            json!({"providerEnvironment":"native-v4"}),
+            json!({"providerEnvironment":"native-v4","mediaProviders":media_providers}),
         )?;
         need(
             ["available", "current"].contains(&response["update"]["state"].as_str().unwrap_or("")),
@@ -480,7 +486,7 @@ impl Miner<'_> {
                 if automatic {
                     json!({})
                 } else {
-                    json!({"providerEnvironment":"native-v4"})
+                    json!({"providerEnvironment":"native-v4","mediaProviders":true})
                 },
             )?;
             let update = &discovery["update"];
