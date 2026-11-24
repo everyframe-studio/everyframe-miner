@@ -544,9 +544,7 @@ impl Miner<'_> {
             )?;
             let info = self.approved_target(&c)?;
             need(info["status"] == "running", "worker_not_running")?;
-            self.cloud(&c)?
-                .deployment_encryption_key(&info, &c.deployment)?;
-            let status = self.api(&c, "status", json!({}))?;
+            let mut status = self.api(&c, "status", json!({}))?;
             need(
                 status["appId"] == c.deployment["appId"]
                     && status["composeHash"] == c.invitation["composeHash"],
@@ -559,11 +557,26 @@ impl Miner<'_> {
             if c.deployment["providerConfigured"] == true {
                 cloud::environment(&inv, &c.credentials, true)?;
             }
+            let replacement = match self
+                .cloud(&c)?
+                .deployment_encryption_key(&info, &c.deployment)
+            {
+                Ok(_) => None,
+                Err(error) if !automatic && error.0 == "encryption_key_changed" => {
+                    Some(self.verified_phala_encryption_key(&c, &info, &status)?)
+                }
+                Err(error) => return Err(error),
+            };
             if check {
-                return Ok(
-                    json!({"ok":true,"state":"available","release":inv["release"],"appId":inv["appId"],
-                    "next":"Run everycli worker-update to install on this VM and restore its previous accepting/paused state. No changes made."}),
-                );
+                let mut result = json!({"ok":true,"state":"available","release":inv["release"],"appId":inv["appId"],
+                    "next":"Run everycli worker-update to install on this VM and restore its previous accepting/paused state. No changes made."});
+                if replacement.is_some() {
+                    result["encryptionKeyRefreshRequired"] = json!(true);
+                    result["reason"] = json!(
+                        "Phala’s signed encryption key has changed. The worker update will ask you to approve saving it for this VM."
+                    );
+                }
+                return Ok(result);
             }
             let controller = |compose: &Value| -> Result<Option<String>> {
                 if compose["allowed_envs"]
@@ -585,6 +598,25 @@ impl Miner<'_> {
             confirm(
                 "Update this existing VM, wait for attestation, reactivate previously enabled provider keys and restore its accepting/paused state? The VM may restart; active jobs drain first. Offers and discounts stay unchanged. Resumed work can incur provider charges.",
             )?;
+            if let Some(key) = replacement {
+                confirm(&format!(
+                    "Save the verified Phala encryption public key {key} for VM {} and continue the worker update?",
+                    s(&c.deployment["appId"])?
+                ))?;
+                // A review can stay open while the VM or its key changes.
+                let fresh_info = self.approved_target(&c)?;
+                status = self.api(&c, "status", json!({}))?;
+                need(
+                    status["draining"] == true || c.deployment["providerConfigured"] == true,
+                    "worker_update_original_profile_required",
+                )?;
+                need(
+                    self.verified_phala_encryption_key(&c, &fresh_info, &status)? == key,
+                    "encryption_key_changed",
+                )?;
+                c.deployment["encryptionKey"] = json!(key);
+                self.state.write("deployment", &c.deployment)?;
+            }
             flow = json!({"version":1,"stage":"draining","minerId":inv["minerId"],"appId":inv["appId"],
                 "fromComposeHash":c.invitation["composeHash"],"release":update["release"],
                 "restoreAccepting":status["draining"] == false,"reactivate":c.deployment["providerConfigured"] == true,

@@ -52,10 +52,6 @@ impl Miner<'_> {
     ) -> Result<Value> {
         let _lock = self.state.lock()?;
         let mut c = self.load(false)?;
-        need(
-            crate::n(&c.invitation["expiresAt"])? > now(),
-            "invitation_expired",
-        )?;
         let flow = self.state.read("worker-update", true)?;
         need(
             (flow.is_null() || flow["stage"] == "complete")
@@ -68,24 +64,54 @@ impl Miner<'_> {
                 .contains(&c.deployment["phase"].as_str().unwrap_or("")),
             "reconciliation_required",
         )?;
+        let status = self.api(&c, "status", json!({}))?;
+        let info = self.approved_target(&c)?;
+        let key = self.verified_phala_encryption_key(&c, &info, &status)?;
+        let pinned = s(&c.deployment["encryptionKey"])?.trim_start_matches("0x");
+        if key.eq_ignore_ascii_case(pinned) {
+            return Ok(
+                json!({"ok":true,"state":"current","refreshed":false,"workerChanged":false}),
+            );
+        }
+        confirm(
+            "Save the verified Phala encryption key for this existing VM? This updates the local profile. Apply saved provider keys separately when you are ready to restart the worker.",
+        )?;
+        c.deployment["encryptionKey"] = json!(key);
+        self.state.write("deployment", &c.deployment)?;
+        Ok(
+            json!({"ok":true,"state":"refreshed","refreshed":true,"workerChanged":false,
+            "next":"If you were updating the worker, continue with everycli worker-update. To apply saved provider keys to the current worker instead, run everycli apply-api-keys, then resume after fresh attestation."}),
+        )
+    }
+
+    /// Verify a replacement pin without changing the profile or VM.
+    pub(crate) fn verified_phala_encryption_key(
+        &self,
+        c: &Context,
+        info: &Value,
+        status: &Value,
+    ) -> Result<String> {
+        need(
+            crate::n(&c.invitation["expiresAt"])? > now(),
+            "invitation_expired",
+        )?;
         need(
             c.invitation["publicOnboarding"] == true
                 && c.invitation["request"]["image"] == "dstack-0.5.15"
                 && c.invitation["osImageHash"] == PHALA_OS_HASH,
             "phala_key_refresh_not_supported",
         )?;
-        self.ensure_ready(&c, &self.api(&c, "status", json!({}))?)?;
-        let info = self.approved_target(&c)?;
+        self.ensure_ready(c, status)?;
         need(
             info["status"] == "running"
                 && info["in_progress"] == false
-                && workload_os_matches(&info, &c.invitation) == Some(true)
+                && workload_os_matches(info, &c.invitation) == Some(true)
                 && info["kms_type"] == "phala"
                 && info["kms_info"]["chain_id"].is_null(),
             "phala_key_refresh_not_supported",
         )?;
         let app = s(&c.deployment["appId"])?;
-        let cloud = self.cloud(&c)?;
+        let cloud = self.cloud(c)?;
         let proof = cloud.encryption_key(app, "phala")?;
         let key = s(&proof["public_key"])?.trim_start_matches("0x");
         let metadata = s(&info["kms_info"]["encrypted_env_pubkey"])?.trim_start_matches("0x");
@@ -99,21 +125,7 @@ impl Miner<'_> {
             hex::encode(signer.to_encoded_point(true).as_bytes()) == PHALA_KMS_SIGNER,
             "invalid_phala_encryption_key_proof",
         )?;
-        let pinned = s(&c.deployment["encryptionKey"])?.trim_start_matches("0x");
-        if key.eq_ignore_ascii_case(pinned) {
-            return Ok(
-                json!({"ok":true,"state":"current","refreshed":false,"workerChanged":false}),
-            );
-        }
-        confirm(
-            "Save the verified Phala encryption key for this existing VM? This updates the local profile. Apply saved provider keys separately when you are ready to restart the worker.",
-        )?;
-        c.deployment["encryptionKey"] = json!(key.to_ascii_lowercase());
-        self.state.write("deployment", &c.deployment)?;
-        Ok(
-            json!({"ok":true,"state":"refreshed","refreshed":true,"workerChanged":false,
-            "next":"Run everycli apply-api-keys when ready to apply the saved keys, then resume after fresh attestation."}),
-        )
+        Ok(key.to_ascii_lowercase())
     }
 
     pub fn reconnect(
