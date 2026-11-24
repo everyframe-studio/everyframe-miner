@@ -1151,6 +1151,27 @@
           "when": "Close and reopen a running everycli ui after updating the CLI."
         }
       ]
+    },
+    {
+      "version": "v1.3.2",
+      "title": "Five new Seedance 2.5 providers",
+      "changes": [
+        "Configure VidLab, Higgsfield, Kie.ai, PiAPI, and Revana AI credentials for Seedance 2.5 text-to-video.",
+        "The new routes generate a five-second, silent landscape clip at 480p through Higgsfield or 720p through the other four providers."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "To serve the new routes, install a compatible signed worker when offered, apply your provider keys, then review the offers in Models."
+        },
+        {
+          "kind": "restart-ui",
+          "requirement": "conditional",
+          "when": "Close and reopen a running everycli ui after updating the CLI."
+        }
+      ]
     }
   ]
 }
