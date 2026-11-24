@@ -1920,6 +1920,10 @@
     {
       "model": "direct/revana/seedance-2.5",
       "hash": "43e2d94721b827b2a461e458ceccda654bc590aab853a4aa4601d0bbc2ad6b8e"
+    },
+    {
+      "model": "studio/higgsfield/sand/magi-2/text-to-video",
+      "hash": "76f8ac30c636f1262923f8203866599eb7c01931a7d9e8eec72535b0f8e31f8c"
     }
   ],
   "numeric": {

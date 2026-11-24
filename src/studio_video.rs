@@ -299,6 +299,16 @@ pub fn body(spec: &Value, urls: &[String]) -> Result<(String, Value)> {
         .ok_or(Error("unsupported_model"))?;
     body_with(spec, p, urls)
 }
+pub(crate) fn magi_endpoint(refs: &[Value]) -> &'static str {
+    if refs.iter().any(|r| r["role"] == "first") {
+        "sand/magi-2/image-to-video"
+    } else if refs.is_empty() {
+        "sand/magi-2/text-to-video"
+    } else {
+        "sand/magi-2/reference-to-video"
+    }
+}
+
 pub fn body_with(spec: &Value, p: &Value, urls: &[String]) -> Result<(String, Value)> {
     check_with(spec, p)?;
     let v = &spec["input"];
@@ -322,6 +332,31 @@ pub fn body_with(spec: &Value, p: &Value, urls: &[String]) -> Result<(String, Va
     let has_refs = !images.is_empty() || !videos.is_empty() || !audio.is_empty();
     let model = s(&p["apiModel"])?;
     let mut b = json!({"prompt":v["prompt"],"duration":v["duration"],"aspect_ratio":v["aspect"],"seed":v["seed"]});
+    if p["provider"] == "higgsfield" {
+        need(
+            model == "sand/magi-2/text-to-video",
+            "unsupported_studio_model",
+        )?;
+        b["resolution"] = v["resolution"].clone();
+        b["generate_audio"] = json!(true);
+        if let Some(url) = first {
+            b["image_url"] = json!(url);
+            if let Some(end) = last {
+                b["end_image_url"] = json!(end);
+            }
+        } else if has_refs {
+            for (key, urls) in [
+                ("image_urls", images),
+                ("video_urls", videos),
+                ("audio_urls", audio),
+            ] {
+                if !urls.is_empty() {
+                    b[key] = json!(urls);
+                }
+            }
+        }
+        return Ok((format!("/{}", magi_endpoint(refs)), b));
+    }
     if p["provider"] == "vivix" {
         b.as_object_mut().unwrap().remove("seed");
         if let Some(url) = first {
