@@ -487,6 +487,11 @@ function workerControls() {
 }
 
 const PROVIDERS = {
+  vidlab: ["VidLab", "Seedance 2.5 text-to-video."],
+  higgsfield: ["Higgsfield", "Seedance 2.5 text-to-video. Enter the complete key ID and secret joined by a colon."],
+  kie: ["Kie.ai", "Seedance 2.5 text-to-video."],
+  piapi: ["PiAPI", "Seedance 2.5 text-to-video."],
+  revana: ["Revana", "Seedance 2.5 text-to-video."],
   vidu: ["Vidu", "Direct Vidu Q3 Turbo and Q4 Preview video generation."],
   stability: ["Stability AI", "Direct Stable Image and Stable Audio generation."],
   "azure-foundry": ["Microsoft Azure AI Foundry", "MAI Image 2.7 and Flash from your Microsoft Foundry deployments."],

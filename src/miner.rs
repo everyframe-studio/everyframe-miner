@@ -399,6 +399,9 @@ impl Miner<'_> {
                 if mode == "native-v4" {
                     // Older coordinators still see the compatible native-v4/Foundry mode.
                     query.append_pair("foundry", "1");
+                    if payload["seedanceProviders"] == true {
+                        query.append_pair("seedanceProviders", "1");
+                    }
                     if payload["mediaProviders"] == true {
                         query.append_pair("mediaProviders", "1");
                     }

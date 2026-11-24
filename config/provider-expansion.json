@@ -542,5 +542,200 @@
     "documentationCheckedAt": "2026-10-22",
     "validationStatus": "documentation-reviewed",
     "description": "Veo 3.1 Lite (OpenRouter) via openrouter. Fixed text-only contract; paid generation, output validation, independent pricing and signed worker admission required before routing."
+  },
+  "direct/vidlab/seedance-2.5": {
+    "kind": "video",
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "deadlineMs": 480000,
+    "seed": false,
+    "audio": false,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "provider": "vidlab",
+    "apiModel": "seedance-2.5",
+    "name": "Seedance 2.5 (VidLab)",
+    "vendor": "ByteDance",
+    "family": "Seedance",
+    "params": {
+      "duration": 5,
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "generate_audio": false
+    },
+    "schemaUrl": "https://docs.vidlab.ai/models/seedance-2.5",
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-11-24",
+    "validationStatus": "documentation-reviewed",
+    "description": "Five-second landscape text-to-video generation through VidLab."
+  },
+  "direct/higgsfield/seedance-2.5": {
+    "kind": "video",
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "480p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        864,
+        480
+      ],
+      [
+        854,
+        480
+      ]
+    ],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "deadlineMs": 480000,
+    "seed": false,
+    "audio": false,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "provider": "higgsfield",
+    "apiModel": "bytedance/seedance-2.5/text-to-video",
+    "name": "Seedance 2.5 (Higgsfield)",
+    "vendor": "ByteDance",
+    "family": "Seedance",
+    "params": {
+      "duration": 5,
+      "resolution": "480p",
+      "aspect_ratio": "16:9",
+      "generate_audio": false,
+      "output_format": "mp4"
+    },
+    "schemaUrl": "https://open.higgsfield.ai/models/bytedance/seedance-2.5/text-to-video/api-reference",
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-11-24",
+    "validationStatus": "documentation-reviewed",
+    "description": "Five-second landscape text-to-video generation through Higgsfield."
+  },
+  "direct/kie/seedance-2.5": {
+    "kind": "video",
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "deadlineMs": 480000,
+    "seed": false,
+    "audio": false,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "provider": "kie",
+    "apiModel": "bytedance/seedance-2-5",
+    "name": "Seedance 2.5 (Kie.ai)",
+    "vendor": "ByteDance",
+    "family": "Seedance",
+    "params": {
+      "duration": 5,
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "generate_audio": false
+    },
+    "schemaUrl": "https://docs.kie.ai/market/bytedance/seedance-2-5",
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-11-24",
+    "validationStatus": "documentation-reviewed",
+    "description": "Five-second landscape text-to-video generation through Kie.ai."
+  },
+  "direct/piapi/seedance-2.5": {
+    "kind": "video",
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "deadlineMs": 480000,
+    "seed": false,
+    "audio": false,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "provider": "piapi",
+    "apiModel": "seedance-2.5",
+    "name": "Seedance 2.5 (PiAPI)",
+    "vendor": "ByteDance",
+    "family": "Seedance",
+    "params": {
+      "duration": 5,
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "audio": false
+    },
+    "schemaUrl": "https://piapi.ai/docs/seedance-api/seedance-25",
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-11-24",
+    "validationStatus": "documentation-reviewed",
+    "description": "Five-second landscape text-to-video generation through PiAPI."
+  },
+  "direct/revana/seedance-2.5": {
+    "kind": "video",
+    "mime": "video/mp4",
+    "duration": 5,
+    "resolution": "720p",
+    "aspect": "16:9",
+    "dimensions": [
+      [
+        1280,
+        720
+      ]
+    ],
+    "codecs": [
+      "h264",
+      "hevc"
+    ],
+    "deadlineMs": 480000,
+    "seed": false,
+    "audio": false,
+    "maxPrompt": 2000,
+    "feeMultiplier": 1,
+    "provider": "revana",
+    "apiModel": "seedance-2.5",
+    "name": "Seedance 2.5 (Revana)",
+    "vendor": "ByteDance",
+    "family": "Seedance",
+    "params": {
+      "duration": 5,
+      "resolution": "720p",
+      "aspect_ratio": "16:9",
+      "audio": false
+    },
+    "schemaUrl": "https://revana.si/models/seedance-2.5",
+    "schemaCheckedAt": null,
+    "documentationCheckedAt": "2026-11-24",
+    "validationStatus": "documentation-reviewed",
+    "description": "Five-second landscape text-to-video generation through Revana."
   }
 }

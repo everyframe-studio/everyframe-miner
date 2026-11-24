@@ -154,6 +154,22 @@ impl Miner<'_> {
                 && info["status"] == "running",
             "unapproved_running_compose",
         )?;
+        let seedance_providers = pending["request"]["compose_file"]["allowed_envs"]
+            .as_array()
+            .is_some_and(|keys| {
+                keys.iter().any(|key| {
+                    matches!(
+                        key.as_str(),
+                        Some(
+                            "VIDLAB_API_KEY"
+                                | "HF_CREDENTIALS"
+                                | "KIE_API_KEY"
+                                | "PIAPI_API_KEY"
+                                | "REVANA_API_KEY"
+                        )
+                    )
+                })
+            });
         let media_providers = pending["request"]["compose_file"]["allowed_envs"]
             .as_array()
             .is_some_and(|keys| {
@@ -163,7 +179,7 @@ impl Miner<'_> {
         let response = self.api(
             c,
             "worker-update",
-            json!({"providerEnvironment":"native-v4","mediaProviders":media_providers}),
+            json!({"providerEnvironment":"native-v4","mediaProviders":media_providers || seedance_providers,"seedanceProviders":seedance_providers}),
         )?;
         need(
             ["available", "current"].contains(&response["update"]["state"].as_str().unwrap_or("")),
@@ -486,7 +502,7 @@ impl Miner<'_> {
                 if automatic {
                     json!({})
                 } else {
-                    json!({"providerEnvironment":"native-v4","mediaProviders":true})
+                    json!({"providerEnvironment":"native-v4","mediaProviders":true,"seedanceProviders":true})
                 },
             )?;
             let update = &discovery["update"];

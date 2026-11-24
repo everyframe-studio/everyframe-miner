@@ -7,6 +7,9 @@ use everyframe_miner::{
 use serde_json::{Value, json};
 use std::cell::RefCell;
 
+const SEEDANCE_GATEWAYS: [&str; 5] = ["vidlab", "revana", "higgsfield", "kie", "piapi"];
+const MP4_FIXTURE: &[u8] = b"\0\0\0\x18ftypisom";
+
 struct Api {
     provider: String,
     spec: Value,
@@ -57,13 +60,70 @@ impl Http for Api {
             if self.provider == "google" {
                 assert!(r.headers.iter().any(|(k, _)| k == "x-goog-api-key"));
                 assert!(r.redirect_hosts.contains(&"*.googleusercontent.com".into()));
-            } else if !["elevenlabs", "openrouter"].contains(&self.provider.as_str()) {
+            } else if ["vidlab", "revana"].contains(&self.provider.as_str()) {
+                assert_eq!(path, "/v1/generations/job123/content");
+                assert!(
+                    r.headers
+                        .iter()
+                        .any(|(k, v)| k == "authorization" && v.starts_with("Bearer "))
+                );
+                assert!(!r.redirect_hosts.is_empty());
+            } else if !["elevenlabs", "openrouter", "revana", "vidlab"]
+                .contains(&self.provider.as_str())
+            {
                 assert!(r.headers.is_empty(), "credentials must not reach CDN");
             }
             json!(null)
         } else if r.method == "POST" {
             assert!(!r.headers.is_empty());
             match self.provider.as_str() {
+                "vidlab" | "revana" => {
+                    assert_eq!(path, "/v1/generations");
+                    assert_eq!(body["max_cost_usd"], 1.05);
+                    assert_eq!(body["model"], "seedance-2.5");
+                    assert_eq!(body["input"], self.spec["input"]);
+                    assert_eq!(
+                        body["input"][if self.provider == "vidlab" {
+                            "generate_audio"
+                        } else {
+                            "audio"
+                        }],
+                        false
+                    );
+                    assert!(r.headers.iter().any(|(k, _)| k == "Idempotency-Key"));
+                    if self.provider == "vidlab" {
+                        json!({"data":{"id":"job123"}})
+                    } else {
+                        json!({"id":"job123"})
+                    }
+                }
+                "higgsfield" => {
+                    assert_eq!(path, "/bytedance/seedance-2.5/text-to-video");
+                    assert_eq!(body, self.spec["input"]);
+                    assert!(
+                        r.headers
+                            .iter()
+                            .any(|(k, v)| k == "authorization" && v.starts_with("Key "))
+                    );
+                    json!({"request_id":"job123"})
+                }
+                "kie" => {
+                    assert_eq!(path, "/api/v1/jobs/createTask");
+                    assert_eq!(
+                        body,
+                        json!({"model":"bytedance/seedance-2-5","input":self.spec["input"]})
+                    );
+                    json!({"code":200,"data":{"taskId":"job123"}})
+                }
+                "piapi" => {
+                    assert_eq!(path, "/api/v1/task");
+                    assert!(r.headers.iter().any(|(k, _)| k == "X-API-Key"));
+                    assert_eq!(
+                        body,
+                        json!({"model":"seedance","task_type":"seedance-2.5","input":self.spec["input"]})
+                    );
+                    json!({"code":200,"data":{"task_id":"job123"}})
+                }
                 "kling" => {
                     assert_eq!(u.host_str(), Some("api-singapore.klingai.com"));
                     assert_eq!(path, "/text-to-video/kling-3.0");
@@ -123,6 +183,28 @@ impl Http for Api {
             }
         } else {
             match self.provider.as_str() {
+                "vidlab" | "revana" => {
+                    assert_eq!(path, "/v1/generations/job123");
+                    let job = json!({"id":native,"status":"succeeded","model":"seedance-2.5"});
+                    if self.provider == "vidlab" {
+                        json!({"data":job})
+                    } else {
+                        job
+                    }
+                }
+                "higgsfield" => {
+                    assert_eq!(path, "/requests/job123/status");
+                    json!({"request_id":native,"status":"completed","video":{"url":"https://media.higgsfield.ai/example.mp4"}})
+                }
+                "kie" => {
+                    assert_eq!(path, "/api/v1/jobs/recordInfo");
+                    assert_eq!(u.query(), Some("taskId=job123"));
+                    json!({"code":200,"data":{"taskId":native,"state":"success","resultJson":json!({"resultUrls":["https://tempfile.aiquickdraw.com/example.mp4"]}).to_string()}})
+                }
+                "piapi" => {
+                    assert_eq!(path, "/api/v1/task/job123");
+                    json!({"code":200,"data":{"task_id":native,"status":"completed","output":{"video":"https://img.theapi.app/example.mp4"}}})
+                }
                 "kling" => {
                     assert_eq!(u.host_str(), Some("api-singapore.klingai.com"));
                     assert_eq!(path, "/tasks");
@@ -169,11 +251,15 @@ impl Http for Api {
             }
         };
         self.calls.borrow_mut().push(r);
-        Ok(if media {
-            b"synthetic media".to_vec()
-        } else {
-            v.to_string().into_bytes()
-        })
+        Ok(
+            if media && SEEDANCE_GATEWAYS.contains(&self.provider.as_str()) {
+                MP4_FIXTURE.to_vec()
+            } else if media {
+                b"synthetic media".to_vec()
+            } else {
+                v.to_string().into_bytes()
+            },
+        )
     }
 }
 fn credentials() -> Value {
@@ -219,7 +305,12 @@ fn all_models_complete_through_their_provider_adapters() {
         let reference = router.submit(&spec).unwrap();
         assert_eq!(router.poll(&reference, &spec).unwrap(), "COMPLETED", "{id}");
         let output = router.result(&reference, &spec).unwrap();
-        assert_eq!(output.media, b"synthetic media", "{id}");
+        let expected: &[u8] = if SEEDANCE_GATEWAYS.contains(&api.provider.as_str()) {
+            MP4_FIXTURE
+        } else {
+            b"synthetic media"
+        };
+        assert_eq!(output.media, expected, "{id}");
         assert_eq!(output.response_hash.len(), 64);
         let calls = api.calls.borrow();
         assert_eq!(
@@ -327,7 +418,7 @@ fn expansion_preserves_original_registry_and_is_fixed_text_only() {
     }
     let added: Value =
         serde_json::from_str(include_str!("../config/provider-expansion.json")).unwrap();
-    assert_eq!(added.as_object().unwrap().len(), 15);
+    assert_eq!(added.as_object().unwrap().len(), 20);
     for (id, m) in added.as_object().unwrap() {
         assert!(original.get(id).is_none());
         assert!(
@@ -448,4 +539,87 @@ fn expanded_speech_is_bound_to_input_and_cannot_be_recovered_by_resubmitting() {
         assert!(restarted.result(&r, &s).is_err());
         assert_eq!(api.calls.borrow().len(), 1);
     }
+}
+
+#[test]
+fn seedance_key_checks_use_free_account_or_estimate_endpoints() {
+    use everyframe_miner::key_check::{Verdict, check};
+    struct Probe(&'static str, &'static str, Value);
+    impl Http for Probe {
+        fn bytes(&self, r: Request) -> Result<Vec<u8>> {
+            assert_eq!(r.url, self.0);
+            assert_eq!(r.method, self.1);
+            assert!(r.redirect_hosts.is_empty());
+            Ok(self.2.to_string().into_bytes())
+        }
+    }
+    for (provider, url, method, body) in [
+        (
+            "vidlab",
+            "https://vidlab.ai/v1/balance",
+            "GET",
+            json!({"data":{"available_usd":0}}),
+        ),
+        (
+            "revana",
+            "https://api.revana.si/v1/balance",
+            "GET",
+            json!({"available_usd":0}),
+        ),
+        (
+            "kie",
+            "https://api.kie.ai/api/v1/chat/credit",
+            "GET",
+            json!({"code":200,"data":0}),
+        ),
+        (
+            "piapi",
+            "https://api.piapi.ai/account/info",
+            "GET",
+            json!({"data":{"equivalent_in_usd":0}}),
+        ),
+        (
+            "higgsfield",
+            "https://api.higgsfield.ai/estimate/bytedance/seedance-2.5/text-to-video",
+            "POST",
+            json!({"usd":"0.5885"}),
+        ),
+    ] {
+        assert_eq!(
+            check(&Probe(url, method, body), provider, "fixture-key").0,
+            Verdict::Valid
+        );
+        assert_eq!(
+            check(&Probe(url, method, json!({})), provider, "fixture-key").0,
+            Verdict::Unverified
+        );
+    }
+}
+
+#[test]
+fn seedance_gateway_failures_preserve_unknown_submissions_and_moderation() {
+    struct Reply(Value);
+    impl Http for Reply {
+        fn bytes(&self, _: Request) -> Result<Vec<u8>> {
+            Ok(self.0.to_string().into_bytes())
+        }
+    }
+    for provider in ["kie", "piapi"] {
+        let spec = spec(&format!("direct/{provider}/seedance-2.5"));
+        for (code, category) in [
+            (401, Some("provider_auth_rejected")),
+            (402, Some("provider_billing_required")),
+            (429, Some("provider_capacity_limited")),
+            (500, None),
+        ] {
+            let http = Reply(json!({"code":code}));
+            let error = Router::new(&http, credentials()).submit(&spec).unwrap_err();
+            assert_eq!(everyframe_miner::submission::rejected(error.0), category);
+        }
+    }
+    let http = Reply(json!({"request_id":"task","status":"nsfw"}));
+    let err = Router::new(&http, credentials())
+        .poll("higgsfield_task", &spec("direct/higgsfield/seedance-2.5"))
+        .unwrap_err();
+    assert_eq!(err.0, "provider_content_rejected");
 }

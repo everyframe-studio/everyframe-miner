@@ -121,6 +121,11 @@ pub fn pika_http_error(status: u16, bytes: &[u8]) -> crate::Error {
 /// itself still comes from the status (or the provider-specific parsers above).
 pub const PROVIDER_ERROR_HOSTS: &[&str] = &[
     "api.vidu.com",
+    "vidlab.ai",
+    "api.revana.si",
+    "api.higgsfield.ai",
+    "api.kie.ai",
+    "api.piapi.ai",
     "api.stability.ai",
     "api.wavespeed.ai",
     "openrouter.ai",

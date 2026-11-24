@@ -859,11 +859,18 @@ separate steps. The CLI does not initiate payouts.
 | Kling (direct API) | `kling` | `KLING_API_KEY` |
 | Vidu (direct API) | `vidu` | `VIDU_API_KEY` |
 | Stability AI (direct API) | `stability` | `STABILITY_API_KEY` |
+| VidLab | `vidlab` | `VIDLAB_API_KEY` |
+| Higgsfield | `higgsfield` | `HF_CREDENTIALS` (complete key ID and secret, joined by a colon) |
+| Kie.ai | `kie` | `KIE_API_KEY` |
+| PiAPI | `piapi` | `PIAPI_API_KEY` |
+| Revana | `revana` | `REVANA_API_KEY` |
 | Fal | `fal` | `FAL_KEY` |
 | OpenRouter | `openrouter` | `OPENROUTER_API_KEY` |
 | Replicate | `replicate` | `REPLICATE_API_TOKEN` |
 | Pika H3 Flex | `pika` | `PIKA_API_KEY` |
 | WaveSpeedAI | `wavespeed` | `WAVESPEED_API_KEY` |
+
+The VidLab, Higgsfield, Kie.ai, PiAPI, and Revana adapters each support a five-second, landscape Seedance 2.5 text-to-video job. Higgsfield uses 480p and the other four use 720p. These routes require a compatible signed worker and a coordinator catalog that enables them.
 
 Use the key for the provider serving the contract, not just the model's brand.
 For example, a MiniMax model served through Fal uses `FAL_KEY`; the direct

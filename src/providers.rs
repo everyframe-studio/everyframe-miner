@@ -75,6 +75,11 @@ fn prefix(p: &str) -> &str {
         "vivix" => "https://api.vivix.ai",
         "kling" => "https://api-singapore.klingai.com",
         "pika" => "https://api.dev.pika.art",
+        "vidlab" => "https://vidlab.ai",
+        "revana" => "https://api.revana.si",
+        "higgsfield" => "https://api.higgsfield.ai",
+        "kie" => "https://api.kie.ai",
+        "piapi" => "https://api.piapi.ai",
         _ => "",
     }
 }
@@ -148,13 +153,13 @@ impl<'a> Router<'a> {
             .1;
         let key = s(&self.credentials[key])?;
         let mut h = match p {
-            "fal" => vec![("authorization".into(), format!("Key {key}"))],
+            "fal" | "higgsfield" => vec![("authorization".into(), format!("Key {key}"))],
             "vidu" => vec![("authorization".into(), format!("Token {key}"))],
             "bfl" => vec![("x-key".into(), key.into())],
             "azure-foundry" => return Err(Error("unsupported_provider")),
             "google" => vec![("x-goog-api-key".into(), key.into())],
             "elevenlabs" => vec![("xi-api-key".into(), key.into())],
-            "pika" => vec![("X-API-Key".into(), key.into())],
+            "pika" | "piapi" => vec![("X-API-Key".into(), key.into())],
             _ => vec![("authorization".into(), format!("Bearer {key}"))],
         };
         if p == "runway" {
@@ -196,10 +201,30 @@ impl<'a> Router<'a> {
             req.limit = 16 * 1024 * 1024;
         }
         if let Some(b) = body {
+            if matches!(p, "vidlab" | "revana" | "higgsfield") {
+                req.headers
+                    .push(("Idempotency-Key".into(), crate::protocol::id()));
+            }
             req = req.json("POST", b);
             self.guard_submission(&mut req)?;
         };
         let data = self.provider_json(p, req)?;
+        if matches!(p, "kie" | "piapi") {
+            if data["code"] != 200 {
+                let error = match data["code"].as_i64() {
+                    Some(401) => Error("provider_auth_rejected"),
+                    Some(402) => Error("provider_billing_required"),
+                    Some(429) => Error("provider_capacity_limited"),
+                    // A server error or malformed reply cannot prove a paid submission failed.
+                    _ => Error("invalid_provider_response"),
+                };
+                return Err(self.provider_failure(error, p, &data));
+            }
+            return Ok(data["data"].clone());
+        }
+        if p == "vidlab" {
+            return Ok(data["data"].clone());
+        }
         if p == "pika" && body.is_some() {
             if data["status"] == "failed" {
                 return Err(self.provider_failure(
@@ -526,6 +551,26 @@ impl<'a> Router<'a> {
     fn read(&self, r: &str, spec: &Value, m: &Value, p: &str) -> Result<Value> {
         let model = m["apiModel"].as_str().unwrap_or("");
         let data = match p {
+            "vidlab" | "revana" | "higgsfield" | "kie" | "piapi" => {
+                let (path, id_field) = match p {
+                    "vidlab" | "revana" => (format!("/v1/generations/{r}"), "id"),
+                    "higgsfield" => (format!("/requests/{r}/status"), "request_id"),
+                    "kie" => (format!("/api/v1/jobs/recordInfo?taskId={r}"), "taskId"),
+                    _ => (format!("/api/v1/task/{r}"), "task_id"),
+                };
+                let job = self.api(p, &path, None)?;
+                need(job[id_field] == r, "provider_id_mismatch")?;
+                let returned_model = if p == "piapi" {
+                    &job["task_type"]
+                } else {
+                    &job["model"]
+                };
+                need(
+                    returned_model.is_null() || returned_model == model,
+                    "provider_model_mismatch",
+                )?;
+                job
+            }
             "vivix" => {
                 let d = self.api(p, &format!("/v1/videos/jobs/{r}"), None)?;
                 need(d["job_id"] == r, "provider_id_mismatch")?;
@@ -668,7 +713,7 @@ impl<'a> Router<'a> {
         if p == "bfl" {
             return crate::bfl::poll_status(&d["status"]);
         }
-        let st = s(if p == "luma" {
+        let st = s(if matches!(p, "luma" | "kie") {
             &d["state"]
         } else {
             &d["status"]
@@ -703,6 +748,25 @@ impl<'a> Router<'a> {
                 &["RUNNING"],
                 &["SUCCEEDED"],
                 &["FAILED", "CANCELLED"],
+            ),
+            "vidlab" | "revana" => (&["queued"], &["running"], &["succeeded"], &["failed"]),
+            "higgsfield" => (
+                &["queued"],
+                &["in_progress"],
+                &["completed"],
+                &["failed", "nsfw", "canceled"],
+            ),
+            "kie" => (
+                &["waiting", "queuing"],
+                &["generating"],
+                &["success"],
+                &["fail"],
+            ),
+            "piapi" => (
+                &["pending", "staged"],
+                &["processing"],
+                &["completed"],
+                &["failed"],
             ),
             "luma" => (&["queued"], &["dreaming"], &["completed"], &["failed"]),
             "vivix" => (&["queued"], &["processing"], &["succeeded"], &["failed"]),
@@ -903,6 +967,32 @@ impl Provider for Router<'_> {
         let input = &spec["input"];
         let mut body = input.clone();
         let result = match p.as_str() {
+            "vidlab" | "revana" => reference(
+                &self.api(
+                    &p,
+                    "/v1/generations",
+                    Some(&json!({
+                        "model":model,"input":input,"max_cost_usd":1.05
+                    })),
+                )?["id"],
+            )?,
+            "higgsfield" => reference(
+                &self.api(&p, "/bytedance/seedance-2.5/text-to-video", Some(input))?["request_id"],
+            )?,
+            "kie" => reference(
+                &self.api(
+                    &p,
+                    "/api/v1/jobs/createTask",
+                    Some(&json!({"model":model,"input":input})),
+                )?["taskId"],
+            )?,
+            "piapi" => reference(
+                &self.api(
+                    &p,
+                    "/api/v1/task",
+                    Some(&json!({"model":"seedance","task_type":model,"input":input})),
+                )?["task_id"],
+            )?,
             "kling" => {
                 body.as_object_mut().unwrap().remove("prompt");
                 let d = self.api(
@@ -1189,6 +1279,50 @@ impl Provider for Router<'_> {
         )?;
         let mut metadata = data.clone();
         let media = match p.as_str() {
+            "vidlab" | "revana" => {
+                let host = prefix(&p).trim_start_matches("https://");
+                let delivery = if p == "vidlab" {
+                    "*.vidlab.ai"
+                } else {
+                    "*.revana.si"
+                };
+                self.download(
+                    &p,
+                    &format!("{}/v1/generations/{r}/content", prefix(&p)),
+                    &[host],
+                    Some(&p),
+                    &[host, delivery],
+                )?
+            }
+            "higgsfield" => self.download(
+                &p,
+                s(&data["video"]["url"])?,
+                &["*.higgsfield.ai"],
+                None,
+                &[],
+            )?,
+            "piapi" => self.download(
+                &p,
+                s(&data["output"]["video"])?,
+                &["img.theapi.app"],
+                None,
+                &[],
+            )?,
+            "kie" => {
+                let result: Value = serde_json::from_str(s(&data["resultJson"])?)
+                    .map_err(|_| Error("provider_no_media"))?;
+                let urls = result["resultUrls"]
+                    .as_array()
+                    .ok_or(Error("provider_no_media"))?;
+                need(urls.len() == 1, "provider_no_media")?;
+                self.download(
+                    &p,
+                    s(&urls[0])?,
+                    &["tempfile.aiquickdraw.com", "*.kie.ai"],
+                    None,
+                    &[],
+                )?
+            }
             "pika" => {
                 need(
                     data["deleted_at"].is_null()
@@ -1338,6 +1472,12 @@ impl Provider for Router<'_> {
             }
             _ => return Err(Error("unsupported_provider")),
         };
+        if matches!(
+            p.as_str(),
+            "vidlab" | "revana" | "higgsfield" | "kie" | "piapi"
+        ) {
+            need(media.get(4..8) == Some(b"ftyp"), "invalid_provider_media")?;
+        }
         Ok(Output {
             media,
             response_hash: sha(metadata.to_string()),
@@ -1348,6 +1488,9 @@ impl Provider for Router<'_> {
 /// Classifies a provider's failure payload into one of the categories the
 /// coordinator accepts. Diagnostic wording is reported separately and never changes it.
 pub fn failure_category(provider: &str, data: &Value) -> &'static str {
+    if provider == "higgsfield" && data["status"] == "nsfw" {
+        return "provider_content_rejected";
+    }
     if provider == "wavespeed" {
         return match crate::wavespeed::error(data["code"].as_i64().unwrap_or(1403)).0 {
             "wavespeed_auth_rejected" => "provider_auth_rejected",
@@ -1445,6 +1588,9 @@ pub fn failure_category(provider: &str, data: &Value) -> &'static str {
 /// error fields only (never request echoes such as input or loc); an error that
 /// quotes the prompt can at worst pick a different fixed customer message.
 pub fn refusal(provider: &str, data: &Value) -> Option<&'static str> {
+    if provider == "higgsfield" && data["status"] == "nsfw" {
+        return Some("content_policy");
+    }
     if provider == "wavespeed" && data["code"] == 1200 {
         return Some("content_policy");
     }
@@ -1567,14 +1713,14 @@ fn failure_fields(data: &Value, depth: usize, codes: &mut Vec<String>, messages:
             }
         }
         Value::Object(fields) => {
-            for key in ["code", "type", "error_code", "failureCode"] {
+            for key in ["code", "type", "error_code", "failureCode", "failCode"] {
                 if let Some(code) = fields.get(key).and_then(Value::as_str)
                     && code.len() <= 128
                 {
                     codes.push(code.to_ascii_lowercase());
                 }
             }
-            for key in ["message", "msg", "error_message"] {
+            for key in ["message", "msg", "error_message", "failMsg"] {
                 if let Some(text) = fields.get(key).and_then(Value::as_str) {
                     messages.push(text.chars().take(2048).collect::<String>().to_lowercase());
                 }

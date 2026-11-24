@@ -141,8 +141,32 @@ pub fn worker_reports(http: &dyn Http, credentials: &Value) -> Vec<Value> {
         .collect()
 }
 
-fn balance_request(provider: &str, key: &str) -> Result<Request> {
+pub(crate) fn balance_request(provider: &str, key: &str) -> Result<Request> {
     let (url, host, header, value) = match provider {
+        "vidlab" => (
+            "https://vidlab.ai/v1/balance",
+            "vidlab.ai",
+            "Authorization",
+            format!("Bearer {key}"),
+        ),
+        "revana" => (
+            "https://api.revana.si/v1/balance",
+            "api.revana.si",
+            "Authorization",
+            format!("Bearer {key}"),
+        ),
+        "kie" => (
+            "https://api.kie.ai/api/v1/chat/credit",
+            "api.kie.ai",
+            "Authorization",
+            format!("Bearer {key}"),
+        ),
+        "piapi" => (
+            "https://api.piapi.ai/account/info",
+            "api.piapi.ai",
+            "X-API-Key",
+            key.into(),
+        ),
         "fal-user" => (
             "https://rest.alpha.fal.ai/billing/user_balance",
             "rest.alpha.fal.ai",
@@ -220,8 +244,18 @@ fn balance_request(provider: &str, key: &str) -> Result<Request> {
     Ok(req)
 }
 
-fn parse_usd_balance(provider: &str, v: &Value) -> Result<f64> {
+pub(crate) fn parse_usd_balance(provider: &str, v: &Value) -> Result<f64> {
     let n = match provider {
+        "vidlab" => number(&v["data"]["available_usd"])?,
+        "revana" => number(&v["available_usd"])?,
+        "kie" => {
+            crate::need(v["code"] == 200, "invalid_balance")?;
+            number(&v["data"])? * 0.005
+        }
+        "piapi" => {
+            let account = v.get("data").unwrap_or(v);
+            number(&account["equivalent_in_usd"])?
+        }
         "stability" => {
             crate::need(v["credits"].is_number(), "invalid_balance")?;
             number(&v["credits"])? / 100.0

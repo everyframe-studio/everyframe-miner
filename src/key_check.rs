@@ -191,16 +191,32 @@ pub(crate) fn check_with_timeout(
             Err(_) => (Verdict::Rejected, "invalid_foundry_credentials"),
         };
     }
-    let Some(p) = probe(provider, key) else {
-        return (Verdict::Unverified, "key_check_unsupported");
+    let mut req = if matches!(provider, "vidlab" | "revana" | "kie" | "piapi") {
+        let Ok(request) = crate::balances::balance_request(provider, key) else {
+            return (Verdict::Unverified, "key_check_unsupported");
+        };
+        request
+    } else if provider == "higgsfield" {
+        // An authenticated cost estimate does not create a generation.
+        let mut request = Request::get("https://api.higgsfield.ai/estimate/bytedance/seedance-2.5/text-to-video", &["api.higgsfield.ai"])
+            .json("POST", &json!({"prompt":"A sailboat","duration":5,"resolution":"480p","aspect_ratio":"16:9","generate_audio":false}));
+        request
+            .headers
+            .push(("Authorization".into(), format!("Key {key}")));
+        request
+    } else {
+        let Some(p) = probe(provider, key) else {
+            return (Verdict::Unverified, "key_check_unsupported");
+        };
+        let mut request = Request::get(p.url, &[p.host]);
+        request.headers = p.headers;
+        request
     };
-    let mut req = Request::get(p.url, &[p.host]);
-    req.headers = p.headers;
     req.timeout = timeout_seconds;
     req.limit = 256_000;
     match http.json(req) {
         Ok(v) => {
-            if provider == "wavespeed" && v["code"] == 401 {
+            if matches!(provider, "kie" | "piapi" | "wavespeed") && v["code"] == 401 {
                 return (Verdict::Rejected, "key_rejected");
             }
             if provider == "kling" {
@@ -229,6 +245,13 @@ pub(crate) fn check_with_timeout(
                 };
             }
             let recognized = match provider {
+                "vidlab" | "revana" | "kie" | "piapi" => {
+                    crate::balances::parse_usd_balance(provider, &v).is_ok()
+                }
+                "higgsfield" => v["usd"]
+                    .as_f64()
+                    .or_else(|| v["usd"].as_str()?.parse().ok())
+                    .is_some_and(|usd| usd.is_finite() && usd >= 0.0),
                 "vidu" => v["remains"].is_array() || v["remaining_credits"].is_array(),
                 "stability" => v["credits"].as_f64().is_some_and(|n| n >= 0.0),
                 "wavespeed" => v["code"] == 200 && v["data"]["balance"].is_number(),
