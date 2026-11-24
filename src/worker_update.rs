@@ -562,7 +562,7 @@ impl Miner<'_> {
                 .deployment_encryption_key(&info, &c.deployment)
             {
                 Ok(_) => None,
-                Err(error) if !automatic && error.0 == "encryption_key_changed" => {
+                Err(error) if error.0 == "encryption_key_changed" => {
                     Some(self.verified_phala_encryption_key(&c, &info, &status)?)
                 }
                 Err(error) => return Err(error),
@@ -573,7 +573,7 @@ impl Miner<'_> {
                 if replacement.is_some() {
                     result["encryptionKeyRefreshRequired"] = json!(true);
                     result["reason"] = json!(
-                        "Phala’s signed encryption key has changed. The worker update will ask you to approve saving it for this VM."
+                        "Phala’s signed encryption key has changed. The worker update will verify it again and refresh it when you approve the update."
                     );
                 }
                 return Ok(result);
@@ -595,14 +595,14 @@ impl Miner<'_> {
                     "This signed release upgrades the isolated automatic-update controller on the same VM. Its persistent state may contain the management credentials you previously enrolled. Review this controller migration before continuing.",
                 )?;
             }
-            confirm(
+            let mut question = String::from(
                 "Update this existing VM, wait for attestation, reactivate previously enabled provider keys and restore its accepting/paused state? The VM may restart; active jobs drain first. Offers and discounts stay unchanged. Resumed work can incur provider charges.",
-            )?;
-            if let Some(key) = replacement {
-                confirm(&format!(
-                    "Save the verified Phala encryption public key {key} for VM {} and continue the worker update?",
-                    s(&c.deployment["appId"])?
-                ))?;
+            );
+            if let Some(key) = &replacement {
+                question.push_str(&format!(" This update also refreshes the verified Phala encryption public key to {key} for VM {}.", s(&c.deployment["appId"])?));
+            }
+            confirm(&question)?;
+            if let Some(key) = &replacement {
                 // A review can stay open while the VM or its key changes.
                 let fresh_info = self.approved_target(&c)?;
                 status = self.api(&c, "status", json!({}))?;
@@ -611,11 +611,9 @@ impl Miner<'_> {
                     "worker_update_original_profile_required",
                 )?;
                 need(
-                    self.verified_phala_encryption_key(&c, &fresh_info, &status)? == key,
+                    self.verified_phala_encryption_key(&c, &fresh_info, &status)? == *key,
                     "encryption_key_changed",
                 )?;
-                c.deployment["encryptionKey"] = json!(key);
-                self.state.write("deployment", &c.deployment)?;
             }
             flow = json!({"version":1,"stage":"draining","minerId":inv["minerId"],"appId":inv["appId"],
                 "fromComposeHash":c.invitation["composeHash"],"release":update["release"],
@@ -639,6 +637,11 @@ impl Miner<'_> {
                 )?;
                 flow["automatic"] = json!(true);
                 flow["rollback"] = recovery["rollback"].clone();
+            }
+            if let Some(key) = replacement {
+                c.deployment["encryptionKey"] = json!(key);
+                self.state.write("deployment", &c.deployment)?;
+                progress("Refreshed the verified Phala encryption key for this VM.");
             }
             self.state.write("worker-update", &flow)?;
         } else {

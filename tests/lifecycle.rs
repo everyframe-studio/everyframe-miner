@@ -2819,7 +2819,7 @@ impl Http for Rig {
                 status["automaticUpdates"] = json!({"enabled":body["enabled"],"appId":body["appId"],"capsuleId":capsule,"report":report});
             }
             if action == "worker-auto-update-report" {
-                status["automaticUpdates"]["report"] = json!({"state":body["state"],"pending":body["pending"],"composeHash":status["composeHash"]});
+                status["automaticUpdates"]["report"] = json!({"state":body["state"],"code":body["code"],"pending":body["pending"],"composeHash":status["composeHash"]});
             }
             if action == "bind-app" {
                 // Coordinator: an unbound enrollment rejects previousAppId.
@@ -3474,34 +3474,40 @@ fn changed_app_encryption_key_blocks_key_apply_and_worker_update_before_draining
     assert_eq!(r.status.borrow()["draining"], false);
     assert!(r.state().read("worker-update", true).unwrap().is_null());
 }
-#[test]
-fn worker_update_reviews_verified_pin_before_draining() {
+fn stage_rotated_phala_key(r: &mut Rig, mut next: Value) -> (&'static str, &'static str) {
     // Public Phala proof for the synthetic app ID 0x111…111 used by Rig.
     let key = "986e2a5282230b05cc0d2b8a2b5b5f4552761cbbe9a775a40271e1ea146ef613";
     let signature = "b25c9c3a392677abe52392f5aab21483dd1a0c236859b5bfb81063e955262b0f0a829effc052a89bf188cdaae70d1766d39e9fecdf7ceaac229e344056059d5f01";
-    let r = Rig::new();
-    let mut next = r.staged_update(true, true)["value"].clone();
-    let mut current = r.inv.clone();
-    for inv in [&mut current, &mut next] {
+    let current = &mut r.inv;
+    for inv in [&mut *current, &mut next] {
         inv["publicOnboarding"] = json!(true);
         inv["request"]["image"] = json!("dstack-0.5.15");
         inv["osImageHash"] =
             json!("4597735f1a38ad8ec9f781356b88737fc052062deb7c9aaa4be89bf1b35643ca");
     }
-    let old = r.state().read("deployment", false).unwrap();
     let mut config = r.state().read("config", false).unwrap();
-    config["invitation"] = r.sign(&current);
+    config["invitation"] = r.sign(&r.inv);
     r.state().write("config", &config).unwrap();
     r.status.borrow_mut()["update"]["release"] = r.sign(&next);
     r.status.borrow_mut()["activeJobs"] = json!(1);
     {
         let mut info = r.info.borrow_mut();
         info["in_progress"] = json!(false);
-        info["os_image_hash"] = current["osImageHash"].clone();
+        info["os_image_hash"] = r.inv["osImageHash"].clone();
         info["kms_type"] = json!("phala");
         info["kms_info"] = json!({"encrypted_env_pubkey":key});
     }
-    *r.kms_proof.borrow_mut() = Some(json!({"public_key":key,"signature":"00".repeat(65)}));
+    *r.kms_proof.borrow_mut() = Some(json!({"public_key":key,"signature":signature}));
+    (key, signature)
+}
+
+#[test]
+fn worker_update_reviews_verified_pin_before_draining() {
+    let mut r = Rig::new();
+    let next = r.staged_update(true, true)["value"].clone();
+    let (key, signature) = stage_rotated_phala_key(&mut r, next);
+    let old = r.state().read("deployment", false).unwrap();
+    r.kms_proof.borrow_mut().as_mut().unwrap()["signature"] = json!("00".repeat(65));
     let run = |check, confirm: &dyn Fn(&str) -> Result<()>| {
         r.miner()
             .worker_update_with_wait(check, confirm, &|_| {}, &|_| false)
@@ -3546,19 +3552,34 @@ fn worker_update_reviews_verified_pin_before_draining() {
 }
 
 #[test]
-fn automatic_worker_update_keeps_the_existing_encryption_pin() {
-    let (r, _) = Rig::staged_automatic_update();
+fn enrolled_updater_refreshes_verified_pin_and_reports_unverified_changes() {
+    let (mut r, next) = Rig::staged_automatic_update();
+    let (key, signature) = stage_rotated_phala_key(&mut r, next["value"].clone());
     let old = r.state().read("deployment", false).unwrap();
-    r.info.borrow_mut()["kms_info"] = json!({"encrypted_env_pubkey":"2a".repeat(32)});
-    assert_eq!(
-        r.miner()
-            .worker_update_automatic_with_wait(&|_| panic!())
-            .unwrap_err()
-            .0,
-        "encryption_key_changed"
-    );
+    r.kms_proof.borrow_mut().as_mut().unwrap()["signature"] = Value::Null;
+    let result = r.miner().worker_auto_tick().unwrap();
+    assert_eq!(result["code"], "invalid_phala_encryption_key_proof");
     assert_eq!(r.state().read("deployment", false).unwrap(), old);
     assert_eq!(r.status.borrow()["draining"], false);
+    assert!(r.state().read("worker-update", true).unwrap().is_null());
+    let settings = r.miner().worker_auto_settings(None, &|_| panic!()).unwrap();
+    assert_eq!(settings["encryptionKeyReminder"]["code"], result["code"]);
+    let text = everyframe_miner::display::render("worker-auto-update", &settings);
+    assert!(text.contains("everycli reconnect --refresh-encryption-key"));
+    r.kms_proof.borrow_mut().as_mut().unwrap()["signature"] = json!(signature);
+    let mut settings = r.state().read("worker-auto-update", false).unwrap();
+    settings["lastCheckedAt"] = json!(now() - 300_001);
+    r.state().write("worker-auto-update", &settings).unwrap();
+    assert_eq!(r.miner().worker_auto_tick().unwrap()["stage"], "draining");
+    assert_eq!(
+        r.state().read("deployment", false).unwrap()["encryptionKey"],
+        key
+    );
+    assert_eq!(r.status.borrow()["draining"], true);
+    assert!(
+        r.miner().worker_auto_settings(None, &|_| panic!()).unwrap()["encryptionKeyReminder"]
+            .is_null()
+    );
 }
 
 #[test]

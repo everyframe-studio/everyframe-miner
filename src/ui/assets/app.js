@@ -2189,6 +2189,7 @@ function workerAutoCard() {
   enable.disabled = recoveryPending || enabled !== false || !workerControls().exists || savedWorkerUpdate() || S.pendingOperations.size > 0; disable.disabled = recoveryPending || enabled !== true;
   const panel = card("Automatic worker updates", null,
     workerUpdateNotice(),
+    v?.encryptionKeyReminder ? notice("warn", v.encryptionKeyReminder.message, v.encryptionKeyReminder.next) : null,
     recoveryPending ? h("div", {class:"notice warn"}, h("b",null,"Automatic-update enrollment needs recovery"),
       h("p",null,"Check the saved enrollment before changing automation. Your profile and restart record have been preserved."),
       button("Reconcile enrollment", async () => { await run("reconcile"); await loadWorkerAuto(); await refreshAll(); }, "small")) : null,

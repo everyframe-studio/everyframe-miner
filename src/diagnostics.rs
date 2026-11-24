@@ -12,6 +12,21 @@ macro_rules! reasons {
 }
 reasons![
     (
+        "encryption_key_changed",
+        "Phala reported a different encryption public key for this VM.",
+        "From the original profile, run everycli reconnect --refresh-encryption-key to verify the key."
+    ),
+    (
+        "invalid_phala_encryption_key_proof",
+        "Phala’s key signature or VM key metadata could not be verified.",
+        "Check everycli status from the original profile and run everycli reconnect --refresh-encryption-key. If verification still fails, keep the saved key and share the error code with support."
+    ),
+    (
+        "phala_key_refresh_not_supported",
+        "This worker does not meet the requirements for a verified Phala encryption key refresh.",
+        "Check the worker’s signed OS and attestation with everycli status from the original profile. Share the error code with support."
+    ),
+    (
         "invalid_foundry_credentials",
         "The Microsoft Foundry credential JSON is invalid.",
         "Use a resource name, API key, and deployments with a standard or flash deployment name. See AZURE-FOUNDRY.md."

@@ -113,13 +113,22 @@ impl Miner<'_> {
         let app = s(&c.deployment["appId"])?;
         let cloud = self.cloud(c)?;
         let proof = cloud.encryption_key(app, "phala")?;
-        let key = s(&proof["public_key"])?.trim_start_matches("0x");
-        let metadata = s(&info["kms_info"]["encrypted_env_pubkey"])?.trim_start_matches("0x");
+        let key = proof["public_key"]
+            .as_str()
+            .ok_or(Error("invalid_phala_encryption_key_proof"))?
+            .trim_start_matches("0x");
+        let metadata = info["kms_info"]["encrypted_env_pubkey"]
+            .as_str()
+            .ok_or(Error("invalid_phala_encryption_key_proof"))?
+            .trim_start_matches("0x");
         need(
             matches("[0-9a-fA-F]{64}", &json!(key)) && key.eq_ignore_ascii_case(metadata),
             "invalid_phala_encryption_key_proof",
         )?;
-        let signature = s(&proof["signature"])?.trim_start_matches("0x");
+        let signature = proof["signature"]
+            .as_str()
+            .ok_or(Error("invalid_phala_encryption_key_proof"))?
+            .trim_start_matches("0x");
         let signer = proof_signer(app, key, signature)?;
         need(
             hex::encode(signer.to_encoded_point(true).as_bytes()) == PHALA_KMS_SIGNER,

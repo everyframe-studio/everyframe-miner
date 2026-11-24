@@ -694,8 +694,13 @@ pub fn render(command: &str, value: &Value) -> String {
         ),
         "worker-auto-update" => {
             let a = &value["automaticUpdates"];
+            let reminder = &value["encryptionKeyReminder"];
+            let detail = reminder["next"]
+                .as_str()
+                .map(|next| format!("{}\n{}\n\n", text(&reminder["message"]), next))
+                .unwrap_or_default();
             format!(
-                "{}\n\n{}",
+                "{}\n\n{detail}{}",
                 table(
                     &["WORKER AUTO-UPDATE", "STATUS"],
                     vec![
