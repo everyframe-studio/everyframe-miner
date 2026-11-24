@@ -1089,6 +1089,12 @@ function timelineView(events) {
       h("span", null, PHASE_LABELS[e.phase] || e.phase, e.code ? h("span", { class: "mono small muted" }, " " + e.code) : null, e.retries ? h("span", { class: "small muted" }, " · retries: " + e.retries) : null),
       h("span", { class: "small muted" }, e.source === "worker" ? "Worker" : "Coordinator")))));
 }
+function providerErrorLabel(error) {
+  if (!error || typeof error !== "object") return "";
+  const status = Number.isInteger(error.httpStatus) && error.httpStatus >= 400 && error.httpStatus <= 599 ? "HTTP " + error.httpStatus : "";
+  const code = typeof error.code === "string" ? error.code : "";
+  return [status, code].filter(Boolean).join(" · ");
+}
 function historyDetail(row) {
   if(S.jobDetail?.attemptId===row.attemptId)row=S.jobDetail;
   const processing = Number.isSafeInteger(row.startedAt) && Number.isSafeInteger(row.completedAt) && row.completedAt >= row.startedAt ? ((row.completedAt - row.startedAt) / 1000).toFixed(1) + " seconds (start grant to accepted output)" : "Not recorded";
@@ -1105,6 +1111,11 @@ function historyDetail(row) {
       ["Failure reason", row.failureReason ? ({ miner_silent: "Worker heartbeat stopped", submission_timeout: "Worker did not confirm submission in time", attempt_timed_out: "Attempt timed out; exact cause not recorded", offer_lease_expired: "Assignment was not accepted in time" }[row.failureReason] || FAILURE_LABELS[row.failureReason] || "Failure reported (see code below)") : "Not reported"],
     ].flatMap(([label, text]) => [h("dt", null, label), h("dd", null, text || "Not reported")])),
     row.failureReason ? h("p", { class: "small muted mono" }, "Failure code: " + row.failureReason) : null,
+    row.providerError ? h("div", { class: "job-provider-error" },
+      h("h4", null, "Provider error"),
+      providerErrorLabel(row.providerError) ? h("p", { class: "mono" }, providerErrorLabel(row.providerError)) : null,
+      row.providerError.message ? h("p", { class: "job-provider-message" }, row.providerError.message) : null,
+      row.providerError.truncated ? h("p", { class: "small muted" }, "Provider message shortened.") : null) : null,
     S.jobDetailBusy ? h("p",{role:"status"},"Loading job timeline…") : null,
     S.jobDetailError ? h("p",{role:"status",class:"muted"},"Timeline details are temporarily unavailable. Basic attempt facts remain available. Reopen details to retry.") : null,
     row.progress?.last ? h("p",null,"Last reported phase: "+(PHASE_LABELS[row.progress.last.phase]||row.progress.last.phase)+" · "+reportDate(row.progress.last.receivedAt)) : null,
@@ -1133,7 +1144,8 @@ function pageJobs() {
       h("tbody", null, rows.map(row => h("tr", null,
         h("td", { "data-label": "Model" }, h("b", null, row.name || row.model), h("span", { class: "id" }, "Job " + String(row.jobId).slice(0, 12)), h("span", { class: "small muted" }, row.provider ? providerName(row.provider) : "Provider not reported")),
         h("td", { "data-label": "Created", title: reportDate(row.jobCreatedAt) }, Number.isSafeInteger(row.jobCreatedAt) ? ago(row.jobCreatedAt) : "Not recorded"),
-        h("td", { "data-label": "Attempt" }, h("span", { class: "badge " + (row.state === "accepted" ? "ok" : ["failed", "rejected", "timed_out"].includes(row.state) ? "bad" : "warn") }, ATTEMPT_LABELS[row.state] || "Not reported")),
+        h("td", { "data-label": "Attempt" }, h("span", { class: "badge " + (row.state === "accepted" ? "ok" : ["failed", "rejected", "timed_out"].includes(row.state) ? "bad" : "warn") }, ATTEMPT_LABELS[row.state] || "Not reported"),
+          row.providerError ? h("span", { class: "small muted job-provider-message" }, providerErrorLabel(row.providerError) || "Provider error · see details") : null),
         h("td", { "data-label": "Review" }, REVIEW_LABELS[row.reviewState] || "Not reported"),
         h("td", { "data-label": "Work value" }, row.recordedWorkValueMicrousd == null ? "—" : historyUsd(row.recordedWorkValueMicrousd)),
         h("td", { "data-label": "Inspect" }, h("button", { class: "btn small", "aria-label": "View attempt " + row.attemptId, onclick: () => { S.openAttempt = row.attemptId; S.jobDetail=null; render(); loadJobDetail(row); $("#job-detail")?.focus({ preventScroll: true }); $("#job-detail")?.scrollIntoView({ block: "nearest", behavior: "smooth" }); } }, "Details"))

@@ -347,6 +347,8 @@ input.tiny { width: 72px; }
 .history-filters input { flex: 1 1 240px; max-width: 440px; }
 .job-history td { overflow-wrap: anywhere; }
 .job-kv dd { font-variant-numeric: tabular-nums; }
+.job-provider-error, .job-provider-message { overflow-wrap: anywhere; }
+.job-provider-message { display: block; white-space: pre-wrap; }
 .earnings-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 16px; }
 .exposure-value { font-size: 26px; font-weight: 650; letter-spacing: -.02em; margin: 4px 0 14px; }
 @media (max-width: 600px) {

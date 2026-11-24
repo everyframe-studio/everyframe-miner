@@ -98,3 +98,37 @@ fn non_json_diagnostics_are_forwarded_without_inventing_a_recognized_refusal() {
         Some("Unknown content policy service response")
     );
 }
+
+#[test]
+fn openai_quota_diagnostic_keeps_transport_status_and_renders_in_job_history() {
+    let error = submission::with_body_provider_error(
+        Error("http_429"),
+        429,
+        "api.openai.com",
+        br#"{"error":{"message":"You have no credits remaining. Add credits at https://platform.openai.com/settings/organization/billing/.","type":"insufficient_quota","code":"credit_balance_exhausted"}}"#,
+        &[],
+    );
+    let mut detail = error.provider_error().unwrap().clone();
+    assert_eq!(detail.http_status, Some(429));
+    assert_eq!(detail.code.as_deref(), Some("credit_balance_exhausted"));
+    let view = everyframe_miner::display::render(
+        "jobs",
+        &json!({
+            "historyAvailable": true,
+            "history": {"rows": [{"failureReason":"provider_capacity_limited", "providerError":detail.value()}]}
+        }),
+    );
+    assert!(view.contains("Provider HTTP status: 429"));
+    assert!(view.contains("Provider code: credit_balance_exhausted"));
+    assert!(view.contains("You have no credits remaining"));
+    assert!(!view.contains("platform.openai.com"));
+    assert!(detail.omit_http_status());
+    assert!(detail.value()["httpStatus"].is_null());
+    assert_eq!(detail.value()["code"], "credit_balance_exhausted");
+    assert_eq!(error.0, "http_429");
+
+    let empty_body = submission::with_body_refusal(Error("http_503"), 503, "api.openai.com", b"");
+    let mut status_only = empty_body.provider_error().unwrap().clone();
+    assert_eq!(status_only.value(), json!({"httpStatus":503}));
+    assert!(!status_only.omit_http_status());
+}

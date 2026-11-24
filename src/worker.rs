@@ -316,7 +316,7 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                     };
                     // A refusal code only describes a confirmed rejection.
                     let refusal = rejected.and(error.refusal());
-                    let provider_error = error.provider_error().cloned();
+                    let mut provider_error = error.provider_error().cloned();
                     let diagnostic = (self.session["workerDiagnostics"] == 1).then(|| {
                         crate::worker_diagnostic::report_with_destination(
                             "submission",
@@ -367,7 +367,9 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                             if with_diagnostic {
                                 with_diagnostic = false;
                             } else if with_provider_error {
-                                with_provider_error = false;
+                                with_provider_error = provider_error.as_mut().is_some_and(
+                                    crate::provider_error::ProviderError::omit_http_status,
+                                );
                             } else {
                                 with_refusal = false;
                             }
@@ -631,7 +633,8 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
         }
         // A refusal code is only meaningful with a provider failure category.
         let mut refusal = refusal.filter(|_| category.starts_with("provider_"));
-        let mut detail = detail.filter(|_| category.starts_with("provider_"));
+        let mut detail =
+            detail.filter(|_| category.starts_with("provider_") || category == "output_invalid");
         let mut diagnostic = (self.session["workerDiagnostics"] == 1).then(|| {
             crate::worker_diagnostic::report_with_destination(
                 phase,
@@ -668,8 +671,10 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
             if result.is_err_and(|e| e.0 == "http_400") {
                 if diagnostic.is_some() {
                     diagnostic = None;
-                } else if detail.is_some() {
-                    detail = None;
+                } else if let Some(error) = &mut detail {
+                    if !error.omit_http_status() {
+                        detail = None;
+                    }
                 } else {
                     refusal = None;
                 }

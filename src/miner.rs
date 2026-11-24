@@ -11,6 +11,8 @@ use crate::{
 };
 use serde_json::{Value, json};
 use std::path::Path;
+pub(crate) const MAX_OFFER_BATCH: usize = 512;
+
 pub const PENDING: &str = "Waiting for automatic workload attestation. No working provider key was released. Hosting continues until stopped. Run everycli status; once online with accepted attestation, run everycli activate.";
 
 fn attestation_ready(status: &Value, at: i64) -> Result<()> {
@@ -979,7 +981,7 @@ impl Miner<'_> {
         let unique: std::collections::HashSet<_> = models.iter().copied().collect();
         need(
             !models.is_empty()
-                && models.len() <= 512
+                && models.len() <= MAX_OFFER_BATCH
                 && unique.len() == models.len()
                 && models.iter().all(|m| {
                     !m.is_empty()

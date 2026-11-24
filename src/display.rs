@@ -260,6 +260,29 @@ fn history_table(value: &Value) -> String {
         if r["failureReason"].is_string() {
             out.push_str(&format!("Failure: {}\n", text(&r["failureReason"])));
         }
+        let provider_error = &r["providerError"];
+        if let Some(status) = provider_error["httpStatus"]
+            .as_u64()
+            .filter(|s| (400..=599).contains(s))
+        {
+            out.push_str(&format!("Provider HTTP status: {status}\n"));
+        }
+        if provider_error["code"].is_string() {
+            out.push_str(&format!(
+                "Provider code: {}\n",
+                text(&provider_error["code"])
+            ));
+        }
+        if let Some(message) = provider_error["message"].as_str() {
+            let (message, _) = crate::provider_error::clean(message, 4096, &[]);
+            out.push_str("Provider message:\n");
+            for line in message.lines() {
+                out.push_str(&format!("  {line}\n"));
+            }
+        }
+        if provider_error["truncated"] == true {
+            out.push_str("Provider message shortened.\n");
+        }
         if r["progress"]["phase"].is_string() {
             out.push_str(&format!(
                 "Last phase: {}{}\n",

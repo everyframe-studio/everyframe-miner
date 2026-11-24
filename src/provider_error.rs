@@ -4,8 +4,9 @@ use regex::Regex;
 use serde_json::Value;
 use std::sync::LazyLock;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ProviderError {
+    pub http_status: Option<u16>,
     pub code: Option<String>,
     pub message: Option<String>,
     pub truncated: bool,
@@ -13,6 +14,9 @@ pub struct ProviderError {
 impl ProviderError {
     pub fn value(&self) -> Value {
         let mut value = serde_json::json!({});
+        if let Some(status) = self.http_status {
+            value["httpStatus"] = status.into();
+        }
         if let Some(code) = &self.code {
             value["code"] = serde_json::json!(code);
         }
@@ -23,6 +27,10 @@ impl ProviderError {
             value["truncated"] = Value::Bool(true);
         }
         value
+    }
+
+    pub fn omit_http_status(&mut self) -> bool {
+        self.http_status.take().is_some() && (self.code.is_some() || self.message.is_some())
     }
 }
 
@@ -162,6 +170,7 @@ pub fn extract(data: &Value, secrets: &[String]) -> Option<ProviderError> {
         return None;
     }
     Some(ProviderError {
+        http_status: None,
         code: (!code.is_empty()).then_some(code),
         message: (!message.is_empty()).then_some(message),
         truncated: code_cut || message_cut,

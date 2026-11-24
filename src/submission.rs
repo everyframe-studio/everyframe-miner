@@ -153,8 +153,15 @@ pub fn with_body_provider_error(
     bytes: &[u8],
     secrets: &[String],
 ) -> crate::Error {
+    let http_status = (400..=599).contains(&status).then_some(status);
     if bytes.len() > 64000 {
-        return error;
+        return error.with_provider_error(http_status.map(|status| {
+            crate::provider_error::ProviderError {
+                http_status: Some(status),
+                truncated: true,
+                ..Default::default()
+            }
+        }));
     }
     let parsed = serde_json::from_slice::<serde_json::Value>(bytes).ok();
     let value = parsed
@@ -176,9 +183,13 @@ pub fn with_body_provider_error(
     } else {
         None
     };
-    error
-        .with_refusal(refusal)
-        .with_provider_error(crate::provider_error::extract(&value, secrets))
+    let mut detail = crate::provider_error::extract(&value, secrets);
+    if let Some(status) = http_status {
+        detail
+            .get_or_insert_with(crate::provider_error::ProviderError::default)
+            .http_status = Some(status);
+    }
+    error.with_refusal(refusal).with_provider_error(detail)
 }
 
 /// Only the documented account-lock billing response is safe to fail over.
