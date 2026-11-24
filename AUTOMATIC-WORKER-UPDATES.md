@@ -69,6 +69,17 @@ updater does not silently discover keys saved on a management computer. If its
 local deployment is behind an automatic update, reconnect that profile first.
 The recovery controller's own image remains pinned across these changes.
 
+On an attested Phala dstack 0.5.15 VM, an updater with verified key refresh
+support can adopt a changed environment encryption public key during a signed
+worker update. It verifies Phala’s signature for the same app, compares the key
+with the running VM’s metadata, and rechecks it before saving. Manual updates
+include the refresh in the update confirmation. An enrolled controller can
+perform it unattended. If key verification fails, check **Automatic worker
+updates** in the UI or run `everycli worker-auto-update` from the original profile
+for the reported reason and recovery steps. A controller refresh applies to its
+own profile. The management computer verifies its own saved key on its next
+worker update.
+
 Enrollment preflights active jobs, unfinished manual updates, uncertain cloud
 journals and capsule size before changing policy or exporting credentials. Only
 the signed configuration, minimal deployment fields and allowlisted credentials

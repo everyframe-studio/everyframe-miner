@@ -4,7 +4,7 @@
 use crate::{Error, Result, miner::Miner, need, now};
 use serde_json::{Value, json};
 
-pub const CONSENT: &str = "Enable automatic signed worker updates inside this VM? This stores your Phala management token, scoped miner delegates and permitted provider keys in a separate attested updater container with persistent private storage. No wallet secret or billing-only provider key is transferred. The updater can manage this VM while your computer is offline. New jobs drain first; provider keys reach the generation container only after fresh attestation. VM resources and offers stay unchanged. Hosting and resumed provider work remain billable.";
+pub const CONSENT: &str = "Enable automatic signed worker updates inside this VM? This stores your Phala management token, scoped miner delegates and permitted provider keys in a separate attested updater container with persistent private storage. No wallet secret or billing-only provider key is transferred. The updater can manage this VM while your computer is offline and can refresh its saved Phala encryption public key after verifying the signed key for this attested VM. New jobs drain first; provider keys reach the generation container only after fresh attestation. VM resources and offers stay unchanged. Hosting and resumed provider work remain billable.";
 
 impl Miner<'_> {
     pub fn worker_auto_settings(
@@ -32,10 +32,24 @@ impl Miner<'_> {
         } else {
             status
         };
-        Ok(
-            json!({"ok":true,"automaticUpdates":result["automaticUpdates"],"recoveryPending":recovery_pending,
-            "next":if recovery_pending {"A saved updater enrollment needs recovery. Run everycli reconcile in this profile; do not restart or redeploy the VM."} else {"The isolated updater runs inside the existing Phala VM, including while your computer is offline. Disabling does not stop VM/storage billing or clear a pending recovery journal."}}),
-        )
+        let auto = &result["automaticUpdates"];
+        let report = &auto["report"];
+        let key_reminder = auto["enabled"] == true
+            && report["state"] == "needs_attention"
+            && matches!(
+                report["code"].as_str(),
+                Some(
+                    "encryption_key_changed"
+                        | "invalid_phala_encryption_key_proof"
+                        | "phala_key_refresh_not_supported"
+                )
+            );
+        let mut view = json!({"ok":true,"automaticUpdates":auto,"recoveryPending":recovery_pending,
+            "next":if recovery_pending {"A saved updater enrollment needs recovery. Run everycli reconcile in this profile; do not restart or redeploy the VM."} else {"The isolated updater runs inside the existing Phala VM, including while your computer is offline. Disabling does not stop VM/storage billing or clear a pending recovery journal."}});
+        if key_reminder {
+            view["encryptionKeyReminder"] = crate::diagnostics::value(crate::s(&report["code"])?);
+        }
+        Ok(view)
     }
 
     fn finish_updater_bootstrap(&self) -> Result<Value> {

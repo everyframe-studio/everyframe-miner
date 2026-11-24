@@ -176,6 +176,7 @@ struct Rig {
     credentials: Value,
     status: RefCell<Value>,
     info: RefCell<Value>,
+    kms_proof: RefCell<Option<Value>>,
     fail: RefCell<String>,
     calls: RefCell<Vec<(String, String)>>,
     provider_environments: RefCell<Vec<Option<String>>>,
@@ -1418,6 +1419,7 @@ impl Rig {
             credentials,
             status: RefCell::new(status),
             info: RefCell::new(info),
+            kms_proof: RefCell::default(),
             fail: RefCell::new(String::new()),
             calls: RefCell::default(),
             provider_environments: RefCell::default(),
@@ -2817,7 +2819,7 @@ impl Http for Rig {
                 status["automaticUpdates"] = json!({"enabled":body["enabled"],"appId":body["appId"],"capsuleId":capsule,"report":report});
             }
             if action == "worker-auto-update-report" {
-                status["automaticUpdates"]["report"] = json!({"state":body["state"],"pending":body["pending"],"composeHash":status["composeHash"]});
+                status["automaticUpdates"]["report"] = json!({"state":body["state"],"code":body["code"],"pending":body["pending"],"composeHash":status["composeHash"]});
             }
             if action == "bind-app" {
                 // Coordinator: an unbound enrollment rejects previousAppId.
@@ -2930,7 +2932,7 @@ impl Http for Rig {
                     &r,
                 ));
             }
-            json!({"public_key":hex::encode(PublicKey::from(&StaticSecret::from([0x11;32])).as_bytes())})
+            self.kms_proof.borrow().clone().unwrap_or_else(|| json!({"public_key":hex::encode(PublicKey::from(&StaticSecret::from([0x11;32])).as_bytes())}))
         } else if path.ends_with("/compose_file/provision") {
             assert_eq!(self.phase(), "update_provision_intent");
             assert_eq!(
@@ -3454,13 +3456,17 @@ fn changed_app_encryption_key_blocks_key_apply_and_worker_update_before_draining
     r.staged_update(true, true);
     r.info.borrow_mut()["kms_info"] = json!({"encrypted_env_pubkey":"2a".repeat(32)});
     let miner = r.miner();
-    let expect_preflight_error = |error: Error| assert_eq!(error.0, "encryption_key_changed");
-    expect_preflight_error(miner.apply_api_keys(&|_| panic!()).unwrap_err());
+    assert_eq!(
+        miner.apply_api_keys(&|_| panic!()).unwrap_err().0,
+        "encryption_key_changed"
+    );
     for check in [true, false] {
-        expect_preflight_error(
+        assert_eq!(
             miner
                 .worker_update_with_wait(check, &|_| panic!(), &|_| {}, &|_| panic!())
-                .unwrap_err(),
+                .unwrap_err()
+                .0,
+            "phala_key_refresh_not_supported"
         );
     }
     assert!(r.mutations().is_empty());
@@ -3468,6 +3474,114 @@ fn changed_app_encryption_key_blocks_key_apply_and_worker_update_before_draining
     assert_eq!(r.status.borrow()["draining"], false);
     assert!(r.state().read("worker-update", true).unwrap().is_null());
 }
+fn stage_rotated_phala_key(r: &mut Rig, mut next: Value) -> (&'static str, &'static str) {
+    // Public Phala proof for the synthetic app ID 0x111…111 used by Rig.
+    let key = "986e2a5282230b05cc0d2b8a2b5b5f4552761cbbe9a775a40271e1ea146ef613";
+    let signature = "b25c9c3a392677abe52392f5aab21483dd1a0c236859b5bfb81063e955262b0f0a829effc052a89bf188cdaae70d1766d39e9fecdf7ceaac229e344056059d5f01";
+    let current = &mut r.inv;
+    for inv in [&mut *current, &mut next] {
+        inv["publicOnboarding"] = json!(true);
+        inv["request"]["image"] = json!("dstack-0.5.15");
+        inv["osImageHash"] =
+            json!("4597735f1a38ad8ec9f781356b88737fc052062deb7c9aaa4be89bf1b35643ca");
+    }
+    let mut config = r.state().read("config", false).unwrap();
+    config["invitation"] = r.sign(&r.inv);
+    r.state().write("config", &config).unwrap();
+    r.status.borrow_mut()["update"]["release"] = r.sign(&next);
+    r.status.borrow_mut()["activeJobs"] = json!(1);
+    {
+        let mut info = r.info.borrow_mut();
+        info["in_progress"] = json!(false);
+        info["os_image_hash"] = r.inv["osImageHash"].clone();
+        info["kms_type"] = json!("phala");
+        info["kms_info"] = json!({"encrypted_env_pubkey":key});
+    }
+    *r.kms_proof.borrow_mut() = Some(json!({"public_key":key,"signature":signature}));
+    (key, signature)
+}
+
+#[test]
+fn worker_update_reviews_verified_pin_before_draining() {
+    let mut r = Rig::new();
+    let next = r.staged_update(true, true)["value"].clone();
+    let (key, signature) = stage_rotated_phala_key(&mut r, next);
+    let old = r.state().read("deployment", false).unwrap();
+    r.kms_proof.borrow_mut().as_mut().unwrap()["signature"] = json!("00".repeat(65));
+    let run = |check, confirm: &dyn Fn(&str) -> Result<()>| {
+        r.miner()
+            .worker_update_with_wait(check, confirm, &|_| {}, &|_| false)
+    };
+    assert_eq!(
+        run(false, &|_| panic!()).unwrap_err().0,
+        "invalid_phala_encryption_key_proof"
+    );
+    r.kms_proof.borrow_mut().as_mut().unwrap()["signature"] = json!(signature);
+    let result = run(true, &|_| panic!()).unwrap();
+    assert_eq!(result["state"], "available");
+    assert_eq!(result["encryptionKeyRefreshRequired"], true);
+    let decline_key = |question: &str| {
+        if question.contains(key) {
+            Err(Error("cancelled"))
+        } else {
+            Ok(())
+        }
+    };
+    assert_eq!(run(false, &decline_key).unwrap_err().0, "cancelled");
+    let change_during_review = |question: &str| {
+        if question.contains(key) {
+            r.info.borrow_mut()["kms_info"]["encrypted_env_pubkey"] = json!("12".repeat(32));
+        }
+        Ok(())
+    };
+    assert_eq!(
+        run(false, &change_during_review).unwrap_err().0,
+        "invalid_phala_encryption_key_proof"
+    );
+    assert_eq!(r.state().read("deployment", false).unwrap(), old);
+    assert!(r.state().read("worker-update", true).unwrap().is_null());
+    assert_eq!(r.status.borrow()["draining"], false);
+    assert!(r.mutations().is_empty());
+    r.info.borrow_mut()["kms_info"]["encrypted_env_pubkey"] = json!(key);
+    assert_eq!(run(false, &|_| Ok(())).unwrap()["stage"], "draining");
+    assert_eq!(
+        r.state().read("deployment", false).unwrap()["encryptionKey"],
+        key
+    );
+    assert_eq!(r.status.borrow()["draining"], true);
+}
+
+#[test]
+fn enrolled_updater_refreshes_verified_pin_and_reports_unverified_changes() {
+    let (mut r, next) = Rig::staged_automatic_update();
+    let (key, signature) = stage_rotated_phala_key(&mut r, next["value"].clone());
+    let old = r.state().read("deployment", false).unwrap();
+    r.kms_proof.borrow_mut().as_mut().unwrap()["signature"] = Value::Null;
+    let result = r.miner().worker_auto_tick().unwrap();
+    assert_eq!(result["code"], "invalid_phala_encryption_key_proof");
+    assert_eq!(r.state().read("deployment", false).unwrap(), old);
+    assert_eq!(r.status.borrow()["draining"], false);
+    assert!(r.state().read("worker-update", true).unwrap().is_null());
+    let settings = r.miner().worker_auto_settings(None, &|_| panic!()).unwrap();
+    assert_eq!(settings["encryptionKeyReminder"]["code"], result["code"]);
+    let text = everyframe_miner::display::render("worker-auto-update", &settings);
+    assert!(text.contains("everycli reconnect --refresh-encryption-key"));
+    r.kms_proof.borrow_mut().as_mut().unwrap()["signature"] = json!(signature);
+    let mut settings = r.state().read("worker-auto-update", false).unwrap();
+    settings["lastCheckedAt"] = json!(now() - 300_001);
+    r.state().write("worker-auto-update", &settings).unwrap();
+    assert_eq!(r.miner().worker_auto_tick().unwrap()["stage"], "draining");
+    assert_eq!(
+        r.state().read("deployment", false).unwrap()["encryptionKey"],
+        key
+    );
+    assert_eq!(r.status.borrow()["draining"], true);
+    assert!(
+        r.miner().worker_auto_settings(None, &|_| panic!()).unwrap()["encryptionKeyReminder"]
+            .is_null()
+    );
+}
+
 #[test]
 fn ambiguous_cloud_mutations_keep_durable_intents() {
     for (path, phase) in [

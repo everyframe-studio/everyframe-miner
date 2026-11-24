@@ -992,6 +992,11 @@ try {
   assert(await page.getByRole('button',{name:'Disable',exact:true}).isEnabled());
 
   await page.evaluate(() => {
+    S.workerAuto.result.value.encryptionKeyReminder = {message:"Phala’s key signature could not be verified.", next:"Run everycli reconnect --refresh-encryption-key from the original profile."};
+    document.querySelector('#worker-auto-status').replaceWith(workerAutoCard());
+  });
+  assert.match(await page.locator('#worker-auto-status').innerText(), /everycli reconnect --refresh-encryption-key/);
+  await page.evaluate(() => {
     S.workerAuto={state:'done',result:{value:{recoveryPending:true,automaticUpdates:{enabled:true}}}};
     document.querySelector('#worker-auto-status').replaceWith(workerAutoCard());
   });
