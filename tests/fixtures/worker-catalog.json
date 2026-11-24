@@ -1900,6 +1900,26 @@
     {
       "model": "direct/replicate/grok-tts",
       "hash": "e4efda51df249974aecf5c75e0c630f8c8ff32bff2e969fe9716abaaa74b7ad3"
+    },
+    {
+      "model": "direct/vidlab/seedance-2.5",
+      "hash": "efe5b7c065ff5d7dba30c4ba8cf99be628203692d02c7ade54ff47c8c62481ee"
+    },
+    {
+      "model": "direct/higgsfield/seedance-2.5",
+      "hash": "d544cdc625311b03c77f3f13e85a88ea5dbfce5d02209e1446103650b0cdd758"
+    },
+    {
+      "model": "direct/kie/seedance-2.5",
+      "hash": "8ab53ba6e882ee6109a61bcd5c886ea8e2b6f5978ef87a68909b1ad36573a968"
+    },
+    {
+      "model": "direct/piapi/seedance-2.5",
+      "hash": "b8240b7502feced0cb39b9abf8c45e68485862a1951c41052c1eda186a8852e4"
+    },
+    {
+      "model": "direct/revana/seedance-2.5",
+      "hash": "43e2d94721b827b2a461e458ceccda654bc590aab853a4aa4601d0bbc2ad6b8e"
     }
   ],
   "numeric": {
