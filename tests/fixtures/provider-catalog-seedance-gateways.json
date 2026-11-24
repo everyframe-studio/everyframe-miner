@@ -1,0 +1,98 @@
+[
+  {
+    "model": "direct/vidlab/seedance-2.5",
+    "provider": "vidlab",
+    "request": {
+      "model": "direct/vidlab/seedance-2.5",
+      "prompt": "A quiet lake"
+    },
+    "spec": {
+      "model": "direct/vidlab/seedance-2.5",
+      "input": {
+        "prompt": "A quiet lake",
+        "duration": 5,
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "generate_audio": false
+      }
+    },
+    "hash": "d142c96dbb90a41a7f4cdce085a835fcc8aa374586b298f68d191b959606ee85"
+  },
+  {
+    "model": "direct/higgsfield/seedance-2.5",
+    "provider": "higgsfield",
+    "request": {
+      "model": "direct/higgsfield/seedance-2.5",
+      "prompt": "A quiet lake"
+    },
+    "spec": {
+      "model": "direct/higgsfield/seedance-2.5",
+      "input": {
+        "prompt": "A quiet lake",
+        "duration": 5,
+        "resolution": "480p",
+        "aspect_ratio": "16:9",
+        "generate_audio": false,
+        "output_format": "mp4"
+      }
+    },
+    "hash": "2b4b3abfd1841b77dea48898c77bb2db13e7b65e504f982a4588769a4e824fb8"
+  },
+  {
+    "model": "direct/kie/seedance-2.5",
+    "provider": "kie",
+    "request": {
+      "model": "direct/kie/seedance-2.5",
+      "prompt": "A quiet lake"
+    },
+    "spec": {
+      "model": "direct/kie/seedance-2.5",
+      "input": {
+        "prompt": "A quiet lake",
+        "duration": 5,
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "generate_audio": false
+      }
+    },
+    "hash": "e74029ec15ac39b47ade11a87ed98d293ba3da2dda5658c1fdfcb4ab3fa5511f"
+  },
+  {
+    "model": "direct/piapi/seedance-2.5",
+    "provider": "piapi",
+    "request": {
+      "model": "direct/piapi/seedance-2.5",
+      "prompt": "A quiet lake"
+    },
+    "spec": {
+      "model": "direct/piapi/seedance-2.5",
+      "input": {
+        "prompt": "A quiet lake",
+        "duration": 5,
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "audio": false
+      }
+    },
+    "hash": "c4a4e5cf130cb5a942a12bc9a36548b8c15da2240c093026a3bade1769ff05cb"
+  },
+  {
+    "model": "direct/revana/seedance-2.5",
+    "provider": "revana",
+    "request": {
+      "model": "direct/revana/seedance-2.5",
+      "prompt": "A quiet lake"
+    },
+    "spec": {
+      "model": "direct/revana/seedance-2.5",
+      "input": {
+        "prompt": "A quiet lake",
+        "duration": 5,
+        "resolution": "720p",
+        "aspect_ratio": "16:9",
+        "audio": false
+      }
+    },
+    "hash": "710f68a6d41fccb3425926014bf75a7477d9081a684c7448299d4abd312eb867"
+  }
+]
