@@ -891,6 +891,15 @@ everycli providers  # Reports key presence and permissions, never key values
 everycli offers
 ```
 
+### Sand.ai MAGI-2 via Higgsfield
+
+Run `everycli offers` and look for `studio/higgsfield/sand/magi-2/text-to-video`.
+This single offer covers text prompts, opening and closing frames, and image,
+video or audio references. MAGI-2 generates 1080p clips lasting 4–30 seconds.
+Serving it requires a worker that supports MAGI-2, Higgsfield credentials
+(`HF_CREDENTIALS`), and an enabled offer. Higgsfield allows one active MAGI-2
+generation per account across the three input modes.
+
 ### Pika H3 Flex
 
 Create a key in the [Pika developer console](https://dev.pika.art/), then add it
