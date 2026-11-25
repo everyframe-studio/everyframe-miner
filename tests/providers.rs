@@ -98,8 +98,14 @@ impl Http for Api {
                     }
                 }
                 "higgsfield" => {
-                    assert_eq!(path, "/bytedance/seedance-2.5/text-to-video");
-                    assert_eq!(body, self.spec["input"]);
+                    if model == "sand/magi-2/text-to-video" {
+                        assert_eq!(path, "/sand/magi-2/text-to-video");
+                        assert_eq!(body["generate_audio"], true);
+                        assert_eq!(body["duration"], self.spec["input"]["duration"]);
+                    } else {
+                        assert_eq!(path, "/bytedance/seedance-2.5/text-to-video");
+                        assert_eq!(body, self.spec["input"]);
+                    }
                     assert!(
                         r.headers
                             .iter()
@@ -622,4 +628,22 @@ fn seedance_gateway_failures_preserve_unknown_submissions_and_moderation() {
         .poll("higgsfield_task", &spec("direct/higgsfield/seedance-2.5"))
         .unwrap_err();
     assert_eq!(err.0, "provider_content_rejected");
+}
+
+#[test]
+fn higgsfield_magi_task_is_submitted_polled_and_downloaded() {
+    let spec = json!({"model":"studio/higgsfield/sand/magi-2/text-to-video","input":{
+        "seed":42,"prompt":"Blue waves","aspect":"16:9","resolution":"1080p","duration":5,
+        "references":[],"promptExpansion":"balanced"}});
+    let api = Api {
+        provider: "higgsfield".into(),
+        spec: spec.clone(),
+        calls: RefCell::default(),
+        bad: false,
+    };
+    let mut router = Router::new(&api, credentials());
+    let id = router.submit(&spec).unwrap();
+    assert_eq!(id, "higgsfield_job123");
+    assert_eq!(router.poll(&id, &spec).unwrap(), "COMPLETED");
+    assert!(!router.result(&id, &spec).unwrap().media.is_empty());
 }

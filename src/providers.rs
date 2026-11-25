@@ -354,7 +354,7 @@ impl<'a> Router<'a> {
         let (path, body) = crate::studio_video::body(spec, &urls)?;
         let result = self.api(p, &path, Some(&body))?;
         let r = match p {
-            "fal" => reference(&result["request_id"])?,
+            "fal" | "higgsfield" => reference(&result["request_id"])?,
             "openrouter" => reference(&result["id"])?,
             "pika" => reference(&result["id"])?,
             "vivix" => {
@@ -565,8 +565,16 @@ impl<'a> Router<'a> {
                 } else {
                     &job["model"]
                 };
+                let expected_model = if p == "higgsfield" && model == "sand/magi-2/text-to-video" {
+                    let refs = spec["input"]["references"]
+                        .as_array()
+                        .ok_or(Error("invalid_studio_references"))?;
+                    crate::studio_video::magi_endpoint(refs)
+                } else {
+                    model
+                };
                 need(
-                    returned_model.is_null() || returned_model == model,
+                    returned_model.is_null() || returned_model == expected_model,
                     "provider_model_mismatch",
                 )?;
                 job
@@ -1297,7 +1305,7 @@ impl Provider for Router<'_> {
             "higgsfield" => self.download(
                 &p,
                 s(&data["video"]["url"])?,
-                &["*.higgsfield.ai"],
+                &["*.higgsfield.ai", "d28lhcrx5qdowv.cloudfront.net"],
                 None,
                 &[],
             )?,

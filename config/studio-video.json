@@ -1304,5 +1304,36 @@
     "deadlineMs": 1200000,
     "negativePrompt": true,
     "maxNegativePrompt": 20000
+  },
+  "studio/higgsfield/sand/magi-2/text-to-video": {
+    "provider": "higgsfield",
+    "apiModel": "sand/magi-2/text-to-video",
+    "name": "MAGI-2",
+    "aspects": [
+      "21:9",
+      "16:9",
+      "4:3",
+      "1:1",
+      "3:4",
+      "9:16"
+    ],
+    "min": 4,
+    "max": 30,
+    "resolutions": [
+      "1080p"
+    ],
+    "refs": {
+      "image": 10,
+      "video": 5,
+      "audio": 5
+    },
+    "frames": 2,
+    "mixed": false,
+    "maxReferences": 20,
+    "referenceDurationMs": 30000,
+    "referenceTotalDurationMs": 30000,
+    "maxPrompt": 15000,
+    "deadlineMs": 1200000,
+    "schemaCheckedAt": "2026-11-24"
   }
 }

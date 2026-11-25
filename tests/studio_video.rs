@@ -655,3 +655,26 @@ fn veo31_preserves_expanded_settings_audio_and_frames() {
         assert!(studio_video::check_with(&s, policy).is_err());
     }
 }
+
+#[test]
+fn magi2_selects_the_endpoint_from_verified_reference_roles() {
+    let mut request = spec("higgsfield", "sand/magi-2/text-to-video");
+    let (path, text) = studio_video::body(&request, &[]).unwrap();
+    assert_eq!(path, "/sand/magi-2/text-to-video");
+    assert_eq!(
+        text,
+        json!({"prompt":"A cinematic product shot","duration":5,"resolution":"1080p","aspect_ratio":"9:16","generate_audio":true,"seed":42})
+    );
+    request["input"]["references"] = json!([asset("first"), asset("last")]);
+    let (path, frames) = studio_video::body(&request, &["first".into(), "last".into()]).unwrap();
+    assert_eq!(path, "/sand/magi-2/image-to-video");
+    assert_eq!(frames["image_url"], "first");
+    assert_eq!(frames["end_image_url"], "last");
+    request["input"]["references"] = json!([asset("image")]);
+    let (path, refs) = studio_video::body(&request, &["ref".into()]).unwrap();
+    assert_eq!(path, "/sand/magi-2/reference-to-video");
+    assert_eq!(refs["image_urls"], json!(["ref"]));
+    assert!(refs.get("image_url").is_none());
+    request["input"]["references"] = json!([asset("first"), asset("image")]);
+    assert!(studio_video::check(&request).is_err());
+}
