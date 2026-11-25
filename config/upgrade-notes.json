@@ -1172,6 +1172,26 @@
           "when": "Close and reopen a running everycli ui after updating the CLI."
         }
       ]
+    },
+    {
+      "version": "v1.3.3",
+      "title": "Sand.ai MAGI-2 on Higgsfield",
+      "changes": [
+        "Serve 1080p MAGI-2 video from text, keyframes or media references through Higgsfield. Clips can run from 4 to 30 seconds."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "To serve MAGI-2, install the compatible signed worker, configure Higgsfield credentials, and enable the MAGI-2 offer in Models."
+        },
+        {
+          "kind": "restart-ui",
+          "requirement": "conditional",
+          "when": "Close and reopen a running everycli ui after updating the CLI."
+        }
+      ]
     }
   ]
 }

@@ -36,6 +36,8 @@ every model in the registry is necessarily available for mining.
 
 ## What's new
 
+v1.3.3 adds Sand.ai MAGI-2 worker support through Higgsfield for 4–30 second videos in 1080p. Run `everycli update`, then `everycli worker-update --check`, to check for the compatible signed worker.
+
 v1.3.2 adds Seedance 2.5 text-to-video support for VidLab, Higgsfield, Kie.ai, PiAPI, and Revana AI. Run `everycli update`, then `everycli worker-update --check` to check for a compatible signed worker. [Release notes](RELEASE-NOTES-v1.3.2.md)
 
 v1.3.0 lets a compatible signed worker handle up to five jobs at once when the coordinator enables parallel scheduling. Each provider account has its own concurrency limit. The UI groups models that need attention and keeps confirmation controls visible during long batch reviews. Run `everycli update`, then `everycli worker-update --check` to check availability for your miner.
