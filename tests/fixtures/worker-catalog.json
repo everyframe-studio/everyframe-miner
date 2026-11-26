@@ -1924,6 +1924,22 @@
     {
       "model": "studio/higgsfield/sand/magi-2/text-to-video",
       "hash": "76f8ac30c636f1262923f8203866599eb7c01931a7d9e8eec72535b0f8e31f8c"
+    },
+    {
+      "model": "studio/wavespeed/sand-ai/magi-2/text-to-video",
+      "hash": "4944044945c34f2d2ff7ebfa9d62bc55e4c8e4108e6b5c52b95d3fa91c71e56a"
+    },
+    {
+      "model": "studio/kie/magi-2/text-to-video",
+      "hash": "a2644ca881bd65e57d0115964503176b4c2076727a31a90e367947a2b90f37d6"
+    },
+    {
+      "model": "studio/nanoapi/magi-2.0",
+      "hash": "a3c0b917c7ddc7151afe44d9e07d024c14a3fc6e388bd2fa546ad041698eaa8c"
+    },
+    {
+      "model": "studio/revana/magi-2",
+      "hash": "be0ada2ae0e65c185e25db49268eb7e6fe698c4e89e5fe8cbcd330209772f080"
     }
   ],
   "numeric": {

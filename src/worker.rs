@@ -127,8 +127,12 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
         self.claim_slots(None)
     }
     fn needs_enrollment(&self) -> Result<bool> {
+        let budget = self.session["maxJobMs"]
+            .as_i64()
+            .unwrap_or(1_200_000)
+            .clamp(models::COORDINATOR_MAX_JOB_MS, models::max_job_ms());
         Ok(self.session.is_null()
-            || n(&self.session["expires"])? < self.runtime.now() + models::max_job_ms() + 20000)
+            || n(&self.session["expires"])? < self.runtime.now() + budget + 20000)
     }
     fn claim_slots(&mut self, slots: Option<&[usize]>) -> Result<Value> {
         // The dispatcher refreshes the advertised capabilities before claiming.
@@ -398,6 +402,9 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
             }
         }
         let mut heartbeat = self.runtime.now();
+        let nanoapi = reference
+            .as_str()
+            .is_some_and(|r| r.starts_with("nanoapi_"));
         while self.runtime.now() < deadline {
             if !keepalive.active()
                 && self.runtime.now() - heartbeat > 15000
@@ -416,7 +423,7 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                             json!({"code":e.0,"retries":retries}),
                             self.runtime.now(),
                         );
-                        self.runtime.sleep(3000);
+                        self.runtime.sleep(if nanoapi { 15000 } else { 3000 });
                         continue;
                     }
                     return self.fail_generation(
@@ -447,7 +454,7 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                 );
             };
             if status != "COMPLETED" {
-                self.runtime.sleep(1000);
+                self.runtime.sleep(if nanoapi { 15000 } else { 1000 });
                 continue;
             };
             // Metadata only: never repeat a billable submission. The nonce-bound signed
@@ -491,7 +498,7 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                             json!({"code":e.0,"retries":retries}),
                             self.runtime.now(),
                         );
-                        self.runtime.sleep(3000);
+                        self.runtime.sleep(if nanoapi { 15000 } else { 3000 });
                         continue;
                     }
                     return self.fail_generation(

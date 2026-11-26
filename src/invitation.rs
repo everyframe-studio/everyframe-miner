@@ -7,7 +7,7 @@ use serde_json::{Value, json};
 pub const DISABLED: &str = "DISABLED_PENDING_OPERATOR_ATTESTATION";
 pub const PUBLIC_SCRIPT: &str =
     "#!/bin/sh\nset -eu\n# Public image: anonymous pull; no registry credentials.\n";
-pub const PROVIDERS: [(&str, &str); 28] = [
+pub const PROVIDERS: [(&str, &str); 29] = [
     ("ltx", "LTX_API_KEY"),
     ("fal", "FAL_KEY"),
     ("minimax", "MINIMAX_API_KEY"),
@@ -36,6 +36,7 @@ pub const PROVIDERS: [(&str, &str); 28] = [
     ("kie", "KIE_API_KEY"),
     ("piapi", "PIAPI_API_KEY"),
     ("revana", "REVANA_API_KEY"),
+    ("nanoapi", "NANOAPI_API_KEY"),
 ];
 pub const ALIBABA_WORKSPACE_KEY: &str = "DASHSCOPE_WORKSPACE_ID";
 pub fn valid_workspace(v: &Value) -> bool {

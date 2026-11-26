@@ -191,7 +191,7 @@ pub(crate) fn check_with_timeout(
             Err(_) => (Verdict::Rejected, "invalid_foundry_credentials"),
         };
     }
-    let mut req = if matches!(provider, "vidlab" | "revana" | "kie" | "piapi") {
+    let mut req = if matches!(provider, "vidlab" | "revana" | "kie" | "piapi" | "nanoapi") {
         let Ok(request) = crate::balances::balance_request(provider, key) else {
             return (Verdict::Unverified, "key_check_unsupported");
         };
@@ -245,7 +245,7 @@ pub(crate) fn check_with_timeout(
                 };
             }
             let recognized = match provider {
-                "vidlab" | "revana" | "kie" | "piapi" => {
+                "vidlab" | "revana" | "kie" | "piapi" | "nanoapi" => {
                     crate::balances::parse_usd_balance(provider, &v).is_ok()
                 }
                 "higgsfield" => v["usd"]

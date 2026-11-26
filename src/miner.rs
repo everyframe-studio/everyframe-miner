@@ -402,6 +402,9 @@ impl Miner<'_> {
                     if payload["seedanceProviders"] == true {
                         query.append_pair("seedanceProviders", "1");
                     }
+                    if payload["magiProviders"] == true {
+                        query.append_pair("magiProviders", "1");
+                    }
                     if payload["mediaProviders"] == true {
                         query.append_pair("mediaProviders", "1");
                     }

@@ -155,6 +155,12 @@ pub(crate) fn balance_request(provider: &str, key: &str) -> Result<Request> {
             "Authorization",
             format!("Bearer {key}"),
         ),
+        "nanoapi" => (
+            "https://api.nanoapi.ai/v1/balance",
+            "api.nanoapi.ai",
+            "Authorization",
+            format!("Bearer {key}"),
+        ),
         "kie" => (
             "https://api.kie.ai/api/v1/chat/credit",
             "api.kie.ai",
@@ -248,6 +254,13 @@ pub(crate) fn parse_usd_balance(provider: &str, v: &Value) -> Result<f64> {
     let n = match provider {
         "vidlab" => number(&v["data"]["available_usd"])?,
         "revana" => number(&v["available_usd"])?,
+        "nanoapi" => {
+            crate::need(
+                v["data"]["object"] == "balance" && v["data"]["currency"] == "USD",
+                "invalid_balance",
+            )?;
+            number(&v["data"]["available"])?
+        }
         "kie" => {
             crate::need(v["code"] == 200, "invalid_balance")?;
             number(&v["data"])? * 0.005

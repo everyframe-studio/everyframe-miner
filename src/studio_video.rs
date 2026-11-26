@@ -166,6 +166,18 @@ pub fn check_with(spec: &Value, p: &Value) -> Result<()> {
             )?;
         }
         let duration = n(&a["durationMs"])?;
+        if p["provider"] == "nanoapi" && role == "first" {
+            let (w, h) = s(&v["aspect"])?
+                .split_once(':')
+                .ok_or(Error("invalid_studio_aspect"))?;
+            let w: f64 = w.parse().map_err(|_| Error("invalid_studio_aspect"))?;
+            let h: f64 = h.parse().map_err(|_| Error("invalid_studio_aspect"))?;
+            let ratio = n(&a["width"])? as f64 * h / (n(&a["height"])? as f64 * w);
+            need((ratio - 1.0).abs() <= 0.01, "invalid_reference_aspect")?;
+        }
+        if (p["provider"] == "nanoapi" || p["provider"] == "kie") && kind == 1 {
+            need(duration >= 2000, "invalid_reference_metadata")?;
+        }
         if pika {
             let pixels = n(&a["width"])? * n(&a["height"])?;
             need(
@@ -332,6 +344,15 @@ pub fn body_with(spec: &Value, p: &Value, urls: &[String]) -> Result<(String, Va
     let has_refs = !images.is_empty() || !videos.is_empty() || !audio.is_empty();
     let model = s(&p["apiModel"])?;
     let mut b = json!({"prompt":v["prompt"],"duration":v["duration"],"aspect_ratio":v["aspect"],"seed":v["seed"]});
+    if matches!(
+        (s(&p["provider"])?, model),
+        ("wavespeed", "sand-ai/magi-2/text-to-video")
+            | ("kie", "magi-2/text-to-video")
+            | ("nanoapi", "magi-2.0")
+            | ("revana", "magi-2")
+    ) {
+        return magi_body(s(&p["provider"])?, b, first, last, [images, videos, audio]);
+    }
     if p["provider"] == "higgsfield" {
         need(
             model == "sand/magi-2/text-to-video",
@@ -645,6 +666,80 @@ pub fn body_with(spec: &Value, p: &Value, urls: &[String]) -> Result<(String, Va
         ),
         b,
     ))
+}
+
+fn magi_body(
+    provider: &str,
+    mut input: Value,
+    first: Option<&String>,
+    last: Option<&String>,
+    media: [Vec<&String>; 3],
+) -> Result<(String, Value)> {
+    let mode = if first.is_some() {
+        "image-to-video"
+    } else if media.iter().any(|items| !items.is_empty()) {
+        "reference-to-video"
+    } else {
+        "text-to-video"
+    };
+    let (first_key, last_key, media_keys) = match provider {
+        "wavespeed" => ("image", "last_image", ["images", "videos", "audios"]),
+        "kie" => (
+            "first_frame_url",
+            "last_frame_url",
+            [
+                "reference_image_urls",
+                "reference_video_urls",
+                "reference_audio_urls",
+            ],
+        ),
+        "nanoapi" => ("", "", ["image_urls", "video_urls", "audio_urls"]),
+        "revana" => (
+            "image_url",
+            "end_image_url",
+            ["image_urls", "video_urls", "audio_urls"],
+        ),
+        _ => return Err(Error("unsupported_provider")),
+    };
+    if let Some(first) = first {
+        if provider == "nanoapi" {
+            input["image_urls"] = json!(std::iter::once(first).chain(last).collect::<Vec<_>>());
+        } else {
+            input[first_key] = json!(first);
+            if let Some(last) = last {
+                input[last_key] = json!(last);
+            }
+        }
+    }
+    for (key, urls) in media_keys.into_iter().zip(media) {
+        if !urls.is_empty() {
+            input[key] = json!(urls);
+        }
+    }
+    if provider == "revana" {
+        input.as_object_mut().unwrap().remove("seed");
+        input["audio"] = json!(true);
+        input["resolution"] = json!("1080p");
+        let cents = n(&input["duration"])? * 11;
+        return Ok((
+            "/v1/generations".into(),
+            json!({"model":"magi-2","input":input,"max_cost_usd":cents as f64 / 100.0}),
+        ));
+    }
+    input["generate_audio"] = json!(true);
+    if provider == "wavespeed" {
+        return Ok((format!("/api/v3/sand-ai/magi-2/{mode}"), input));
+    }
+    input["resolution"] = json!("1080p");
+    if provider == "kie" {
+        return Ok((
+            "/api/v1/jobs/createTask".into(),
+            json!({"model":format!("magi-2/{mode}"),"input":input}),
+        ));
+    }
+    input["model"] = json!("magi-2.0");
+    input["mode"] = json!(mode.replace('-', "_"));
+    Ok(("/v1/tasks".into(), input))
 }
 
 pub fn model_registry() -> Value {

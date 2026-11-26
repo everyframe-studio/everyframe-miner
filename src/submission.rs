@@ -128,6 +128,7 @@ pub const PROVIDER_ERROR_HOSTS: &[&str] = &[
     "api.piapi.ai",
     "api.stability.ai",
     "api.wavespeed.ai",
+    "api.nanoapi.ai",
     "openrouter.ai",
     "api.openai.com",
     "api.x.ai",

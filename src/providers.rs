@@ -44,6 +44,7 @@ pub struct Router<'a> {
     pub(crate) catalog: crate::model_availability::CatalogCache,
     pub(crate) ltx25_cache: std::cell::RefCell<Option<(String, i64, Value)>>,
     pub(crate) wavespeed_cache: std::cell::RefCell<Option<crate::wavespeed::Cached>>,
+    nanoapi_result: std::cell::RefCell<Option<(String, Value)>>,
 }
 fn reference(v: &Value) -> Result<String> {
     need(matches("[a-zA-Z0-9_-]{1,150}", v), "invalid_provider_ref")?;
@@ -80,6 +81,8 @@ fn prefix(p: &str) -> &str {
         "higgsfield" => "https://api.higgsfield.ai",
         "kie" => "https://api.kie.ai",
         "piapi" => "https://api.piapi.ai",
+        "wavespeed" => "https://api.wavespeed.ai",
+        "nanoapi" => "https://api.nanoapi.ai",
         _ => "",
     }
 }
@@ -126,6 +129,7 @@ impl<'a> Router<'a> {
             catalog: crate::model_availability::CatalogCache::default(),
             ltx25_cache: std::cell::RefCell::default(),
             wavespeed_cache: std::cell::RefCell::default(),
+            nanoapi_result: std::cell::RefCell::default(),
         }
     }
     fn budget_cache(&self) -> std::sync::MutexGuard<'_, crate::provider_budget::Cache> {
@@ -223,6 +227,10 @@ impl<'a> Router<'a> {
             return Ok(data["data"].clone());
         }
         if p == "vidlab" {
+            return Ok(data["data"].clone());
+        }
+        if p == "nanoapi" {
+            need(data["data"].is_object(), "invalid_provider_response")?;
             return Ok(data["data"].clone());
         }
         if p == "pika" && body.is_some() {
@@ -355,6 +363,15 @@ impl<'a> Router<'a> {
         let result = self.api(p, &path, Some(&body))?;
         let r = match p {
             "fal" | "higgsfield" => reference(&result["request_id"])?,
+            "kie" => reference(&result["taskId"])?,
+            "revana" | "nanoapi" => reference(&result["id"])?,
+            "wavespeed" => {
+                let model = path
+                    .strip_prefix("/api/v3/")
+                    .ok_or(Error("unsupported_studio_model"))?;
+                let data = self.wavespeed_response(result, &json!({"apiModel":model}), None)?;
+                reference(&data["id"])?
+            }
             "openrouter" => reference(&result["id"])?,
             "pika" => reference(&result["id"])?,
             "vivix" => {
@@ -565,18 +582,47 @@ impl<'a> Router<'a> {
                 } else {
                     &job["model"]
                 };
-                let expected_model = if p == "higgsfield" && model == "sand/magi-2/text-to-video" {
-                    let refs = spec["input"]["references"]
-                        .as_array()
-                        .ok_or(Error("invalid_studio_references"))?;
-                    crate::studio_video::magi_endpoint(refs)
-                } else {
-                    model
-                };
+                let expected_model =
+                    if matches!(model, "sand/magi-2/text-to-video" | "magi-2/text-to-video") {
+                        let refs = spec["input"]["references"]
+                            .as_array()
+                            .ok_or(Error("invalid_studio_references"))?;
+                        let path = crate::studio_video::magi_endpoint(refs);
+                        if p == "kie" {
+                            path.strip_prefix("sand/").unwrap()
+                        } else {
+                            path
+                        }
+                    } else {
+                        model
+                    };
                 need(
                     returned_model.is_null() || returned_model == expected_model,
                     "provider_model_mismatch",
                 )?;
+                job
+            }
+            "wavespeed" => {
+                let refs = spec["input"]["references"]
+                    .as_array()
+                    .ok_or(Error("invalid_studio_references"))?;
+                let expected =
+                    crate::studio_video::magi_endpoint(refs).replacen("sand/", "sand-ai/", 1);
+                let value = self.api(p, &format!("/api/v3/predictions/{r}/result"), None)?;
+                self.wavespeed_response(value, &json!({"apiModel":expected}), Some(r))?
+            }
+            "nanoapi" => {
+                if let Some((id, data)) = self.nanoapi_result.borrow().as_ref()
+                    && id == r
+                {
+                    return Ok(data.clone());
+                }
+                let job = self.api(p, &format!("/v1/tasks/{r}"), None)?;
+                need(job["id"] == r, "provider_id_mismatch")?;
+                need(job["model"] == model, "provider_model_mismatch")?;
+                if job["status"] == "succeeded" {
+                    self.nanoapi_result.replace(Some((r.into(), job.clone())));
+                }
                 job
             }
             "vivix" => {
@@ -758,6 +804,13 @@ impl<'a> Router<'a> {
                 &["FAILED", "CANCELLED"],
             ),
             "vidlab" | "revana" => (&["queued"], &["running"], &["succeeded"], &["failed"]),
+            "nanoapi" => (&["queued"], &["running"], &["succeeded"], &["failed"]),
+            "wavespeed" => (
+                &["created", "queued"],
+                &["processing", "running"],
+                &["completed"],
+                &["failed", "cancelled", "timeout", "deleted"],
+            ),
             "higgsfield" => (
                 &["queued"],
                 &["in_progress"],
@@ -1331,6 +1384,26 @@ impl Provider for Router<'_> {
                     &[],
                 )?
             }
+            "nanoapi" | "wavespeed" => {
+                let urls = data["outputs"]
+                    .as_array()
+                    .ok_or(Error("provider_no_media"))?;
+                need(urls.len() == 1, "provider_no_media")?;
+                let url = urls[0]
+                    .as_str()
+                    .or_else(|| urls[0]["url"].as_str())
+                    .ok_or(Error("provider_no_media"))?;
+                let hosts: &[&str] = if p == "nanoapi" {
+                    &["cdn.nanoapi.ai"]
+                } else {
+                    &[
+                        "static.wavespeed.ai",
+                        "cdn.wavespeed.ai",
+                        "*.cloudfront.net",
+                    ]
+                };
+                self.download(&p, url, hosts, None, &[])?
+            }
             "pika" => {
                 need(
                     data["deleted_at"].is_null()
@@ -1498,6 +1571,9 @@ impl Provider for Router<'_> {
 pub fn failure_category(provider: &str, data: &Value) -> &'static str {
     if provider == "higgsfield" && data["status"] == "nsfw" {
         return "provider_content_rejected";
+    }
+    if provider == "nanoapi" && data["error"]["type"] == "insufficient_balance" {
+        return "provider_billing_required";
     }
     if provider == "wavespeed" {
         return match crate::wavespeed::error(data["code"].as_i64().unwrap_or(1403)).0 {

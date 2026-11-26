@@ -137,7 +137,7 @@ pub fn reference_policy(raw: &Value, spec: &Value, model: &Value) -> Result<()> 
 }
 
 impl Router<'_> {
-    fn wavespeed_response(
+    pub(crate) fn wavespeed_response(
         &self,
         value: Value,
         model: &Value,
