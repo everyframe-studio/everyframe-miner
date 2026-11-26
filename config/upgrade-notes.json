@@ -1192,6 +1192,27 @@
           "when": "Close and reopen a running everycli ui after updating the CLI."
         }
       ]
+    },
+    {
+      "version": "v1.3.4",
+      "title": "Four more Sand.ai MAGI-2 providers",
+      "changes": [
+        "Serve MAGI-2 through WaveSpeedAI, Kie.ai, NanoAPI and Revana AI. Higgsfield remains available.",
+        "The new offers support 4–30 second clips in 1080p with generated audio. Available reference inputs depend on the provider."
+      ],
+      "workerUpdate": "conditional",
+      "actions": [
+        {
+          "kind": "worker-update",
+          "requirement": "conditional",
+          "when": "To serve the new MAGI-2 routes, install the compatible signed worker, configure the provider credentials, and enable its offer in Models."
+        },
+        {
+          "kind": "restart-ui",
+          "requirement": "conditional",
+          "when": "Close and reopen a running everycli ui after updating the CLI."
+        }
+      ]
     }
   ]
 }

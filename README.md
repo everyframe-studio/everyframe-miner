@@ -36,7 +36,7 @@ every model in the registry is necessarily available for mining.
 
 ## What's new
 
-v1.3.3 adds Sand.ai MAGI-2 worker support through Higgsfield for 4–30 second videos in 1080p. Run `everycli update`, then `everycli worker-update --check`, to check for the compatible signed worker.
+v1.3.4 adds four Sand.ai MAGI-2 providers. Run `everycli update`, then `everycli worker-update --check` to check for the compatible signed worker.
 
 v1.3.2 adds Seedance 2.5 text-to-video support for VidLab, Higgsfield, Kie.ai, PiAPI, and Revana AI. Run `everycli update`, then `everycli worker-update --check` to check for a compatible signed worker. [Release notes](RELEASE-NOTES-v1.3.2.md)
 
@@ -893,14 +893,23 @@ everycli providers  # Reports key presence and permissions, never key values
 everycli offers
 ```
 
-### Sand.ai MAGI-2 via Higgsfield
+### Sand.ai MAGI-2
 
-Run `everycli offers` and look for `studio/higgsfield/sand/magi-2/text-to-video`.
-This single offer covers text prompts, opening and closing frames, and image,
-video or audio references. MAGI-2 generates 1080p clips lasting 4–30 seconds.
-Serving it requires a worker that supports MAGI-2, Higgsfield credentials
-(`HF_CREDENTIALS`), and an enabled offer. Higgsfield allows one active MAGI-2
-generation per account across the three input modes.
+MAGI-2 generates 1080p clips lasting 4–30 seconds with audio. In Models or
+`everycli offers`, choose the offer for your provider.
+
+| Provider | Offer ID | Reference media |
+| --- | --- | --- |
+| Higgsfield | `studio/higgsfield/sand/magi-2/text-to-video` | Image, video, audio |
+| WaveSpeedAI | `studio/wavespeed/sand-ai/magi-2/text-to-video` | Image, video, audio |
+| Kie.ai | `studio/kie/magi-2/text-to-video` | Image, video, audio |
+| NanoAPI | `studio/nanoapi/magi-2.0` | Image, video, audio |
+| Revana AI | `studio/revana/magi-2` | Image |
+
+All five also support text prompts and opening and closing frames. Install the
+compatible signed worker, configure your provider credentials under API keys,
+then enable the offer in Models. Higgsfield permits one active MAGI-2 generation
+per account.
 
 ### Pika H3 Flex
 
