@@ -68,6 +68,7 @@ pub mod worker_update;
 pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ErrorContext {
+    RetryAfterSeconds(u64),
     File(std::path::PathBuf),
     Option(String),
     Command(String),

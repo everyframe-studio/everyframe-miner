@@ -24,6 +24,7 @@ struct Options {
     bad_grant: bool,
     replay: bool,
     submitted_failures: u32,
+    completion_status: bool,
     complete_failures: u32,
     complete_error: Option<&'static str>,
     failed: bool,
@@ -113,6 +114,9 @@ impl Runtime for Handle {
                 *self.worker_key.borrow_mut() = body["signingKey"].as_str().unwrap().into();
                 *self.encryption_key.borrow_mut() = body["encryptionKey"].as_str().unwrap().into();
                 let mut reply = json!({"sessionId":"session","challengeId":"challenge","signingKey":body["signingKey"],"expires":9999999});
+                if self.options.completion_status {
+                    reply["completionStatusPolicy"] = json!(1);
+                }
                 if self.options.media_policy {
                     reply["mediaPolicy"] = json!(1);
                 }
@@ -158,6 +162,13 @@ impl Runtime for Handle {
                             return Err(Error("lost_ack"));
                         }
                         json!({})
+                    }
+                    "completion_status" => {
+                        let receipts = self.receipts.borrow();
+                        let receipt = &receipts.last().unwrap()["receipt"]["value"];
+                        assert_eq!(request["payload"]["outputHash"], receipt["outputHash"]);
+                        assert!(request["payload"].get("video").is_none());
+                        json!({"ok":true,"jobId":receipt["jobId"],"outputHash":receipt["outputHash"]})
                     }
                     "complete" => {
                         std::thread::sleep(std::time::Duration::from_millis(
@@ -1235,4 +1246,19 @@ fn in_flight_job_refreshes_cdn_policy_without_repeating_generation() {
     let refresh = calls.iter().position(|a| a == "media_policy").unwrap();
     assert!(calls.iter().position(|a| a == "submitted").unwrap() < refresh);
     assert!(refresh < calls.iter().position(|a| a == "complete").unwrap());
+}
+
+#[test]
+fn lost_upload_ack_uses_receipt_status_without_resending_media() {
+    let (mut worker, state) = fixture(
+        Options {
+            completion_status: true,
+            complete_failures: 1,
+            ..Default::default()
+        },
+        json!({}),
+    );
+    assert_eq!(worker.step().unwrap()["state"], "accepted");
+    assert_eq!(state.complete.get(), 1);
+    assert_eq!(state.receipts.borrow()[0]["statusPolling"], true);
 }
