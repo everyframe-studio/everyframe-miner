@@ -515,15 +515,41 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
             let value = json!({"protocol":1,"sessionId":self.session["sessionId"],"minerId":self.miner_id,"jobId":work["jobId"],"attemptId":attempt,"inputHash":work["inputHash"],"grantNonce":grant,"providerRef":reference,"outputHash":protocol::sha(&output.media),"bytes":output.media.len(),"providerResponseHash":output.response_hash});
             crate::execution_diagnostics::output(&output.media, s(&value["outputHash"])?);
             let receipt = protocol::signed(&value, &self.keys.signing)?;
-            let payload = json!({"receipt":receipt,"video":protocol::b64(&output.media)});
+            let mut payload = json!({"receipt":receipt,"video":protocol::b64(&output.media)});
+            let supports_status = self.session["completionStatusPolicy"].as_u64() == Some(1);
+            if supports_status {
+                payload["statusPolling"] = json!(true);
+            }
+            let query = json!({"attemptId":attempt,"outputHash":value["outputHash"]});
+            let mut poll = false;
+            let mut retry_count = 0u32;
+            let mut delivery_deadline = deadline;
             progress.emit(
                 "uploading_output",
                 json!({"bytes":output.media.len()}),
                 self.runtime.now(),
             );
             let mut refused = 0;
-            while self.runtime.now() < deadline {
-                let completion = self.call("complete", payload.clone());
+            while self.runtime.now() < delivery_deadline {
+                if !poll && self.runtime.now() >= deadline {
+                    break;
+                }
+                let completion = if poll {
+                    self.call("completion_status", query.clone())
+                } else {
+                    self.call("complete", payload.clone())
+                };
+                let retry_after_ms = match completion.as_ref().err().and_then(|e| e.1.as_ref()) {
+                    Some(crate::ErrorContext::RetryAfterSeconds(seconds)) => {
+                        seconds.saturating_mul(1000)
+                    }
+                    _ => 0,
+                };
+                if supports_status {
+                    // A lost response may follow a durable upload. Ask before sending it again.
+                    poll = true;
+                    delivery_deadline = deadline.saturating_add(180_000);
+                }
                 if let Err(e) = &completion {
                     retries += 1;
                     progress.emit(
@@ -545,6 +571,13 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                         return Ok(
                             json!({"state":"accepted","jobId":work["jobId"],"outputHash":value["outputHash"]}),
                         );
+                    }
+                    Ok((out, _)) if supports_status && out["state"] == "upload_required" => {
+                        poll = false;
+                    }
+                    Ok((out, _)) if supports_status && out["state"] == "received" => {
+                        delivery_deadline = n(&out["deadline"])?.min(delivery_deadline);
+                        retry_count = 2;
                     }
                     // Refused twice in a row: the output itself failed validation.
                     // Report it now so the job can move on, instead of resending
@@ -573,7 +606,12 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                     }
                     _ => refused = 0,
                 }
-                self.runtime.sleep(1000)
+                let base_ms = (1000_u64 << retry_count.min(5)).min(30_000);
+                retry_count = retry_count.saturating_add(1);
+                let delay = retry_after_ms.max(base_ms - rand::random::<u64>() % (base_ms / 4 + 1));
+                self.runtime.sleep(
+                    delay.min(delivery_deadline.saturating_sub(self.runtime.now()).max(0) as u64),
+                )
             }
             return Ok(json!({"state":"reconcile"}));
         }

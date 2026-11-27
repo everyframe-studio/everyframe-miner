@@ -542,7 +542,19 @@ impl Http for PublicHttp {
                             error, status, host, &bytes, &secrets,
                         ));
                     }
-                    return Err(crate::diagnostics::http_error(response.status().as_u16()));
+                    let mut error = crate::diagnostics::http_error(response.status().as_u16());
+                    if matches!(response.status().as_u16(), 429 | 503)
+                        && u.host_str() == Some("subnet.everyframe.studio")
+                        && u.path().ends_with("/v1/action")
+                        && let Some(seconds) = response
+                            .headers()
+                            .get("retry-after")
+                            .and_then(|v| v.to_str().ok())
+                            .and_then(|s| s.parse::<u64>().ok())
+                    {
+                        error.1 = Some(crate::ErrorContext::RetryAfterSeconds(seconds));
+                    }
+                    return Err(error);
                 }
                 need(
                     response
