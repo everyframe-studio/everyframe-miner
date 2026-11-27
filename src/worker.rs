@@ -608,7 +608,7 @@ impl<R: Runtime, P: Provider> Worker<R, P> {
                 }
                 let base_ms = (1000_u64 << retry_count.min(5)).min(30_000);
                 retry_count = retry_count.saturating_add(1);
-                let delay = retry_after_ms.max(base_ms + rand::random::<u64>() % (base_ms / 2 + 1));
+                let delay = retry_after_ms.max(base_ms - rand::random::<u64>() % (base_ms / 4 + 1));
                 self.runtime.sleep(
                     delay.min(delivery_deadline.saturating_sub(self.runtime.now()).max(0) as u64),
                 )
