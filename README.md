@@ -36,7 +36,7 @@ every model in the registry is necessarily available for mining.
 
 ## What's new
 
-v1.3.4 adds four Sand.ai MAGI-2 providers. Run `everycli update`, then `everycli worker-update --check` to check for the compatible signed worker.
+v1.3.5 checks for a changed worker configuration before a first deployment. If an earlier attempt stopped at `provision_intent`, run `everycli update` and then `everycli reconcile` in the original profile.
 
 v1.3.2 adds Seedance 2.5 text-to-video support for VidLab, Higgsfield, Kie.ai, PiAPI, and Revana AI. Run `everycli update`, then `everycli worker-update --check` to check for a compatible signed worker. [Release notes](RELEASE-NOTES-v1.3.2.md)
 

@@ -593,6 +593,94 @@ fn abandoned_preparation_is_archived_without_cloud_mutation_or_losing_keys() {
 }
 
 #[test]
+fn initial_deploy_refreshes_a_stale_compose_hash_before_phala_provision() {
+    for mismatch_persists in [false, true] {
+        let (mut r, _) = Rig::reconnect_fixture();
+        r.state().write("deployment", &json!({})).unwrap();
+        r.inv["appId"] = Value::Null;
+        let compose = &mut r.inv["request"]["compose_file"];
+        let manifest = compose["docker_compose_file"].as_str().unwrap();
+        compose["docker_compose_file"] = json!(format!("{manifest}\n"));
+        r.inv["composeHash"] = json!(cloud::compose_hash(compose).unwrap());
+        r.status.borrow_mut()["composeHash"] = if mismatch_persists {
+            json!("a".repeat(64))
+        } else {
+            r.inv["composeHash"].clone()
+        };
+        r.status.borrow_mut()["deploymentRefreshAvailable"] = json!(false);
+        r.status.borrow_mut()["appId"] = json!("0".repeat(40));
+        r.calls.borrow_mut().clear();
+        let error = r
+            .miner()
+            .deploy(0.06, &|_| Err(Error("cancelled")))
+            .unwrap_err();
+        assert_eq!(
+            error.0,
+            if mismatch_persists {
+                "reconnect_target_mismatch"
+            } else {
+                "cancelled"
+            }
+        );
+        assert_eq!(
+            r.calls
+                .borrow()
+                .iter()
+                .filter(|(p, _)| p.ends_with("/onboarding/enroll"))
+                .count(),
+            1
+        );
+        assert!(
+            r.calls
+                .borrow()
+                .iter()
+                .all(|(p, _)| !p.starts_with("POST /cvms"))
+        );
+        assert_eq!(r.state().read("deployment", false).unwrap(), json!({}));
+        if !mismatch_persists {
+            assert_eq!(
+                r.state().read("config", false).unwrap()["invitation"]["value"]["composeHash"],
+                r.inv["composeHash"]
+            );
+        }
+    }
+}
+
+#[test]
+fn preparation_recovery_after_compose_hash_change_requires_empty_workspace() {
+    for case in ["empty", "nonempty", "resumed", "missing_hash"] {
+        let r = abandoned_preparation();
+        r.status.borrow_mut()["composeHash"] = json!("e".repeat(64));
+        match case {
+            "nonempty" => r.cvms.borrow_mut().push(json!({
+                "name":"other-vm","app_id":"1".repeat(40)
+            })),
+            "resumed" => r.status.borrow_mut()["draining"] = json!(false),
+            "missing_hash" => r.status.borrow_mut()["composeHash"] = Value::Null,
+            _ => {}
+        }
+        let before = r.state().read("deployment", false).unwrap();
+        let result = r.miner().reconcile();
+        if case == "empty" {
+            assert_eq!(result.unwrap()["phase"], "not_deployed");
+            assert_eq!(
+                r.state().read("deployment-recovery", false).unwrap()[0]["deployment"],
+                before
+            );
+        } else {
+            assert_eq!(result.unwrap_err().0, "preparation_recovery_conflict");
+            assert_eq!(r.state().read("deployment", false).unwrap(), before);
+        }
+        assert!(
+            r.calls
+                .borrow()
+                .iter()
+                .all(|(method, _)| method.starts_with("GET "))
+        );
+    }
+}
+
+#[test]
 fn preparation_recovery_refuses_ambiguity_and_outages_without_changing_journal() {
     for case in 0..10 {
         let r = abandoned_preparation();

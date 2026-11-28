@@ -1261,14 +1261,22 @@ impl Miner<'_> {
                 current["appId"] == "0".repeat(40),
                 "deleted_workload_reconnect_required",
             )?;
-            if current["deploymentRefreshAvailable"] == true {
+            need(
+                matches("[0-9a-f]{64}", &current["composeHash"]),
+                "invalid_coordinator_response",
+            )?;
+            if current["deploymentRefreshAvailable"] == true
+                || current["composeHash"] != c.invitation["composeHash"]
+            {
                 self.reconnect_locked(None, &|_| Ok(()))?;
                 c = self.load(true)?;
-                status = Some(self.api(&c, "status", json!({}))?);
+                let refreshed = self.api(&c, "status", json!({}))?;
                 need(
-                    status.as_ref().unwrap()["appId"] == "0".repeat(40),
-                    "deployment_binding_mismatch",
+                    refreshed["appId"] == "0".repeat(40)
+                        && refreshed["composeHash"] == c.invitation["composeHash"],
+                    "reconnect_target_mismatch",
                 )?;
+                status = Some(refreshed);
             }
         }
         let inv = &c.invitation;
@@ -1993,13 +2001,22 @@ impl Miner<'_> {
                 && status["activeJobs"] == 0
                 && status["online"] == false
                 && status["attested"] == false
-                && status["composeHash"] == c.invitation["composeHash"],
+                && matches("[0-9a-f]{64}", &status["composeHash"]),
             "preparation_recovery_conflict",
         )?;
         let catalog = self.cloud(c)?.catalog("/cvms/paginated")?;
         let items = catalog["items"]
             .as_array()
             .ok_or(Error("invalid_cloud_response"))?;
+        // A signed release can change while a first deployment is still in
+        // preparation. With an empty workspace there is no CVM to adopt.
+        // Reconnect will verify the fresh deployment before it can be used.
+        if status["composeHash"] != c.invitation["composeHash"] {
+            need(
+                items.is_empty() && status["draining"] == true,
+                "preparation_recovery_conflict",
+            )?;
+        }
         for item in items {
             need(
                 item["name"].is_string() && item["app_id"].is_string(),

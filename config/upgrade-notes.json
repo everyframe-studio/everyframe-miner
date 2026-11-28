@@ -1213,6 +1213,27 @@
           "when": "Close and reopen a running everycli ui after updating the CLI."
         }
       ]
+    },
+    {
+      "version": "v1.3.5",
+      "title": "Recovery for interrupted first deployments",
+      "changes": [
+        "Before a first deployment, everycli checks the saved worker configuration against the coordinator and refreshes it if the compose hash has changed.",
+        "When a configuration change coincides with an interrupted preparation, reconcile can archive it after verifying an empty Phala workspace and an idle, draining miner. Saved provider keys are preserved."
+      ],
+      "workerUpdate": "not_required",
+      "actions": [
+        {
+          "kind": "reconcile",
+          "requirement": "conditional",
+          "when": "If your first deployment stopped at provision_intent, run this in the original profile. Once it reports not_deployed, run everycli reconnect with the same hotkey."
+        },
+        {
+          "kind": "restart-ui",
+          "requirement": "conditional",
+          "when": "Close and reopen a running everycli ui after updating the CLI."
+        }
+      ]
     }
   ]
 }
